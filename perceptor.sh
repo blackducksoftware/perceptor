@@ -1,1 +1,1 @@
-go run perceptor/perceptor_main.go | tee perceptor_log.txt
+go run cmd/perceptor.go | tee perceptor_log.txt

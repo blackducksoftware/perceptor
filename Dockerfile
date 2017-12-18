@@ -4,10 +4,10 @@ ENV GOPATH=/go/
 ENV GOBIN=/go/bin/
 WORKDIR /
 
-COPY ./ /go/src/github.com/blackducksoftware/canary/
+COPY ./ /go/src/bitbucket.org/bdsengineering/perceptor/
 
 WORKDIR /go/src/github.com/blackducksoftware/canary/
 
-RUN go install ./cmd/sidecar/service_scanner.go
+RUN go install ./cmd/perceptor.go
 
 CMD /go/bin/service_scanner
