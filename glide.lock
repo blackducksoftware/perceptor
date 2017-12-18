@@ -1,5 +1,5 @@
 hash: 49defa33f6035511c08698023c45234f10441f81be571871061bdf0af34f2d26
-updated: 2017-12-18T13:08:23.450836044-05:00
+updated: 2017-12-18T13:58:51.410152831-05:00
 imports:
 - name: bitbucket.org/bdsengineering/go-hub-client
   version: 978551b5ab285bfdd7fece0d6cd589d162a8a471
@@ -8,12 +8,6 @@ imports:
   subpackages:
   - hubapi
   - hubclient
-- name: github.com/alecthomas/template
-  version: a0175ee3bccc567396460bf5acd36800cb10c49c
-  subpackages:
-  - parse
-- name: github.com/alecthomas/units
-  version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
@@ -146,7 +140,7 @@ imports:
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: golang.org/x/crypto
-  version: 94eea52f7b742c7cbe0b03b22f0c4c8631ece122
+  version: 244f6ce1f09cc9f3d7bffe29b033aaa13c0cc2f3
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
@@ -162,8 +156,6 @@ imports:
   subpackages:
   - unix
   - windows
-  - windows/registry
-  - windows/svc/eventlog
 - name: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
@@ -178,8 +170,6 @@ imports:
   - unicode/bidi
   - unicode/norm
   - width
-- name: gopkg.in/alecthomas/kingpin.v2
-  version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
