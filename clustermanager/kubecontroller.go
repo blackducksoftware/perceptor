@@ -1,10 +1,10 @@
-package kube
+package clustermanager
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	log "github.com/prometheus/common/log"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -12,21 +12,21 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-type Controller struct {
+type KubeController struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
 }
 
-func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *Controller {
-	return &Controller{
+func NewKubeController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *KubeController {
+	return &KubeController{
 		informer: informer,
 		indexer:  indexer,
 		queue:    queue,
 	}
 }
 
-func (c *Controller) processNextItem() bool {
+func (c *KubeController) processNextItem() bool {
 	// Wait until there is a new item in the working queue
 	key, quit := c.queue.Get()
 	fmt.Printf("process next item -- %s, %v\n", key, quit)
@@ -43,11 +43,11 @@ func (c *Controller) processNextItem() bool {
 	return true
 }
 
-func (c *Controller) businessLogic(key string) error {
+func (c *KubeController) businessLogic(key string) error {
 	fmt.Println("syncToStdout -- " + key)
 	obj, exists, err := c.indexer.GetByKey(key)
 	if err != nil {
-		glog.Errorf("Fetching object with key %s from store failed with %v", key, err)
+		log.Errorf("Fetching object with key %s from store failed with %v", key, err)
 		return err
 	}
 
@@ -62,7 +62,7 @@ func (c *Controller) businessLogic(key string) error {
 }
 
 // handleErr checks if an error happened and makes sure we will retry later.
-func (c *Controller) handleErr(err error, key interface{}) {
+func (c *KubeController) handleErr(err error, key interface{}) {
 	if err == nil {
 		// Forget about the #AddRateLimited history of the key on every successful synchronization.
 		// This ensures that future processing of updates for this key is not delayed because of
@@ -73,7 +73,7 @@ func (c *Controller) handleErr(err error, key interface{}) {
 
 	// This controller retries 5 times if something goes wrong. After that, it stops trying.
 	if c.queue.NumRequeues(key) < 5 {
-		glog.Infof("Error syncing pod %v: %v", key, err)
+		log.Errorf("Error syncing pod %v: %v", key, err)
 
 		// Re-enqueue the key rate limited. Based on the rate limiter on the
 		// queue and the re-enqueue history, the key will be processed later again.
@@ -84,15 +84,15 @@ func (c *Controller) handleErr(err error, key interface{}) {
 	c.queue.Forget(key)
 	// Report to an external entity that, even after several retries, we could not successfully process this key
 	runtime.HandleError(err)
-	glog.Infof("Dropping pod %q out of the queue: %v", key, err)
+	log.Infof("Dropping pod %q out of the queue: %v", key, err)
 }
 
-func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
+func (c *KubeController) Run(threadiness int, stopCh chan struct{}) {
 	defer runtime.HandleCrash()
 
 	// Let the workers stop when we are done
 	defer c.queue.ShutDown()
-	glog.Info("Starting Pod controller")
+	log.Info("Starting Pod controller")
 
 	go c.informer.Run(stopCh)
 
@@ -107,10 +107,10 @@ func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
 	}
 
 	<-stopCh
-	glog.Info("Stopping Pod controller")
+	log.Info("Stopping Pod controller")
 }
 
-func (c *Controller) runWorker() {
+func (c *KubeController) runWorker() {
 	for c.processNextItem() {
 	}
 }

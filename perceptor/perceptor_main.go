@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/api/core/v1"
 
-	kube "bitbucket.org/bdsengineering/perceptor/kube"
+	clustermanager "bitbucket.org/bdsengineering/perceptor/clustermanager"
 	core "bitbucket.org/bdsengineering/perceptor/perceptorcore"
 	scanner "bitbucket.org/bdsengineering/perceptor/scanner"
 	"github.com/fsnotify/fsnotify"
@@ -37,21 +37,22 @@ func main() {
 	var sc scanner.ScanClientInterface = scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
 	// var sc scanner.ScanClientInterface = scanner.NewMockHub()
 	cache := core.NewVulnerabilityCache()
-	addPod := make(chan v1.Pod)
-	updatePod := make(chan kube.UpdatePod)
-	deletePod := make(chan string)
-	kubeClient := kube.NewKubeAPIClient(addPod, updatePod, deletePod)
+	kubeClient, err := clustermanager.NewKubeClient()
+	if err != nil {
+		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
+		panic(err)
+	}
 	var lastAdd *v1.Pod
 	go func() {
 		for {
 			select {
-			case a := <-addPod:
-				cache.AddPod(&a)
-				fmt.Printf("add pod: %v\n", a.GetAnnotations())
-				lastAdd = &a
-			case u := <-updatePod:
+			case addPod := <-kubeClient.PodAdd():
+				cache.AddPod(&addPod.New)
+				fmt.Printf("add pod: %v\n", addPod.New.GetAnnotations())
+				lastAdd = &addPod.New
+			case u := <-kubeClient.PodUpdate():
 				fmt.Printf("update pod: %v\n", u.New.GetAnnotations())
-			case d := <-deletePod:
+			case d := <-kubeClient.PodDelete():
 				fmt.Printf("delete pod: %v\n", d)
 			}
 		}
