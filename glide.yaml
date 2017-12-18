@@ -1,11 +1,38 @@
-package: .
+package: bitbucket.org/bdsengineering/perceptor
 import:
+- package: bitbucket.org/bdsengineering/go-hub-client
+  subpackages:
+  - hubapi
+  - hubclient
+  repo:    git@bitbucket.org:bdsengineering/go-hub-client.git
+  vcs:     git
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.2
+- package: github.com/golang/glog
+- package: github.com/prometheus/client_golang
+  version: v0.9.0-pre1
+  subpackages:
+  - prometheus
+- package: github.com/prometheus/common
+  subpackages:
+  - log
+- package: github.com/sirupsen/logrus
+  version: v1.0.4
+- package: github.com/spf13/viper
+  version: v1.0.0
+- package: k8s.io/api
+  subpackages:
+  - core/v1
 - package: k8s.io/apimachinery
   subpackages:
-  - pkg/api/errors
   - pkg/apis/meta/v1
+  - pkg/fields
+  - pkg/util/runtime
+  - pkg/util/wait
 - package: k8s.io/client-go
-  version: ^5.0.1
+  version: v6.0.0
   subpackages:
   - kubernetes
+  - tools/cache
   - tools/clientcmd
+  - util/workqueue
