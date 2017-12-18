@@ -20,22 +20,20 @@ import (
 
 func main() {
 	log.Info("start")
-	// mockHub := NewMockHub()
-	//go mockHub.startRandomScanFinishing()
-	// ingestPodsInfoChannel := make(chan OcPodsInfo, 1)
-	// newContainerImagesChannel := make(chan []string, 1)
-	// finishedContainerImagesChannel := make(chan []string, 1)
-	// go getPodsWatcher(ingestPodsInfoChannel)
-	// go startScans(model, mockHub, ingestPodsInfoChannel) //, newContainerImagesChannel)
-	// go pollForFinishedScans(mockHub, finishedContainerImagesChannel)
-	// go writeVulnerabilitiesToOC(finishedContainerImagesChannel)
-	// go HitHubAPI()
-	//log.Info("scan client: %v", sc)
-	// kubeMain()
-	var sc scanner.ScanClientInterface = scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
-	// var sc scanner.ScanClientInterface = scanner.NewMockHub()
+
+	var sc scanner.ScanClientInterface
+	var clusterClient clustermanager.Client
+	var err error
+
+	// chose a scanner client: real or mock
+	// sc = scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
+	sc = scanner.NewMockHub()
+
+	// chose a cluster client: real or mock
+	// clusterClient, err := clustermanager.NewKubeClient()
+	clusterClient = clustermanager.NewMockClient()
+
 	cache := core.NewVulnerabilityCache()
-	clusterClient, err := clustermanager.NewKubeClient()
 	if err != nil {
 		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
 		panic(err)
@@ -66,27 +64,7 @@ func main() {
 			}
 		}
 	}()
-	/* TODO only uncomment if you want random pod's annotations to be changed for, like, no reason
-	go func() {
-		i := 1
-		for {
-			time.Sleep(time.Second * 3)
-			if lastAdd != nil {
-				log.Info("adding annotation ...")
-				key := fmt.Sprintf("key-%d", i)
-				// clusterClient.AddPodAnnotation(lastAdd, key, "whatevs")
-				// clusterClient.ClearPodAnnotations(lastAdd)
-				bdAnnotations := clusterClient.GetBlackDuckPodAnnotations(lastAdd)
-				bdAnnotations.KeyVals[key] = "whatevs"
-				clusterClient.SetPodAnnotations(lastAdd, bdAnnotations)
-				// clusterClient.AddBlackDuckPodAnnotations(lastAdd, key, "whatevs")
-			} else {
-				log.Info("not adding annotation ...")
-			}
-			i++
-		}
-	}()
-	*/
+
 	log.Info("kube client: %v", clusterClient)
 	log.Info("finished starting")
 	setupHTTPServer()

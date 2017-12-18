@@ -54,18 +54,97 @@ func (client *KubeClient) PodDelete() <-chan DeletePod {
 	return client.podDelete
 }
 
-func (client *KubeClient) ClearBlackDuckPodAnnotations(pod *v1.Pod) error {
-	pods := client.clientset.CoreV1().Pods(pod.GetNamespace())
-	// TODO if `p` is the same type as `pod`, why do we need `p`?
-	p, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+// BEGIN POC methods
+
+func (client *KubeClient) GetAnnotations(pod *v1.Pod) (map[string]string, error) {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+	if err != nil {
+		log.Errorf("unable to get pod: %s", err.Error())
+		return nil, err
+	}
+	return kubePod.GetAnnotations(), nil
+}
+
+func (client *KubeClient) SetAnnotations(pod *v1.Pod, annotations map[string]string) error {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return err
 	}
-	annotations := p.GetAnnotations()
+	kubePod.SetAnnotations(annotations)
+	_, err = pods.Update(kubePod)
+	if err != nil {
+		log.Errorf("unable to update pod: %s", err.Error())
+	}
+	return err
+}
+
+func (client *KubeClient) AddAnnotation(pod *v1.Pod, key string, value string) error {
+	annotations, err := client.GetAnnotations(pod)
+	if err != nil {
+		return err
+	}
+	// TODO should a copy of annotations be made first?
+	annotations[key] = value
+	return client.SetAnnotations(pod, annotations)
+}
+
+func (client *KubeClient) GetPod(namespace string, name string) (*v1.Pod, error) {
+	return client.clientset.CoreV1().Pods(namespace).Get(name, meta_v1.GetOptions{})
+}
+
+func (client *KubeClient) UpdatePod(pod *v1.Pod) error {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	_, err := pods.Update(pod)
+	return err
+}
+
+// GetPodsForNamespace returns an empty slice if the namespace doesn't exist.
+func (client *KubeClient) GetPodsForNamespace(namespace string) ([]v1.Pod, error) {
+	options := meta_v1.ListOptions{}
+	podList, err := client.clientset.CoreV1().Pods(namespace).List(options)
+	if err != nil {
+		return nil, err
+	}
+	return podList.Items, nil
+}
+
+func (client *KubeClient) GetPods() ([]v1.Pod, error) {
+	options := meta_v1.ListOptions{}
+	namespaceList, err := client.clientset.CoreV1().Namespaces().List(options)
+	if err != nil {
+		return nil, err
+	}
+	pods := []v1.Pod{}
+	for _, namespace := range namespaceList.Items {
+		// log.Infof("checking name %s (namespace %s)\n", namespace.Name, namespace.Namespace)
+		podSlice, err := client.GetPodsForNamespace(namespace.Name)
+		if err != nil {
+			return nil, err
+		}
+		// log.Infof("found %d pods for namespace %s", len(podSlice), namespace.Name)
+		for _, pod := range podSlice {
+			pods = append(pods, pod)
+		}
+	}
+	return pods, nil
+}
+
+// END POC methods
+
+func (client *KubeClient) ClearBlackDuckPodAnnotations(pod Pod) error {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+	if err != nil {
+		log.Errorf("unable to get pod: %s", err.Error())
+		return err
+	}
+	annotations := kubePod.GetAnnotations()
 	delete(annotations, "BlackDuck")
-	p.SetAnnotations(annotations)
-	_, err = pods.Update(p)
+	kubePod.SetAnnotations(annotations)
+	_, err = pods.Update(kubePod)
 	if err != nil {
 		log.Errorf("unable to clear BlackDuck pod annotations: %s", err.Error())
 		return err
@@ -80,14 +159,14 @@ func (client *KubeClient) ClearBlackDuckPodAnnotations(pod *v1.Pod) error {
 //   1. to support a rich model
 //   2. to avoid stomping on other annotations that have nothing to do
 //      with Black Duck
-func (client *KubeClient) GetBlackDuckPodAnnotations(pod *v1.Pod) (*BlackDuckAnnotations, error) {
-	pods := client.clientset.CoreV1().Pods(pod.GetNamespace())
-	p, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+func (client *KubeClient) GetBlackDuckPodAnnotations(pod Pod) (*BlackDuckAnnotations, error) {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return nil, err
 	}
-	annotations := p.GetAnnotations()
+	annotations := kubePod.GetAnnotations()
 	// get the JSON string
 	var bdString string
 	bdString, ok := annotations["BlackDuck"]
@@ -105,15 +184,14 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(pod *v1.Pod) (*BlackDuckAnn
 	return &bdAnnotations, nil
 }
 
-func (client *KubeClient) SetBlackDuckPodAnnotations(pod *v1.Pod, bdAnnotations BlackDuckAnnotations) error {
-	pods := client.clientset.CoreV1().Pods(pod.GetNamespace())
-	// TODO if `p` is the same type as `pod`, why do we need `p`?
-	p, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+func (client *KubeClient) SetBlackDuckPodAnnotations(pod Pod, bdAnnotations BlackDuckAnnotations) error {
+	pods := client.clientset.CoreV1().Pods(pod.Namespace)
+	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return err
 	}
-	annotations := p.GetAnnotations()
+	annotations := kubePod.GetAnnotations()
 	// BlackDuckAnnotations -> string
 	jsonBytes, err := json.Marshal(bdAnnotations)
 	if err != nil {
@@ -123,8 +201,8 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(pod *v1.Pod, bdAnnotations 
 	// add it into the annotations map
 	annotations["BlackDuck"] = string(jsonBytes)
 	// update the pod
-	p.SetAnnotations(annotations)
-	_, err = pods.Update(p)
+	kubePod.SetAnnotations(annotations)
+	_, err = pods.Update(kubePod)
 	if err != nil {
 		log.Errorf("unable to update pod: %s", err.Error())
 	}
