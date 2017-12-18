@@ -16,6 +16,14 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
+func NewPod(kubePod *v1.Pod) *Pod {
+	pod := Pod{
+		Name:      kubePod.Name,
+		Namespace: kubePod.Namespace,
+	}
+	return &pod
+}
+
 // KubeClient is an implementation of the Client interface for kubernetes
 type KubeClient struct {
 	controller *KubeController
@@ -162,7 +170,7 @@ func NewKubeClient() (*KubeClient, error) {
 				queue.Add(key)
 				// TODO do we need to copy obj to ensure it isn't changed by something else?
 				pod := obj.(*v1.Pod)
-				podAdd <- AddPod{New: *pod}
+				podAdd <- AddPod{New: *NewPod(pod)}
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}
@@ -175,7 +183,7 @@ func NewKubeClient() (*KubeClient, error) {
 				// TODO do we need to copy old and new to ensure they aren't changed by something else?
 				newPod := new.(*v1.Pod)
 				oldPod := old.(*v1.Pod)
-				podUpdate <- UpdatePod{New: *newPod, Old: *oldPod}
+				podUpdate <- UpdatePod{New: *NewPod(newPod), Old: *NewPod(oldPod)}
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}

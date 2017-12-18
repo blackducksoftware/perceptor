@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"

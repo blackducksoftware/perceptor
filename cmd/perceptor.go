@@ -9,10 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
-
 	clustermanager "bitbucket.org/bdsengineering/perceptor/clustermanager"
-	core "bitbucket.org/bdsengineering/perceptor/perceptorcore"
+	core "bitbucket.org/bdsengineering/perceptor/core"
 	scanner "bitbucket.org/bdsengineering/perceptor/scanner"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,22 +35,22 @@ func main() {
 	var sc scanner.ScanClientInterface = scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
 	// var sc scanner.ScanClientInterface = scanner.NewMockHub()
 	cache := core.NewVulnerabilityCache()
-	kubeClient, err := clustermanager.NewKubeClient()
+	clusterClient, err := clustermanager.NewKubeClient()
 	if err != nil {
 		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
 		panic(err)
 	}
-	var lastAdd *v1.Pod
+	var lastAdd *clustermanager.Pod
 	go func() {
 		for {
 			select {
-			case addPod := <-kubeClient.PodAdd():
-				cache.AddPod(&addPod.New)
-				fmt.Printf("add pod: %v\n", addPod.New.GetAnnotations())
+			case addPod := <-clusterClient.PodAdd():
+				cache.AddPod(addPod.New)
+				fmt.Printf("add pod: %v\n", addPod.New.Annotations)
 				lastAdd = &addPod.New
-			case u := <-kubeClient.PodUpdate():
-				fmt.Printf("update pod: %v\n", u.New.GetAnnotations())
-			case d := <-kubeClient.PodDelete():
+			case u := <-clusterClient.PodUpdate():
+				fmt.Printf("update pod: %v\n", u.New.Annotations)
+			case d := <-clusterClient.PodDelete():
 				fmt.Printf("delete pod: %v\n", d)
 			}
 		}
@@ -76,12 +74,12 @@ func main() {
 			if lastAdd != nil {
 				log.Info("adding annotation ...")
 				key := fmt.Sprintf("key-%d", i)
-				// kubeClient.AddPodAnnotation(lastAdd, key, "whatevs")
-				// kubeClient.ClearPodAnnotations(lastAdd)
-				bdAnnotations := kubeClient.GetBlackDuckPodAnnotations(lastAdd)
+				// clusterClient.AddPodAnnotation(lastAdd, key, "whatevs")
+				// clusterClient.ClearPodAnnotations(lastAdd)
+				bdAnnotations := clusterClient.GetBlackDuckPodAnnotations(lastAdd)
 				bdAnnotations.KeyVals[key] = "whatevs"
-				kubeClient.SetPodAnnotations(lastAdd, bdAnnotations)
-				// kubeClient.AddBlackDuckPodAnnotations(lastAdd, key, "whatevs")
+				clusterClient.SetPodAnnotations(lastAdd, bdAnnotations)
+				// clusterClient.AddBlackDuckPodAnnotations(lastAdd, key, "whatevs")
 			} else {
 				log.Info("not adding annotation ...")
 			}
@@ -89,7 +87,7 @@ func main() {
 		}
 	}()
 	*/
-	log.Info("kube client: %v", kubeClient)
+	log.Info("kube client: %v", clusterClient)
 	log.Info("finished starting")
 	setupHTTPServer()
 	// hack to prevent main from returning

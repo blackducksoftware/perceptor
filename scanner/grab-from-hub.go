@@ -6,7 +6,7 @@ import (
 
 	hubapi "bitbucket.org/bdsengineering/go-hub-client/hubapi"
 	hubclient "bitbucket.org/bdsengineering/go-hub-client/hubclient"
-	log "github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type Project struct {

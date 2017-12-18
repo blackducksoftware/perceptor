@@ -1,16 +1,16 @@
 package clustermanager
 
-import "k8s.io/api/core/v1"
+import "fmt"
 
 // AddPod is a wrapper around the kubernetes API object
 type AddPod struct {
-	New v1.Pod
+	New Pod
 }
 
 // UpdatePod holds the old and new versions of the changed pod
 type UpdatePod struct {
-	Old v1.Pod
-	New v1.Pod
+	Old Pod
+	New Pod
 }
 
 // DeletePod holds the id of the deleted pod
@@ -18,8 +18,32 @@ type DeletePod struct {
 	ID string
 }
 
+type Pod struct {
+	Name        string
+	Namespace   string
+	Annotations map[string]string
+	Spec        Spec
+	UID         string
+}
+
+// TODO this is currently being used as a unique identifier;
+// is that a bad idea?
+func (pod *Pod) GetKey() string {
+	return fmt.Sprintf("%s:%s", pod.Namespace, pod.Name)
+}
+
+type Spec struct {
+	Containers []Container
+}
+
+type Container struct {
+	Image string
+	Name  string
+}
+
 type BlackDuckAnnotations struct {
-	Containers map[string]Container
+	// TODO Container isn't the right type; but what is?
+	ContainerAnnotations map[string]ContainerAnnotation
 	// TODO remove KeyVals, this is just for testing, to be able
 	// to jam random stuff somewhere
 	KeyVals map[string]string
@@ -27,12 +51,12 @@ type BlackDuckAnnotations struct {
 
 func NewBlackDuckAnnotations() *BlackDuckAnnotations {
 	return &BlackDuckAnnotations{
-		Containers: make(map[string]Container),
-		KeyVals:    make(map[string]string),
+		ContainerAnnotations: make(map[string]ContainerAnnotation),
+		KeyVals:              make(map[string]string),
 	}
 }
 
-type Container struct {
+type ContainerAnnotation struct {
 	Image string
-	// vulnerabilities ?
+	// TODO vulnerabilities ?
 }

@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/prometheus/common/log"
-	"k8s.io/api/core/v1"
+	"bitbucket.org/bdsengineering/perceptor/clustermanager"
+	log "github.com/sirupsen/logrus"
 )
 
 type Pod struct {
@@ -96,7 +96,7 @@ func NewVulnerabilityCache() *VulnerabilityCache {
 // and false if the pod has already been added.
 // It extract the containers and images from the pod,
 // adding them into the cache.
-func (cache *VulnerabilityCache) AddPod(newPod *v1.Pod) bool {
+func (cache *VulnerabilityCache) AddPod(newPod clustermanager.Pod) bool {
 	_, ok := cache.Pods[newPod.Name]
 	if ok {
 		// TODO should we update the cache?
