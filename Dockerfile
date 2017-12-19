@@ -6,8 +6,8 @@ WORKDIR /
 
 COPY ./ /go/src/bitbucket.org/bdsengineering/perceptor/
 
-WORKDIR /go/src/github.com/blackducksoftware/canary/
+WORKDIR /go/src/bitbucker.org/bdsengineering/perceptor/
 
 RUN go install ./cmd/perceptor.go
 
-CMD /go/bin/service_scanner
+CMD /go/bin/perceptor
