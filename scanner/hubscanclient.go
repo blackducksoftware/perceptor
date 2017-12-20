@@ -55,7 +55,7 @@ func mapKeys(m map[string]ScanJob) []string {
 	return keys
 }
 
-func (hsc *HubScanClient) FetchProject(projectName string) *Project {
+func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 	return hsc.projectFetcher.FetchProjectOfName(projectName)
 }
 
@@ -74,7 +74,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.docker.sh: %s", err.Error())
 		log.Error(message)
-		log.Debug("output from scan.docker.sh:\n%v\n", string(stdoutStderr))
+		log.Errorf("output from scan.docker.sh:\n%v\n", string(stdoutStderr))
 		return err
 	}
 	log.Infof("successfully completed ./scan.docker.sh: %s", stdoutStderr)

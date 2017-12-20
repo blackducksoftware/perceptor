@@ -40,11 +40,12 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-func (hub *MockHub) FetchProject(projectName string) *Project {
+func (hub *MockHub) FetchProject(projectName string) (*Project, error) {
 	// TODO implement
-	return nil
+	return nil, nil
 }
 
-func (hub *MockHub) Scan(job ScanJob) {
+func (hub *MockHub) Scan(job ScanJob) error {
 	// TODO implement
+	return nil
 }

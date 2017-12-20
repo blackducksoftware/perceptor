@@ -9,9 +9,7 @@ import (
 	"strings"
 	"time"
 
-	clustermanager "bitbucket.org/bdsengineering/perceptor/clustermanager"
 	core "bitbucket.org/bdsengineering/perceptor/core"
-	scanner "bitbucket.org/bdsengineering/perceptor/scanner"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -21,77 +19,21 @@ import (
 func main() {
 	log.Info("start")
 
-	var sc scanner.ScanClientInterface
-	var clusterClient clustermanager.Client
-	var err error
+	kubeconfigPath := "/Users/mfenwick/.kube/config"
+	clusterMasterURL := "https://34.227.56.110.xip.io:8443"
+	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath)
 
-	// chose a scanner client: real or mock
-	// sc = scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
-	sc = scanner.NewMockHub()
-
-	// chose a cluster client: real or mock
-	// clusterClient, err := clustermanager.NewKubeClient()
-	clusterClient = clustermanager.NewMockClient()
-
-	cache := core.NewVulnerabilityCache()
 	if err != nil {
-		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
+		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
 	}
-	var lastAdd *clustermanager.Pod
-	go func() {
-		for {
-			select {
-			case addPod := <-clusterClient.PodAdd():
-				cache.AddPod(addPod.New)
-				fmt.Printf("add pod: %v\n", addPod.New.Annotations)
-				lastAdd = &addPod.New
-			case u := <-clusterClient.PodUpdate():
-				fmt.Printf("update pod: %v\n", u.New.Annotations)
-			case d := <-clusterClient.PodDelete():
-				fmt.Printf("delete pod: %v\n", d)
-			}
-		}
-	}()
-	go func() {
-		for i := 0; ; i++ {
-			select {
-			case image := <-cache.ImagesToBeScanned:
-				log.Infof("should scan image %s", image)
-				// TODO need to think about how to limit concurrent scans to <= 7
-				projectName := fmt.Sprintf("my-%s-project-%d", image, i)
-				sc.Scan(*scanner.NewScanJob(projectName, image))
-			}
-		}
-	}()
 
-	log.Info("kube client: %v", clusterClient)
+	log.Info("instantiated perceptor: %v", perceptor)
+
 	log.Info("finished starting")
 	setupHTTPServer()
 	// hack to prevent main from returning
 	select {}
-}
-
-func pollForFinishedScans(hub *scanner.ScanClientInterface, finishedContainerImagesSink chan<- []string) {
-	for {
-		jobs := (*hub).GetFinishedJobs()
-		if len(jobs) > 0 {
-			log.Info("finished jobs", jobs)
-			// TODO dump jobs into sink
-			finishedContainerImagesSink <- []string{}
-		}
-		time.Sleep(3 * time.Second)
-		log.Info("poll for finished scans")
-	}
-}
-
-func writeVulnerabilitiesToOC(containerImagesSource <-chan []string) {
-	for {
-		select {
-		case images := <-containerImagesSource:
-			log.Infof("TODO: update annotations, %v", images)
-		}
-	}
 }
 
 // other stuff

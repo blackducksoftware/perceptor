@@ -1,8 +1,8 @@
 package scanner
 
 type ScanClientInterface interface {
-	Scan(job ScanJob)
-	FetchProject(projectName string) *Project
+	Scan(job ScanJob) error
+	FetchProject(projectName string) (*Project, error)
 }
 
 type ScanJob struct {

@@ -1,10 +1,9 @@
 package scanner
 
 import (
-	"fmt"
-
 	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
+	log "github.com/sirupsen/logrus"
 )
 
 type ProjectFetcher struct {
@@ -49,17 +48,19 @@ func NewProjectFetcher(username string, password string, baseURL string) (*Proje
 	return &pf, nil
 }
 
-func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
+func (pf *ProjectFetcher) fetchProject(p hubapi.Project) (*Project, error) {
 	client := pf.client
 	project := Project{Name: p.Name, Source: p.Source, Versions: []Version{}}
 
 	link, err := p.GetProjectVersionsLink()
 	if err != nil {
-		panic(fmt.Sprintf("error getting project versions link: %v", err))
+		log.Errorf("error getting project versions link: %v", err)
+		return nil, err
 	}
 	versions, err := client.ListProjectVersions(*link)
 	if err != nil {
-		panic(fmt.Sprintf("error fetching project version: %v", err))
+		log.Errorf("error fetching project version: %v", err)
+		return nil, err
 	}
 
 	for _, v := range versions.Items {
@@ -75,11 +76,13 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 
 		codeLocationsLink, err := v.GetCodeLocationsLink()
 		if err != nil {
-			panic(fmt.Sprintf("error getting code locations link: %v", err))
+			log.Errorf("error getting code locations link: %v", err)
+			return nil, err
 		}
 		codeLocations, err := client.ListCodeLocations(*codeLocationsLink)
 		if err != nil {
-			panic(fmt.Sprintf("error fetching code locations: %v", err))
+			log.Errorf("error fetching code locations: %v", err)
+			return nil, err
 		}
 		for _, cl := range codeLocations.Items {
 			var codeLocation = CodeLocation{}
@@ -93,11 +96,13 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 
 			scanSummariesLink, err := cl.GetScanSummariesLink()
 			if err != nil {
-				panic(fmt.Sprintf("error getting scan summaries link: %v", err))
+				log.Errorf("error getting scan summaries link: %v", err)
+				return nil, err
 			}
 			scanSummaries, err := client.ListScanSummaries(*scanSummariesLink)
 			if err != nil {
-				panic(fmt.Sprintf("error fetching scan summaries: %v", err))
+				log.Errorf("error fetching scan summaries: %v", err)
+				return nil, err
 			}
 			for _, scanSumy := range scanSummaries.Items {
 				var scanSummary = ScanSummary{}
@@ -113,11 +118,13 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 		var riskProfile = RiskProfile{}
 		riskProfileLink, err := v.GetProjectVersionRiskProfileLink()
 		if err != nil {
-			panic(fmt.Sprintf("error getting risk profile link: %v", err))
+			log.Errorf("error getting risk profile link: %v", err)
+			return nil, err
 		}
 		rp, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
 		if err != nil {
-			panic(fmt.Sprintf("error fetching project version risk profile: %v", err))
+			log.Errorf("error fetching project version risk profile: %v", err)
+			return nil, err
 		}
 		riskProfile.BomLastUpdatedAt = rp.BomLastUpdatedAt
 		riskProfile.Categories = rp.Categories
@@ -125,11 +132,13 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 
 		policyStatusLink, err := v.GetProjectVersionPolicyStatusLink()
 		if err != nil {
-			panic(fmt.Sprintf("error getting policy status link: %v", err))
+			log.Errorf("error getting policy status link: %v", err)
+			return nil, err
 		}
 		ps, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
 		if err != nil {
-			panic(fmt.Sprintf("error fetching project version policy status: %v", err))
+			log.Errorf("error fetching project version policy status: %v", err)
+			return nil, err
 		}
 		statusCounts := make(map[string]int)
 		for _, item := range ps.ComponentVersionStatusCounts {
@@ -144,23 +153,23 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 		project.Versions = append(project.Versions, version)
 	}
 
-	return project
+	return &project, nil
 }
 
 // FetchProjectOfName searches for a project with the matching name,
 //   returning a populated Project model
-func (pf *ProjectFetcher) FetchProjectOfName(projectName string) *Project {
+func (pf *ProjectFetcher) FetchProjectOfName(projectName string) (*Project, error) {
 	projs, err := pf.client.ListProjects()
 	if err != nil {
-		panic(fmt.Sprintf("error fetching project list: %v", err))
+		log.Errorf("error fetching project list: %v", err)
+		return nil, err
 	}
 	for _, p := range projs.Items {
 		if p.Name != projectName {
 			// log.Info("skipping project ", p.Name, " as it doesn't match requested name ", projectName)
 			continue
 		}
-		project := pf.fetchProject(p)
-		return &project
+		return pf.fetchProject(p)
 	}
-	return nil
+	return nil, nil
 }

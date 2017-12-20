@@ -18,10 +18,30 @@ import (
 
 func NewPod(kubePod *v1.Pod) *Pod {
 	pod := Pod{
-		Name:      kubePod.Name,
-		Namespace: kubePod.Namespace,
+		Name:        kubePod.Name,
+		Namespace:   kubePod.Namespace,
+		Annotations: kubePod.Annotations,
+		Spec:        *NewSpec(&kubePod.Spec),
+		UID:         string(kubePod.UID),
 	}
 	return &pod
+}
+
+func NewSpec(kubeSpec *v1.PodSpec) *Spec {
+	containers := []Container{}
+	for _, kubeCont := range kubeSpec.Containers {
+		containers = append(containers, *NewContainer(&kubeCont))
+	}
+	return &Spec{
+		Containers: containers,
+	}
+}
+
+func NewContainer(kubeCont *v1.Container) *Container {
+	return &Container{
+		Image: kubeCont.Image,
+		Name:  kubeCont.Name,
+	}
 }
 
 // KubeClient is an implementation of the Client interface for kubernetes
@@ -134,9 +154,9 @@ func (client *KubeClient) GetPods() ([]v1.Pod, error) {
 
 // END POC methods
 
-func (client *KubeClient) ClearBlackDuckPodAnnotations(pod Pod) error {
-	pods := client.clientset.CoreV1().Pods(pod.Namespace)
-	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+func (client *KubeClient) ClearBlackDuckPodAnnotations(namespace string, name string) error {
+	pods := client.clientset.CoreV1().Pods(namespace)
+	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return err
@@ -159,9 +179,9 @@ func (client *KubeClient) ClearBlackDuckPodAnnotations(pod Pod) error {
 //   1. to support a rich model
 //   2. to avoid stomping on other annotations that have nothing to do
 //      with Black Duck
-func (client *KubeClient) GetBlackDuckPodAnnotations(pod Pod) (*BlackDuckAnnotations, error) {
-	pods := client.clientset.CoreV1().Pods(pod.Namespace)
-	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name string) (*BlackDuckAnnotations, error) {
+	pods := client.clientset.CoreV1().Pods(namespace)
+	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return nil, err
@@ -184,9 +204,9 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(pod Pod) (*BlackDuckAnnotat
 	return &bdAnnotations, nil
 }
 
-func (client *KubeClient) SetBlackDuckPodAnnotations(pod Pod, bdAnnotations BlackDuckAnnotations) error {
-	pods := client.clientset.CoreV1().Pods(pod.Namespace)
-	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
+func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name string, bdAnnotations BlackDuckAnnotations) error {
+	pods := client.clientset.CoreV1().Pods(namespace)
+	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Errorf("unable to get pod: %s", err.Error())
 		return err
@@ -209,11 +229,25 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(pod Pod, bdAnnotations Blac
 	return err
 }
 
-func NewKubeClient() (*KubeClient, error) {
-	kubeconfig := "/Users/mfenwick/.kube/config"
-	master := "https://34.227.56.110.xip.io:8443"
+// Some extra, maybe useless methods
+
+func (client *KubeClient) clearBlackDuckPodAnnotationsWithPod(pod Pod) error {
+	return client.ClearBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+}
+
+func (client *KubeClient) getBlackDuckPodAnnotationsWithPod(pod Pod) (*BlackDuckAnnotations, error) {
+	return client.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+}
+
+func (client *KubeClient) setBlackDuckPodAnnotationsWithPod(pod Pod, bdAnnotations BlackDuckAnnotations) error {
+	return client.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, bdAnnotations)
+}
+
+// End extra, maybe useless methods
+
+func NewKubeClient(masterURL string, kubeconfigPath string) (*KubeClient, error) {
 	// creates the connection
-	config, err := clientcmd.BuildConfigFromFlags(master, kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfigPath)
 	if err != nil {
 		log.Errorf("unable to build config from flags: %s", err.Error())
 		return nil, err
@@ -227,7 +261,8 @@ func NewKubeClient() (*KubeClient, error) {
 	}
 
 	// create the pod watcher
-	namespace := v1.NamespaceAll // v1.NamespaceDefault
+	// namespace := v1.NamespaceAll
+	namespace := v1.NamespaceDefault
 	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
 
 	// create the workqueue

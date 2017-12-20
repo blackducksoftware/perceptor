@@ -55,7 +55,10 @@ func HitHubAPI(projectName string) {
 	if err != nil {
 		panic("unable to instantiate ProjectFetcher: " + err.Error())
 	}
-	project := pf.FetchProjectOfName(projectName)
+	project, err := pf.FetchProjectOfName(projectName)
+	if err != nil {
+		panic("unable to fetch project " + projectName + "; " + err.Error())
+	}
 	bytes, _ := json.Marshal(project)
 	log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
 	log.Infof("bytes: %d", len(bytes))

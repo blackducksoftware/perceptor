@@ -18,48 +18,51 @@ import (
 // It writes vulnerabilities to pods in the cluster manager.
 type Perceptor struct {
 	mutex              sync.Mutex
-	scannerClient      scanner.HubScanClient // TODO use interface type instead?
-	clusterClient      clustermanager.Client // TODO use interface type instead?
+	scannerClient      scanner.ScanClientInterface
+	clusterClient      clustermanager.Client
 	cache              VulnerabilityCache
 	inProgressScanJobs map[string]string // map of projectName to image. for now,
 	// we're doing one project per image scan, but that'll most likely change
-
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a
 // mock scanclient and mock clustermanager
 func NewMockedPerceptor() (*Perceptor, error) {
-	// TODO
-	return nil, nil
+	return newPerceptorHelper(scanner.NewMockHub(), clustermanager.NewMockClient()), nil
 }
 
-func NewPerceptor() (*Perceptor, error) {
+// NewPerceptor creates a Perceptor using the real kube client and the
+// real hub client.
+func NewPerceptor(clusterMasterURL string, kubeconfigPath string) (*Perceptor, error) {
 	scannerClient, err := scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
 	if err != nil {
 		log.Errorf("unable to instantiate HubScanClient: %s", err.Error())
 		return nil, err
 	}
-	clusterClient, err := clustermanager.NewKubeClient()
+	clusterClient, err := clustermanager.NewKubeClient(clusterMasterURL, kubeconfigPath)
 
 	if err != nil {
 		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
 		return nil, err
 	}
 
-	cache := NewVulnerabilityCache()
+	return newPerceptorHelper(scannerClient, clusterClient), nil
+}
 
+func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient clustermanager.Client) *Perceptor {
 	perceptor := Perceptor{
-		mutex:         sync.Mutex{},
-		scannerClient: *scannerClient,
-		clusterClient: clusterClient,
-		cache:         *cache}
+		mutex:              sync.Mutex{},
+		scannerClient:      scannerClient,
+		clusterClient:      clusterClient,
+		cache:              *NewVulnerabilityCache(),
+		inProgressScanJobs: make(map[string]string)}
 
 	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
 	go perceptor.startPollingScanClient()
 	go perceptor.startWritingPodUpdates()
 
-	return &perceptor, nil
+	return &perceptor
 }
 
 func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
@@ -84,6 +87,10 @@ func (perceptor *Perceptor) startScanningImages() {
 			// TODO need to think about how to limit concurrent scans to <= 7
 			// but for now, we're going to purposely block this thread so as
 			// to keep the number at 1
+			// TODO there seems to be a problem -- this thread gets unblocked before
+			// the hub is *actually* done scanning.  So ... how do we make sure that
+			// this waits until the hub is done with the previous one, before starting
+			// the next one.
 			projectName := fmt.Sprintf("my-%s-project-%d", image, i)
 
 			perceptor.mutex.Lock()
@@ -107,24 +114,56 @@ func (perceptor *Perceptor) startPollingScanClient() {
 		}
 
 		for _, projectName := range keys {
-			project := perceptor.scannerClient.FetchProject(projectName)
+			log.Infof("about to look for project %s", projectName)
+
+			project, err := perceptor.scannerClient.FetchProject(projectName)
+			if err != nil {
+				log.Errorf("error fetching project %s: %s", projectName, err.Error())
+				continue
+			}
 			image, ok := perceptor.inProgressScanJobs[projectName]
 			if !ok {
 				log.Errorf("expected to find key %s in inProgressScanJobs map", projectName)
 				continue
 			}
-			if project != nil {
-				// TODO check whether the project (no wait, I mean scan job?) is actually done
-				delete(perceptor.inProgressScanJobs, projectName)
-				err := perceptor.cache.AddScanResult(image, *project)
-				log.Infof("found project %s", projectName)
-				if err != nil {
-					log.Errorf("unable to add scan result from project to cache: %s", err.Error())
+			// Did we find the project, and does it have a version with a code
+			// location with a scan summary which is complete?
+			if project == nil {
+				continue
+			}
+			if len(project.Versions) == 0 {
+				continue
+			}
+			version := project.Versions[0]
+			if len(version.CodeLocations) == 0 {
+				continue
+			}
+
+			isDone := true
+			for _, codeLocation := range version.CodeLocations {
+				if len(codeLocation.ScanSummaries) == 0 {
+					isDone = false
+					break
 				}
-			} else {
-				log.Infof("did not find project %s", projectName)
+				scanSummary := codeLocation.ScanSummaries[0]
+				if scanSummary.Status != "COMPLETE" {
+					isDone = false
+					break
+				}
+			}
+
+			if !isDone {
+				continue
+			}
+
+			log.Infof("about to add scan results from project %s: %v\n\n", projectName, *project)
+			delete(perceptor.inProgressScanJobs, projectName)
+			err = perceptor.cache.AddScanResult(image, *project)
+			if err != nil {
+				log.Errorf("unable to add scan result from project to cache: %s", err.Error())
 			}
 		}
+
 		perceptor.mutex.Unlock()
 
 		time.Sleep(10 * time.Second)
@@ -137,8 +176,21 @@ func (perceptor *Perceptor) startWritingPodUpdates() {
 		select {
 		case update := <-perceptor.cache.ImageScanComplete():
 			fmt.Printf("update: %v\n", update)
-			// perceptor.clusterClient.GetBlackDuckPodAnnotations(pod)
-			// TODO implement
+			for _, pod := range update.AffectedPods {
+				bdAnnotations, err := perceptor.clusterClient.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+				if err != nil {
+					log.Errorf("unable to get BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
+					continue
+				}
+				bdAnnotations.ImageAnnotations[update.Image] = clustermanager.ImageAnnotation{
+					PolicyViolationCount: update.ScanResults.PolicyViolationCount,
+					VulnerabilityCount:   update.ScanResults.VulnerabilityCount,
+				}
+				err = perceptor.clusterClient.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, *bdAnnotations)
+				if err != nil {
+					log.Errorf("unable to update BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
+				}
+			}
 		}
 	}
 }

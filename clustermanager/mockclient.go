@@ -71,18 +71,36 @@ func (client *MockClient) startPodUpdates() {
 	}()
 }
 
-func (client *MockClient) ClearBlackDuckPodAnnotations(pod Pod) error {
+func (client *MockClient) ClearBlackDuckPodAnnotations(namespace string, name string) error {
+	podKey := fmt.Sprintf("%s:%s", namespace, name)
+	delete(client.annotations, podKey)
+	return nil
+}
+
+func (client *MockClient) GetBlackDuckPodAnnotations(namespace string, name string) (*BlackDuckAnnotations, error) {
+	podKey := fmt.Sprintf("%s:%s", namespace, name)
+	annotations, _ := client.annotations[podKey]
+	return &annotations, nil
+}
+
+func (client *MockClient) SetBlackDuckPodAnnotations(namespace string, name string, bdAnnotations BlackDuckAnnotations) error {
+	podKey := fmt.Sprintf("%s:%s", namespace, name)
+	client.annotations[podKey] = bdAnnotations
+	return nil
+}
+
+func (client *MockClient) ClearBlackDuckPodAnnotationsWithPod(pod Pod) error {
 	podKey := pod.GetKey()
 	delete(client.annotations, podKey)
 	return nil
 }
 
-func (client *MockClient) GetBlackDuckPodAnnotations(pod Pod) (*BlackDuckAnnotations, error) {
+func (client *MockClient) GetBlackDuckPodAnnotationsWithPod(pod Pod) (*BlackDuckAnnotations, error) {
 	annotations, _ := client.annotations[pod.GetKey()]
 	return &annotations, nil
 }
 
-func (client *MockClient) SetBlackDuckPodAnnotations(pod Pod, bdAnnotations BlackDuckAnnotations) error {
+func (client *MockClient) SetBlackDuckPodAnnotationsWithPod(pod Pod, bdAnnotations BlackDuckAnnotations) error {
 	podKey := pod.GetKey()
 	client.annotations[podKey] = bdAnnotations
 	return nil
