@@ -1,23 +1,61 @@
-package scanner
+package main
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
+	scanner "bitbucket.org/bdsengineering/perceptor/scanner"
 	"github.com/prometheus/common/log"
 )
 
-// HitHubAPI is an example; don't use it in production
-func HitHubAPI() {
+func main() {
+	if len(os.Args) < 2 {
+		panic("requires 'verb' arg -- list or get")
+	}
+	verb := os.Args[1]
+	if verb == "list" {
+		listProjects()
+	} else if verb == "get" {
+		projectName := os.Args[2]
+		HitHubAPI(projectName)
+	} else {
+		panic("invalid verb")
+	}
+}
+
+func listProjects() {
 	baseURL := "https://localhost"
 	username := "sysadmin"
 	password := "blackduck"
-	pf, err := NewProjectFetcher(username, password, baseURL)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
+	if err != nil {
+		log.Fatalf("unable to create hub client %v", err)
+		panic("oops, unable to create hub client " + err.Error())
+	}
+	err = client.Login(username, password)
+	if err == nil {
+		log.Info("success logging in!")
+		projects, _ := client.ListProjects()
+		// log.Info("projects: %v", projects)
+		for _, p := range projects.Items {
+			log.Infof("project: %s: %s", p.Name, p.Description)
+		}
+	} else {
+		log.Errorf("unable to log in, %v", err)
+	}
+}
+
+func HitHubAPI(projectName string) {
+	baseURL := "https://localhost"
+	username := "sysadmin"
+	password := "blackduck"
+	pf, err := scanner.NewProjectFetcher(username, password, baseURL)
 	if err != nil {
 		panic("unable to instantiate ProjectFetcher: " + err.Error())
 	}
-	project := pf.FetchProjectOfName("openshift/origin-docker-registry")
+	project := pf.FetchProjectOfName(projectName)
 	bytes, _ := json.Marshal(project)
 	log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
 	log.Infof("bytes: %d", len(bytes))

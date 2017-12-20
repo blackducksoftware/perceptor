@@ -40,23 +40,3 @@ type Container struct {
 	Image string
 	Name  string
 }
-
-type BlackDuckAnnotations struct {
-	// TODO Container isn't the right type; but what is?
-	ContainerAnnotations map[string]ContainerAnnotation
-	// TODO remove KeyVals, this is just for testing, to be able
-	// to jam random stuff somewhere
-	KeyVals map[string]string
-}
-
-func NewBlackDuckAnnotations() *BlackDuckAnnotations {
-	return &BlackDuckAnnotations{
-		ContainerAnnotations: make(map[string]ContainerAnnotation),
-		KeyVals:              make(map[string]string),
-	}
-}
-
-type ContainerAnnotation struct {
-	Image string
-	// TODO vulnerabilities ?
-}

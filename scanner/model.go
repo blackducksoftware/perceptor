@@ -9,6 +9,7 @@ type Project struct {
 type Version struct {
 	CodeLocations   []CodeLocation
 	RiskProfile     RiskProfile
+	PolicyStatus    PolicyStatus
 	Distribution    string
 	Nickname        string
 	VersionName     string
@@ -30,6 +31,12 @@ type CodeLocation struct {
 type RiskProfile struct {
 	Categories       map[string]map[string]int
 	BomLastUpdatedAt string
+}
+
+type PolicyStatus struct {
+	OverallStatus                string
+	UpdatedAt                    string
+	ComponentVersionStatusCounts map[string]int
 }
 
 type ScanSummary struct {

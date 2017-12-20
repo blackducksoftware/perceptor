@@ -63,14 +63,15 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 	}
 
 	for _, v := range versions.Items {
-		var version Version
-		version.Distribution = v.Distribution
-		version.Nickname = v.Nickname
-		version.Phase = v.Phase
-		version.ReleaseComments = v.ReleaseComments
-		version.ReleasedOn = v.ReleasedOn
-		version.VersionName = v.VersionName
-		version.CodeLocations = []CodeLocation{}
+		version := Version{
+			Distribution:    v.Distribution,
+			Nickname:        v.Nickname,
+			Phase:           v.Phase,
+			ReleaseComments: v.ReleaseComments,
+			ReleasedOn:      v.ReleasedOn,
+			VersionName:     v.VersionName,
+			CodeLocations:   []CodeLocation{},
+		}
 
 		codeLocationsLink, err := v.GetCodeLocationsLink()
 		if err != nil {
@@ -122,8 +123,23 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) Project {
 		riskProfile.Categories = rp.Categories
 		version.RiskProfile = riskProfile
 
-		// TODO can't get PolicyStatus for now
-		// v.GetPolicyStatusLink()
+		policyStatusLink, err := v.GetProjectVersionPolicyStatusLink()
+		if err != nil {
+			panic(fmt.Sprintf("error getting policy status link: %v", err))
+		}
+		ps, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+		if err != nil {
+			panic(fmt.Sprintf("error fetching project version policy status: %v", err))
+		}
+		statusCounts := make(map[string]int)
+		for _, item := range ps.ComponentVersionStatusCounts {
+			statusCounts[item.Name] = item.Value
+		}
+		version.PolicyStatus = PolicyStatus{
+			OverallStatus:                ps.OverallStatus,
+			ComponentVersionStatusCounts: statusCounts,
+			UpdatedAt:                    ps.UpdatedAt,
+		}
 
 		project.Versions = append(project.Versions, version)
 	}

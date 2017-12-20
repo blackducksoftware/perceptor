@@ -40,24 +40,11 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-func (hub *MockHub) GetFinishedJobs() []ScanJob {
-	images := []ScanJob{}
-	// TODO should lock hub
-	// TODO uncomment
-	/*
-		for image := range hub.finishedImages {
-			images = append(images, image)
-		}
-	*/
-	hub.finishedImages = make(map[string]int)
-	return images
+func (hub *MockHub) FetchProject(projectName string) *Project {
+	// TODO implement
+	return nil
 }
 
 func (hub *MockHub) Scan(job ScanJob) {
 	// TODO implement
-	/*
-		for _, image := range images {
-			hub.inProgressImages = append(hub.inProgressImages, image)
-		}
-	*/
 }

@@ -2,7 +2,7 @@ package scanner
 
 type ScanClientInterface interface {
 	Scan(job ScanJob)
-	GetFinishedJobs() []ScanJob
+	FetchProject(projectName string) *Project
 }
 
 type ScanJob struct {
