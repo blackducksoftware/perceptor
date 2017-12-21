@@ -261,6 +261,7 @@ func NewKubeClient(masterURL string, kubeconfigPath string) (*KubeClient, error)
 	}
 
 	// create the pod watcher
+	// TODO set the namespace
 	// namespace := v1.NamespaceAll
 	namespace := v1.NamespaceDefault
 	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
