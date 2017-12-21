@@ -33,8 +33,8 @@ func NewMockedPerceptor() (*Perceptor, error) {
 
 // NewPerceptor creates a Perceptor using the real kube client and the
 // real hub client.
-func NewPerceptor(clusterMasterURL string, kubeconfigPath string) (*Perceptor, error) {
-	scannerClient, err := scanner.NewHubScanClient("sysadmin", "blackduck", "localhost")
+func NewPerceptor(clusterMasterURL string, kubeconfigPath string, username string, password string, hubHost string, pathToScanner string) (*Perceptor, error) {
+	scannerClient, err := scanner.NewHubScanClient(username, password, hubHost, pathToScanner)
 	if err != nil {
 		log.Errorf("unable to instantiate HubScanClient: %s", err.Error())
 		return nil, err
@@ -70,7 +70,11 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 		select {
 		case addPod := <-perceptor.clusterClient.PodAdd():
 			perceptor.cache.AddPod(addPod.New)
-			log.Infof("cluster manager event -- add pod: %v", addPod.New.Annotations)
+			images := []string{}
+			for _, cont := range addPod.New.Spec.Containers {
+				images = append(images, cont.Image+", "+cont.Name)
+			}
+			log.Infof("cluster manager event -- add pod: %v\n%v", addPod.New.Annotations, images)
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
 			log.Infof("cluster manager event -- update pod: %v", updatePod.New.Annotations)
 		case deletePod := <-perceptor.clusterClient.PodDelete():
@@ -139,6 +143,20 @@ func (perceptor *Perceptor) startPollingScanClient() {
 				continue
 			}
 
+			isDone := false
+			for _, codeLocation := range version.CodeLocations {
+				for _, scanSummary := range codeLocation.ScanSummaries {
+					if scanSummary.Status == "COMPLETE" {
+						isDone = true
+						break
+					}
+				}
+				if isDone {
+					break
+				}
+			}
+
+			/* TODO use this code instead
 			isDone := true
 			for _, codeLocation := range version.CodeLocations {
 				if len(codeLocation.ScanSummaries) == 0 {
@@ -151,6 +169,7 @@ func (perceptor *Perceptor) startPollingScanClient() {
 					break
 				}
 			}
+			*/
 
 			if !isDone {
 				continue

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/user"
 	"strings"
 	"time"
 
@@ -19,9 +20,18 @@ import (
 func main() {
 	log.Info("start")
 
-	kubeconfigPath := "/Users/mfenwick/.kube/config"
-	clusterMasterURL := "https://34.227.56.110.xip.io:8443"
-	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath)
+	// TODO this is a terrible way to locate the scan.docker.sh script;
+	// need to figure out the right way to do this
+	usr, err := user.Current()
+	if err != nil {
+		log.Errorf("unable to find current user's home dir: %s", err.Error())
+		panic(err)
+	}
+	pathToScanner := usr.HomeDir + "/blackduck-bins/scan.cli-4.5.0-SNAPSHOT/bin/scan.docker.sh"
+	username, password, hubHost := "sysadmin", "blackduck", "34.227.56.110.xip.io"
+	kubeconfigPath := usr.HomeDir + "/.kube/config"
+	clusterMasterURL := "https://" + hubHost + ":8443"
+	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, username, password, hubHost, pathToScanner)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())

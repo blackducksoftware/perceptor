@@ -201,6 +201,12 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 		log.Error(message)
 		return nil, err
 	}
+	if bdAnnotations.ImageAnnotations == nil {
+		bdAnnotations.ImageAnnotations = make(map[string]ImageAnnotation)
+	}
+	if bdAnnotations.KeyVals == nil {
+		bdAnnotations.KeyVals = make(map[string]string)
+	}
 	return &bdAnnotations, nil
 }
 
@@ -264,6 +270,7 @@ func NewKubeClient(masterURL string, kubeconfigPath string) (*KubeClient, error)
 	// TODO set the namespace
 	// namespace := v1.NamespaceAll
 	namespace := v1.NamespaceDefault
+	// namespace := "blackduck-scan"
 	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
 
 	// create the workqueue

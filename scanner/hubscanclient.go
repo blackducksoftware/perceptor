@@ -3,7 +3,6 @@ package scanner
 import (
 	"fmt"
 	"os/exec"
-	"os/user"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -20,21 +19,13 @@ type HubScanClient struct {
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
-func NewHubScanClient(username string, password string, host string) (*HubScanClient, error) {
+func NewHubScanClient(username string, password string, host string, pathToScanner string) (*HubScanClient, error) {
 	baseURL := "https://" + host
 	pf, err := NewProjectFetcher(username, password, baseURL)
 	if err != nil {
 		log.Errorf("unable to instantiate ProjectFetcher: %s", err.Error())
 		return nil, err
 	}
-	// TODO this is a terrible way to locate the scan.docker.sh script;
-	// need to figure out the right way to do this
-	usr, err := user.Current()
-	if err != nil {
-		log.Errorf("unable to find current user's home dir: %s", err.Error())
-		return nil, err
-	}
-	pathToScanner := usr.HomeDir + "/blackduck-bins/scan.cli-4.5.0-SNAPSHOT/bin/scan.docker.sh"
 
 	hsc := HubScanClient{
 		host:           host,
