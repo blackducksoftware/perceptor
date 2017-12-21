@@ -28,7 +28,10 @@ func main() {
 		panic(err)
 	}
 	pathToScanner := usr.HomeDir + "/blackduck-bins/scan.cli-4.5.0-SNAPSHOT/bin/scan.docker.sh"
-	username, password, hubHost := "sysadmin", "blackduck", "34.227.56.110.xip.io"
+	username := "sysadmin"
+	password := "blackduck"
+	hubHost := "34.227.56.110.xip.io"
+	// hubHost := "localhost"
 	kubeconfigPath := usr.HomeDir + "/.kube/config"
 	clusterMasterURL := "https://" + hubHost + ":8443"
 	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, username, password, hubHost, pathToScanner)
