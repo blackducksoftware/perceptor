@@ -143,20 +143,16 @@ func (perceptor *Perceptor) startPollingScanClient() {
 				continue
 			}
 
-			isDone := false
-			for _, codeLocation := range version.CodeLocations {
-				for _, scanSummary := range codeLocation.ScanSummaries {
-					if scanSummary.Status == "COMPLETE" {
-						isDone = true
-						break
-					}
-				}
-				if isDone {
-					break
-				}
+			// if there's at least 1 code location
+			// and for each code location:
+			//   there's at least 1 scan summary
+			//   and for each scan summary:
+			//     the status is complete
+			// then it's done
+			if len(version.CodeLocations) == 0 {
+				continue
 			}
 
-			/* TODO use this code instead
 			isDone := true
 			for _, codeLocation := range version.CodeLocations {
 				if len(codeLocation.ScanSummaries) == 0 {
@@ -169,7 +165,6 @@ func (perceptor *Perceptor) startPollingScanClient() {
 					break
 				}
 			}
-			*/
 
 			if !isDone {
 				continue

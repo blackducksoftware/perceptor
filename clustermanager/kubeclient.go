@@ -199,7 +199,8 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 	if err != nil {
 		message := fmt.Sprintf("unable to Unmarshal BlackDuckAnnotations: %s", err.Error())
 		log.Error(message)
-		return nil, err
+		return NewBlackDuckAnnotations(), nil
+		//		return nil, err
 	}
 	if bdAnnotations.ImageAnnotations == nil {
 		bdAnnotations.ImageAnnotations = make(map[string]ImageAnnotation)

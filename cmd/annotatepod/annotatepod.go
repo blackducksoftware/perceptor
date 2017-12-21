@@ -2,17 +2,29 @@ package main
 
 import (
 	"os"
+	"os/user"
 
 	"bitbucket.org/bdsengineering/perceptor/clustermanager"
+	"github.com/prometheus/common/log"
 )
 
-func splat4(vs []string) (string, string, string, string) {
-	return vs[0], vs[1], vs[2], vs[3]
-}
-
 func main() {
-	namespace, name, key, value := splat4(os.Args[1:])
-	kubeClient, err := clustermanager.NewKubeClient()
+	namespace := os.Args[1]
+	name := os.Args[2]
+	key := os.Args[3]
+
+	usr, err := user.Current()
+	if err != nil {
+		log.Errorf("unable to find current user's home dir: %s", err.Error())
+		panic(err)
+	}
+
+	hubHost := "34.227.56.110.xip.io"
+	// hubHost := "localhost"
+	kubeconfigPath := usr.HomeDir + "/.kube/config"
+	clusterMasterURL := "https://" + hubHost + ":8443"
+
+	kubeClient, err := clustermanager.NewKubeClient(clusterMasterURL, kubeconfigPath)
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +44,12 @@ func main() {
 		panic(err)
 	}
 	annotations := pod.Annotations
-	annotations[key] = value
+	if len(os.Args) > 4 {
+		value := os.Args[4]
+		annotations[key] = value
+	} else {
+		delete(annotations, key)
+	}
 	// not sure if this next line is necessary
 	pod.Annotations = annotations
 	kubeClient.UpdatePod(pod)
