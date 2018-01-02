@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/user"
 	"strings"
 	"time"
@@ -19,6 +20,10 @@ import (
 
 func main() {
 	log.Info("start")
+
+	openshiftMasterUsername := "admin"
+	openshiftMasterPassword := "123"
+	loginToOpenshift(openshiftMasterUsername, openshiftMasterPassword)
 
 	// TODO this is a terrible way to locate the scan.docker.sh script;
 	// need to figure out the right way to do this
@@ -47,6 +52,18 @@ func main() {
 	setupHTTPServer()
 	// hack to prevent main from returning
 	select {}
+}
+
+func loginToOpenshift(username string, password string) error {
+	// TODO do we need to `oc logout` first?
+	cmd := exec.Command("oc", "login", "-u", username, "-p", password)
+	fmt.Println("running command 'oc login ...'")
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("finished `oc login`: %s", stdoutStderr)
+	return err
 }
 
 // other stuff

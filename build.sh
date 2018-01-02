@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# TODO We can deploy this from a dockerfile, as a binary, once we have everything we want in it.
 
 export PERCEPTOR=$GOPATH/src/bitbucket.org/bdsengineering/perceptor/
 
@@ -10,15 +9,7 @@ fi
 
 set -x
 
-rm main
-
-# This will add the 'perceptor' binary to your GOPATH.
 rm $GOPATH/bin/perceptor
 export GOBIN=$GOPATH/bin
-go install ./cmd/perceptor/perceptor.go
-
-# TODO this requires an `oc login` before it will work
-#   or maybe a kubernetes login or something
-
-KUBE_CONFIG=~/.kube/config
-$GOPATH/bin/perceptor --kubeconfig=$KUBE_CONFIG --master=https://34.227.56.110.xip.io:8443
+CGO_ENABLED=0 GOOS=linux go install -a -tags netgo -ldflags '-w' ./cmd/perceptor/perceptor.go
+# go install ./cmd/perceptor/perceptor.go
