@@ -72,7 +72,7 @@ func initPrometheusAndViper() {
 
 	curlCheck = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "perceptron",
+			Namespace: "perceptor",
 			Subsystem: "metrics",
 			Name:      "curl",
 			Help:      "The current CURL time for a service in milliseconds.",
@@ -82,7 +82,7 @@ func initPrometheusAndViper() {
 
 	nsLookup = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "perceptron",
+			Namespace: "perceptor",
 			Subsystem: "metrics",
 			Name:      "ns_lookup",
 			Help:      "The current NS LOOKUP time for a service. Labelled with IP to detect schizophrenic resolution scenarios.",
@@ -207,7 +207,7 @@ func viperLoad() *config {
 
 	// Default config is written here.  We use file as a default config because it provides an
 	// embedded self tests - users will probably always config by injecting env vars that get written to this file.
-	err := ioutil.WriteFile("../../perceptron.json", d1, 0777)
+	err := ioutil.WriteFile("../../perceptor.json", d1, 0777)
 	if err != nil {
 		log.Fatal("Error writing default config file", err)
 		panic(fmt.Sprint("Error writing default config file!", err))
