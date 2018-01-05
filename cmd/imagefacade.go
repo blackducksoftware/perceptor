@@ -42,8 +42,9 @@ const (
 )
 
 type input struct {
-	fromImage       string
+	fromImage string
 	tag string
+	digest string // need this so we know what to look up inthe api.
 }
 
 var in input
@@ -86,16 +87,40 @@ func getHttpRequestResponse(client *httputil.ClientConn, httpMethod string, requ
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("received status != 200 on resp OK: %s", resp.Status))
+		return nil, errors.New(fmt.Sprintf("HTTP ERROR: received status != 200 on resp OK: %s", resp.Status))
 	}
 	return resp, nil
 }
 
+func dieIf(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v", err)
+		os.Exit(1)
+	}
+}
 
-// func pullImage(img string, tag string) (err error) {
-	
+// pullImage is the equivalent of curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create?fromImage=alpine
+func pullImage(img string, tag string) (err error) {
+	fd := func (proto, addr string) (conn net.Conn, err error) {
+		return net.Dial("unix", "/var/run/docker.sock")
+	}
+	tr := &http.Transport{
+		Dial: fd,
+	}
+	client := &http.Client{Transport: tr}
+	imageUrl := fmt.Sprintf("http://localhost/v1.24/images/create?fromImage=%s&tag=%s", img, tag)
+	log.Printf("Pulling %s ......  ", imageUrl)
+	resp, err := client.Post(imageUrl, "", nil)
+	defer resp.Body.Close()
 
-// }
+	if resp.StatusCode == 200 && err == nil {
+		log.Printf("Succeeded pull for %s %v",imageUrl, resp)
+	} else {
+		log.Printf("FAILED pull for %s , ERROR = ((  %s  )) ",imageUrl , err)
+	}
+
+	return err
+}
 
 func saveImageToTar(client *httputil.ClientConn, image string, path string) (tarFilePath string, err error) {
 	exists, err := imageExists(client, image)
@@ -142,6 +167,7 @@ func main() {
 		panic("Need -image=...")
 	}
 
+
 	// Accessing the host's docker daemon, locally, over the docker socket.
 	// This gives us a window into any images that are local.
 	c, err := net.Dial("unix", "/var/run/docker.sock")
@@ -150,10 +176,11 @@ func main() {
 	}
 	defer c.Close()
 	client := httputil.NewClientConn(c, nil)
+
+	pullImage(in.fromImage, "latest")
 	defer client.Close()
 
-	fmt.Printf(fmt.Sprintf("Processing image: %s with engine ID %s\n", in.fromImage))
-
+	fmt.Printf(fmt.Sprintf("Processing image: %s \n", in.fromImage))
 
 	img_dir_name := strings.Replace(in.fromImage, ":", "_", -1)
 	img_dir_name = strings.Replace(img_dir_name, "/", "_", -1)
@@ -168,6 +195,5 @@ func main() {
 		} else {
 			log.Printf("Ready to scan !!!!! %s %s", in.fromImage, newTarPath)
 		}
-		// Need to possibly dump images peridodically... 
 	}
 }
