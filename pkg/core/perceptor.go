@@ -170,7 +170,7 @@ func (perceptor *Perceptor) startPollingScanClient() {
 				continue
 			}
 
-			log.Infof("about to add scan results from project %s: %v\n\n", projectName, *project)
+			log.Infof("about to add scan results from project %s: %v", projectName, *project)
 			delete(perceptor.inProgressScanJobs, projectName)
 			err = perceptor.cache.AddScanResult(image, *project)
 			if err != nil {
@@ -189,7 +189,7 @@ func (perceptor *Perceptor) startWritingPodUpdates() {
 	for {
 		select {
 		case update := <-perceptor.cache.ImageScanComplete():
-			fmt.Printf("update: %v\n", update)
+			log.Infof("received completed image scan: %v\n", update)
 			for _, pod := range update.AffectedPods {
 				bdAnnotations, err := perceptor.clusterClient.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
 				if err != nil {

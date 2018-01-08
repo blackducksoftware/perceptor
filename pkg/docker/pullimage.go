@@ -75,7 +75,7 @@ func PullImage(image Image) error {
 		return err
 	}
 
-	log.Infof("Processing image: %s", image.directory())
+	log.Infof("Processing image: %s", image.name)
 
 	err = saveImageToTar(client, image)
 	if err != nil {
@@ -88,7 +88,10 @@ func PullImage(image Image) error {
 }
 
 // createImageInLocalDocker could also be implemented using curl:
-//   --unix-socket /var/run/docker.sock -X POST http://localhost/images/create?fromImage=alpine
+// this example hits ... ? the default registry?  docker hub?
+//   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create?fromImage=alpine
+// this example hits the kipp registry:
+//   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 // ... or could it?  Not really sure what this does.
 func createImageInLocalDocker(image Image) (err error) {
 	fd := func(proto, addr string) (conn net.Conn, err error) {
@@ -105,12 +108,17 @@ func createImageInLocalDocker(image Image) (err error) {
 
 	if resp.StatusCode == 200 && err == nil {
 		log.Infof("Create succeeded for %s %v", imageURL, resp)
+	} else if err == nil {
+		// This should get hit if there's a 404
+		log.Infof("Create may have failed for %s: status code %d, response", imageURL, resp.StatusCode, resp)
 	} else {
 		log.Errorf("Create failed for %s , ERROR = ((  %s  )) ", imageURL, err)
 	}
 	return err
 }
 
+// saveImageToTar: part of what it does is to issue an http request similar to the following:
+//   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
 func saveImageToTar(client *httputil.ClientConn, image Image) error {
 	imageURL := image.getURL()
 	resp, err := getHTTPRequestResponse(client, "GET", imageURL)
@@ -122,10 +130,13 @@ func saveImageToTar(client *httputil.ClientConn, image Image) error {
 	defer func() {
 		body.Close()
 	}()
-	os.MkdirAll(image.path(), 0755)
 	log.Info("Starting to write file contents to a tar file.")
 	tarFilePath := image.tarFilePath()
 	log.Infof("Tar File Path: %s", tarFilePath)
+
+	// just need to create `./tmp` if it doesn't already exist
+	os.Mkdir("./tmp", 0755)
+
 	f, err := os.OpenFile(tarFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		log.Errorf("Error opening file: %s", err.Error())

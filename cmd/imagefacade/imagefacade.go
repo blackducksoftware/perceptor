@@ -40,20 +40,19 @@ type input struct {
 var in input
 
 func init() {
-	// fromImage=busyBox or fromImage=85fioh87h998hojR8h98hf.
-	flag.StringVar(&in.fromImage, "fromImage", "busybox123", "imageDigest or name Will have .tar at the end.")
+	// go run cmd/imagefacade/imagefacade.go -fromImage registry.kipp.blackducksoftware.com/blackducksoftware/hub-jobrunner:4.5.0
+	flag.StringVar(&in.fromImage, "fromImage", "", "imageDigest or name Will have .tar at the end.")
 	flag.StringVar(&in.tag, "tag", "", "tag, empty is ok.")
 }
 
 func main() {
-
-	flag.Parse() // Scan the arguments list
+	flag.Parse()
 
 	if in.fromImage == "" {
-		panic("Need -image=...")
+		panic("Need -fromImage <image>")
 	}
 
-	image := pdocker.NewImage(in.fromImage, in.tag)
+	image := pdocker.NewImage(in.fromImage)
 	err := pdocker.PullImage(*image)
 
 	if err != nil {
