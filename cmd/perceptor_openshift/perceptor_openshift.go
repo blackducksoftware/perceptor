@@ -27,13 +27,12 @@ func main() {
 
 	listDockerContainers()
 
+	// kubeconfigPath := usr.HomeDir + "/.kube/config"
 	kubeconfigPath := os.Args[1]
-	pathToScanner := os.Args[2]
 
 	hubHost := "34.227.56.110.xip.io"
 	clusterMasterURL := "https://" + hubHost + ":8443"
 
-	// TODO do we need to log in to openshift?
 	openshiftMasterUsername := "admin"
 	openshiftMasterPassword := "123"
 	err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
@@ -48,8 +47,7 @@ func main() {
 	hubUsername := "sysadmin"
 	hubPassword := "blackduck"
 
-	// kubeconfigPath := usr.HomeDir + "/.kube/config"
-	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost, pathToScanner)
+	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())

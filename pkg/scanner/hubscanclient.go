@@ -13,13 +13,12 @@ type HubScanClient struct {
 	host           string
 	username       string
 	password       string
-	pathToScanner  string
 	projectFetcher *ProjectFetcher
 }
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
-func NewHubScanClient(username string, password string, host string, pathToScanner string) (*HubScanClient, error) {
+func NewHubScanClient(username string, password string, host string) (*HubScanClient, error) {
 	baseURL := "https://" + host
 	pf, err := NewProjectFetcher(username, password, baseURL)
 	if err != nil {
@@ -31,7 +30,6 @@ func NewHubScanClient(username string, password string, host string, pathToScann
 		host:           host,
 		username:       username,
 		password:       password,
-		pathToScanner:  pathToScanner,
 		projectFetcher: pf}
 	return &hsc, nil
 }
@@ -87,7 +85,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 			"--username",
 			hsc.username)
 	*/
-	fmt.Printf("running command %v for image %s\n", cmd, job.ImageName)
+	log.Infof("running command %v for image %s\n", cmd, job.ImageName)
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.cli.sh: %s", err.Error())
@@ -99,17 +97,18 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 	return nil
 }
 
+/*
 func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
-	cmd := exec.Command(hsc.pathToScanner, // "./scan.docker.sh", // imagename, host, username "get", "pods", "-o", "json", "--all-namespaces")
+	cmd := exec.Command(hsc.pathToScanner, // "./scan.docker.sh",
 		"--image",
 		job.ImageName,
 		"--project",
 		job.ProjectName,
 		"--host",
-		hsc.host, // can switch to "localhost" for testing
+		hsc.host,
 		"--username",
-		hsc.username) // can switch to "sysadmin" for testing
-	fmt.Printf("running command %v for image %s\n", cmd, job.ImageName)
+		hsc.username)
+	log.Infof("running command %v for image %s\n", cmd, job.ImageName)
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.docker.sh: %s", err.Error())
@@ -120,3 +119,4 @@ func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
 	log.Infof("successfully completed ./scan.docker.sh: %s", stdoutStderr)
 	return nil
 }
+*/

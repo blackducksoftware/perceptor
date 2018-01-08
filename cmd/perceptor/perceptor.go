@@ -28,7 +28,6 @@ func main() {
 	listDockerContainers()
 
 	kubeconfigPath := os.Args[1]
-	pathToScanner := os.Args[2]
 
 	hubHost := "34.227.56.110.xip.io"
 	clusterMasterURL := "https://" + hubHost + ":8443"
@@ -48,7 +47,7 @@ func main() {
 	hubPassword := "blackduck"
 
 	// kubeconfigPath := usr.HomeDir + "/.kube/config"
-	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost, pathToScanner)
+	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
@@ -59,6 +58,7 @@ func main() {
 
 	log.Info("finished starting")
 	setupHTTPServer()
+
 	// hack to prevent main from returning
 	select {}
 }
