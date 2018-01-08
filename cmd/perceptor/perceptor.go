@@ -11,12 +11,11 @@ import (
 	"time"
 
 	"context"
-	"fmt"
 
-	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 
-	core "bitbucket.org/bdsengineering/perceptor/core"
+	core "bitbucket.org/bdsengineering/perceptor/pkg/core"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
@@ -77,13 +76,13 @@ func loginToOpenshift(host string, username string, password string) error {
 }
 
 func listDockerContainers() {
-	cli, err := dockertypes.client.NewEnvClient()
+	cli, err := dockerclient.NewEnvClient()
 	if err != nil {
 		log.Errorf("unable to instantiate docker client: %s", err.Error())
 		panic(err)
 	}
 
-	containers, err := dockerclient.cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		log.Errorf("unable to obtain docker container list: %s", err.Error())
 		panic(err)
