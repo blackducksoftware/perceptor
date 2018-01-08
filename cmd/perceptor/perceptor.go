@@ -7,9 +7,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"strings"
 	"time"
+
+	"context"
+	"fmt"
+
+	dockertypes "github.com/docker/docker/api/types"
+	dockerclient "github.com/docker/docker/client"
 
 	core "bitbucket.org/bdsengineering/perceptor/core"
 	"github.com/fsnotify/fsnotify"
@@ -21,25 +26,30 @@ import (
 func main() {
 	log.Info("start")
 
+	listDockerContainers()
+
+	kubeconfigPath := os.Args[1]
+	pathToScanner := os.Args[2]
+
+	hubHost := "34.227.56.110.xip.io"
+	clusterMasterURL := "https://" + hubHost + ":8443"
+
 	openshiftMasterUsername := "admin"
 	openshiftMasterPassword := "123"
-	loginToOpenshift(openshiftMasterUsername, openshiftMasterPassword)
+	err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
 
-	// TODO this is a terrible way to locate the scan.docker.sh script;
-	// need to figure out the right way to do this
-	usr, err := user.Current()
 	if err != nil {
-		log.Errorf("unable to find current user's home dir: %s", err.Error())
+		log.Fatal("unable to login to openshift")
 		panic(err)
 	}
-	pathToScanner := usr.HomeDir + "/blackduck-bins/scan.cli-4.5.0-SNAPSHOT/bin/scan.docker.sh"
-	username := "sysadmin"
-	password := "blackduck"
-	hubHost := "34.227.56.110.xip.io"
-	// hubHost := "localhost"
-	kubeconfigPath := usr.HomeDir + "/.kube/config"
-	clusterMasterURL := "https://" + hubHost + ":8443"
-	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, username, password, hubHost, pathToScanner)
+
+	log.Info("logged into openshift")
+
+	hubUsername := "sysadmin"
+	hubPassword := "blackduck"
+
+	// kubeconfigPath := usr.HomeDir + "/.kube/config"
+	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost, pathToScanner)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
@@ -54,16 +64,34 @@ func main() {
 	select {}
 }
 
-func loginToOpenshift(username string, password string) error {
+func loginToOpenshift(host string, username string, password string) error {
 	// TODO do we need to `oc logout` first?
-	cmd := exec.Command("oc", "login", "-u", username, "-p", password)
+	cmd := exec.Command("oc", "login", host, "--insecure-skip-tls-verify=true", "-u", username, "-p", password)
 	fmt.Println("running command 'oc login ...'")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("unable to login to oc: %s, %s", stdoutStderr, err)
 	}
 	log.Infof("finished `oc login`: %s", stdoutStderr)
 	return err
+}
+
+func listDockerContainers() {
+	cli, err := dockertypes.client.NewEnvClient()
+	if err != nil {
+		log.Errorf("unable to instantiate docker client: %s", err.Error())
+		panic(err)
+	}
+
+	containers, err := dockerclient.cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	if err != nil {
+		log.Errorf("unable to obtain docker container list: %s", err.Error())
+		panic(err)
+	}
+
+	for _, container := range containers {
+		log.Infof("found docker container: %s %s\n", container.ID[:10], container.Image)
+	}
 }
 
 // other stuff
