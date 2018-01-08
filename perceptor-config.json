@@ -1,0 +1,11 @@
+{"perceptorConfig":
+	{
+		"openshift-perceiver":
+			{
+				"password":"123"
+			}, 
+			{
+				"username":"joe"
+			}
+	}
+}
