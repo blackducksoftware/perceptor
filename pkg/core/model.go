@@ -1,56 +1,13 @@
 package core
 
-type ImageScanComplete struct {
-	AffectedPods []Pod
-	Image        string
-	ScanResults  ScanResults
-}
-
-type Pod struct {
-	Name       string
-	UID        string
-	Namespace  string
-	Containers []Container
-}
-
-func (pod *Pod) hasImage(image string) bool {
-	for _, cont := range pod.Containers {
-		if cont.Image == image {
-			return true
-		}
-	}
-	return false
-}
-
-func NewPod(name string, uid string, namespace string, containers []Container) *Pod {
-	return &Pod{
-		Name:       name,
-		UID:        uid,
-		Namespace:  namespace,
-		Containers: containers,
-	}
-}
-
-type Container struct {
-	Image string
-	Name  string
-}
-
-func NewContainer(image string, name string) *Container {
-	return &Container{
-		Image: image,
-		Name:  name,
-	}
-}
-
-type Image struct {
+type ImageScanResults struct {
 	ScanStatus  ScanStatus
 	ScanResults *ScanResults
 	// Name string
 }
 
-func NewImage() *Image {
-	return &Image{
+func NewImageScanResults() *ImageScanResults {
+	return &ImageScanResults{
 		ScanStatus:  ScanStatusNotScanned,
 		ScanResults: nil,
 	}

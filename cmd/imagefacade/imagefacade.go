@@ -26,6 +26,7 @@ package main
 import (
 	"flag"
 
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
 	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
@@ -52,7 +53,7 @@ func main() {
 		panic("Need -fromImage <image>")
 	}
 
-	image := pdocker.NewImage(in.fromImage)
+	image := common.NewImage(in.fromImage)
 	err := pdocker.PullImage(*image)
 
 	if err != nil {

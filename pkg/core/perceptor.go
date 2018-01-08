@@ -98,7 +98,7 @@ func (perceptor *Perceptor) startScanningImages() {
 			projectName := fmt.Sprintf("my-%s-project-%d", image, i)
 
 			perceptor.mutex.Lock()
-			perceptor.inProgressScanJobs[projectName] = image
+			perceptor.inProgressScanJobs[projectName] = image.Name
 			perceptor.mutex.Unlock()
 
 			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(projectName, image))

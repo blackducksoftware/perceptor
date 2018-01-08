@@ -54,8 +54,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 	//   2. hardcoded version number
 	scanCliImplJarPath := "./dependencies/scan.cli/lib/cache/scan.cli.impl-standalone.jar"
 	scanCliJarPath := "./dependencies/scan.cli/lib/scan.cli-4.5.0-SNAPSHOT-standalone.jar"
-	// path := job.ImageName // TODO how to figure out the path?
-	path := "./dependencies/centos7.tar" // TODO for now, we'll just hardcode a path to an image that we copied over
+	path := job.Image.TarFilePath()
 	cmd := exec.Command("java",
 		"-Xms512m",
 		"-Xmx4096m",
@@ -85,7 +84,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 			"--username",
 			hsc.username)
 	*/
-	log.Infof("running command %v for image %s\n", cmd, job.ImageName)
+	log.Infof("running command %v for image %s\n", cmd, job.Image.Name)
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.cli.sh: %s", err.Error())

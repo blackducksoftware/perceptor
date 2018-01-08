@@ -31,6 +31,7 @@ import (
 	"net/http/httputil"
 	"os"
 
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,7 +60,7 @@ const (
 //   2. pulling down the newly created image and saving as a tarball
 // It does this by accessing the host's docker daemon, locally, over the docker
 // socket.  This gives us a window into any images that are local.
-func PullImage(image Image) error {
+func PullImage(image common.Image) error {
 	c, err := net.Dial("unix", dockerSocketPath)
 	if err != nil {
 		log.Errorf("unable to dial in to docker.sock: %s", err.Error())
@@ -75,7 +76,7 @@ func PullImage(image Image) error {
 		return err
 	}
 
-	log.Infof("Processing image: %s", image.name)
+	log.Infof("Processing image: %s", image.Name)
 
 	err = saveImageToTar(client, image)
 	if err != nil {
@@ -83,7 +84,7 @@ func PullImage(image Image) error {
 		return err
 	}
 
-	log.Infof("Ready to scan %s %s", image.name, image.tarFilePath())
+	log.Infof("Ready to scan %s %s", image.Name, image.TarFilePath())
 	return nil
 }
 
@@ -93,7 +94,7 @@ func PullImage(image Image) error {
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 // ... or could it?  Not really sure what this does.
-func createImageInLocalDocker(image Image) (err error) {
+func createImageInLocalDocker(image common.Image) (err error) {
 	fd := func(proto, addr string) (conn net.Conn, err error) {
 		return net.Dial("unix", "/var/run/docker.sock")
 	}
@@ -101,7 +102,7 @@ func createImageInLocalDocker(image Image) (err error) {
 		Dial: fd,
 	}
 	client := &http.Client{Transport: tr}
-	imageURL := image.createURL()
+	imageURL := image.CreateURL()
 	log.Infof("Attempting to create %s ......", imageURL)
 	resp, err := client.Post(imageURL, "", nil)
 	defer resp.Body.Close()
@@ -119,8 +120,8 @@ func createImageInLocalDocker(image Image) (err error) {
 
 // saveImageToTar: part of what it does is to issue an http request similar to the following:
 //   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
-func saveImageToTar(client *httputil.ClientConn, image Image) error {
-	imageURL := image.getURL()
+func saveImageToTar(client *httputil.ClientConn, image common.Image) error {
+	imageURL := image.GetURL()
 	resp, err := getHTTPRequestResponse(client, "GET", imageURL)
 	if err != nil {
 		return err
@@ -131,7 +132,7 @@ func saveImageToTar(client *httputil.ClientConn, image Image) error {
 		body.Close()
 	}()
 	log.Info("Starting to write file contents to a tar file.")
-	tarFilePath := image.tarFilePath()
+	tarFilePath := image.TarFilePath()
 	log.Infof("Tar File Path: %s", tarFilePath)
 
 	// just need to create `./tmp` if it doesn't already exist
