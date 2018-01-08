@@ -11,6 +11,8 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
+	rest "k8s.io/client-go/rest"
+
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
@@ -252,14 +254,31 @@ func (client *KubeClient) setBlackDuckPodAnnotationsWithPod(pod Pod, bdAnnotatio
 
 // End extra, maybe useless methods
 
+// NewKubeClientFromCluster instantiates a KubeClient using ??configuration??
+// pulled from ... a?/the?/some? cluster.
+func NewKubeClientFromCluster() (*KubeClient, error) {
+	/// use this if we can, kubeconfig is ghetto.
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Errorf("unable to build config from cluster: %s", err.Error())
+		return nil, err
+	}
+	return newKubeClientHelper(config)
+}
+
+// NewKubeClient instantiates a KubeClient using a master URL and
+// a path to a kubeconfig file.
 func NewKubeClient(masterURL string, kubeconfigPath string) (*KubeClient, error) {
-	// creates the connection
 	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfigPath)
 	if err != nil {
 		log.Errorf("unable to build config from flags: %s", err.Error())
 		return nil, err
 	}
 
+	return newKubeClientHelper(config)
+}
+
+func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
