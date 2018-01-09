@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"sort"
 
-	"bitbucket.org/bdsengineering/perceptor/clustermanager"
+	"bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
 	"github.com/prometheus/common/log"
 )
 
