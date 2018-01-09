@@ -6,23 +6,21 @@ import (
 	"strings"
 )
 
-type Image struct {
-	Name string
-}
+type Image string
 
-func NewImage(name string) *Image {
-	return &Image{Name: name}
+func (image *Image) Name() string {
+	return string(*image)
 }
 
 func (image *Image) TarFilePath() string {
 	// have to get rid of `/` so that it's not interpreted as directory separators
-	sanitizedName := strings.Replace(image.Name, "/", "_", -1)
+	sanitizedName := strings.Replace(string(*image), "/", "_", -1)
 	// TODO use os.join or something
 	return fmt.Sprintf("./tmp/%s.tar", sanitizedName)
 }
 
 func (image *Image) URLEncodedName() string {
-	return url.QueryEscape(image.Name)
+	return url.QueryEscape(image.Name())
 }
 
 func (image *Image) CreateURL() string {

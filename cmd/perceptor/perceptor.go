@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -57,7 +58,7 @@ func main() {
 	log.Info("instantiated perceptor: %v", perceptor)
 
 	log.Info("finished starting")
-	setupHTTPServer()
+	setupHTTPServer(perceptor)
 
 	// hack to prevent main from returning
 	select {}
@@ -175,12 +176,21 @@ func initPrometheusAndViper() {
 	}()
 }
 
-func setupHTTPServer() {
+func setupHTTPServer(perceptor *core.Perceptor) {
 	http.Handle("/metrics", prometheus.Handler())
 	http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("shutting down")
 		fmt.Fprint(w, "Shutdown now!\n")
 		os.Exit(0)
+	})
+	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
+		jsonBytes, err := json.Marshal(perceptor)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to serialize model: %s", err.Error()), 500)
+			return
+		}
+		jsonString := string(jsonBytes)
+		fmt.Fprint(w, jsonString)
 	})
 	log.Info("Serving")
 	// TODO response to an edit-pods endpoint or something

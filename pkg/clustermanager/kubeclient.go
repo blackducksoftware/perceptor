@@ -42,7 +42,7 @@ func NewSpec(kubeSpec *v1.PodSpec) *Spec {
 
 func NewContainer(kubeCont *v1.Container) *Container {
 	return &Container{
-		Image: *common.NewImage(kubeCont.Image),
+		Image: common.Image(kubeCont.Image),
 		Name:  kubeCont.Name,
 	}
 }

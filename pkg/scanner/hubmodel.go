@@ -12,7 +12,7 @@ type Project struct {
 
 func (project *Project) IsImageScanDone(image common.Image) bool {
 	for _, version := range project.Versions {
-		if version.VersionName != image.Name {
+		if version.VersionName != image.Name() {
 			continue
 		}
 

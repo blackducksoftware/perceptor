@@ -76,7 +76,7 @@ func PullImage(image common.Image) error {
 		return err
 	}
 
-	log.Infof("Processing image: %s", image.Name)
+	log.Infof("Processing image: %s", image.Name())
 
 	err = saveImageToTar(client, image)
 	if err != nil {
@@ -84,7 +84,7 @@ func PullImage(image common.Image) error {
 		return err
 	}
 
-	log.Infof("Ready to scan %s %s", image.Name, image.TarFilePath())
+	log.Infof("Ready to scan %s %s", image.Name(), image.TarFilePath())
 	return nil
 }
 

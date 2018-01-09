@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,6 +50,11 @@ func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 }
 
 func (hsc *HubScanClient) Scan(job ScanJob) error {
+	err := pdocker.PullImage(job.Image)
+	if err != nil {
+		log.Errorf("unable to pull docker image %s: %s", job.Image.Name, err.Error())
+		return err
+	}
 	// TODO coupla problems here:
 	//   1. hardcoded path
 	//   2. hardcoded version number
@@ -67,9 +73,9 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 		"--port", "443", // "--port", "8443", // TODO or should this be 8080 or something else? or should we just leave it off and let it default?
 		"--scheme", "https", // TODO or should this be http?
 		"--project", job.ProjectName,
-		// "--release", prefix, // TODO put something in here
+		"--release", job.Image.Name(),
 		"--username", hsc.username,
-		// "--name", codeLocation, // TODO maybe specify this based on the image sha or something
+		"--name", job.Image.Name(), // this is the scan name, maybe ... ???
 		"--insecure", // TODO not sure about this
 		"-v",
 		path)
