@@ -1,6 +1,10 @@
 package clustermanager
 
-import "fmt"
+import (
+	"fmt"
+
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+)
 
 // AddPod is a wrapper around the kubernetes API object
 type AddPod struct {
@@ -37,6 +41,6 @@ type Spec struct {
 }
 
 type Container struct {
-	Image string
+	Image common.Image
 	Name  string
 }

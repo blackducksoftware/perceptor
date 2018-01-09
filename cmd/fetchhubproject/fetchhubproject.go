@@ -6,9 +6,14 @@ import (
 	"os"
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
-	scanner "bitbucket.org/bdsengineering/perceptor/scanner"
+	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	"github.com/prometheus/common/log"
 )
+
+// var baseURL = "https://localhost"
+var baseURL = "https://34.227.56.110.xip.io/"
+var username = "sysadmin"
+var password = "blackduck"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -26,9 +31,6 @@ func main() {
 }
 
 func listProjects() {
-	baseURL := "https://localhost"
-	username := "sysadmin"
-	password := "blackduck"
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
 	if err != nil {
 		log.Fatalf("unable to create hub client %v", err)
@@ -48,10 +50,7 @@ func listProjects() {
 }
 
 func HitHubAPI(projectName string) {
-	baseURL := "https://localhost"
-	username := "sysadmin"
-	password := "blackduck"
-	pf, err := scanner.NewProjectFetcher(username, password, baseURL)
+	pf, err := scanner.NewHubFetcher(username, password, baseURL)
 	if err != nil {
 		panic("unable to instantiate ProjectFetcher: " + err.Error())
 	}
@@ -65,9 +64,6 @@ func HitHubAPI(projectName string) {
 }
 
 func exampleHubAPI() {
-	baseURL := "https://localhost"
-	username := "sysadmin"
-	password := "blackduck"
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
 	if err != nil {
 		log.Fatalf("unable to create hub client %v", err)

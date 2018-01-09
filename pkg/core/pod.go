@@ -1,5 +1,9 @@
 package core
 
+import (
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+)
+
 type Pod struct {
 	Name       string
 	UID        string
@@ -7,7 +11,7 @@ type Pod struct {
 	Containers []Container
 }
 
-func (pod *Pod) hasImage(image string) bool {
+func (pod *Pod) hasImage(image common.Image) bool {
 	for _, cont := range pod.Containers {
 		if cont.Image == image {
 			return true

@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ProjectFetcher struct {
+type HubFetcher struct {
 	client     hubclient.Client
 	username   string
 	password   string
@@ -14,42 +14,42 @@ type ProjectFetcher struct {
 	isLoggedIn bool
 }
 
-func (pf *ProjectFetcher) login() error {
-	if pf.isLoggedIn {
+func (hf *HubFetcher) login() error {
+	if hf.isLoggedIn {
 		return nil
 	}
 	// TODO figure out if the client stays logged in indefinitely,
 	//   or if maybe it will need to be relogged in at some point.
 	// For now, just assume it *will* stay logged in indefinitely.
-	err := pf.client.Login(pf.username, pf.password)
-	pf.isLoggedIn = (err == nil)
+	err := hf.client.Login(hf.username, hf.password)
+	hf.isLoggedIn = (err == nil)
 	return err
 }
 
-// NewProjectFetcher returns a new, logged-in ProjectFetcher.
+// NewHubFetcher returns a new, logged-in HubFetcher.
 // It will instead return an error if either of the following happen:
 //  - unable to instantiate a Hub API client
 //  - unable to sign in to the Hub
-func NewProjectFetcher(username string, password string, baseURL string) (*ProjectFetcher, error) {
+func NewHubFetcher(username string, password string, baseURL string) (*HubFetcher, error) {
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
 	if err != nil {
 		return nil, err
 	}
-	pf := ProjectFetcher{
+	hf := HubFetcher{
 		client:     *client,
 		username:   username,
 		password:   password,
 		baseURL:    baseURL,
 		isLoggedIn: false}
-	err = pf.login()
+	err = hf.login()
 	if err != nil {
 		return nil, err
 	}
-	return &pf, nil
+	return &hf, nil
 }
 
-func (pf *ProjectFetcher) fetchProject(p hubapi.Project) (*Project, error) {
-	client := pf.client
+func (hf *HubFetcher) fetchProject(p hubapi.Project) (*Project, error) {
+	client := hf.client
 	project := Project{Name: p.Name, Source: p.Source, Versions: []Version{}}
 
 	link, err := p.GetProjectVersionsLink()
@@ -158,8 +158,11 @@ func (pf *ProjectFetcher) fetchProject(p hubapi.Project) (*Project, error) {
 
 // FetchProjectOfName searches for a project with the matching name,
 //   returning a populated Project model
-func (pf *ProjectFetcher) FetchProjectOfName(projectName string) (*Project, error) {
-	projs, err := pf.client.ListProjects()
+func (hf *HubFetcher) FetchProjectOfName(projectName string) (*Project, error) {
+	// TODO instead of listing projects like this, do:
+	//   https://34.227.56.110.xip.io/api/projects?&q=name:Perceptor
+	// this will require a change in the go-hub-client library
+	projs, err := hf.client.ListProjects()
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err
@@ -169,7 +172,7 @@ func (pf *ProjectFetcher) FetchProjectOfName(projectName string) (*Project, erro
 			// log.Info("skipping project ", p.Name, " as it doesn't match requested name ", projectName)
 			continue
 		}
-		return pf.fetchProject(p)
+		return hf.fetchProject(p)
 	}
 	return nil, nil
 }

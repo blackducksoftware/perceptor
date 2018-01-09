@@ -38,7 +38,7 @@ func main() {
 	err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
 
 	if err != nil {
-		log.Fatal("unable to login to openshift")
+		log.Errorf("unable to login to openshift: %s", err.Error())
 		panic(err)
 	}
 
@@ -65,7 +65,7 @@ func main() {
 func loginToOpenshift(host string, username string, password string) error {
 	// TODO do we need to `oc logout` first?
 	cmd := exec.Command("oc", "login", host, "--insecure-skip-tls-verify=true", "-u", username, "-p", password)
-	fmt.Println("running command 'oc login ...'")
+	log.Info("running command 'oc login ...'")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatalf("unable to login to oc: %s, %s", stdoutStderr, err)

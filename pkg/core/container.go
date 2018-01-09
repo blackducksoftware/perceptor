@@ -1,11 +1,15 @@
 package core
 
+import (
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+)
+
 type Container struct {
-	Image string
+	Image common.Image
 	Name  string
 }
 
-func NewContainer(image string, name string) *Container {
+func NewContainer(image common.Image, name string) *Container {
 	return &Container{
 		Image: image,
 		Name:  name,

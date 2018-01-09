@@ -1,11 +1,11 @@
 package core
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,12 +17,15 @@ import (
 // It grabs the scan results from the hub and adds them to its model.
 // It writes vulnerabilities to pods in the cluster manager.
 type Perceptor struct {
-	mutex              sync.Mutex
-	scannerClient      scanner.ScanClientInterface
-	clusterClient      clustermanager.Client
-	cache              VulnerabilityCache
-	inProgressScanJobs map[string]string // map of projectName to image. for now,
-	// we're doing one project per image scan, but that'll most likely change
+	mutex         sync.Mutex
+	scannerClient scanner.ScanClientInterface
+	clusterClient clustermanager.Client
+	cache         VulnerabilityCache
+
+	hubProjectName string
+
+	// ignore the bools -- pretend like it's a set
+	inProgressScanJobs map[common.Image]bool
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a
@@ -55,7 +58,8 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient
 		scannerClient:      scannerClient,
 		clusterClient:      clusterClient,
 		cache:              *NewVulnerabilityCache(),
-		inProgressScanJobs: make(map[string]string)}
+		hubProjectName:     "Perceptor",
+		inProgressScanJobs: make(map[common.Image]bool)}
 
 	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
@@ -72,7 +76,7 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 			perceptor.cache.AddPod(addPod.New)
 			images := []string{}
 			for _, cont := range addPod.New.Spec.Containers {
-				images = append(images, cont.Image+", "+cont.Name)
+				images = append(images, cont.Image.Name+", "+cont.Name)
 			}
 			log.Infof("cluster manager event -- add pod: %v\n%v", addPod.New.Annotations, images)
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
@@ -95,13 +99,12 @@ func (perceptor *Perceptor) startScanningImages() {
 			// the hub is *actually* done scanning.  So ... how do we make sure that
 			// this waits until the hub is done with the previous one, before starting
 			// the next one.
-			projectName := fmt.Sprintf("my-%s-project-%d", image, i)
 
 			perceptor.mutex.Lock()
-			perceptor.inProgressScanJobs[projectName] = image.Name
+			perceptor.inProgressScanJobs[image] = true
 			perceptor.mutex.Unlock()
 
-			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(projectName, image))
+			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.hubProjectName, image))
 			if err != nil {
 				log.Errorf("error scanning image: %s", err.Error())
 			}
@@ -111,76 +114,37 @@ func (perceptor *Perceptor) startScanningImages() {
 
 func (perceptor *Perceptor) startPollingScanClient() {
 	for {
+		project, err := perceptor.scannerClient.FetchProject(perceptor.hubProjectName)
+
+		if err != nil {
+			log.Errorf("error fetching project %s: %s", perceptor.hubProjectName, err.Error())
+			continue
+		}
+
+		// Check whether any jobs have been completed
 		perceptor.mutex.Lock()
-		keys := []string{}
-		for key, _ := range perceptor.inProgressScanJobs {
-			keys = append(keys, key)
+		images := []common.Image{}
+		for image := range perceptor.inProgressScanJobs {
+			images = append(images, image)
 		}
-
-		for _, projectName := range keys {
-			log.Infof("about to look for project %s", projectName)
-
-			project, err := perceptor.scannerClient.FetchProject(projectName)
-			if err != nil {
-				log.Errorf("error fetching project %s: %s", projectName, err.Error())
-				continue
-			}
-			image, ok := perceptor.inProgressScanJobs[projectName]
-			if !ok {
-				log.Errorf("expected to find key %s in inProgressScanJobs map", projectName)
-				continue
-			}
-			// Did we find the project, and does it have a version with a code
-			// location with a scan summary which is complete?
-			if project == nil {
-				continue
-			}
-			if len(project.Versions) == 0 {
-				continue
-			}
-			version := project.Versions[0]
-			if len(version.CodeLocations) == 0 {
-				continue
-			}
-
-			// if there's at least 1 code location
-			// and for each code location:
-			//   there's at least 1 scan summary
-			//   and for each scan summary:
-			//     the status is complete
-			// then it's done
-			if len(version.CodeLocations) == 0 {
-				continue
-			}
-
-			isDone := true
-			for _, codeLocation := range version.CodeLocations {
-				if len(codeLocation.ScanSummaries) == 0 {
-					isDone = false
-					break
-				}
-				scanSummary := codeLocation.ScanSummaries[0]
-				if scanSummary.Status != "COMPLETE" {
-					isDone = false
-					break
-				}
-			}
-
-			if !isDone {
-				continue
-			}
-
-			log.Infof("about to add scan results from project %s: %v", projectName, *project)
-			delete(perceptor.inProgressScanJobs, projectName)
-			err = perceptor.cache.AddScanResult(image, *project)
-			if err != nil {
-				log.Errorf("unable to add scan result from project to cache: %s", err.Error())
+		for _, image := range images {
+			if project.IsImageScanDone(image) {
+				delete(perceptor.inProgressScanJobs, image)
 			}
 		}
-
 		perceptor.mutex.Unlock()
 
-		time.Sleep(10 * time.Second)
+		// add the hub results into the cache
+		perceptor.mutex.Lock()
+		log.Infof("about to add scan results from project %s: %v", perceptor.hubProjectName, *project)
+		err = perceptor.cache.AddScanResultsFromProject(*project)
+		if err != nil {
+			log.Errorf("unable to add scan result from project to cache: %s", err.Error())
+		}
+		perceptor.mutex.Unlock()
+
+		// wait around for a while before checking the hub again
+		time.Sleep(20 * time.Second)
 		log.Info("poll for finished scans")
 	}
 }

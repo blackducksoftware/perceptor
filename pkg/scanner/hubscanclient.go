@@ -10,27 +10,27 @@ import (
 // HubScanClient implements ScanClientInterface using
 // the Black Duck hub and scan client programs.
 type HubScanClient struct {
-	host           string
-	username       string
-	password       string
-	projectFetcher *ProjectFetcher
+	host       string
+	username   string
+	password   string
+	hubFetcher *HubFetcher
 }
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
 func NewHubScanClient(username string, password string, host string) (*HubScanClient, error) {
 	baseURL := "https://" + host
-	pf, err := NewProjectFetcher(username, password, baseURL)
+	hf, err := NewHubFetcher(username, password, baseURL)
 	if err != nil {
 		log.Errorf("unable to instantiate ProjectFetcher: %s", err.Error())
 		return nil, err
 	}
 
 	hsc := HubScanClient{
-		host:           host,
-		username:       username,
-		password:       password,
-		projectFetcher: pf}
+		host:       host,
+		username:   username,
+		password:   password,
+		hubFetcher: hf}
 	return &hsc, nil
 }
 
@@ -45,7 +45,7 @@ func mapKeys(m map[string]ScanJob) []string {
 }
 
 func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
-	return hsc.projectFetcher.FetchProjectOfName(projectName)
+	return hsc.hubFetcher.FetchProjectOfName(projectName)
 }
 
 func (hsc *HubScanClient) Scan(job ScanJob) error {

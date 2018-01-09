@@ -3,6 +3,7 @@ package clustermanager
 import (
 	"fmt"
 
+	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
 	"encoding/json"
@@ -41,7 +42,7 @@ func NewSpec(kubeSpec *v1.PodSpec) *Spec {
 
 func NewContainer(kubeCont *v1.Container) *Container {
 	return &Container{
-		Image: kubeCont.Image,
+		Image: *common.NewImage(kubeCont.Image),
 		Name:  kubeCont.Name,
 	}
 }
@@ -205,7 +206,7 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 		//		return nil, err
 	}
 	if bdAnnotations.ImageAnnotations == nil {
-		bdAnnotations.ImageAnnotations = make(map[string]ImageAnnotation)
+		bdAnnotations.ImageAnnotations = make(map[common.Image]ImageAnnotation)
 	}
 	if bdAnnotations.KeyVals == nil {
 		bdAnnotations.KeyVals = make(map[string]string)

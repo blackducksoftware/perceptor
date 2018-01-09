@@ -1,16 +1,20 @@
 package clustermanager
 
+import (
+	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+)
+
 // BlackDuckAnnotations describes the data model for pod annotation.
 type BlackDuckAnnotations struct {
 	// TODO remove KeyVals, this is just for testing, to be able
 	// to jam random stuff somewhere
 	KeyVals          map[string]string
-	ImageAnnotations map[string]ImageAnnotation
+	ImageAnnotations map[common.Image]ImageAnnotation
 }
 
 func NewBlackDuckAnnotations() *BlackDuckAnnotations {
 	return &BlackDuckAnnotations{
-		ImageAnnotations: make(map[string]ImageAnnotation),
+		ImageAnnotations: make(map[common.Image]ImageAnnotation),
 		KeyVals:          make(map[string]string),
 	}
 }
