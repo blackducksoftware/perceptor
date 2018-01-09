@@ -194,7 +194,7 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 	var bdString string
 	bdString, ok := annotations["BlackDuck"]
 	if !ok {
-		return NewBlackDuckAnnotations(), nil
+		return NewBlackDuckAnnotations(0, 0, ""), nil
 	}
 	// string -> BlackDuckAnnotations
 	var bdAnnotations BlackDuckAnnotations
@@ -202,11 +202,8 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 	if err != nil {
 		message := fmt.Sprintf("unable to Unmarshal BlackDuckAnnotations: %s", err.Error())
 		log.Error(message)
-		return NewBlackDuckAnnotations(), nil
+		return NewBlackDuckAnnotations(0, 0, ""), nil
 		//		return nil, err
-	}
-	if bdAnnotations.ImageAnnotations == nil {
-		bdAnnotations.ImageAnnotations = make(map[common.Image]ImageAnnotation)
 	}
 	if bdAnnotations.KeyVals == nil {
 		bdAnnotations.KeyVals = make(map[string]string)

@@ -1,11 +1,9 @@
 package core
 
 import (
-	"sync"
 	"time"
 
 	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,15 +15,11 @@ import (
 // It grabs the scan results from the hub and adds them to its model.
 // It writes vulnerabilities to pods in the cluster manager.
 type Perceptor struct {
-	mutex         sync.Mutex
 	scannerClient scanner.ScanClientInterface
 	clusterClient clustermanager.Client
 	Cache         VulnerabilityCache
 
 	HubProjectName string
-
-	// ignore the bools -- pretend like it's a set
-	InProgressScanJobs map[common.Image]bool
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a
@@ -54,12 +48,10 @@ func NewPerceptor(clusterMasterURL string, kubeconfigPath string, username strin
 
 func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient clustermanager.Client) *Perceptor {
 	perceptor := Perceptor{
-		mutex:              sync.Mutex{},
-		scannerClient:      scannerClient,
-		clusterClient:      clusterClient,
-		Cache:              *NewVulnerabilityCache(),
-		HubProjectName:     "Perceptor",
-		InProgressScanJobs: make(map[common.Image]bool)}
+		scannerClient:  scannerClient,
+		clusterClient:  clusterClient,
+		Cache:          *NewVulnerabilityCache(),
+		HubProjectName: "Perceptor"}
 
 	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
@@ -100,10 +92,6 @@ func (perceptor *Perceptor) startScanningImages() {
 			// this waits until the hub is done with the previous one, before starting
 			// the next one.
 
-			perceptor.mutex.Lock()
-			perceptor.InProgressScanJobs[image] = true
-			perceptor.mutex.Unlock()
-
 			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, image))
 			if err != nil {
 				log.Errorf("error scanning image: %s", err.Error())
@@ -130,49 +118,38 @@ func (perceptor *Perceptor) startPollingScanClient() {
 			continue
 		}
 
-		// Check whether any jobs have been completed
-		perceptor.mutex.Lock()
-		images := []common.Image{}
-		for image := range perceptor.InProgressScanJobs {
-			images = append(images, image)
-		}
-		for _, image := range images {
-			if project.IsImageScanDone(image) {
-				delete(perceptor.InProgressScanJobs, image)
-			}
-		}
-		perceptor.mutex.Unlock()
-
 		// add the hub results into the cache
-		perceptor.mutex.Lock()
 		log.Infof("about to add scan results from project %s: %v", perceptor.HubProjectName, *project)
 		err = perceptor.Cache.AddScanResultsFromProject(*project)
 		if err != nil {
 			log.Errorf("unable to add scan result from project to cache: %s", err.Error())
 		}
-		perceptor.mutex.Unlock()
 	}
 }
 
 func (perceptor *Perceptor) startWritingPodUpdates() {
 	for {
-		select {
-		case update := <-perceptor.Cache.ImageScanComplete():
-			log.Infof("received completed image scan: %v\n", update)
-			for _, pod := range update.AffectedPods {
-				bdAnnotations, err := perceptor.clusterClient.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
-				if err != nil {
-					log.Errorf("unable to get BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
-					continue
-				}
-				bdAnnotations.ImageAnnotations[update.Image] = clustermanager.ImageAnnotation{
-					PolicyViolationCount: update.ScanResults.PolicyViolationCount,
-					VulnerabilityCount:   update.ScanResults.VulnerabilityCount,
-				}
-				err = perceptor.clusterClient.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, *bdAnnotations)
-				if err != nil {
-					log.Errorf("unable to update BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
-				}
+		time.Sleep(20 * time.Second)
+		log.Info("writing vulnerability cache into pod annotations")
+		for podUID, pod := range perceptor.Cache.Pods {
+			bdAnnotations, err := perceptor.clusterClient.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+			if err != nil {
+				log.Errorf("unable to get BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
+				continue
+			}
+			scanResults, err := perceptor.Cache.scanResults(podUID)
+			if err != nil {
+				log.Errorf("unable to retrieve scan results for Pod UID %s: %s", podUID, err.Error())
+				continue
+			}
+			bdAnnotations.PolicyViolationCount = scanResults.PolicyViolationCount
+			bdAnnotations.VulnerabilityCount = scanResults.VulnerabilityCount
+			bdAnnotations.OverallStatus = scanResults.OverallStatus
+
+			err = perceptor.clusterClient.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, *bdAnnotations)
+			if err != nil {
+				log.Errorf("unable to update BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
+				continue
 			}
 		}
 	}

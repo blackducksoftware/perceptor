@@ -16,30 +16,7 @@ func (project *Project) IsImageScanDone(image common.Image) bool {
 			continue
 		}
 
-		// if there's at least 1 code location
-		if len(version.CodeLocations) == 0 {
-			return false
-		}
-
-		// and for each code location:
-		for _, codeLocation := range version.CodeLocations {
-			// there's at least 1 scan summary
-			if len(codeLocation.ScanSummaries) == 0 {
-				return false
-			}
-			scanSummary := codeLocation.ScanSummaries[0]
-			// and for each scan summary:
-			switch scanSummary.Status {
-			// the status is complete (or canceled, or some kind of error)
-			case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
-				continue
-			default:
-				return false
-			}
-		}
-
-		// then it's done
-		return true
+		return version.IsImageScanDone()
 	}
 
 	return false
@@ -55,6 +32,33 @@ type Version struct {
 	ReleasedOn      string
 	ReleaseComments string
 	Phase           string
+}
+
+func (version *Version) IsImageScanDone() bool {
+	// if there's at least 1 code location
+	if len(version.CodeLocations) == 0 {
+		return false
+	}
+
+	// and for each code location:
+	for _, codeLocation := range version.CodeLocations {
+		// there's at least 1 scan summary
+		if len(codeLocation.ScanSummaries) == 0 {
+			return false
+		}
+		scanSummary := codeLocation.ScanSummaries[0]
+		// and for each scan summary:
+		switch scanSummary.Status {
+		// the status is complete (or canceled, or some kind of error)
+		case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
+			continue
+		default:
+			return false
+		}
+	}
+
+	// then it's done
+	return true
 }
 
 type CodeLocation struct {

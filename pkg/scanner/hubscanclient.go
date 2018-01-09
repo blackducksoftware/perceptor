@@ -58,8 +58,8 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 	// TODO coupla problems here:
 	//   1. hardcoded path
 	//   2. hardcoded version number
-	scanCliImplJarPath := "./dependencies/scan.cli/lib/cache/scan.cli.impl-standalone.jar"
-	scanCliJarPath := "./dependencies/scan.cli/lib/scan.cli-4.5.0-SNAPSHOT-standalone.jar"
+	scanCliImplJarPath := "./dependencies/scan.cli-4.3.0/lib/cache/scan.cli.impl-standalone.jar"
+	scanCliJarPath := "./dependencies/scan.cli-4.3.0/lib/scan.cli-4.3.0-standalone.jar"
 	path := job.Image.TarFilePath()
 	cmd := exec.Command("java",
 		"-Xms512m",
