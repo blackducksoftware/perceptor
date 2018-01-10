@@ -31,6 +31,7 @@ func main() {
 	kubeconfigPath := os.Args[1]
 
 	hubHost := "34.227.56.110.xip.io"
+	// hubHost := "54.147.161.205.xip.io"
 	clusterMasterURL := "https://" + hubHost + ":8443"
 
 	openshiftMasterUsername := "admin"
@@ -38,7 +39,7 @@ func main() {
 	err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
 
 	if err != nil {
-		log.Fatal("unable to login to openshift")
+		log.Errorf("unable to log in to openshift: %s", err.Error())
 		panic(err)
 	}
 
