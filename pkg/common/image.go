@@ -37,5 +37,5 @@ func (image *Image) GetURL() string {
 	// TODO let's maybe trying keeping everything together in image -- example of which is:
 	//   172.30.89.171:5000/blackduck-scan/hub_ose_arbiter:4.3.0
 	// imageName := fmt.Sprintf("%s%s%s", image.name, "%3A", image.tag)
-	return fmt.Sprintf("/images/%s/get", image.URLEncodedName())
+	return fmt.Sprintf("http://localhost/v1.24/images/%s/get", image.URLEncodedName())
 }

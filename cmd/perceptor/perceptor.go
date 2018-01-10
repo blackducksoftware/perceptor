@@ -11,11 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"context"
-
-	"github.com/docker/docker/api/types"
-	dockerclient "github.com/docker/docker/client"
-
 	core "bitbucket.org/bdsengineering/perceptor/pkg/core"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,22 +21,27 @@ import (
 func main() {
 	log.Info("start")
 
-	listDockerContainers()
-
-	kubeconfigPath := os.Args[1]
+	/*
+		kubeconfigPath := ""
+		if len(os.Args) >= 2 {
+			kubeconfigPath = os.Args[1]
+		} else {
+			kubeconfigPath = "./dependencies/kubeconfig"
+		}
+	*/
 
 	hubHost := "34.227.56.110.xip.io"
 	// hubHost := "54.147.161.205.xip.io"
-	clusterMasterURL := "https://" + hubHost + ":8443"
+	// clusterMasterURL := "https://" + hubHost + ":8443"
 
-	openshiftMasterUsername := "admin"
-	openshiftMasterPassword := "123"
-	err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
-
-	if err != nil {
-		log.Errorf("unable to log in to openshift: %s", err.Error())
-		panic(err)
-	}
+	// openshiftMasterUsername := "admin"
+	// openshiftMasterPassword := "123"
+	// err := loginToOpenshift(clusterMasterURL, openshiftMasterUsername, openshiftMasterPassword)
+	//
+	//	if err != nil {
+	//		log.Errorf("unable to log in to openshift: %s", err.Error())
+	//		panic(err)
+	//	}
 
 	log.Info("logged into openshift")
 
@@ -49,7 +49,8 @@ func main() {
 	hubPassword := "blackduck"
 
 	// kubeconfigPath := usr.HomeDir + "/.kube/config"
-	perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost)
+	// perceptor, err := core.NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost)
+	perceptor, err := core.NewPerceptorFromCluster(hubUsername, hubPassword, hubHost)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
@@ -75,24 +76,6 @@ func loginToOpenshift(host string, username string, password string) error {
 	}
 	log.Infof("finished `oc login`: %s", stdoutStderr)
 	return err
-}
-
-func listDockerContainers() {
-	cli, err := dockerclient.NewEnvClient()
-	if err != nil {
-		log.Errorf("unable to instantiate docker client: %s", err.Error())
-		panic(err)
-	}
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		log.Errorf("unable to obtain docker container list: %s", err.Error())
-		panic(err)
-	}
-
-	for _, container := range containers {
-		log.Infof("found docker container: %s %s\n", container.ID[:10], container.Image)
-	}
 }
 
 // other stuff

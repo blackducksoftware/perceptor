@@ -28,6 +28,24 @@ func NewMockedPerceptor() (*Perceptor, error) {
 	return newPerceptorHelper(scanner.NewMockHub(), clustermanager.NewMockClient()), nil
 }
 
+// NewPerceptorFromCluster creates a Perceptor using configuration pulled from
+// the cluster on which it's running.
+func NewPerceptorFromCluster(username string, password string, hubHost string) (*Perceptor, error) {
+	scannerClient, err := scanner.NewHubScanClient(username, password, hubHost)
+	if err != nil {
+		log.Errorf("unable to instantiate HubScanClient: %s", err.Error())
+		return nil, err
+	}
+	clusterClient, err := clustermanager.NewKubeClientFromCluster()
+
+	if err != nil {
+		log.Errorf("unable to instantiate kubernetes client: %s", err.Error())
+		return nil, err
+	}
+
+	return newPerceptorHelper(scannerClient, clusterClient), nil
+}
+
 // NewPerceptor creates a Perceptor using the real kube client and the
 // real hub client.
 func NewPerceptor(clusterMasterURL string, kubeconfigPath string, username string, password string, hubHost string) (*Perceptor, error) {
