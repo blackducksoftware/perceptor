@@ -4,12 +4,12 @@ import (
 	"strings"
 
 	"github.com/docker/docker/integration-cli/checker"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
 	"github.com/go-check/check"
+	"github.com/gotestyourself/gotestyourself/icmd"
 )
 
 func (s *DockerSuite) TestTopMultipleArgs(c *check.C) {
-	out, _ := runSleepingContainer(c, "-d")
+	out := runSleepingContainer(c, "-d")
 	cleanedContainerID := strings.TrimSpace(out)
 
 	var expected icmd.Expected
@@ -20,11 +20,11 @@ func (s *DockerSuite) TestTopMultipleArgs(c *check.C) {
 		expected = icmd.Expected{Out: "PID"}
 	}
 	result := dockerCmdWithResult("top", cleanedContainerID, "-o", "pid")
-	c.Assert(result, icmd.Matches, expected)
+	result.Assert(c, expected)
 }
 
 func (s *DockerSuite) TestTopNonPrivileged(c *check.C) {
-	out, _ := runSleepingContainer(c, "-d")
+	out := runSleepingContainer(c, "-d")
 	cleanedContainerID := strings.TrimSpace(out)
 
 	out1, _ := dockerCmd(c, "top", cleanedContainerID)
@@ -49,7 +49,7 @@ func (s *DockerSuite) TestTopNonPrivileged(c *check.C) {
 // very different to Linux in this regard.
 func (s *DockerSuite) TestTopWindowsCoreProcesses(c *check.C) {
 	testRequires(c, DaemonIsWindows)
-	out, _ := runSleepingContainer(c, "-d")
+	out := runSleepingContainer(c, "-d")
 	cleanedContainerID := strings.TrimSpace(out)
 	out1, _ := dockerCmd(c, "top", cleanedContainerID)
 	lookingFor := []string{"smss.exe", "csrss.exe", "wininit.exe", "services.exe", "lsass.exe", "CExecSvc.exe"}

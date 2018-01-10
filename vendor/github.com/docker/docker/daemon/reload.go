@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/daemon/config"
 	"github.com/docker/docker/daemon/discovery"
-	"github.com/docker/docker/libcontainerd"
+	"github.com/sirupsen/logrus"
 )
 
 // Reload reads configuration changes and modifies the
@@ -37,15 +36,20 @@ func (daemon *Daemon) Reload(conf *config.Config) (err error) {
 		}
 	}()
 
-	daemon.reloadPlatform(conf, attributes)
+	if err := daemon.reloadPlatform(conf, attributes); err != nil {
+		return err
+	}
 	daemon.reloadDebug(conf, attributes)
-	daemon.reloadMaxConcurrentDowloadsAndUploads(conf, attributes)
+	daemon.reloadMaxConcurrentDownloadsAndUploads(conf, attributes)
 	daemon.reloadShutdownTimeout(conf, attributes)
 
 	if err := daemon.reloadClusterDiscovery(conf, attributes); err != nil {
 		return err
 	}
 	if err := daemon.reloadLabels(conf, attributes); err != nil {
+		return err
+	}
+	if err := daemon.reloadAllowNondistributableArtifacts(conf, attributes); err != nil {
 		return err
 	}
 	if err := daemon.reloadInsecureRegistries(conf, attributes); err != nil {
@@ -55,6 +59,9 @@ func (daemon *Daemon) Reload(conf *config.Config) (err error) {
 		return err
 	}
 	if err := daemon.reloadLiveRestore(conf, attributes); err != nil {
+		return err
+	}
+	if err := daemon.reloadNetworkDiagnosticPort(conf, attributes); err != nil {
 		return err
 	}
 	return nil
@@ -71,9 +78,9 @@ func (daemon *Daemon) reloadDebug(conf *config.Config, attributes map[string]str
 	attributes["debug"] = fmt.Sprintf("%t", daemon.configStore.Debug)
 }
 
-// reloadMaxConcurrentDowloadsAndUploads updates configuration with max concurrent
+// reloadMaxConcurrentDownloadsAndUploads updates configuration with max concurrent
 // download and upload options and updates the passed attributes
-func (daemon *Daemon) reloadMaxConcurrentDowloadsAndUploads(conf *config.Config, attributes map[string]string) {
+func (daemon *Daemon) reloadMaxConcurrentDownloadsAndUploads(conf *config.Config, attributes map[string]string) {
 	// If no value is set for max-concurrent-downloads we assume it is the default value
 	// We always "reset" as the cost is lightweight and easy to maintain.
 	if conf.IsValueSet("max-concurrent-downloads") && conf.MaxConcurrentDownloads != nil {
@@ -217,6 +224,31 @@ func (daemon *Daemon) reloadLabels(conf *config.Config, attributes map[string]st
 	return nil
 }
 
+// reloadAllowNondistributableArtifacts updates the configuration with allow-nondistributable-artifacts options
+// and updates the passed attributes.
+func (daemon *Daemon) reloadAllowNondistributableArtifacts(conf *config.Config, attributes map[string]string) error {
+	// Update corresponding configuration.
+	if conf.IsValueSet("allow-nondistributable-artifacts") {
+		daemon.configStore.AllowNondistributableArtifacts = conf.AllowNondistributableArtifacts
+		if err := daemon.RegistryService.LoadAllowNondistributableArtifacts(conf.AllowNondistributableArtifacts); err != nil {
+			return err
+		}
+	}
+
+	// Prepare reload event attributes with updatable configurations.
+	if daemon.configStore.AllowNondistributableArtifacts != nil {
+		v, err := json.Marshal(daemon.configStore.AllowNondistributableArtifacts)
+		if err != nil {
+			return err
+		}
+		attributes["allow-nondistributable-artifacts"] = string(v)
+	} else {
+		attributes["allow-nondistributable-artifacts"] = "[]"
+	}
+
+	return nil
+}
+
 // reloadInsecureRegistries updates configuration with insecure registry option
 // and updates the passed attributes
 func (daemon *Daemon) reloadInsecureRegistries(conf *config.Config, attributes map[string]string) error {
@@ -273,12 +305,24 @@ func (daemon *Daemon) reloadLiveRestore(conf *config.Config, attributes map[stri
 	// update corresponding configuration
 	if conf.IsValueSet("live-restore") {
 		daemon.configStore.LiveRestoreEnabled = conf.LiveRestoreEnabled
-		if err := daemon.containerdRemote.UpdateOptions(libcontainerd.WithLiveRestore(conf.LiveRestoreEnabled)); err != nil {
-			return err
-		}
 	}
 
 	// prepare reload event attributes with updatable configurations
 	attributes["live-restore"] = fmt.Sprintf("%t", daemon.configStore.LiveRestoreEnabled)
+	return nil
+}
+
+// reloadNetworkDiagnosticPort updates the network controller starting the diagnose mode if the config is valid
+func (daemon *Daemon) reloadNetworkDiagnosticPort(conf *config.Config, attributes map[string]string) error {
+	if conf == nil || daemon.netController == nil {
+		return nil
+	}
+	// Enable the network diagnose if the flag is set with a valid port withing the range
+	if conf.IsValueSet("network-diagnostic-port") && conf.NetworkDiagnosticPort > 0 && conf.NetworkDiagnosticPort < 65536 {
+		logrus.Warnf("Calling the diagnostic start with %d", conf.NetworkDiagnosticPort)
+		daemon.netController.StartDiagnose(conf.NetworkDiagnosticPort)
+	} else {
+		daemon.netController.StopDiagnose()
+	}
 	return nil
 }

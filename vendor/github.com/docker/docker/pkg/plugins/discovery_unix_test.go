@@ -4,11 +4,14 @@ package plugins
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestLocalSocket(t *testing.T) {
@@ -57,5 +60,44 @@ func TestLocalSocket(t *testing.T) {
 			t.Fatalf("Expected TLS verification to be skipped")
 		}
 		l.Close()
+	}
+}
+
+func TestScan(t *testing.T) {
+	tmpdir, unregister := Setup(t)
+	defer unregister()
+
+	pluginNames, err := Scan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pluginNames != nil {
+		t.Fatal("Plugin names should be empty.")
+	}
+
+	path := filepath.Join(tmpdir, "echo.spec")
+	addr := "unix://var/lib/docker/plugins/echo.sock"
+	name := "echo"
+
+	err = os.MkdirAll(filepath.Dir(path), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ioutil.WriteFile(path, []byte(addr), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := newLocalRegistry()
+	p, err := r.Plugin(name)
+	require.NoError(t, err)
+
+	pluginNamesNotEmpty, err := Scan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Name() != pluginNamesNotEmpty[0] {
+		t.Fatalf("Unable to scan plugin with name %s", p.name)
 	}
 }

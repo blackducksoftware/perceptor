@@ -1,11 +1,11 @@
 package: bitbucket.org/bdsengineering/perceptor
 import:
 - package: bitbucket.org/bdsengineering/go-hub-client
+  repo: git@bitbucket.org:bdsengineering/go-hub-client.git
+  vcs: git
   subpackages:
   - hubapi
   - hubclient
-  repo:    git@bitbucket.org:bdsengineering/go-hub-client.git
-  vcs:     git
 - package: github.com/fsnotify/fsnotify
   version: v1.4.2
 - package: github.com/golang/glog
@@ -36,3 +36,5 @@ import:
   - tools/cache
   - tools/clientcmd
   - util/workqueue
+- package: github.com/moby/moby
+  version: v1.12.0

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/libnetwork/datastore"
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/libnetwork/netlabel"
 	"github.com/docker/libnetwork/options"
 	"github.com/docker/libnetwork/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Endpoint represents a logical connection between a network and a sandbox.
@@ -75,6 +75,7 @@ type endpoint struct {
 	dbIndex           uint64
 	dbExists          bool
 	serviceEnabled    bool
+	loadBalancer      bool
 	sync.Mutex
 }
 
@@ -101,6 +102,7 @@ func (ep *endpoint) MarshalJSON() ([]byte, error) {
 	epMap["virtualIP"] = ep.virtualIP.String()
 	epMap["ingressPorts"] = ep.ingressPorts
 	epMap["svcAliases"] = ep.svcAliases
+	epMap["loadBalancer"] = ep.loadBalancer
 
 	return json.Marshal(epMap)
 }
@@ -201,6 +203,10 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 		ep.virtualIP = net.ParseIP(vip.(string))
 	}
 
+	if v, ok := epMap["loadBalancer"]; ok {
+		ep.loadBalancer = v.(bool)
+	}
+
 	sal, _ := json.Marshal(epMap["svcAliases"])
 	var svcAliases []string
 	json.Unmarshal(sal, &svcAliases)
@@ -238,6 +244,7 @@ func (ep *endpoint) CopyTo(o datastore.KVObject) error {
 	dstEp.svcName = ep.svcName
 	dstEp.svcID = ep.svcID
 	dstEp.virtualIP = ep.virtualIP
+	dstEp.loadBalancer = ep.loadBalancer
 
 	dstEp.svcAliases = make([]string, len(ep.svcAliases))
 	copy(dstEp.svcAliases, ep.svcAliases)
@@ -597,8 +604,14 @@ func (ep *endpoint) rename(name string) error {
 
 	c := n.getController()
 
+	sb, ok := ep.getSandbox()
+	if !ok {
+		logrus.Warnf("rename for %s aborted, sandbox %s is not anymore present", ep.ID(), ep.sandboxID)
+		return nil
+	}
+
 	if c.isAgent() {
-		if err = ep.deleteServiceInfoFromCluster(); err != nil {
+		if err = ep.deleteServiceInfoFromCluster(sb, "rename"); err != nil {
 			return types.InternalErrorf("Could not delete service state for endpoint %s from cluster on rename: %v", ep.Name(), err)
 		}
 	} else {
@@ -617,15 +630,15 @@ func (ep *endpoint) rename(name string) error {
 	ep.anonymous = false
 
 	if c.isAgent() {
-		if err = ep.addServiceInfoToCluster(); err != nil {
+		if err = ep.addServiceInfoToCluster(sb); err != nil {
 			return types.InternalErrorf("Could not add service state for endpoint %s to cluster on rename: %v", ep.Name(), err)
 		}
 		defer func() {
 			if err != nil {
-				ep.deleteServiceInfoFromCluster()
+				ep.deleteServiceInfoFromCluster(sb, "rename")
 				ep.name = oldName
 				ep.anonymous = oldAnonymous
-				ep.addServiceInfoToCluster()
+				ep.addServiceInfoToCluster(sb)
 			}
 		}()
 	} else {
@@ -746,7 +759,7 @@ func (ep *endpoint) sbLeave(sb *sandbox, force bool, options ...EndpointOption) 
 		return err
 	}
 
-	if e := ep.deleteServiceInfoFromCluster(); e != nil {
+	if e := ep.deleteServiceInfoFromCluster(sb, "sbLeave"); e != nil {
 		logrus.Errorf("Could not delete service state for endpoint %s from cluster: %v", ep.Name(), e)
 	}
 
@@ -979,7 +992,7 @@ func CreateOptionDisableResolution() EndpointOption {
 	}
 }
 
-//CreateOptionAlias function returns an option setter for setting endpoint alias
+// CreateOptionAlias function returns an option setter for setting endpoint alias
 func CreateOptionAlias(name string, alias string) EndpointOption {
 	return func(ep *endpoint) {
 		if ep.aliases == nil {
@@ -1000,10 +1013,17 @@ func CreateOptionService(name, id string, vip net.IP, ingressPorts []*PortConfig
 	}
 }
 
-//CreateOptionMyAlias function returns an option setter for setting endpoint's self alias
+// CreateOptionMyAlias function returns an option setter for setting endpoint's self alias
 func CreateOptionMyAlias(alias string) EndpointOption {
 	return func(ep *endpoint) {
 		ep.myAliases = append(ep.myAliases, alias)
+	}
+}
+
+// CreateOptionLoadBalancer function returns an option setter for denoting the endpoint is a load balancer for a network
+func CreateOptionLoadBalancer() EndpointOption {
+	return func(ep *endpoint) {
+		ep.loadBalancer = true
 	}
 }
 
@@ -1152,6 +1172,9 @@ func (c *controller) cleanupLocalEndpoints() {
 	}
 
 	for _, n := range nl {
+		if n.ConfigOnly() {
+			continue
+		}
 		epl, err := n.getEndpointsFromStore()
 		if err != nil {
 			logrus.Warnf("Could not get list of endpoints in network %s during endpoint cleanup: %v", n.name, err)
