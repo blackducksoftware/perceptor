@@ -49,3 +49,13 @@ func (hub *MockHub) Scan(job ScanJob) error {
 	// TODO implement
 	return nil
 }
+
+func (hub *MockHub) ScanCliSh(job ScanJob) error {
+	// TODO implement
+	return nil
+}
+
+func (hub *MockHub) ScanDockerSh(job ScanJob) error {
+	// TODO implement
+	return nil
+}

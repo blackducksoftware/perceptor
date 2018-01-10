@@ -92,7 +92,10 @@ func (perceptor *Perceptor) startScanningImages() {
 			// this waits until the hub is done with the previous one, before starting
 			// the next one.
 
+			// can choose which scanner to use.
 			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, image))
+			// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
+			// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
 			if err != nil {
 				log.Errorf("error scanning image: %s", err.Error())
 			}

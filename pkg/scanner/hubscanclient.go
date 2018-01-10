@@ -52,7 +52,7 @@ func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 func (hsc *HubScanClient) Scan(job ScanJob) error {
 	err := pdocker.PullImage(job.Image)
 	if err != nil {
-		log.Errorf("unable to pull docker image %s: %s", job.Image.Name, err.Error())
+		log.Errorf("unable to pull docker image %s: %s", job.Image.Name(), err.Error())
 		return err
 	}
 	// TODO coupla problems here:
@@ -79,18 +79,28 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 		"--insecure", // TODO not sure about this
 		"-v",
 		path)
-	/*
-		cmd := exec.Command(hsc.pathToScanner,
-			"--image",
-			job.ImageName,
-			"--project",
-			job.ProjectName,
-			"--host",
-			hsc.host,
-			"--username",
-			hsc.username)
-	*/
 	log.Infof("running command %v for image %s\n", cmd, job.Image.Name)
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		message := fmt.Sprintf("failed to run java scanner: %s", err.Error())
+		log.Error(message)
+		log.Errorf("output from java scanner:\n%v\n", string(stdoutStderr))
+		return err
+	}
+	log.Infof("successfully completed java scanner: %s", stdoutStderr)
+	return nil
+}
+
+func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {
+	pathToScanner := "./dependencies/scan.cli-4.3.0/bin/scan.cli.sh"
+	cmd := exec.Command(pathToScanner,
+		"--project", job.ProjectName,
+		"--host", hsc.host,
+		"--port", "443",
+		"--insecure",
+		"--username", hsc.username,
+		job.Image.Name())
+	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.cli.sh: %s", err.Error())
@@ -102,18 +112,16 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 	return nil
 }
 
-/*
 func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
-	cmd := exec.Command(hsc.pathToScanner, // "./scan.docker.sh",
-		"--image",
-		job.ImageName,
-		"--project",
-		job.ProjectName,
-		"--host",
-		hsc.host,
-		"--username",
-		hsc.username)
-	log.Infof("running command %v for image %s\n", cmd, job.ImageName)
+	pathToScanner := "./dependencies/scan.cli-4.3.0/bin/scan.docker.sh"
+	cmd := exec.Command(pathToScanner,
+		"--image", job.Image.Name(),
+		"--name", job.Image.Name(),
+		"--release", job.Image.Name(),
+		"--project", job.ProjectName,
+		"--host", hsc.host,
+		"--username", hsc.username)
+	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.docker.sh: %s", err.Error())
@@ -124,4 +132,3 @@ func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
 	log.Infof("successfully completed ./scan.docker.sh: %s", stdoutStderr)
 	return nil
 }
-*/
