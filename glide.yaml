@@ -36,5 +36,3 @@ import:
   - tools/cache
   - tools/clientcmd
   - util/workqueue
-- package: github.com/moby/moby
-  version: v1.12.0

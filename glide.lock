@@ -1,5 +1,5 @@
-hash: bcf8af75a33b491b64568cae7e1bbfb4a955f3b903647a527e5b320f2a679448
-updated: 2018-01-10T14:57:50.915872231-05:00
+hash: 49defa33f6035511c08698023c45234f10441f81be571871061bdf0af34f2d26
+updated: 2018-01-10T16:52:43.550582405-05:00
 imports:
 - name: bitbucket.org/bdsengineering/go-hub-client
   version: 978551b5ab285bfdd7fece0d6cd589d162a8a471
@@ -120,7 +120,7 @@ imports:
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/json-iterator/go
-  version: 13f86432b882000a51c6e610c620974462691a97
+  version: 36b14963da70d11297d313183d7e6388c8510e1e
 - name: github.com/juju/ratelimit
   version: 5b9ff866471762aa2ab2dced63c9fb6f53921342
 - name: github.com/magiconair/properties
@@ -139,8 +139,6 @@ imports:
   version: b7c3cf0d1286c7b62b140ed960a00b154c1b6fcc
 - name: github.com/mitchellh/mapstructure
   version: 06020f85339e21b2478f756a78e295255ffa4d6a
-- name: github.com/moby/moby
-  version: 8eab29edd820017901796eb60d4bea28d760f16f
 - name: github.com/opencontainers/go-digest
   version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
 - name: github.com/opencontainers/image-spec
@@ -264,7 +262,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: cc51b76607439c12d6bfa78aab2a81e46107b24f
+  version: 180eddb345a5be3a157cea1c624700ad5bd27b8f
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
