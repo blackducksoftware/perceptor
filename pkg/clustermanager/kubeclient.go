@@ -3,7 +3,6 @@ package clustermanager
 import (
 	"fmt"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
 	"encoding/json"
@@ -18,34 +17,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 )
-
-func NewPod(kubePod *v1.Pod) *Pod {
-	pod := Pod{
-		Name:        kubePod.Name,
-		Namespace:   kubePod.Namespace,
-		Annotations: kubePod.Annotations,
-		Spec:        *NewSpec(&kubePod.Spec),
-		UID:         string(kubePod.UID),
-	}
-	return &pod
-}
-
-func NewSpec(kubeSpec *v1.PodSpec) *Spec {
-	containers := []Container{}
-	for _, kubeCont := range kubeSpec.Containers {
-		containers = append(containers, *NewContainer(&kubeCont))
-	}
-	return &Spec{
-		Containers: containers,
-	}
-}
-
-func NewContainer(kubeCont *v1.Container) *Container {
-	return &Container{
-		Image: common.Image(kubeCont.Image),
-		Name:  kubeCont.Name,
-	}
-}
 
 // KubeClient is an implementation of the Client interface for kubernetes
 type KubeClient struct {

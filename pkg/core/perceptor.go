@@ -92,30 +92,42 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
 			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.Name)
 		case deletePod := <-perceptor.clusterClient.PodDelete():
-			log.Infof("cluster manager event -- delete pod: UID %s, name %s", deletePod.ID)
+			log.Infof("cluster manager event -- delete pod: ID %s", deletePod.ID)
 		}
 	}
 }
 
 func (perceptor *Perceptor) startScanningImages() {
 	for i := 0; ; i++ {
-		select {
-		case image := <-perceptor.Cache.ImagesToBeScanned():
-			log.Infof("should scan image %s", image)
-			// TODO need to think about how to limit concurrent scans to <= 7
-			// but for now, we're going to purposely block this thread so as
-			// to keep the number at 1
-			// TODO there seems to be a problem -- this thread gets unblocked before
-			// the hub is *actually* done scanning.  So ... how do we make sure that
-			// this waits until the hub is done with the previous one, before starting
-			// the next one.
+		time.Sleep(20 * time.Second)
+		image := perceptor.Cache.getNextImageFromQueue()
+		if image == nil {
+			log.Info("no images in scan queue")
+			continue
+		}
+		log.Infof("about to start scanning image %s", image.Name())
+		// TODO need to think about how to limit concurrent scans to <= 7
+		// but for now, we're going to purposely block this thread so as
+		// to keep the number at 1
+		// TODO there seems to be a problem -- this thread gets unblocked before
+		// the hub is *actually* done scanning.  So ... how do we make sure that
+		// this waits until the hub is done with the previous one, before starting
+		// the next one.
 
-			// can choose which scanner to use.
-			err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, image))
-			// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
-			// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
-			if err != nil {
-				log.Errorf("error scanning image: %s", err.Error())
+		// can choose which scanner to use.
+		err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, *image))
+		// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
+		// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
+		if err != nil {
+			log.Errorf("error scanning image %s: %s", image.Name(), err.Error())
+			err2 := perceptor.Cache.errorScanning(*image)
+			if err2 != nil {
+				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
+			}
+		} else {
+			err2 := perceptor.Cache.finishScanning(*image)
+			if err2 != nil {
+				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
 			}
 		}
 	}
