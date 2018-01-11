@@ -11,10 +11,11 @@ import (
 // HubScanClient implements ScanClientInterface using
 // the Black Duck hub and scan client programs.
 type HubScanClient struct {
-	host       string
-	username   string
-	password   string
-	hubFetcher *HubFetcher
+	host        string
+	username    string
+	password    string
+	hubFetcher  *HubFetcher
+	imagePuller *pdocker.ImagePuller
 }
 
 // NewHubScanClient requires login credentials in order to instantiate
@@ -28,10 +29,11 @@ func NewHubScanClient(username string, password string, host string) (*HubScanCl
 	}
 
 	hsc := HubScanClient{
-		host:       host,
-		username:   username,
-		password:   password,
-		hubFetcher: hf}
+		host:        host,
+		username:    username,
+		password:    password,
+		hubFetcher:  hf,
+		imagePuller: pdocker.NewImagePuller()}
 	return &hsc, nil
 }
 
@@ -50,7 +52,7 @@ func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 }
 
 func (hsc *HubScanClient) Scan(job ScanJob) error {
-	err := pdocker.PullImage(job.Image)
+	err := hsc.imagePuller.PullImage(job.Image)
 	if err != nil {
 		log.Errorf("unable to pull docker image %s: %s", job.Image.Name(), err.Error())
 		return err
