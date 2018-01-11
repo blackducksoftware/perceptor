@@ -113,7 +113,7 @@ func createImageInLocalDocker(image common.Image) (err error) {
 		// This should get hit if there's a 404
 		log.Infof("Create may have failed for %s: status code %d, response", imageURL, resp.StatusCode, resp)
 	} else {
-		log.Errorf("Create failed for %s , ERROR = ((  %s  )) ", imageURL, err)
+		log.Errorf("Create failed for image %s: %s", imageURL, err.Error())
 	}
 	return err
 }

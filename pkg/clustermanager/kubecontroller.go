@@ -29,7 +29,7 @@ func NewKubeController(queue workqueue.RateLimitingInterface, indexer cache.Inde
 func (c *KubeController) processNextItem() bool {
 	// Wait until there is a new item in the working queue
 	key, quit := c.queue.Get()
-	fmt.Printf("process next item -- %s, %v\n", key, quit)
+	// log.Infof("process next item -- %s, %v\n", key, quit)
 	if quit {
 		return false
 	}
@@ -44,7 +44,6 @@ func (c *KubeController) processNextItem() bool {
 }
 
 func (c *KubeController) businessLogic(key string) error {
-	fmt.Println("syncToStdout -- " + key)
 	obj, exists, err := c.indexer.GetByKey(key)
 	if err != nil {
 		log.Errorf("Fetching object with key %s from store failed with %v", key, err)
@@ -52,11 +51,11 @@ func (c *KubeController) businessLogic(key string) error {
 	}
 
 	if !exists {
-		fmt.Printf("Pod %s does not exist anymore, %v\n", key, obj)
+		log.Infof("Pod %s does not exist anymore, %v", key, obj)
 	} else {
 		// Note that you also have to check the uid if you have a local controlled resource, which
 		// is dependent on the actual instance, to detect that a Pod was recreated with the same name
-		fmt.Printf("Sync/Add/Update for Pod %s\n", obj.(*v1.Pod).GetName())
+		log.Infof("Sync/Add/Update for Pod %s, UID %s", obj.(*v1.Pod).GetName(), obj.(*v1.Pod).GetUID())
 	}
 	return nil
 }

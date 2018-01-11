@@ -88,11 +88,11 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 			for _, cont := range addPod.New.Spec.Containers {
 				images = append(images, cont.Image.Name()+", "+cont.Name)
 			}
-			log.Infof("cluster manager event -- add pod: %v\n%v", addPod.New.Annotations, images)
+			log.Infof("cluster manager event -- add pod: UID %s, name %s", addPod.New.UID, addPod.New.Name)
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
-			log.Infof("cluster manager event -- update pod: %v", updatePod.New.Annotations)
+			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.Name)
 		case deletePod := <-perceptor.clusterClient.PodDelete():
-			log.Infof("cluster manager event -- delete pod: %v", deletePod)
+			log.Infof("cluster manager event -- delete pod: UID %s, name %s", deletePod.ID)
 		}
 	}
 }
@@ -140,7 +140,7 @@ func (perceptor *Perceptor) startPollingScanClient() {
 		}
 
 		// add the hub results into the cache
-		log.Infof("about to add scan results from project %s: %v", perceptor.HubProjectName, *project)
+		log.Infof("about to add scan results from project %s: found %d versions", perceptor.HubProjectName, len(project.Versions))
 		err = perceptor.Cache.AddScanResultsFromProject(*project)
 		if err != nil {
 			log.Errorf("unable to add scan result from project to cache: %s", err.Error())
