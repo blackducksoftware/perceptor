@@ -92,6 +92,7 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
 			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.Name)
 		case deletePod := <-perceptor.clusterClient.PodDelete():
+			perceptor.Cache.DeletePod(deletePod)
 			log.Infof("cluster manager event -- delete pod: ID %s", deletePod.ID)
 		}
 	}

@@ -86,6 +86,8 @@ func (ip *ImagePuller) saveImageToTar(image common.Image) error {
 		return fmt.Errorf("HTTP ERROR: received status != 200 on resp OK: %s", resp.Status)
 	}
 
+	log.Infof("GET request for %s successful", image.GetURL())
+
 	body := resp.Body
 	defer func() {
 		body.Close()
