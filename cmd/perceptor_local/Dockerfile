@@ -46,5 +46,5 @@ COPY ./dependencies/ ./dependencies/
 EXPOSE 3000
 
 
-# Run perceptor
-CMD ["./dependencies/perceptor", "./dependencies/kubeconfig"]
+# Run perceptor_local
+CMD ["./dependencies/perceptor_local", "./dependencies/kubeconfig"]
