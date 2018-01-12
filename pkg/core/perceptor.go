@@ -15,11 +15,11 @@ import (
 // It grabs the scan results from the hub and adds them to its model.
 // It writes vulnerabilities to pods in the cluster manager.
 type Perceptor struct {
-	scannerClient scanner.ScanClientInterface
-	clusterClient clustermanager.Client
-	Cache         VulnerabilityCache
-
+	scannerClient  scanner.ScanClientInterface
+	clusterClient  clustermanager.Client
+	Cache          VulnerabilityCache
 	HubProjectName string
+	ImageScanStats chan scanner.ImageScanStats
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a
@@ -69,7 +69,8 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient
 		scannerClient:  scannerClient,
 		clusterClient:  clusterClient,
 		Cache:          *NewVulnerabilityCache(),
-		HubProjectName: "Perceptor"}
+		HubProjectName: "Perceptor",
+		ImageScanStats: make(chan scanner.ImageScanStats)}
 
 	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
@@ -116,7 +117,7 @@ func (perceptor *Perceptor) startScanningImages() {
 		// the next one.
 
 		// can choose which scanner to use.
-		err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, *image))
+		stats, err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, *image))
 		// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
 		// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
 		if err != nil {
@@ -126,6 +127,7 @@ func (perceptor *Perceptor) startScanningImages() {
 				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
 			}
 		} else {
+			perceptor.ImageScanStats <- *stats
 			err2 := perceptor.Cache.finishScanning(*image)
 			if err2 != nil {
 				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())

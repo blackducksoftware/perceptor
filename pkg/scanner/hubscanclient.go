@@ -3,6 +3,7 @@ package scanner
 import (
 	"fmt"
 	"os/exec"
+	"time"
 
 	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
@@ -51,11 +52,11 @@ func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 	return hsc.hubFetcher.FetchProjectOfName(projectName)
 }
 
-func (hsc *HubScanClient) Scan(job ScanJob) error {
-	err := hsc.imagePuller.PullImage(job.Image)
+func (hsc *HubScanClient) Scan(job ScanJob) (*ImageScanStats, error) {
+	pullStats, err := hsc.imagePuller.PullImage(job.Image)
 	if err != nil {
 		log.Errorf("unable to pull docker image %s: %s", job.Image.Name(), err.Error())
-		return err
+		return nil, err
 	}
 	// TODO coupla problems here:
 	//   1. hardcoded path
@@ -82,15 +83,17 @@ func (hsc *HubScanClient) Scan(job ScanJob) error {
 		"-v",
 		path)
 	log.Infof("running command %v for image %s\n", cmd, job.Image.Name)
+	start := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
+	stop := time.Now()
 	if err != nil {
 		message := fmt.Sprintf("failed to run java scanner: %s", err.Error())
 		log.Error(message)
 		log.Errorf("output from java scanner:\n%v\n", string(stdoutStderr))
-		return err
+		return nil, err
 	}
 	log.Infof("successfully completed java scanner: %s", stdoutStderr)
-	return nil
+	return &ImageScanStats{PullStats: *pullStats, ScanDuration: stop.Sub(start)}, nil
 }
 
 func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {

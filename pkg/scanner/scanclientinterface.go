@@ -5,7 +5,7 @@ import (
 )
 
 type ScanClientInterface interface {
-	Scan(job ScanJob) error
+	Scan(job ScanJob) (*ImageScanStats, error)
 	ScanCliSh(job ScanJob) error
 	ScanDockerSh(job ScanJob) error
 	FetchProject(projectName string) (*Project, error)
