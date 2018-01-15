@@ -2,6 +2,7 @@ package scanner
 
 import (
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/prometheus/common/log"
 )
 
 type Project struct {
@@ -46,13 +47,15 @@ func (version *Version) IsImageScanDone() bool {
 		if len(codeLocation.ScanSummaries) == 0 {
 			return false
 		}
-		scanSummary := codeLocation.ScanSummaries[0]
-		// and for each scan summary:
-		switch scanSummary.Status {
-		case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
-			continue
-		default:
-			return false
+
+		for _, scanSummary := range codeLocation.ScanSummaries {
+			// and for each scan summary:
+			switch scanSummary.Status {
+			case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
+				continue
+			default:
+				return false
+			}
 		}
 	}
 
