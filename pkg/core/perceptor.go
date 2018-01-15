@@ -19,7 +19,7 @@ type Perceptor struct {
 	clusterClient  clustermanager.Client
 	Cache          VulnerabilityCache
 	HubProjectName string
-	ImageScanStats chan scanner.ImageScanStats
+	imageScanStats chan scanner.ImageScanStats
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a
@@ -70,7 +70,7 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient
 		clusterClient:  clusterClient,
 		Cache:          *NewVulnerabilityCache(),
 		HubProjectName: "Perceptor",
-		ImageScanStats: make(chan scanner.ImageScanStats)}
+		imageScanStats: make(chan scanner.ImageScanStats)}
 
 	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
@@ -78,6 +78,10 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient
 	go perceptor.startWritingPodUpdates()
 
 	return &perceptor
+}
+
+func (perceptor *Perceptor) ImageScanStats() <-chan scanner.ImageScanStats {
+	return perceptor.imageScanStats
 }
 
 func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
@@ -127,7 +131,7 @@ func (perceptor *Perceptor) startScanningImages() {
 				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
 			}
 		} else {
-			perceptor.ImageScanStats <- *stats
+			perceptor.imageScanStats <- *stats
 			err2 := perceptor.Cache.finishScanning(*image)
 			if err2 != nil {
 				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())

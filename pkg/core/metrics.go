@@ -47,7 +47,10 @@ func metricsHandler(imageScanStats <-chan scanner.ImageScanStats) http.Handler {
 		for {
 			select {
 			case stats := <-imageScanStats:
-				log.Infof("get new image scan stats: %v", stats)
+				log.Infof("got new image scan stats: scan duration: %d, pull duration %d, tar file size %d",
+					int(stats.ScanDuration.Seconds()),
+					int(stats.PullStats.Duration.Seconds()),
+					int(stats.PullStats.TarFileSizeMBs))
 				tarballSize.WithLabelValues("tarballSize").Observe(float64(stats.PullStats.TarFileSizeMBs))
 				pullDuration.WithLabelValues("pullDurationSeconds").Observe(float64(stats.PullStats.Duration.Seconds()))
 				scanDuration.WithLabelValues("scanDurationSeconds").Observe(float64(stats.ScanDuration.Seconds()))

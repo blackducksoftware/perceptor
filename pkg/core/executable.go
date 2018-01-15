@@ -81,7 +81,7 @@ func loginToOpenshift(host string, username string, password string) error {
 // other stuff
 
 func setupHTTPServer(perceptor *Perceptor) {
-	http.Handle("/metrics", metricsHandler(perceptor.ImageScanStats))
+	http.Handle("/metrics", metricsHandler(perceptor.ImageScanStats()))
 	http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("shutting down")
 		fmt.Fprint(w, "Shutdown now!\n")
