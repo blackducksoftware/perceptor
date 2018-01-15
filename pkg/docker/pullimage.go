@@ -17,12 +17,8 @@ const (
 )
 
 type ImagePuller struct {
-	client *http.Client
-}
-
-type ImagePullStats struct {
-	Duration       time.Duration
-	TarFileSizeMBs int
+	rootTarballDir string
+	client         *http.Client
 }
 
 func NewImagePuller() *ImagePuller {
@@ -31,7 +27,7 @@ func NewImagePuller() *ImagePuller {
 	}
 	tr := &http.Transport{Dial: fd}
 	client := &http.Client{Transport: tr}
-	return &ImagePuller{client: client}
+	return &ImagePuller{rootTarballDir: "./tmp", client: client}
 }
 
 // PullImage gives us access to a docker image by:
@@ -67,7 +63,7 @@ func (ip *ImagePuller) PullImage(image common.Image) (*ImagePullStats, error) {
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create?fromImage=alpine
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
-// ... or could it?  Not really sure what this does.
+//
 func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (err error) {
 	imageURL := image.CreateURL()
 	log.Infof("Attempting to create %s ......", imageURL)
@@ -107,7 +103,7 @@ func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, error) {
 	log.Infof("Tar File Path: %s", tarFilePath)
 
 	// just need to create `./tmp` if it doesn't already exist
-	os.Mkdir("./tmp", 0755)
+	os.Mkdir(ip.rootTarballDir, 0755)
 
 	f, err := os.OpenFile(tarFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {

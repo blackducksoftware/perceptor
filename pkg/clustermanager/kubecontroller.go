@@ -83,7 +83,7 @@ func (c *KubeController) handleErr(err error, key interface{}) {
 	c.queue.Forget(key)
 	// Report to an external entity that, even after several retries, we could not successfully process this key
 	runtime.HandleError(err)
-	log.Infof("Dropping pod %q out of the queue: %v", key, err)
+	log.Errorf("Dropping pod %q out of the queue: %v", key, err)
 }
 
 func (c *KubeController) Run(threadiness int, stopCh chan struct{}) {
@@ -97,7 +97,9 @@ func (c *KubeController) Run(threadiness int, stopCh chan struct{}) {
 
 	// Wait for all involved caches to be synced, before processing items from the queue is started
 	if !cache.WaitForCacheSync(stopCh, c.informer.HasSynced) {
-		runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
+		message := "Timed out waiting for caches to sync"
+		log.Error(message)
+		runtime.HandleError(fmt.Errorf(message))
 		return
 	}
 

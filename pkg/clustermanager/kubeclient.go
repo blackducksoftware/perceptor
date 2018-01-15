@@ -50,41 +50,6 @@ func (client *KubeClient) PodDelete() <-chan DeletePod {
 
 // BEGIN POC methods
 
-func (client *KubeClient) GetAnnotations(pod *v1.Pod) (map[string]string, error) {
-	pods := client.clientset.CoreV1().Pods(pod.Namespace)
-	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
-	if err != nil {
-		log.Errorf("unable to get pod: %s", err.Error())
-		return nil, err
-	}
-	return kubePod.GetAnnotations(), nil
-}
-
-func (client *KubeClient) SetAnnotations(pod *v1.Pod, annotations map[string]string) error {
-	pods := client.clientset.CoreV1().Pods(pod.Namespace)
-	kubePod, err := pods.Get(pod.Name, meta_v1.GetOptions{})
-	if err != nil {
-		log.Errorf("unable to get pod: %s", err.Error())
-		return err
-	}
-	kubePod.SetAnnotations(annotations)
-	_, err = pods.Update(kubePod)
-	if err != nil {
-		log.Errorf("unable to update pod: %s", err.Error())
-	}
-	return err
-}
-
-func (client *KubeClient) AddAnnotation(pod *v1.Pod, key string, value string) error {
-	annotations, err := client.GetAnnotations(pod)
-	if err != nil {
-		return err
-	}
-	// TODO should a copy of annotations be made first?
-	annotations[key] = value
-	return client.SetAnnotations(pod, annotations)
-}
-
 func (client *KubeClient) GetPod(namespace string, name string) (*v1.Pod, error) {
 	return client.clientset.CoreV1().Pods(namespace).Get(name, meta_v1.GetOptions{})
 }
@@ -130,9 +95,10 @@ func (client *KubeClient) GetPods() ([]v1.Pod, error) {
 
 func (client *KubeClient) ClearBlackDuckPodAnnotations(namespace string, name string) error {
 	pods := client.clientset.CoreV1().Pods(namespace)
+	podName := fmt.Sprintf("%s:%s", namespace, name)
 	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
-		log.Errorf("unable to get pod: %s", err.Error())
+		log.Errorf("unable to get pod %s: %s", podName, err.Error())
 		return err
 	}
 	annotations := kubePod.GetAnnotations()
@@ -140,7 +106,7 @@ func (client *KubeClient) ClearBlackDuckPodAnnotations(namespace string, name st
 	kubePod.SetAnnotations(annotations)
 	_, err = pods.Update(kubePod)
 	if err != nil {
-		log.Errorf("unable to clear BlackDuck pod annotations: %s", err.Error())
+		log.Errorf("unable to clear BlackDuck annotations for pod %s: %s", podName, err.Error())
 		return err
 	}
 	return nil
@@ -155,9 +121,10 @@ func (client *KubeClient) ClearBlackDuckPodAnnotations(namespace string, name st
 //      with Black Duck
 func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name string) (*BlackDuckAnnotations, error) {
 	pods := client.clientset.CoreV1().Pods(namespace)
+	podName := fmt.Sprintf("%s:%s", namespace, name)
 	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
-		log.Errorf("unable to get pod: %s", err.Error())
+		log.Errorf("unable to get pod %s: %s", podName, err.Error())
 		return nil, err
 	}
 	annotations := kubePod.GetAnnotations()
@@ -171,7 +138,7 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 	var bdAnnotations BlackDuckAnnotations
 	err = json.Unmarshal([]byte(bdString), &bdAnnotations)
 	if err != nil {
-		message := fmt.Sprintf("unable to Unmarshal BlackDuckAnnotations: %s", err.Error())
+		message := fmt.Sprintf("unable to Unmarshal BlackDuckAnnotations for pod %s: %s", podName, err.Error())
 		log.Error(message)
 		return NewBlackDuckAnnotations(0, 0, ""), nil
 		//		return nil, err
@@ -184,16 +151,17 @@ func (client *KubeClient) GetBlackDuckPodAnnotations(namespace string, name stri
 
 func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name string, bdAnnotations BlackDuckAnnotations) error {
 	pods := client.clientset.CoreV1().Pods(namespace)
+	podName := fmt.Sprintf("%s:%s", namespace, name)
 	kubePod, err := pods.Get(name, meta_v1.GetOptions{})
 	if err != nil {
-		log.Errorf("unable to get pod: %s", err.Error())
+		log.Errorf("unable to get pod %s: %s", podName, err.Error())
 		return err
 	}
 	annotations := kubePod.GetAnnotations()
 	// BlackDuckAnnotations -> string
 	jsonBytes, err := json.Marshal(bdAnnotations)
 	if err != nil {
-		log.Errorf("unable to marshal BlackDuckAnnotations: %s", err.Error())
+		log.Errorf("unable to marshal BlackDuckAnnotations for pod %s: %s", podName, err.Error())
 		return err
 	}
 	// add it into the annotations map
@@ -202,7 +170,7 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name stri
 	kubePod.SetAnnotations(annotations)
 	_, err = pods.Update(kubePod)
 	if err != nil {
-		log.Errorf("unable to update pod: %s", err.Error())
+		log.Errorf("unable to update annotations for pod %s: %s", podName, err.Error())
 	}
 	return err
 }
@@ -223,10 +191,9 @@ func (client *KubeClient) setBlackDuckPodAnnotationsWithPod(pod Pod, bdAnnotatio
 
 // End extra, maybe useless methods
 
-// NewKubeClientFromCluster instantiates a KubeClient using ??configuration??
-// pulled from ... a?/the?/some? cluster.
+// NewKubeClientFromCluster instantiates a KubeClient using configuration
+// pulled from the cluster.
 func NewKubeClientFromCluster() (*KubeClient, error) {
-	/// use this if we can, kubeconfig is ghetto.
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Errorf("unable to build config from cluster: %s", err.Error())
@@ -255,11 +222,11 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 		return nil, err
 	}
 
-	// create the pod watcher
 	// TODO set the namespace
-	// namespace := v1.NamespaceAll
-	namespace := v1.NamespaceDefault
-	// namespace := "blackduck-scan"
+	namespace := v1.NamespaceAll
+	// namespace := "mff"
+
+	// create the pod watcher
 	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
 
 	// create the workqueue
@@ -284,7 +251,7 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}
-			log.Infof("add -- %s", key)
+			log.Infof("kubeclient add pod -- %s", key)
 		},
 		UpdateFunc: func(old interface{}, new interface{}) {
 			newKey, err := cache.MetaNamespaceKeyFunc(new)
@@ -297,7 +264,7 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}
-			log.Infof("update -- %s", newKey)
+			log.Infof("kubeclient update pod -- %s", newKey)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// IndexerInformer uses a delta queue, therefore for deletes we have to use this
@@ -305,23 +272,17 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 			key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 			if err == nil {
 				queue.Add(key)
+				// TODO we need the UID of the deleted pod, since this key seems to
+				// refer to the unqualified name, which may not be unique
+				// (or could it be a name that's in the "current" namespace,
+				// whatever "current" means?)
 				podDelete <- DeletePod{ID: key}
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}
-			log.Infof("delete -- %s", key)
+			log.Infof("kubeclient delete pod -- %s", key)
 		},
 	}, cache.Indexers{})
-
-	// TODO delete this example
-	/*
-		indexer.Add(&v1.Pod{
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name:      "mypod",
-				Namespace: v1.NamespaceDefault,
-			},
-		})
-	*/
 
 	controller := NewKubeController(queue, indexer, informer)
 
