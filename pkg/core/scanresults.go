@@ -9,3 +9,7 @@ type ScanResults struct {
 	// hub version
 	// project URL
 }
+
+func NewScanResults() *ScanResults {
+	return &ScanResults{OverallStatus: "", VulnerabilityCount: 0, PolicyViolationCount: 0}
+}

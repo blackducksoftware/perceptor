@@ -89,13 +89,13 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 		select {
 		case addPod := <-perceptor.clusterClient.PodAdd():
 			perceptor.Cache.AddPod(addPod.New)
-			images := []string{}
-			for _, cont := range addPod.New.Spec.Containers {
-				images = append(images, cont.Image.Name()+", "+cont.Name)
-			}
-			log.Infof("cluster manager event -- add pod: UID %s, name %s", addPod.New.UID, addPod.New.Name)
+			// images := []string{}
+			// for _, cont := range addPod.New.Spec.Containers {
+			// 	images = append(images, cont.Image.Name()+", "+cont.Name)
+			// }
+			log.Infof("cluster manager event -- add pod: UID %s, name %s/%s", addPod.New.UID, addPod.New.Name, addPod.New.Namespace)
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
-			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.Name)
+			log.Infof("cluster manager event -- update pod: UID %s, name %s/%s", updatePod.New.UID, updatePod.New.Name, updatePod.New.Namespace)
 		case deletePod := <-perceptor.clusterClient.PodDelete():
 			perceptor.Cache.DeletePod(deletePod)
 			log.Infof("cluster manager event -- delete pod: ID %s", deletePod.ID)
@@ -103,47 +103,46 @@ func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 	}
 }
 
+func (perceptor *Perceptor) scanNextImage() {
+	concurrentScanLimit := 1
+	if perceptor.Cache.inProgressScanCount() >= concurrentScanLimit {
+		log.Info("max concurrent scan count reached, not starting a new scan yet")
+		return
+	}
+
+	image := perceptor.Cache.getNextImageFromQueue()
+	if image == nil {
+		log.Info("no images in scan queue")
+		return
+	}
+
+	log.Infof("about to start running scan client for image %s", image.Name())
+
+	// can choose which scanner to use.
+	stats, err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, *image))
+	// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
+	// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
+	if err != nil {
+		log.Errorf("error scanning image %s: %s", image.Name(), err.Error())
+		perceptor.Cache.errorRunningScanClient(*image)
+	} else {
+		log.Infof("successfully scanned image %s", image.Name())
+		perceptor.imageScanStats <- *stats
+		perceptor.Cache.finishRunningScanClient(*image)
+	}
+}
+
 func (perceptor *Perceptor) startScanningImages() {
 	for i := 0; ; i++ {
 		time.Sleep(20 * time.Second)
-		image := perceptor.Cache.getNextImageFromQueue()
-		if image == nil {
-			log.Info("no images in scan queue")
-			continue
-		}
-		log.Infof("about to start scanning image %s", image.Name())
-		// TODO need to think about how to limit concurrent scans to <= 7
-		// but for now, we're going to purposely block this thread so as
-		// to keep the number at 1
-		// TODO there seems to be a problem -- this thread gets unblocked before
-		// the hub is *actually* done scanning.  So ... how do we make sure that
-		// this waits until the hub is done with the previous one, before starting
-		// the next one.
-
-		// can choose which scanner to use.
-		stats, err := perceptor.scannerClient.Scan(*scanner.NewScanJob(perceptor.HubProjectName, *image))
-		// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
-		// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
-		if err != nil {
-			log.Errorf("error scanning image %s: %s", image.Name(), err.Error())
-			err2 := perceptor.Cache.errorScanning(*image)
-			if err2 != nil {
-				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
-			}
-		} else {
-			perceptor.imageScanStats <- *stats
-			err2 := perceptor.Cache.finishScanning(*image)
-			if err2 != nil {
-				log.Errorf("unable to mark image %s as done scanning: %s", image.Name(), err2.Error())
-			}
-		}
+		go perceptor.scanNextImage()
 	}
 }
 
 func (perceptor *Perceptor) startPollingScanClient() {
 	for {
 		// wait around for a while before checking the hub again
-		time.Sleep(20 * time.Second)
+		time.Sleep(5 * time.Second)
 		log.Info("poll for finished scans")
 
 		project, err := perceptor.scannerClient.FetchProject(perceptor.HubProjectName)
