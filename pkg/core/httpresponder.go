@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 )
 
 type HttpResponder struct {
@@ -12,7 +14,7 @@ type HttpResponder struct {
 }
 
 func NewHttpResponder(perceptor *Perceptor) *HttpResponder {
-	return &HttpResponder{perceptor: perceptor, metricsHandler: metricsHandler(perceptor.ImageScanStats())}
+	return &HttpResponder{perceptor: perceptor, metricsHandler: pmetrics.MetricsHandler(perceptor.ImageScanStats())}
 }
 
 // func (ht *HttpResponder) metrics(w http.ResponseWriter, r *http.Request)

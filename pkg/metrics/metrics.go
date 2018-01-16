@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func metricsHandler(imageScanStats <-chan scanner.ImageScanStats) http.Handler {
+// TODO use a new type from this package instead of snarfing scanner.ImageScanStats
+func MetricsHandler(imageScanStats <-chan scanner.ImageScanStats) http.Handler {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
