@@ -1,12 +1,10 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 	"os/exec"
 
+	phttp "bitbucket.org/bdsengineering/perceptor/pkg/httpserver"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,7 +39,7 @@ func RunLocally(kubeconfigPath string) {
 	log.Info("instantiated perceptor: %v", perceptor)
 
 	log.Info("finished starting")
-	setupHTTPServer(perceptor)
+	phttp.SetupHTTPServer(NewHttpResponder(perceptor))
 }
 
 func RunFromInsideCluster() {
@@ -63,7 +61,7 @@ func RunFromInsideCluster() {
 	log.Info("instantiated perceptor: %v", perceptor)
 
 	log.Info("finished starting")
-	setupHTTPServer(perceptor)
+	phttp.SetupHTTPServer(NewHttpResponder(perceptor))
 }
 
 func loginToOpenshift(host string, username string, password string) error {
@@ -76,30 +74,4 @@ func loginToOpenshift(host string, username string, password string) error {
 	}
 	log.Infof("finished `oc login`: %s", stdoutStderr)
 	return err
-}
-
-// other stuff
-
-func setupHTTPServer(perceptor *Perceptor) {
-	http.Handle("/metrics", metricsHandler(perceptor.ImageScanStats()))
-	http.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
-		log.Info("shutting down")
-		fmt.Fprint(w, "Shutdown now!\n")
-		os.Exit(0)
-	})
-	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
-		jsonBytes, err := json.Marshal(perceptor)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to serialize model: %s", err.Error()), 500)
-			return
-		}
-		jsonString := string(jsonBytes)
-		fmt.Fprint(w, jsonString)
-	})
-	log.Info("Serving")
-	// TODO response to an edit-pods endpoint or something
-
-	// TODO make this configurable - maybe even viperize it.
-	http.ListenAndServe(":3000", nil)
-	log.Info("Http server started!")
 }

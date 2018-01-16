@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 

@@ -5,7 +5,7 @@ import (
 	"os/user"
 
 	core "bitbucket.org/bdsengineering/perceptor/pkg/core"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {

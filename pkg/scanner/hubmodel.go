@@ -2,7 +2,7 @@ package scanner
 
 import (
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type Project struct {

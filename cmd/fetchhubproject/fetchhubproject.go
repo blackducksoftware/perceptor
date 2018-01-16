@@ -7,7 +7,7 @@ import (
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
 	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // var baseURL = "https://localhost"

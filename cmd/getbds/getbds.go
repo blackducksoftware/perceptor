@@ -6,7 +6,7 @@ import (
 	"os/user"
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
