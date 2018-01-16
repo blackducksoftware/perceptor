@@ -2,7 +2,6 @@ package scanner
 
 import (
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
-	log "github.com/sirupsen/logrus"
 )
 
 type Project struct {
@@ -58,6 +57,8 @@ func (version *Version) IsImageScanDone() bool {
 			}
 		}
 	}
+
+	// log.Infof("found a project version that's done: %v", version)
 
 	// then it's done
 	return true
