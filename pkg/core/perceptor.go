@@ -4,6 +4,7 @@ import (
 	"time"
 
 	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
+	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
@@ -84,21 +85,21 @@ func (perceptor *Perceptor) ImageScanStats() <-chan scanner.ImageScanStats {
 	return perceptor.imageScanStats
 }
 
+func (perceptor *Perceptor) addPod(pod common.Pod) bool {
+	return perceptor.Cache.AddPod(pod)
+}
+
 func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
 	for {
 		select {
 		case addPod := <-perceptor.clusterClient.PodAdd():
 			perceptor.Cache.AddPod(addPod.New)
-			// images := []string{}
-			// for _, cont := range addPod.New.Spec.Containers {
-			// 	images = append(images, cont.Image.Name()+", "+cont.Name)
-			// }
-			log.Infof("cluster manager event -- add pod: UID %s, name %s/%s", addPod.New.UID, addPod.New.Name, addPod.New.Namespace)
+			log.Infof("cluster manager event -- add pod: UID %s, name %s", addPod.New.UID, addPod.New.QualifiedName())
 		case updatePod := <-perceptor.clusterClient.PodUpdate():
-			log.Infof("cluster manager event -- update pod: UID %s, name %s/%s", updatePod.New.UID, updatePod.New.Name, updatePod.New.Namespace)
+			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.QualifiedName())
 		case deletePod := <-perceptor.clusterClient.PodDelete():
-			perceptor.Cache.DeletePod(deletePod)
-			log.Infof("cluster manager event -- delete pod: ID %s", deletePod.ID)
+			perceptor.Cache.DeletePod(deletePod.QualifiedName)
+			log.Infof("cluster manager event -- delete pod: qualified name %s", deletePod.QualifiedName)
 		}
 	}
 }

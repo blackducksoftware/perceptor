@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	phttp "bitbucket.org/bdsengineering/perceptor/pkg/httpserver"
+	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +39,7 @@ func RunLocally(kubeconfigPath string) {
 	log.Info("instantiated perceptor: %v", perceptor)
 
 	log.Info("finished starting")
-	phttp.SetupHTTPServer(NewHttpResponder(perceptor))
+	api.SetupHTTPServer(NewHttpResponder(perceptor))
 }
 
 func RunFromInsideCluster() {
@@ -61,7 +61,7 @@ func RunFromInsideCluster() {
 	log.Info("instantiated perceptor: %v", perceptor)
 
 	log.Info("finished starting")
-	phttp.SetupHTTPServer(NewHttpResponder(perceptor))
+	api.SetupHTTPServer(NewHttpResponder(perceptor))
 }
 
 func loginToOpenshift(host string, username string, password string) error {

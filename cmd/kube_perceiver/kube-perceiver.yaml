@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "perceptor-scan components"
+  resourceVersion: "1"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: kube-perceiver
+    namespace: perceptor-scan
+    labels:
+      app: kube-perceiver
+  spec:
+    replicas: 1
+    selector:
+      name: bds-kube-perceiver
+    template:
+      metadata:
+        labels:
+          name: bds-kube-perceiver
+        name: kube-perceiver
+        namespace: perceptor-scan
+      spec:
+        containers:
+          - name: kube-perceiver
+            image: mfenwickbd/kube-perceiver:latest
+            imagePullPolicy: Always
+            command:
+              - ./kube-perceiver
+            ports:
+              - containerPort: 3002
+            resources:
+              requests:
+                memory: 1Gi # TODO may not even need this much since it's stateless
+                cpu: 50m # TODO same here -- maybe reduce this number
+              limits:
+                cpu: 500m
+  #          env:
+  #          - name: ENV1
+  #             value:
+  #          - name: ENV2
+  #            value:
+            terminationMessagePath: /dev/termination-log
+# TODO remove?
+#            securityContext:
+#              privileged: true
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        serviceAccountName: perceiver-sa
+        serviceAccount: perceiver-sa
+# TODO not sure if this is actually necessary, remove if not
+#      securityContext:
+#        privileged: true
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: kube-perceiver
+    namespace: perceptor-scan
+  spec:
+    selector:
+      name: bds-kube-perceiver
+    ports:
+    - nodePort: 0
+      port: 3002
+      protocol: TCP
+      targetPort: 3000

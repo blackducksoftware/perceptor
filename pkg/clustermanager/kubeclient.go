@@ -177,17 +177,17 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name stri
 
 // Some extra, maybe useless methods
 
-func (client *KubeClient) clearBlackDuckPodAnnotationsWithPod(pod Pod) error {
-	return client.ClearBlackDuckPodAnnotations(pod.Namespace, pod.Name)
-}
-
-func (client *KubeClient) getBlackDuckPodAnnotationsWithPod(pod Pod) (*BlackDuckAnnotations, error) {
-	return client.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
-}
-
-func (client *KubeClient) setBlackDuckPodAnnotationsWithPod(pod Pod, bdAnnotations BlackDuckAnnotations) error {
-	return client.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, bdAnnotations)
-}
+// func (client *KubeClient) clearBlackDuckPodAnnotationsWithPod(pod common.Pod) error {
+// 	return client.ClearBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+// }
+//
+// func (client *KubeClient) getBlackDuckPodAnnotationsWithPod(pod common.Pod) (*BlackDuckAnnotations, error) {
+// 	return client.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
+// }
+//
+// func (client *KubeClient) setBlackDuckPodAnnotationsWithPod(pod common.Pod, bdAnnotations BlackDuckAnnotations) error {
+// 	return client.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, bdAnnotations)
+// }
 
 // End extra, maybe useless methods
 
@@ -272,11 +272,7 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 			key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 			if err == nil {
 				queue.Add(key)
-				// TODO we need the UID of the deleted pod, since this key seems to
-				// refer to the unqualified name, which may not be unique
-				// (or could it be a name that's in the "current" namespace,
-				// whatever "current" means?)
-				podDelete <- DeletePod{ID: key}
+				podDelete <- DeletePod{QualifiedName: key}
 			} else {
 				log.Errorf("error getting key: %s", err.Error())
 			}
