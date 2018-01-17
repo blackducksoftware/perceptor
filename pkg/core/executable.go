@@ -29,7 +29,7 @@ func RunLocally(kubeconfigPath string) {
 	hubUsername := "sysadmin"
 	hubPassword := "blackduck"
 
-	perceptor, err := NewPerceptor(clusterMasterURL, kubeconfigPath, hubUsername, hubPassword, hubHost)
+	perceptor, err := NewPerceptor(hubUsername, hubPassword, hubHost)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())

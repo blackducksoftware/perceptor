@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,17 +13,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// TODO make sure perceiver and perceptor are running in the same kube namespace
-// if they're not in the same namespace, then maybe this:
-//    - perceptor.perceptor-scan.svc.cluster.local
-//      (as in <service>.<namespace>.svc.cluster.local )
+// Two things that should work:
+// curl -X GET http://perceptor.perceptor-scan.svc.cluster.local:3001/metrics
+// curl -X GET http://perceptor.perceptor-scan:3001/metrics
 const (
-	podURL         = "http://perceptor/pod"
-	scanResultsURL = "http://perceptor/scanresults"
+	perceptorBaseURL = "http://perceptor.perceptor-scan"
+	podPath          = "pod"
+	scanResultsPath  = "scanresults"
+	perceptorPort    = "3001"
 )
 
 func main() {
 	log.Info("started")
+
+	podURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, podPath)
+	scanResultsURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, scanResultsPath)
 
 	// 1. get kube client
 	clusterClient, err := clustermanager.NewKubeClientFromCluster()

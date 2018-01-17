@@ -46,22 +46,27 @@ func (hr *HttpResponder) AddPod(pod common.Pod) {
 }
 
 func (hr *HttpResponder) DeletePod(qualifiedName string) {
-	// TODO
+	hr.perceptor.deletePod(qualifiedName)
+	log.Infof("deleted pod %s", qualifiedName)
 }
 
 func (hr *HttpResponder) UpdatePod(pod common.Pod) {
 	// TODO
+	log.Errorf("action for update pod %s not yet implemented", pod.QualifiedName())
 }
 
 func (hr *HttpResponder) GetScanResults() api.ScanResults {
-	// TODO
-	return api.ScanResults{}
-}
-
-func (hr *HttpResponder) Image(w http.ResponseWriter, r *http.Request, image common.Image) {
-	// TODO
-}
-
-func (hr *HttpResponder) ScanResults() api.ScanResults {
-	return api.ScanResults{} // TODO
+	scannerVersion := "" // TODO
+	hubServer := ""      // TODO
+	pods := []api.Pod{}
+	images := []api.Image{} // TODO
+	for podName, pod := range hr.perceptor.Cache.Pods {
+		scanResults, err := hr.perceptor.Cache.scanResults(podName)
+		if err != nil {
+			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
+			continue
+		}
+		pods = append(pods, api.Pod{Namespace: pod.Namespace, Name: pod.Name, PolicyViolations: scanResults.PolicyViolationCount, Vulnerabilities: scanResults.VulnerabilityCount, OverallStatus: scanResults.OverallStatus})
+	}
+	return *api.NewScanResults(scannerVersion, hubServer, pods, images)
 }

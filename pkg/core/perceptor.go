@@ -3,30 +3,27 @@ package core
 import (
 	"time"
 
-	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
 
-// Perceptor ties together a cluster manager and a hub.
-// It listens to the cluster manager to learn about new pods.
+// Perceptor ties together a cluster and a hub.
+// It listens to the cluster to learn about new pods.
 // It keeps track of pods, containers, images, and scan results in a model.
 // It has the hub scan images that have never been seen before.
 // It grabs the scan results from the hub and adds them to its model.
-// It writes vulnerabilities to pods in the cluster manager.
+// It publishes vulnerabilities that the cluster can find out about.
 type Perceptor struct {
 	scannerClient  scanner.ScanClientInterface
-	clusterClient  clustermanager.Client
 	Cache          VulnerabilityCache
 	HubProjectName string
 	imageScanStats chan scanner.ImageScanStats
 }
 
-// NewMockedPerceptor creates a Perceptor which uses a
-// mock scanclient and mock clustermanager
+// NewMockedPerceptor creates a Perceptor which uses a mock scanclient
 func NewMockedPerceptor() (*Perceptor, error) {
-	return newPerceptorHelper(scanner.NewMockHub(), clustermanager.NewMockClient()), nil
+	return newPerceptorHelper(scanner.NewMockHub()), nil
 }
 
 // NewPerceptorFromCluster creates a Perceptor using configuration pulled from
@@ -37,46 +34,30 @@ func NewPerceptorFromCluster(username string, password string, hubHost string) (
 		log.Errorf("unable to instantiate HubScanClient: %s", err.Error())
 		return nil, err
 	}
-	clusterClient, err := clustermanager.NewKubeClientFromCluster()
 
-	if err != nil {
-		log.Errorf("unable to instantiate kubernetes client: %s", err.Error())
-		return nil, err
-	}
-
-	return newPerceptorHelper(scannerClient, clusterClient), nil
+	return newPerceptorHelper(scannerClient), nil
 }
 
-// NewPerceptor creates a Perceptor using the real kube client and the
-// real hub client.
-func NewPerceptor(clusterMasterURL string, kubeconfigPath string, username string, password string, hubHost string) (*Perceptor, error) {
+// NewPerceptor creates a Perceptor using a real hub client.
+func NewPerceptor(username string, password string, hubHost string) (*Perceptor, error) {
 	scannerClient, err := scanner.NewHubScanClient(username, password, hubHost)
 	if err != nil {
 		log.Errorf("unable to instantiate HubScanClient: %s", err.Error())
 		return nil, err
 	}
-	clusterClient, err := clustermanager.NewKubeClient(clusterMasterURL, kubeconfigPath)
 
-	if err != nil {
-		log.Fatalf("unable to instantiate kubernetes client: %s", err.Error())
-		return nil, err
-	}
-
-	return newPerceptorHelper(scannerClient, clusterClient), nil
+	return newPerceptorHelper(scannerClient), nil
 }
 
-func newPerceptorHelper(scannerClient scanner.ScanClientInterface, clusterClient clustermanager.Client) *Perceptor {
+func newPerceptorHelper(scannerClient scanner.ScanClientInterface) *Perceptor {
 	perceptor := Perceptor{
 		scannerClient:  scannerClient,
-		clusterClient:  clusterClient,
 		Cache:          *NewVulnerabilityCache(),
 		HubProjectName: "Perceptor",
 		imageScanStats: make(chan scanner.ImageScanStats)}
 
-	go perceptor.startPollingClusterManagerForNewPods()
 	go perceptor.startScanningImages()
 	go perceptor.startPollingScanClient()
-	go perceptor.startWritingPodUpdates()
 
 	return &perceptor
 }
@@ -89,19 +70,12 @@ func (perceptor *Perceptor) addPod(pod common.Pod) bool {
 	return perceptor.Cache.AddPod(pod)
 }
 
-func (perceptor *Perceptor) startPollingClusterManagerForNewPods() {
-	for {
-		select {
-		case addPod := <-perceptor.clusterClient.PodAdd():
-			perceptor.Cache.AddPod(addPod.New)
-			log.Infof("cluster manager event -- add pod: UID %s, name %s", addPod.New.UID, addPod.New.QualifiedName())
-		case updatePod := <-perceptor.clusterClient.PodUpdate():
-			log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.QualifiedName())
-		case deletePod := <-perceptor.clusterClient.PodDelete():
-			perceptor.Cache.DeletePod(deletePod.QualifiedName)
-			log.Infof("cluster manager event -- delete pod: qualified name %s", deletePod.QualifiedName)
-		}
-	}
+func (perceptor *Perceptor) updatePod(pod common.Pod) {
+	// return perceptor.Cache.UpdatePod(pod)
+}
+
+func (perceptor *Perceptor) deletePod(qualifiedName string) {
+	perceptor.Cache.DeletePod(qualifiedName)
 }
 
 func (perceptor *Perceptor) scanNextImage() {
@@ -163,34 +137,6 @@ func (perceptor *Perceptor) startPollingScanClient() {
 		err = perceptor.Cache.AddScanResultsFromProject(*project)
 		if err != nil {
 			log.Errorf("unable to add scan result from project to cache: %s", err.Error())
-		}
-	}
-}
-
-func (perceptor *Perceptor) startWritingPodUpdates() {
-	for {
-		time.Sleep(20 * time.Second)
-		log.Info("writing vulnerability cache into pod annotations")
-		for podUID, pod := range perceptor.Cache.Pods {
-			bdAnnotations, err := perceptor.clusterClient.GetBlackDuckPodAnnotations(pod.Namespace, pod.Name)
-			if err != nil {
-				log.Errorf("unable to get BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
-				continue
-			}
-			scanResults, err := perceptor.Cache.scanResults(podUID)
-			if err != nil {
-				log.Errorf("unable to retrieve scan results for Pod UID %s: %s", podUID, err.Error())
-				continue
-			}
-			bdAnnotations.PolicyViolationCount = scanResults.PolicyViolationCount
-			bdAnnotations.VulnerabilityCount = scanResults.VulnerabilityCount
-			bdAnnotations.OverallStatus = scanResults.OverallStatus
-
-			err = perceptor.clusterClient.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, *bdAnnotations)
-			if err != nil {
-				log.Errorf("unable to update BlackDuckAnnotations for pod %s:%s -- %s", pod.Namespace, pod.Name, err.Error())
-				continue
-			}
 		}
 	}
 }
