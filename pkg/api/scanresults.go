@@ -23,6 +23,7 @@ type Pod struct {
 }
 
 type Image struct {
+	Name              int
 	PolicyViolations  int
 	Vulnerabilities   int
 	ProjectVersionURL string
