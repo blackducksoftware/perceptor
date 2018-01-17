@@ -10,7 +10,7 @@ items:
     name: kube-perceiver
     namespace: perceptor-scan
     labels:
-      app: kube-perceiver
+      app: perceptor
   spec:
     replicas: 1
     selector:
@@ -42,17 +42,11 @@ items:
   #          - name: ENV2
   #            value:
             terminationMessagePath: /dev/termination-log
-# TODO remove?
-#            securityContext:
-#              privileged: true
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
         serviceAccountName: kube-perceiver-sa
         serviceAccount: kube-perceiver-sa
-# TODO not sure if this is actually necessary, remove if not
-#      securityContext:
-#        privileged: true
 - apiVersion: v1
   kind: Service
   metadata:

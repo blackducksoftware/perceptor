@@ -21,6 +21,7 @@ const (
 	podPath          = "pod"
 	scanResultsPath  = "scanresults"
 	perceptorPort    = "3001"
+	perceiverPort    = "3002"
 )
 
 func main() {
@@ -115,6 +116,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(20 * time.Second)
+			log.Infof("attempting to GET %s", scanResultsURL)
 			resp, err := http.Get(scanResultsURL)
 			if err != nil {
 				log.Errorf("unable to GET %s: %s", scanResultsURL, err.Error())
@@ -130,6 +132,7 @@ func main() {
 			var scanResults api.ScanResults
 			err = json.Unmarshal(bodyBytes, &scanResults)
 			if err == nil && resp.StatusCode == 200 {
+				log.Infof("GET to %s succeeded, about to update annotations", scanResultsURL)
 				for _, pod := range scanResults.Pods {
 					bdAnnotations := clustermanager.NewBlackDuckAnnotations(pod.PolicyViolations, pod.Vulnerabilities, pod.OverallStatus)
 					clusterClient.SetBlackDuckPodAnnotations(pod.Namespace, pod.Name, *bdAnnotations)
@@ -140,6 +143,7 @@ func main() {
 		}
 	}()
 
-	http.ListenAndServe(":3002", nil)
+	addr := fmt.Sprintf(":%s", perceiverPort)
+	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
 }
