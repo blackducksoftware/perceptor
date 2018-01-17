@@ -43,7 +43,11 @@ func main() {
 					panic(err)
 				}
 				resp, err := http.Post(podURL, "application/json", bytes.NewBuffer(jsonBytes))
-				resp.Body.Close()
+				if err != nil {
+					log.Errorf("unable to POST to %s: %s", podURL, err.Error())
+					continue
+				}
+				defer resp.Body.Close()
 				if err == nil && resp.StatusCode == 200 {
 					log.Infof("http POST request to %s succeeded", podURL)
 				} else {
@@ -63,7 +67,11 @@ func main() {
 				}
 				req.Header.Set("Content-Type", "application/json")
 				resp, err := http.DefaultClient.Do(req)
-				resp.Body.Close()
+				if err != nil {
+					log.Errorf("unable to PUT to %s: %s", podURL, err.Error())
+					continue
+				}
+				defer resp.Body.Close()
 				if err == nil && resp.StatusCode == 200 {
 					log.Infof("http PUT request to %s succeeded", podURL)
 				} else {
@@ -83,7 +91,11 @@ func main() {
 				}
 				req.Header.Set("Content-Type", "application/json")
 				resp, err := http.DefaultClient.Do(req)
-				resp.Body.Close()
+				if err != nil {
+					log.Errorf("unable to DELETE to %s: %s", podURL, err.Error())
+					continue
+				}
+				defer resp.Body.Close()
 				if err == nil && resp.StatusCode == 200 {
 					log.Infof("http DELETE request to %s succeeded", podURL)
 				} else {

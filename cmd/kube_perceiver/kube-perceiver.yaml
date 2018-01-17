@@ -48,8 +48,8 @@ items:
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
-        serviceAccountName: perceiver-sa
-        serviceAccount: perceiver-sa
+        serviceAccountName: kube-perceiver-sa
+        serviceAccount: kube-perceiver-sa
 # TODO not sure if this is actually necessary, remove if not
 #      securityContext:
 #        privileged: true
