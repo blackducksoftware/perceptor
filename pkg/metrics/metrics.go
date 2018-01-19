@@ -1,16 +1,15 @@
-package core
+package metrics
 
 import (
 	"net/http"
 	"os"
 
-	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
-// TODO use a new type from this package instead of snarfing scanner.ImageScanStats
-func MetricsHandler(imageScanStats <-chan scanner.ImageScanStats) http.Handler {
+// MetricsHandler handles http requests to get prometheus metrics
+func MetricsHandler(imageScanStats <-chan ImageScanStats) http.Handler {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
@@ -50,10 +49,10 @@ func MetricsHandler(imageScanStats <-chan scanner.ImageScanStats) http.Handler {
 			case stats := <-imageScanStats:
 				log.Infof("got new image scan stats: scan duration: %d, pull duration %d, tar file size %d",
 					int(stats.ScanDuration.Seconds()),
-					int(stats.PullStats.Duration.Seconds()),
-					int(stats.PullStats.TarFileSizeMBs))
-				tarballSize.WithLabelValues("tarballSize").Observe(float64(stats.PullStats.TarFileSizeMBs))
-				pullDuration.WithLabelValues("pullDurationSeconds").Observe(float64(stats.PullStats.Duration.Seconds()))
+					int(stats.PullDuration.Seconds()),
+					int(stats.TarFileSizeMBs))
+				tarballSize.WithLabelValues("tarballSize").Observe(float64(stats.TarFileSizeMBs))
+				pullDuration.WithLabelValues("pullDurationSeconds").Observe(float64(stats.PullDuration.Seconds()))
 				scanDuration.WithLabelValues("scanDurationSeconds").Observe(float64(stats.ScanDuration.Seconds()))
 				continue
 			}

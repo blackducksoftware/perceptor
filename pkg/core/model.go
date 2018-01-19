@@ -2,32 +2,29 @@ package core
 
 import (
 	"fmt"
-	"sync"
 
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
 
-// VulnerabilityCache is the root of the core model
-type VulnerabilityCache struct {
-	mutex sync.Mutex
-
+// Model is the root of the core model
+type Model struct {
 	// map of "<namespace>/<name>" to pod
 	Pods           map[string]common.Pod
 	Images         map[common.Image]*ImageScanResults
 	ImageScanQueue []common.Image
 }
 
-func NewVulnerabilityCache() *VulnerabilityCache {
-	return &VulnerabilityCache{
+func NewModel() *Model {
+	return &Model{
 		Pods:           make(map[string]common.Pod),
 		Images:         make(map[common.Image]*ImageScanResults),
 		ImageScanQueue: []common.Image{}}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
-func (vc *VulnerabilityCache) DeletePod(podName string) {
+func (vc *Model) DeletePod(podName string) {
 	delete(vc.Pods, podName)
 }
 
@@ -36,7 +33,7 @@ func (vc *VulnerabilityCache) DeletePod(podName string) {
 // and false if the pod has already been added.
 // It extract the containers and images from the pod,
 // adding them into the cache.
-func (vc *VulnerabilityCache) AddPod(newPod common.Pod) bool {
+func (vc *Model) AddPod(newPod common.Pod) bool {
 	_, ok := vc.Pods[newPod.QualifiedName()]
 	if ok {
 		// TODO should we update the cache?
@@ -60,9 +57,7 @@ func (vc *VulnerabilityCache) AddPod(newPod common.Pod) bool {
 	return true
 }
 
-func (vc *VulnerabilityCache) AddScanResultsFromProject(project scanner.Project) error {
-	vc.mutex.Lock()
-	defer vc.mutex.Unlock()
+func (vc *Model) AddScanResultsFromProject(project scanner.Project) error {
 	for _, version := range project.Versions {
 		err := vc.addScanResult(version)
 		if err != nil {
@@ -74,7 +69,7 @@ func (vc *VulnerabilityCache) AddScanResultsFromProject(project scanner.Project)
 
 // image state transitions
 
-func (vc *VulnerabilityCache) safeGet(image common.Image) *ImageScanResults {
+func (vc *Model) safeGet(image common.Image) *ImageScanResults {
 	results, ok := vc.Images[image]
 	if !ok {
 		message := fmt.Sprintf("expected to already have image %s, but did not", image.Name())
@@ -84,9 +79,7 @@ func (vc *VulnerabilityCache) safeGet(image common.Image) *ImageScanResults {
 	return results
 }
 
-func (vc *VulnerabilityCache) addImageToQueue(image common.Image) {
-	vc.mutex.Lock()
-	defer vc.mutex.Unlock()
+func (vc *Model) addImageToQueue(image common.Image) {
 	results := vc.safeGet(image)
 	switch results.ScanStatus {
 	case ScanStatusNotScanned, ScanStatusError:
@@ -100,9 +93,7 @@ func (vc *VulnerabilityCache) addImageToQueue(image common.Image) {
 	vc.ImageScanQueue = append(vc.ImageScanQueue, image)
 }
 
-func (vc *VulnerabilityCache) getNextImageFromQueue() *common.Image {
-	vc.mutex.Lock()
-	defer vc.mutex.Unlock()
+func (vc *Model) getNextImageFromQueue() *common.Image {
 	if len(vc.ImageScanQueue) == 0 {
 		return nil
 	}
@@ -120,7 +111,7 @@ func (vc *VulnerabilityCache) getNextImageFromQueue() *common.Image {
 	return &first
 }
 
-func (vc *VulnerabilityCache) errorRunningScanClient(image common.Image) {
+func (vc *Model) errorRunningScanClient(image common.Image) {
 	results := vc.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("can not error out scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
@@ -132,7 +123,7 @@ func (vc *VulnerabilityCache) errorRunningScanClient(image common.Image) {
 	vc.addImageToQueue(image)
 }
 
-func (vc *VulnerabilityCache) finishRunningScanClient(image common.Image) {
+func (vc *Model) finishRunningScanClient(image common.Image) {
 	results := vc.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("can not finish running scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
@@ -142,7 +133,7 @@ func (vc *VulnerabilityCache) finishRunningScanClient(image common.Image) {
 	results.ScanStatus = ScanStatusRunningHubScan
 }
 
-// func (vc *VulnerabilityCache) finishRunningHubScan(image common.Image) {
+// func (vc *Model) finishRunningHubScan(image common.Image) {
 // 	results := vc.safeGet(image)
 // 	if results.ScanStatus != ScanStatusRunningHubScan {
 // 		message := fmt.Sprintf("can not finish running hub scan for image %s, scan not in progress (%d)", image.Name(), results.ScanStatus)
@@ -154,7 +145,7 @@ func (vc *VulnerabilityCache) finishRunningScanClient(image common.Image) {
 
 // additional methods
 
-func (vc *VulnerabilityCache) inProgressScanJobs() []common.Image {
+func (vc *Model) inProgressScanJobs() []common.Image {
 	inProgressImages := []common.Image{}
 	for image, results := range vc.Images {
 		switch results.ScanStatus {
@@ -167,11 +158,11 @@ func (vc *VulnerabilityCache) inProgressScanJobs() []common.Image {
 	return inProgressImages
 }
 
-func (vc *VulnerabilityCache) inProgressScanCount() int {
+func (vc *Model) inProgressScanCount() int {
 	return len(vc.inProgressScanJobs())
 }
 
-func (vc *VulnerabilityCache) addScanResult(version scanner.Version) error {
+func (vc *Model) addScanResult(version scanner.Version) error {
 	image := common.Image(version.VersionName)
 
 	// add scan results into cache
@@ -195,7 +186,7 @@ func (vc *VulnerabilityCache) addScanResult(version scanner.Version) error {
 	return nil
 }
 
-func (vc *VulnerabilityCache) scanResults(podName string) (*ScanResults, error) {
+func (vc *Model) scanResults(podName string) (*ScanResults, error) {
 	pod, ok := vc.Pods[podName]
 	if !ok {
 		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)

@@ -52,7 +52,7 @@ func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
 	return hsc.hubFetcher.FetchProjectOfName(projectName)
 }
 
-func (hsc *HubScanClient) Scan(job ScanJob) (*ImageScanStats, error) {
+func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 	pullStats, err := hsc.imagePuller.PullImage(job.Image)
 	if err != nil {
 		log.Errorf("unable to pull docker image %s: %s", job.Image.Name(), err.Error())
@@ -93,7 +93,10 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*ImageScanStats, error) {
 		return nil, err
 	}
 	log.Infof("successfully completed java scanner: %s", stdoutStderr)
-	return &ImageScanStats{PullStats: *pullStats, ScanDuration: stop.Sub(start)}, nil
+	return &ScanClientJobResults{
+		PullDuration:       pullStats.Duration,
+		TarFileSizeMBs:     pullStats.TarFileSizeMBs,
+		ScanClientDuration: stop.Sub(start)}, nil
 }
 
 func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {

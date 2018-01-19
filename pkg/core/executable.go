@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
+	"net/http"
 	"os/exec"
 
-	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,8 +38,8 @@ func RunLocally(kubeconfigPath string) {
 
 	log.Info("instantiated perceptor: %v", perceptor)
 
-	log.Info("finished starting")
-	api.SetupHTTPServer(NewHttpResponder(perceptor))
+	http.ListenAndServe(":3000", nil)
+	log.Info("Http server started!")
 }
 
 func RunFromInsideCluster() {
@@ -60,8 +60,9 @@ func RunFromInsideCluster() {
 
 	log.Info("instantiated perceptor: %v", perceptor)
 
-	log.Info("finished starting")
-	api.SetupHTTPServer(NewHttpResponder(perceptor))
+	// TODO make this configurable - maybe even viperize it.
+	http.ListenAndServe(":3000", nil)
+	log.Info("Http server started!")
 }
 
 func loginToOpenshift(host string, username string, password string) error {

@@ -16,14 +16,14 @@ func SetupHTTPServer(responder Responder) {
 		if r.Method == "GET" {
 			responder.GetMetrics(w, r)
 		} else {
-			http.Error(w, "404 not found.", http.StatusNotFound)
+			http.NotFound(w, r)
 		}
 	})
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			responder.GetModel(w, r)
 		} else {
-			http.Error(w, "404 not found.", http.StatusNotFound)
+			http.NotFound(w, r)
 		}
 	})
 
@@ -67,7 +67,7 @@ func SetupHTTPServer(responder Responder) {
 			responder.DeletePod(string(body))
 			fmt.Fprint(w, "")
 		default:
-			http.Error(w, "404 not found", http.StatusNotFound)
+			http.NotFound(w, r)
 		}
 	})
 	// http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
@@ -99,8 +99,4 @@ func SetupHTTPServer(responder Responder) {
 			http.Error(w, "", http.StatusNotFound)
 		}
 	})
-
-	// TODO make this configurable - maybe even viperize it.
-	http.ListenAndServe(":3000", nil)
-	log.Info("Http server started!")
 }

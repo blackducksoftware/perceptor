@@ -45,7 +45,7 @@ func (hub *MockHub) FetchProject(projectName string) (*Project, error) {
 	return nil, nil
 }
 
-func (hub *MockHub) Scan(job ScanJob) (*ImageScanStats, error) {
+func (hub *MockHub) Scan(job ScanJob) (*ScanClientJobResults, error) {
 	// TODO implement
 	return nil, nil
 }
