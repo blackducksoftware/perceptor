@@ -8,6 +8,7 @@ type ScanResults struct {
 	// scanner version
 	// hub version
 	// project URL
+	// scan id
 }
 
 func NewScanResults() *ScanResults {

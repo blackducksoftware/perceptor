@@ -114,6 +114,7 @@ func updateModelDeletePod(podName string, model Model) (Model, error) {
 
 func updateModelNextImage(continuation func(image *common.Image), model Model) (Model, error) {
 	concurrentScanLimit := 1
+	log.Info("looking for next image to scan with concurrency limit of %d, and %d currently in progress", concurrentScanLimit, model.inProgressScanCount())
 	if model.inProgressScanCount() >= concurrentScanLimit {
 		log.Info("max concurrent scan count reached, not starting a new scan yet")
 		continuation(nil)
@@ -121,6 +122,7 @@ func updateModelNextImage(continuation func(image *common.Image), model Model) (
 	}
 
 	if len(model.ImageScanQueue) == 0 {
+		log.Info("scan queue empty, not starting a new scan")
 		continuation(nil)
 		return model, nil
 	}
@@ -134,6 +136,7 @@ func updateModelNextImage(continuation func(image *common.Image), model Model) (
 		return model, errors.New(message)
 	}
 
+	log.Info("about to scan image %s", first.Name())
 	continuation(&first)
 	results.ScanStatus = ScanStatusRunningScanClient
 	model.ImageScanQueue = model.ImageScanQueue[1:]

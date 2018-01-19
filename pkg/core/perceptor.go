@@ -83,6 +83,15 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface) *Perceptor {
 		postNextImage,
 		finishScanClientJob)
 
+	go func() {
+		for {
+			select {
+			case nextModel := <-reducer.model:
+				model <- nextModel
+			}
+		}
+	}()
+
 	// 3. instantiate perceptor
 	perceptor := Perceptor{
 		scannerClient:       scannerClient,
@@ -90,15 +99,15 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface) *Perceptor {
 		HubProjectName:      "Perceptor",
 		reducer:             reducer,
 		hubScanResults:      make(chan scanner.Project),
-		postNextImage:       make(chan func(image *common.Image)),
-		finishScanClientJob: make(chan FinishedScanClientJob),
+		postNextImage:       postNextImage,
+		finishScanClientJob: finishScanClientJob,
 	}
 
-	// 4. evetually, this should be in a separate container
+	// 4. eventually, this should be in a separate container
 	go perceptor.startScanningImages()
 
 	// 5. hit the hub for results
-	go perceptor.startPollingScanClient()
+	go perceptor.startPollingHub()
 
 	// 6. done
 	return &perceptor
@@ -134,10 +143,10 @@ func (perceptor *Perceptor) scanNextImage(image common.Image) {
 	}
 }
 
-func (perceptor *Perceptor) startPollingScanClient() {
+func (perceptor *Perceptor) startPollingHub() {
 	for {
 		// wait around for a while before checking the hub again
-		time.Sleep(5 * time.Second)
+		time.Sleep(20 * time.Second)
 		log.Info("poll for finished scans")
 
 		project, err := perceptor.scannerClient.FetchProject(perceptor.HubProjectName)
