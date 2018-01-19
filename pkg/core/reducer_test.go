@@ -179,8 +179,7 @@ func TestReducer(t *testing.T) {
 	// 7. finish a scan with an error
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
-	results7 := scanner.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
-	finishScanClientJob <- FinishedScanClientJob{err: errors.New("oops"), image: *nextImage, results: &results7}
+	finishScanClientJob <- FinishedScanClientJob{err: errors.New("oops"), image: *nextImage, results: nil}
 
 	newModel = <-reducer.model
 	imageResults7, ok7 := newModel.Images["image2"]

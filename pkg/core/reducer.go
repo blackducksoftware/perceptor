@@ -77,12 +77,14 @@ func newReducer(initialModel Model,
 				go func() {
 					modelStream <- model
 				}()
-				go func() {
-					imageScanStats <- pmetrics.ImageScanStats{
-						PullDuration:   jobResults.results.PullDuration,
-						ScanDuration:   jobResults.results.ScanClientDuration,
-						TarFileSizeMBs: jobResults.results.TarFileSizeMBs}
-				}()
+				if jobResults.results != nil {
+					go func() {
+						imageScanStats <- pmetrics.ImageScanStats{
+							PullDuration:   jobResults.results.PullDuration,
+							ScanDuration:   jobResults.results.ScanClientDuration,
+							TarFileSizeMBs: jobResults.results.TarFileSizeMBs}
+					}()
+				}
 			case project := <-hubScanResults:
 				model, err = updateModelAddHubScanResults(project, model)
 				if err != nil {

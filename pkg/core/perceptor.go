@@ -128,7 +128,9 @@ func (perceptor *Perceptor) startScanningImages() {
 					log.Info("no images to be scanned")
 					return
 				}
-				perceptor.scanNextImage(*image)
+				go func() {
+					perceptor.scanNextImage(*image)
+				}()
 			}
 		}()
 	}
