@@ -66,6 +66,7 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface) *Perceptor {
 	// 0. this will help with circular communication
 	model := make(chan Model)
 	imageScanStats := make(chan pmetrics.ImageScanStats)
+	hubScanResults := make(chan scanner.Project)
 
 	// 1. here's the responder
 	httpResponder := NewHTTPResponder(model, pmetrics.MetricsHandler(imageScanStats))
@@ -81,48 +82,55 @@ func newPerceptorHelper(scannerClient scanner.ScanClientInterface) *Perceptor {
 		httpResponder.updatePod,
 		httpResponder.deletePod,
 		postNextImage,
-		finishScanClientJob)
+		finishScanClientJob,
+		hubScanResults)
 
+	// 4. close the circle
 	go func() {
 		for {
 			select {
 			case nextModel := <-reducer.model:
 				model <- nextModel
+			case nextImageScanStats := <-reducer.imageScanStats:
+				imageScanStats <- nextImageScanStats
 			}
 		}
 	}()
 
-	// 3. instantiate perceptor
+	// 5. instantiate perceptor
 	perceptor := Perceptor{
 		scannerClient:       scannerClient,
 		httpResponder:       httpResponder,
 		HubProjectName:      "Perceptor",
 		reducer:             reducer,
-		hubScanResults:      make(chan scanner.Project),
+		hubScanResults:      hubScanResults,
 		postNextImage:       postNextImage,
 		finishScanClientJob: finishScanClientJob,
 	}
 
-	// 4. eventually, this should be in a separate container
+	// 6. eventually, this should be in a separate container
 	go perceptor.startScanningImages()
 
-	// 5. hit the hub for results
+	// 7. hit the hub for results
 	go perceptor.startPollingHub()
 
-	// 6. done
+	// 8. done
 	return &perceptor
 }
 
 func (perceptor *Perceptor) startScanningImages() {
 	for i := 0; ; i++ {
 		time.Sleep(20 * time.Second)
-		perceptor.postNextImage <- func(image *common.Image) {
-			if image == nil {
-				log.Infof("no images to be scanned")
-				return
+		log.Info("about to check for images that need to be scanned")
+		go func() {
+			perceptor.postNextImage <- func(image *common.Image) {
+				if image == nil {
+					log.Info("no images to be scanned")
+					return
+				}
+				perceptor.scanNextImage(*image)
 			}
-			perceptor.scanNextImage(*image)
-		}
+		}()
 	}
 }
 
@@ -134,7 +142,9 @@ func (perceptor *Perceptor) scanNextImage(image common.Image) {
 	// err := perceptor.scannerClient.ScanCliSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
 	// err := perceptor.scannerClient.ScanDockerSh(*scanner.NewScanJob(perceptor.HubProjectName, image))
 
-	perceptor.finishScanClientJob <- FinishedScanClientJob{image: image, results: results, err: err}
+	go func() {
+		perceptor.finishScanClientJob <- FinishedScanClientJob{image: image, results: results, err: err}
+	}()
 
 	if err != nil {
 		log.Errorf("error scanning image %s: %s", image.Name(), err.Error())
@@ -162,6 +172,8 @@ func (perceptor *Perceptor) startPollingHub() {
 		}
 
 		log.Infof("about to add scan results from project %s: found %d versions", perceptor.HubProjectName, len(project.Versions))
-		perceptor.hubScanResults <- *project
+		go func() {
+			perceptor.hubScanResults <- *project
+		}()
 	}
 }

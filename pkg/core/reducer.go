@@ -6,6 +6,7 @@ import (
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
+	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +25,8 @@ func newReducer(initialModel Model,
 	updatePod <-chan common.Pod,
 	deletePod <-chan string,
 	postNextImage <-chan func(image *common.Image),
-	finishScanClientJob <-chan FinishedScanClientJob) *reducer {
+	finishScanClientJob <-chan FinishedScanClientJob,
+	hubScanResults <-chan scanner.Project) *reducer {
 	var err error
 	model := initialModel
 	modelStream := make(chan Model)
@@ -40,35 +42,55 @@ func newReducer(initialModel Model,
 				if err != nil {
 					log.Errorf("unable to add pod %s: %s", pod.QualifiedName(), err.Error())
 				}
-				modelStream <- model
+				go func() {
+					modelStream <- model
+				}()
 			case pod := <-updatePod:
 				model, err = updateModelUpdatePod(pod, model)
 				if err != nil {
 					log.Errorf("unable to update pod %s: %s", pod.QualifiedName(), err.Error())
 				}
-				modelStream <- model
+				go func() {
+					modelStream <- model
+				}()
 			case podName := <-deletePod:
 				model, err = updateModelDeletePod(podName, model)
 				if err != nil {
 					log.Errorf("unable to delete pod %s: %s", podName, err.Error())
 				}
-				modelStream <- model
+				go func() {
+					modelStream <- model
+				}()
 			case continuation := <-postNextImage:
 				model, err = updateModelNextImage(continuation, model)
 				if err != nil {
 					log.Errorf("unable to get next image for scanning: %s", err.Error())
 				}
-				modelStream <- model
+				go func() {
+					modelStream <- model
+				}()
 			case jobResults := <-finishScanClientJob:
 				model, err = updateModelFinishedScanClientJob(jobResults, model)
 				if err != nil {
 					log.Errorf("unable to add finished scan client job results for image %s: %s", jobResults.image.Name(), err.Error())
 				}
-				modelStream <- model
-				imageScanStats <- pmetrics.ImageScanStats{
-					PullDuration:   jobResults.results.PullDuration,
-					ScanDuration:   jobResults.results.ScanClientDuration,
-					TarFileSizeMBs: jobResults.results.TarFileSizeMBs}
+				go func() {
+					modelStream <- model
+				}()
+				go func() {
+					imageScanStats <- pmetrics.ImageScanStats{
+						PullDuration:   jobResults.results.PullDuration,
+						ScanDuration:   jobResults.results.ScanClientDuration,
+						TarFileSizeMBs: jobResults.results.TarFileSizeMBs}
+				}()
+			case project := <-hubScanResults:
+				model, err = updateModelAddHubScanResults(project, model)
+				if err != nil {
+					log.Errorf("unable to add hub scan results: %s", err.Error())
+				}
+				go func() {
+					modelStream <- model
+				}()
 			}
 		}
 	}()
@@ -114,7 +136,7 @@ func updateModelDeletePod(podName string, model Model) (Model, error) {
 
 func updateModelNextImage(continuation func(image *common.Image), model Model) (Model, error) {
 	concurrentScanLimit := 1
-	log.Info("looking for next image to scan with concurrency limit of %d, and %d currently in progress", concurrentScanLimit, model.inProgressScanCount())
+	log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", concurrentScanLimit, model.inProgressScanCount())
 	if model.inProgressScanCount() >= concurrentScanLimit {
 		log.Info("max concurrent scan count reached, not starting a new scan yet")
 		continuation(nil)
@@ -136,7 +158,7 @@ func updateModelNextImage(continuation func(image *common.Image), model Model) (
 		return model, errors.New(message)
 	}
 
-	log.Info("about to scan image %s", first.Name())
+	log.Infof("about to scan image %s", first.Name())
 	continuation(&first)
 	results.ScanStatus = ScanStatusRunningScanClient
 	model.ImageScanQueue = model.ImageScanQueue[1:]
@@ -151,4 +173,40 @@ func updateModelFinishedScanClientJob(results FinishedScanClientJob, model Model
 		newModel.errorRunningScanClient(results.image)
 	}
 	return newModel, nil
+}
+
+func updateModelAddHubScanResults(project scanner.Project, model Model) (Model, error) {
+	newModel := model
+	for _, version := range project.Versions {
+		err := addScanResult(&newModel, version)
+		if err != nil {
+			// if there's an error, don't make any changes
+			return model, err
+		}
+	}
+	return newModel, nil
+}
+
+func addScanResult(model *Model, version scanner.Version) error {
+	image := common.Image(version.VersionName)
+
+	// add scan results into cache
+	scanResults, ok := model.Images[image]
+	if !ok {
+		return fmt.Errorf("expected to already have image %s, but did not", image.Name())
+	}
+
+	if scanResults.ScanResults == nil {
+		scanResults.ScanResults = NewScanResults()
+	}
+
+	scanResults.ScanResults.VulnerabilityCount = version.RiskProfile.HighRiskVulnerabilityCount()
+	scanResults.ScanResults.OverallStatus = version.PolicyStatus.OverallStatus
+	scanResults.ScanResults.PolicyViolationCount = version.PolicyStatus.ViolationCount()
+
+	if version.IsImageScanDone() {
+		scanResults.ScanStatus = ScanStatusComplete
+	}
+
+	return nil
 }

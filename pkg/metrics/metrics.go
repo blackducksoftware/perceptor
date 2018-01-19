@@ -54,7 +54,6 @@ func MetricsHandler(imageScanStats <-chan ImageScanStats) http.Handler {
 				tarballSize.WithLabelValues("tarballSize").Observe(float64(stats.TarFileSizeMBs))
 				pullDuration.WithLabelValues("pullDurationSeconds").Observe(float64(stats.PullDuration.Seconds()))
 				scanDuration.WithLabelValues("scanDurationSeconds").Observe(float64(stats.ScanDuration.Seconds()))
-				continue
 			}
 		}
 	}()
