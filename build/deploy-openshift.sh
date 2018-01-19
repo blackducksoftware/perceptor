@@ -11,3 +11,5 @@ oc adm policy add-scc-to-user privileged system:serviceaccount:perceptor-scan:pe
 
 
 oc create -f pods.yaml --namespace=perceptor-scan
+
+oc create -f routes.yaml --namespace=perceptor-scan

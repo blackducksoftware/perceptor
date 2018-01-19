@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: perceptor
+  namespace: perceptor-scan
+spec:
+  host: perceptor-perceptor-scan.34.227.56.110.xip.io
+  to:
+    kind: Service
+    name: perceptor
+    weight: 100
+  wildcardPolicy: None
