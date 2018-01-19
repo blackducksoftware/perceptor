@@ -204,6 +204,7 @@ func addScanResult(model *Model, version scanner.Version) error {
 	scanResults.ScanResults.OverallStatus = version.PolicyStatus.OverallStatus
 	scanResults.ScanResults.PolicyViolationCount = version.PolicyStatus.ViolationCount()
 
+	log.Infof("completing image scan of version %s ? %t", version.VersionName, version.IsImageScanDone())
 	if version.IsImageScanDone() {
 		scanResults.ScanStatus = ScanStatusComplete
 	}
