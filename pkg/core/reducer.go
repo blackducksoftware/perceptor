@@ -96,7 +96,7 @@ func newReducer(initialModel Model,
 			}
 		}
 	}()
-	return &reducer{model: modelStream}
+	return &reducer{model: modelStream, imageScanStats: imageScanStats}
 }
 
 // perceivers

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	"github.com/prometheus/common/log"
 )
@@ -18,16 +19,6 @@ func TestReducer(t *testing.T) {
 	finishScanClientJob := make(chan FinishedScanClientJob)
 	hubScanResults := make(chan scanner.Project)
 	reducer := newReducer(*initialModel, addPod, updatePod, deletePod, postNextImage, finishScanClientJob, hubScanResults)
-
-	// keep imageScanStats from blocking us
-	go func() {
-		for {
-			select {
-			case <-reducer.imageScanStats:
-				break
-			}
-		}
-	}()
 
 	// 1. add a pod
 	//   this should add all the images in the pod to the scan queue (if they haven't already been added)
@@ -88,12 +79,13 @@ func TestReducer(t *testing.T) {
 	// 3. finish a scan
 	//   this should cause the image status to be set to running hub scan,
 	//   and results to be added in the image dict
-	results := scanner.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
+	results3 := scanner.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
 	go func() {
-		finishScanClientJob <- FinishedScanClientJob{err: nil, image: *nextImage, results: &results}
+		finishScanClientJob <- FinishedScanClientJob{err: nil, image: *nextImage, results: &results3}
 	}()
 
 	newModel = <-reducer.model
+	imageScanStats3 := <-reducer.imageScanStats
 	imageResults3, ok3 := newModel.Images["image1"]
 	if !ok3 {
 		t.Logf("couldn't find image1 in image map")
@@ -101,6 +93,11 @@ func TestReducer(t *testing.T) {
 	}
 	if imageResults3.ScanStatus != ScanStatusRunningHubScan {
 		t.Logf("expected image1 ScanStatus to be RunningHubScan, but instead is %d", imageResults3.ScanStatus)
+		t.Fail()
+	}
+	expected3 := metrics.ImageScanStats{PullDuration: 32, ScanDuration: 17, TarFileSizeMBs: 22}
+	if imageScanStats3 != expected3 {
+		t.Logf("expected image scan stats %v, but got %v", expected3, imageScanStats3)
 		t.Fail()
 	}
 
@@ -179,9 +176,13 @@ func TestReducer(t *testing.T) {
 	// 7. finish a scan with an error
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
-	finishScanClientJob <- FinishedScanClientJob{err: errors.New("oops"), image: *nextImage, results: nil}
+	go func() {
+		finishScanClientJob <- FinishedScanClientJob{err: errors.New("oops"), image: *nextImage, results: nil}
+	}()
 
 	newModel = <-reducer.model
+	// we don't get imageScanStats for scan client failures
+	// imageScanStats7 := <-reducer.imageScanStats
 	imageResults7, ok7 := newModel.Images["image2"]
 	if !ok7 {
 		t.Logf("couldn't find image2 in image map")
@@ -231,6 +232,12 @@ func TestReducer(t *testing.T) {
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
+	imageScanStats9 := <-reducer.imageScanStats
+	expected9 := metrics.ImageScanStats{PullDuration: 127, ScanDuration: 84, TarFileSizeMBs: 339}
+	if imageScanStats9 != expected9 {
+		t.Logf("expected image scan stats %v, but got %v", expected9, imageScanStats9)
+		t.Fail()
+	}
 
 	// 10. finish hub scan with success
 	go func() {
