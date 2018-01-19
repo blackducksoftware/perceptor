@@ -14,10 +14,10 @@ import (
 )
 
 // Two things that should work:
-// curl -X GET http://perceptor.perceptor-scan.svc.cluster.local:3001/metrics
-// curl -X GET http://perceptor.perceptor-scan:3001/metrics
+// curl -X GET http://perceptor.bds-perceptor.svc.cluster.local:3001/metrics
+// curl -X GET http://perceptor.bds-perceptor:3001/metrics
 const (
-	perceptorBaseURL = "http://perceptor.perceptor-scan"
+	perceptorBaseURL = "http://perceptor.bds-perceptor"
 	podPath          = "pod"
 	scanResultsPath  = "scanresults"
 	perceptorPort    = "3001"

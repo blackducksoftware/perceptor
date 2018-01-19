@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: List
 metadata:
-  name: "perceptor-scan components"
-  resourceVersion: "1"
+  name: "bds-perceptor components"
+  resourceVersion: "0.0.1"
 items:
 - apiVersion: v1
   kind: ReplicationController
   metadata:
     name: kube-perceiver
-    namespace: perceptor-scan
+    namespace: bds-perceptor
     labels:
-      app: perceptor
+      app: perceptor-app
   spec:
     replicas: 1
     selector:
@@ -20,7 +20,7 @@ items:
         labels:
           name: bds-kube-perceiver
         name: kube-perceiver
-        namespace: perceptor-scan
+        namespace: bds-perceptor
       spec:
         containers:
           - name: kube-perceiver
@@ -51,7 +51,7 @@ items:
   kind: Service
   metadata:
     name: kube-perceiver
-    namespace: perceptor-scan
+    namespace: bds-perceptor
   spec:
     selector:
       name: bds-kube-perceiver
