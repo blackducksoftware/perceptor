@@ -73,7 +73,11 @@ func requestScanJob() *common.Image {
 	var nextImage api.NextImage
 	err = json.Unmarshal(bodyBytes, &nextImage)
 	if err == nil && resp.StatusCode == 200 {
-		log.Infof("http POST request to %s succeeded", nextImageURL)
+		imageName := "null"
+		if nextImage.Image != nil {
+			imageName = nextImage.Image.Name()
+		}
+		log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageName)
 		return nextImage.Image
 	}
 
