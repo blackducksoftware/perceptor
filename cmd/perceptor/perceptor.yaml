@@ -22,18 +22,12 @@ items:
         name: perceptor
         namespace: bds-perceptor
       spec:
-        volumes:
-          - emptyDir: {}
-            name: "var-images"
-          - name: dir-docker-socket
-            hostPath:
-              path: /var/run/docker.sock
         containers:
           - name: perceptor
             image: mfenwickbd/perceptor:latest
             imagePullPolicy: Always
             command:
-              - ./dependencies/perceptor
+              - ./perceptor
             ports:
               - containerPort: 3000
             resources:
@@ -47,24 +41,10 @@ items:
   #             value:
   #          - name: ENV2
   #            value:
-            volumeMounts:
-#              - mountPath: /opt/blackduck/perceptor/logs
-#                name: dir-perceptor-log
-#              - mountPath: /var/images
-#                name: dir-image
-              - mountPath: /var/run/docker.sock
-                name: dir-docker-socket
             terminationMessagePath: /dev/termination-log
-            securityContext:
-              privileged: true
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
-        serviceAccountName: perceptor-sa
-        serviceAccount: perceptor-sa
-# not sure if this is actually necessary
-      securityContext:
-        privileged: true
 - apiVersion: v1
   kind: Service
   metadata:

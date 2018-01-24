@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "bds-perceptor components"
+  resourceVersion: "0.0.1"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: perceptor-scanner
+    namespace: bds-perceptor
+    labels:
+      app: perceptor-app
+  spec:
+    replicas: 2
+    selector:
+      name: bds-perceptor
+    template:
+      metadata:
+        labels:
+          name: bds-perceptor
+        name: perceptor-scanner
+        namespace: bds-perceptor
+      spec:
+        volumes:
+          - emptyDir: {}
+            name: "var-images"
+          - name: dir-docker-socket
+            hostPath:
+              path: /var/run/docker.sock
+        containers:
+          - name: perceptor
+            image: mfenwickbd/perceptor-scanner:latest
+            imagePullPolicy: Always
+            command:
+              - ./dependencies/perceptor-scanner
+            ports:
+              - containerPort: 3000
+            resources:
+              requests:
+                memory: 2Gi
+                cpu: 50m
+              limits:
+                cpu: 500m
+  #          env:
+  #          - name: ENV1
+  #             value:
+  #          - name: ENV2
+  #            value:
+            volumeMounts:
+#              - mountPath: /opt/blackduck/perceptor/logs
+#                name: dir-perceptor-log
+#              - mountPath: /var/images
+#                name: dir-image
+              - mountPath: /var/run/docker.sock
+                name: dir-docker-socket
+            terminationMessagePath: /dev/termination-log
+            securityContext:
+              privileged: true
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        serviceAccountName: perceptor-scanner-sa
+        serviceAccount: perceptor-scanner-sa
+# not sure if this is actually necessary
+      securityContext:
+        privileged: true
+#- apiVersion: v1
+#  kind: Service
+#  metadata:
+#    name: perceptor-scanner
+#    namespace: bds-perceptor
+#  spec:
+#    selector:
+#      name: bds-perceptor
+#    ports:
+#    - nodePort: 0
+#      port: 3001
+#      protocol: TCP
+#      targetPort: 3000

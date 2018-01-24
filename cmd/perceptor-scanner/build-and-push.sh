@@ -1,10 +1,10 @@
 set -e
 
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o perceptor perceptor.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dependencies/perceptor-scanner perceptor-scanner.go
 
-docker build -t mfenwickbd/perceptor .
+docker build -t mfenwickbd/perceptor-scanner .
 
-docker push mfenwickbd/perceptor:latest
+docker push mfenwickbd/perceptor-scanner:latest
 
 # if running locally, can hit this from
 #   http://localhost:3060/model
