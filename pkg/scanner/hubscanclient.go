@@ -69,7 +69,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 		"--insecure", // TODO not sure about this
 		"-v",
 		path)
-	log.Infof("running command %v for image %s\n", cmd, job.Image.Name)
+	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
 	start := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
 	stop := time.Now()
