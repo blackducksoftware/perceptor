@@ -91,12 +91,14 @@ func finishScan(results api.FinishedScanClientJob) {
 	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
 	jsonBytes, err := json.Marshal(results)
 	resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
-	defer resp.Body.Close()
-	if resp.StatusCode == 200 && err == nil {
-		log.Info("got successful response from %s", finishedScanURL)
-	} else if err != nil {
+	if err != nil {
 		log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 200 {
+		log.Infof("POST to %s succeeded", finishedScanURL)
 	} else {
-		log.Errorf("unable to POST to %s: got status code %d", finishedScanURL, resp.StatusCode)
+		log.Errorf("POST to %s failed with status code %d", finishedScanURL, resp.StatusCode)
 	}
 }
