@@ -1,4 +1,4 @@
-package httpserver
+package api
 
 import (
 	"net/http"
@@ -8,20 +8,17 @@ import (
 
 type Responder interface {
 	// state of the program
-	//   these have funky return types because:
-	//    - GetMetrics is so tightly coupled to prometheus
-	//    - I don't feel like exposing the type of the model to this package (at least, for now)
+	// this is a funky return type because it's so tightly coupled to prometheus
 	GetMetrics(w http.ResponseWriter, r *http.Request)
-	GetModel(w http.ResponseWriter, r *http.Request)
+	GetModel() string
 
 	// perceiver
 	AddPod(pod common.Pod)
 	UpdatePod(pod common.Pod)
 	DeletePod(qualifiedName string)
-	// Image(w http.ResponseWriter, r *http.Request, image common.Image)
 	GetScanResults() ScanResults
 
 	// scanner
-	// TODO GetNextImage() string
-	// TODO PostFinishScan(image string, success bool) // or instead of bool, string? enum? need to know what the result was
+	GetNextImage(func(nextImage NextImage))
+	PostFinishScan(job FinishedScanClientJob)
 }

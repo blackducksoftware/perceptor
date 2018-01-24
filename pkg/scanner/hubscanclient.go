@@ -15,25 +15,16 @@ type HubScanClient struct {
 	host        string
 	username    string
 	password    string
-	hubFetcher  *HubFetcher
 	imagePuller *pdocker.ImagePuller
 }
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
 func NewHubScanClient(username string, password string, host string) (*HubScanClient, error) {
-	baseURL := "https://" + host
-	hf, err := NewHubFetcher(username, password, baseURL)
-	if err != nil {
-		log.Errorf("unable to instantiate ProjectFetcher: %s", err.Error())
-		return nil, err
-	}
-
 	hsc := HubScanClient{
 		host:        host,
 		username:    username,
 		password:    password,
-		hubFetcher:  hf,
 		imagePuller: pdocker.NewImagePuller()}
 	return &hsc, nil
 }
@@ -46,10 +37,6 @@ func mapKeys(m map[string]ScanJob) []string {
 		i++
 	}
 	return keys
-}
-
-func (hsc *HubScanClient) FetchProject(projectName string) (*Project, error) {
-	return hsc.hubFetcher.FetchProjectOfName(projectName)
 }
 
 func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {

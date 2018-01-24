@@ -4,7 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	"bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	"github.com/prometheus/common/log"
@@ -16,8 +18,8 @@ func TestReducer(t *testing.T) {
 	updatePod := make(chan common.Pod)
 	deletePod := make(chan string)
 	postNextImage := make(chan func(image *common.Image))
-	finishScanClientJob := make(chan FinishedScanClientJob)
-	hubScanResults := make(chan scanner.Project)
+	finishScanClientJob := make(chan api.FinishedScanClientJob)
+	hubScanResults := make(chan hub.Project)
 	reducer := newReducer(*initialModel, addPod, updatePod, deletePod, postNextImage, finishScanClientJob, hubScanResults)
 
 	// 1. add a pod
@@ -81,7 +83,7 @@ func TestReducer(t *testing.T) {
 	//   and results to be added in the image dict
 	results3 := scanner.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
 	go func() {
-		finishScanClientJob <- FinishedScanClientJob{err: nil, image: *nextImage, results: &results3}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: nil, Image: *nextImage, Results: &results3}
 	}()
 
 	newModel = <-reducer.model
@@ -118,10 +120,10 @@ func TestReducer(t *testing.T) {
 	//    change the ScanStatus to complete
 	//    add scan results
 	go func() {
-		hubScanResults <- scanner.Project{Name: "Perceptor", Source: "", Versions: []scanner.Version{
-			scanner.Version{VersionName: "image1", CodeLocations: []scanner.CodeLocation{
-				scanner.CodeLocation{ScanSummaries: []scanner.ScanSummary{
-					scanner.ScanSummary{Status: "COMPLETE"},
+		hubScanResults <- hub.Project{Name: "Perceptor", Source: "", Versions: []hub.Version{
+			hub.Version{VersionName: "image1", CodeLocations: []hub.CodeLocation{
+				hub.CodeLocation{ScanSummaries: []hub.ScanSummary{
+					hub.ScanSummary{Status: "COMPLETE"},
 				}},
 			}},
 		}}
@@ -177,7 +179,7 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		finishScanClientJob <- FinishedScanClientJob{err: errors.New("oops"), image: *nextImage, results: nil}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: errors.New("oops"), Image: *nextImage, Results: nil}
 	}()
 
 	newModel = <-reducer.model
@@ -228,7 +230,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		finishScanClientJob <- FinishedScanClientJob{err: nil, image: *nextImage, results: &results9}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: nil, Image: *nextImage, Results: &results9}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -241,10 +243,10 @@ func TestReducer(t *testing.T) {
 
 	// 10. finish hub scan with success
 	go func() {
-		hubScanResults <- scanner.Project{Name: "Perceptor", Source: "", Versions: []scanner.Version{
-			scanner.Version{VersionName: "image2", CodeLocations: []scanner.CodeLocation{
-				scanner.CodeLocation{ScanSummaries: []scanner.ScanSummary{
-					scanner.ScanSummary{Status: "COMPLETE"}}}}}}}
+		hubScanResults <- hub.Project{Name: "Perceptor", Source: "", Versions: []hub.Version{
+			hub.Version{VersionName: "image2", CodeLocations: []hub.CodeLocation{
+				hub.CodeLocation{ScanSummaries: []hub.ScanSummary{
+					hub.ScanSummary{Status: "COMPLETE"}}}}}}}
 	}()
 	newModel = <-reducer.model
 

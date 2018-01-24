@@ -1,4 +1,4 @@
-package scanner
+package hub
 
 import (
 	"fmt"
@@ -40,22 +40,6 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-func (hub *MockHub) FetchProject(projectName string) (*Project, error) {
-	// TODO implement
+func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
-}
-
-func (hub *MockHub) Scan(job ScanJob) (*ScanClientJobResults, error) {
-	// TODO implement
-	return nil, nil
-}
-
-func (hub *MockHub) ScanCliSh(job ScanJob) error {
-	// TODO implement
-	return nil
-}
-
-func (hub *MockHub) ScanDockerSh(job ScanJob) error {
-	// TODO implement
-	return nil
 }

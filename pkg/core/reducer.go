@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
-	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,8 +26,8 @@ func newReducer(initialModel Model,
 	updatePod <-chan common.Pod,
 	deletePod <-chan string,
 	postNextImage <-chan func(image *common.Image),
-	finishScanClientJob <-chan FinishedScanClientJob,
-	hubScanResults <-chan scanner.Project) *reducer {
+	finishScanClientJob <-chan api.FinishedScanClientJob,
+	hubScanResults <-chan hub.Project) *reducer {
 	var err error
 	model := initialModel
 	modelStream := make(chan Model)
@@ -72,17 +73,17 @@ func newReducer(initialModel Model,
 			case jobResults := <-finishScanClientJob:
 				model, err = updateModelFinishedScanClientJob(jobResults, model)
 				if err != nil {
-					log.Errorf("unable to add finished scan client job results for image %s: %s", jobResults.image.Name(), err.Error())
+					log.Errorf("unable to add finished scan client job results for image %s: %s", jobResults.Image.Name(), err.Error())
 				}
 				go func() {
 					modelStream <- model
 				}()
-				if jobResults.results != nil {
+				if jobResults.Results != nil {
 					go func() {
 						imageScanStats <- pmetrics.ImageScanStats{
-							PullDuration:   jobResults.results.PullDuration,
-							ScanDuration:   jobResults.results.ScanClientDuration,
-							TarFileSizeMBs: jobResults.results.TarFileSizeMBs}
+							PullDuration:   jobResults.Results.PullDuration,
+							ScanDuration:   jobResults.Results.ScanClientDuration,
+							TarFileSizeMBs: jobResults.Results.TarFileSizeMBs}
 					}()
 				}
 			case project := <-hubScanResults:
@@ -167,17 +168,17 @@ func updateModelNextImage(continuation func(image *common.Image), model Model) (
 	return model, nil
 }
 
-func updateModelFinishedScanClientJob(results FinishedScanClientJob, model Model) (Model, error) {
+func updateModelFinishedScanClientJob(results api.FinishedScanClientJob, model Model) (Model, error) {
 	newModel := model
-	if results.err == nil {
-		newModel.finishRunningScanClient(results.image)
+	if results.Err == nil {
+		newModel.finishRunningScanClient(results.Image)
 	} else {
-		newModel.errorRunningScanClient(results.image)
+		newModel.errorRunningScanClient(results.Image)
 	}
 	return newModel, nil
 }
 
-func updateModelAddHubScanResults(project scanner.Project, model Model) (Model, error) {
+func updateModelAddHubScanResults(project hub.Project, model Model) (Model, error) {
 	newModel := model
 	for _, version := range project.Versions {
 		err := addScanResult(&newModel, version)
@@ -189,7 +190,7 @@ func updateModelAddHubScanResults(project scanner.Project, model Model) (Model, 
 	return newModel, nil
 }
 
-func addScanResult(model *Model, version scanner.Version) error {
+func addScanResult(model *Model, version hub.Version) error {
 	image := common.Image(version.VersionName)
 
 	// add scan results into cache

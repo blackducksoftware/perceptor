@@ -1,10 +1,11 @@
-package httpserver
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ func SetupHTTPServer(responder Responder) {
 	})
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			responder.GetModel(w, r)
+			fmt.Fprint(w, responder.GetModel())
 		} else {
 			http.NotFound(w, r)
 		}
@@ -33,12 +34,14 @@ func SetupHTTPServer(responder Responder) {
 		case "POST":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
+				log.Errorf("unable to read body for pod POST: %s", err.Error())
 				http.Error(w, err.Error(), 400)
 				return
 			}
 			var pod common.Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
+				log.Infof("unable to ummarshal JSON for pod POST: %s", err.Error())
 				http.Error(w, err.Error(), 400)
 				return
 			}
@@ -96,7 +99,43 @@ func SetupHTTPServer(responder Responder) {
 			}
 			fmt.Fprint(w, string(jsonBytes))
 		} else {
-			http.Error(w, "", http.StatusNotFound)
+			http.NotFound(w, r)
+		}
+	})
+
+	// for providing data to scanners
+	http.HandleFunc("/nextimage", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			var wg sync.WaitGroup
+			wg.Add(1)
+			responder.GetNextImage(func(nextImage NextImage) {
+				jsonBytes, err := json.Marshal(nextImage)
+				if err != nil {
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				fmt.Fprint(w, string(jsonBytes))
+				wg.Done()
+			})
+			wg.Wait()
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+
+	http.HandleFunc("/finishedscan", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			var scanResults FinishedScanClientJob
+			err = json.Unmarshal(body, &scanResults)
+			responder.PostFinishScan(scanResults)
+			fmt.Fprint(w, "")
+		} else {
+			http.NotFound(w, r)
 		}
 	})
 }

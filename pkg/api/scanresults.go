@@ -1,4 +1,4 @@
-package httpserver
+package api
 
 type ScanResults struct {
 	// TODO should ScannerVersion and HubServer be handled by perceiver, or supplied by perceptor?

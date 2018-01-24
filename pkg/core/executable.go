@@ -51,7 +51,7 @@ func RunFromInsideCluster() {
 	hubUsername := "sysadmin"
 	hubPassword := "blackduck"
 
-	perceptor, err := NewPerceptorFromCluster(hubUsername, hubPassword, hubHost)
+	perceptor, err := NewPerceptor(hubUsername, hubPassword, hubHost)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())

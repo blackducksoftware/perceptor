@@ -1,4 +1,4 @@
-package scanner
+package hub
 
 import (
 	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type HubFetcher struct {
+type Fetcher struct {
 	client     hubclient.Client
 	username   string
 	password   string
@@ -14,7 +14,7 @@ type HubFetcher struct {
 	isLoggedIn bool
 }
 
-func (hf *HubFetcher) login() error {
+func (hf *Fetcher) login() error {
 	if hf.isLoggedIn {
 		return nil
 	}
@@ -26,16 +26,16 @@ func (hf *HubFetcher) login() error {
 	return err
 }
 
-// NewHubFetcher returns a new, logged-in HubFetcher.
+// NewFetcher returns a new, logged-in Fetcher.
 // It will instead return an error if either of the following happen:
-//  - unable to instantiate a Hub API client
+//  - unable to instantiate an API client
 //  - unable to sign in to the Hub
-func NewHubFetcher(username string, password string, baseURL string) (*HubFetcher, error) {
+func NewFetcher(username string, password string, baseURL string) (*Fetcher, error) {
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
 	if err != nil {
 		return nil, err
 	}
-	hf := HubFetcher{
+	hf := Fetcher{
 		client:     *client,
 		username:   username,
 		password:   password,
@@ -48,7 +48,7 @@ func NewHubFetcher(username string, password string, baseURL string) (*HubFetche
 	return &hf, nil
 }
 
-func (hf *HubFetcher) fetchProject(p hubapi.Project) (*Project, error) {
+func (hf *Fetcher) fetchProject(p hubapi.Project) (*Project, error) {
 	client := hf.client
 	project := Project{Name: p.Name, Source: p.Source, Versions: []Version{}}
 
@@ -156,9 +156,9 @@ func (hf *HubFetcher) fetchProject(p hubapi.Project) (*Project, error) {
 	return &project, nil
 }
 
-// FetchProjectOfName searches for a project with the matching name,
+// FetchProjectByName searches for a project with the matching name,
 //   returning a populated Project model
-func (hf *HubFetcher) FetchProjectOfName(projectName string) (*Project, error) {
+func (hf *Fetcher) FetchProjectByName(projectName string) (*Project, error) {
 	// TODO instead of listing projects like this, do:
 	//   https://34.227.56.110.xip.io/api/projects?&q=name:Perceptor
 	// this will require a change in the go-hub-client library

@@ -1,4 +1,4 @@
-package scanner
+package hub
 
 import (
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"

@@ -8,7 +8,6 @@ type ScanClientInterface interface {
 	Scan(job ScanJob) (*ScanClientJobResults, error)
 	ScanCliSh(job ScanJob) error
 	ScanDockerSh(job ScanJob) error
-	FetchProject(projectName string) (*Project, error)
 }
 
 type ScanJob struct {

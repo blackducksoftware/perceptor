@@ -17,6 +17,7 @@ type HTTPResponder struct {
 	addPod         chan common.Pod
 	updatePod      chan common.Pod
 	deletePod      chan string
+	postNextImage  chan func(*common.Image)
 }
 
 func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResponder {
@@ -24,7 +25,8 @@ func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResp
 		metricsHandler: metricsHandler,
 		addPod:         make(chan common.Pod),
 		updatePod:      make(chan common.Pod),
-		deletePod:      make(chan string)}
+		deletePod:      make(chan string),
+		postNextImage:  make(chan func(*common.Image))}
 	go func() {
 		for {
 			select {
@@ -40,14 +42,12 @@ func (hr *HTTPResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	hr.metricsHandler.ServeHTTP(w, r)
 }
 
-func (hr *HTTPResponder) GetModel(w http.ResponseWriter, r *http.Request) {
+func (hr *HTTPResponder) GetModel() string {
 	jsonBytes, err := json.Marshal(hr.model)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("unable to serialize model: %s", err.Error()), 500)
-		return
+		return fmt.Sprintf("unable to serialize model: %s", err.Error())
 	}
-	jsonString := string(jsonBytes)
-	fmt.Fprint(w, jsonString)
+	return string(jsonBytes)
 }
 
 func (hr *HTTPResponder) AddPod(pod common.Pod) {
@@ -79,4 +79,14 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 		pods = append(pods, api.Pod{Namespace: pod.Namespace, Name: pod.Name, PolicyViolations: scanResults.PolicyViolationCount, Vulnerabilities: scanResults.VulnerabilityCount, OverallStatus: scanResults.OverallStatus})
 	}
 	return *api.NewScanResults(scannerVersion, hubServer, pods, images)
+}
+
+func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
+	hr.postNextImage <- func(image *common.Image) {
+		continuation(*api.NewNextImage(image))
+	}
+}
+
+func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
+	// TODO
 }
