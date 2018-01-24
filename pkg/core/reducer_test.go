@@ -13,7 +13,8 @@ import (
 )
 
 func TestReducer(t *testing.T) {
-	initialModel := NewModel()
+	concurrentScanLimit := 1
+	initialModel := NewModel(concurrentScanLimit)
 	addPod := make(chan common.Pod)
 	updatePod := make(chan common.Pod)
 	deletePod := make(chan string)

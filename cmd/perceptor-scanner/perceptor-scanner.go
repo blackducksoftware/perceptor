@@ -10,20 +10,9 @@ import (
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	hub "bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
-)
-
-// Two things that should work:
-// curl -X GET http://perceptor.bds-perceptor.svc.cluster.local:3001/metrics
-// curl -X GET http://perceptor.bds-perceptor:3001/metrics
-const (
-	perceptorBaseURL     = "http://perceptor.bds-perceptor"
-	nextImagePath        = "nextimage"
-	finishedScanPath     = "finishedscan"
-	perceptorPort        = "3001"
-	perceptorScannerPort = "3003"
-	perceptorProjectName = "Perceptor"
 )
 
 // TODO metrics
@@ -56,19 +45,19 @@ func main() {
 			time.Sleep(20 * time.Second)
 			image := requestScanJob()
 			if image != nil {
-				job := scanner.NewScanJob(perceptorProjectName, *image)
+				job := scanner.NewScanJob(hub.PerceptorProjectName, *image)
 				runScanJob(scanClient, *job)
 			}
 		}
 	}()
 
-	addr := fmt.Sprintf(":%s", perceptorScannerPort)
+	addr := fmt.Sprintf(":%s", api.PerceptorScannerPort)
 	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
 }
 
 func requestScanJob() *common.Image {
-	nextImageURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, nextImagePath)
+	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
@@ -99,7 +88,7 @@ func runScanJob(scanClient *scanner.HubScanClient, job scanner.ScanJob) {
 }
 
 func finishScan(results api.FinishedScanClientJob) {
-	finishedScanURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, finishedScanPath)
+	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
 	jsonBytes, err := json.Marshal(results)
 	resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
 	defer resp.Body.Close()

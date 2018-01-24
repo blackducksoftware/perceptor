@@ -13,22 +13,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Two things that should work:
-// curl -X GET http://perceptor.bds-perceptor.svc.cluster.local:3001/metrics
-// curl -X GET http://perceptor.bds-perceptor:3001/metrics
-const (
-	perceptorBaseURL = "http://perceptor.bds-perceptor"
-	podPath          = "pod"
-	scanResultsPath  = "scanresults"
-	perceptorPort    = "3001"
-	perceiverPort    = "3002"
-)
+// TODO metrics
+// number of namespaces found
+// number of pods per namespace
+// number of images per pod
+// number of occurrences of each pod
+// number of successes, failures, of each perceptor endpoint
+// ??? number of scan results fetched from perceptor
 
 func main() {
 	log.Info("started")
 
-	podURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, podPath)
-	scanResultsURL := fmt.Sprintf("%s:%s/%s", perceptorBaseURL, perceptorPort, scanResultsPath)
+	podURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.PodPath)
+	scanResultsURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.ScanResultsPath)
 
 	// 1. get kube client
 	clusterClient, err := clustermanager.NewKubeClientFromCluster()
@@ -143,7 +140,7 @@ func main() {
 		}
 	}()
 
-	addr := fmt.Sprintf(":%s", perceiverPort)
+	addr := fmt.Sprintf(":%s", api.PerceiverPort)
 	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
 }

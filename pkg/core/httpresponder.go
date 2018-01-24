@@ -12,21 +12,23 @@ import (
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	model          Model
-	metricsHandler http.Handler
-	addPod         chan common.Pod
-	updatePod      chan common.Pod
-	deletePod      chan string
-	postNextImage  chan func(*common.Image)
+	model             Model
+	metricsHandler    http.Handler
+	addPod            chan common.Pod
+	updatePod         chan common.Pod
+	deletePod         chan string
+	postNextImage     chan func(*common.Image)
+	postFinishScanJob chan api.FinishedScanClientJob
 }
 
 func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResponder {
 	hr := HTTPResponder{
-		metricsHandler: metricsHandler,
-		addPod:         make(chan common.Pod),
-		updatePod:      make(chan common.Pod),
-		deletePod:      make(chan string),
-		postNextImage:  make(chan func(*common.Image))}
+		metricsHandler:    metricsHandler,
+		addPod:            make(chan common.Pod),
+		updatePod:         make(chan common.Pod),
+		deletePod:         make(chan string),
+		postNextImage:     make(chan func(*common.Image)),
+		postFinishScanJob: make(chan api.FinishedScanClientJob)}
 	go func() {
 		for {
 			select {
@@ -88,5 +90,6 @@ func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)
 }
 
 func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
-	// TODO
+	hr.postFinishScanJob <- job
+	log.Infof("handled finished scan job -- %v", job)
 }

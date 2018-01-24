@@ -53,16 +53,18 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	httpResponder := NewHTTPResponder(model, pmetrics.MetricsHandler(imageScanStats))
 	api.SetupHTTPServer(httpResponder)
 
+	concurrentScanLimit := 1
+
 	// 2. eventually, these two events will be coming in over the REST API
 	finishScanClientJob := make(chan api.FinishedScanClientJob)
 
 	// 3. now for the reducer
-	reducer := newReducer(*NewModel(),
+	reducer := newReducer(*NewModel(concurrentScanLimit),
 		httpResponder.addPod,
 		httpResponder.updatePod,
 		httpResponder.deletePod,
 		httpResponder.postNextImage,
-		finishScanClientJob,
+		httpResponder.postFinishScanJob,
 		hubScanResults)
 
 	// 4. close the circle
@@ -81,7 +83,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	perceptor := Perceptor{
 		hubClient:           hubClient,
 		httpResponder:       httpResponder,
-		HubProjectName:      "Perceptor",
+		HubProjectName:      hub.PerceptorProjectName,
 		reducer:             reducer,
 		hubScanResults:      hubScanResults,
 		finishScanClientJob: finishScanClientJob,

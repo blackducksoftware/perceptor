@@ -10,16 +10,18 @@ import (
 // Model is the root of the core model
 type Model struct {
 	// map of "<namespace>/<name>" to pod
-	Pods           map[string]common.Pod
-	Images         map[common.Image]*ImageScanResults
-	ImageScanQueue []common.Image
+	Pods                map[string]common.Pod
+	Images              map[common.Image]*ImageScanResults
+	ImageScanQueue      []common.Image
+	ConcurrentScanLimit int
 }
 
-func NewModel() *Model {
+func NewModel(concurrentScanLimit int) *Model {
 	return &Model{
-		Pods:           make(map[string]common.Pod),
-		Images:         make(map[common.Image]*ImageScanResults),
-		ImageScanQueue: []common.Image{}}
+		Pods:                make(map[string]common.Pod),
+		Images:              make(map[common.Image]*ImageScanResults),
+		ImageScanQueue:      []common.Image{},
+		ConcurrentScanLimit: concurrentScanLimit}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
