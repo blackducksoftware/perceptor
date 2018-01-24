@@ -71,7 +71,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	scannerVersion := "" // TODO
 	hubServer := ""      // TODO
 	pods := []api.Pod{}
-	images := []api.Image{} // TODO
+	images := []api.Image{}
 	for podName, pod := range hr.model.Pods {
 		scanResults, err := hr.model.scanResults(podName)
 		if err != nil {
@@ -79,6 +79,23 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 			continue
 		}
 		pods = append(pods, api.Pod{Namespace: pod.Namespace, Name: pod.Name, PolicyViolations: scanResults.PolicyViolationCount, Vulnerabilities: scanResults.VulnerabilityCount, OverallStatus: scanResults.OverallStatus})
+	}
+	for image, imageResults := range hr.model.Images {
+		scanID := "TODO"
+		projectVersionURL := "TODO"
+		policyViolations := 0
+		vulnerabilities := 0
+		if imageResults.ScanResults != nil {
+			policyViolations = imageResults.ScanResults.PolicyViolationCount
+			vulnerabilities = imageResults.ScanResults.VulnerabilityCount
+		}
+		apiImage := api.Image{
+			Name:              image.Name(),
+			ScanID:            scanID,
+			PolicyViolations:  policyViolations,
+			Vulnerabilities:   vulnerabilities,
+			ProjectVersionURL: projectVersionURL}
+		images = append(images, apiImage)
 	}
 	return *api.NewScanResults(scannerVersion, hubServer, pods, images)
 }
