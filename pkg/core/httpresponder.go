@@ -17,6 +17,8 @@ type HTTPResponder struct {
 	addPod            chan common.Pod
 	updatePod         chan common.Pod
 	deletePod         chan string
+	addImage          chan common.Image
+	allPods           chan []common.Pod
 	postNextImage     chan func(*common.Image)
 	postFinishScanJob chan api.FinishedScanClientJob
 }
@@ -27,6 +29,8 @@ func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResp
 		addPod:            make(chan common.Pod),
 		updatePod:         make(chan common.Pod),
 		deletePod:         make(chan string),
+		addImage:          make(chan common.Image),
+		allPods:           make(chan []common.Pod),
 		postNextImage:     make(chan func(*common.Image)),
 		postFinishScanJob: make(chan api.FinishedScanClientJob)}
 	go func() {
@@ -65,6 +69,16 @@ func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 func (hr *HTTPResponder) UpdatePod(pod common.Pod) {
 	hr.updatePod <- pod
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
+}
+
+func (hr *HTTPResponder) AddImage(image common.Image) {
+	hr.addImage <- image
+	log.Infof("handled add image %s", image.Name())
+}
+
+func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
+	hr.allPods <- allPods.Pods
+	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
 }
 
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {

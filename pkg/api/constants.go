@@ -10,7 +10,9 @@ const (
 	FinishedScanPath = "finishedscan"
 	// perceiver paths
 	PodPath         = "pod"
+	ImagePath       = "image"
 	ScanResultsPath = "scanresults"
+	AllPodsPath     = "allpods"
 	// ports (basically so that you can run these locally without them stomping on each other -- for testing)
 	PerceptorPort        = "3001"
 	PerceiverPort        = "3002"

@@ -29,8 +29,8 @@ func (model *Model) DeletePod(podName string) {
 	delete(model.Pods, podName)
 }
 
-// AddPod should be called when receiving new pods from the
-// clustermanager.  It returns true if it hasn't yet seen the pod,
+// AddPod adds a pod and all the images in a pod to the model.
+// It returns true if it hasn't yet seen the pod,
 // and false if the pod has already been added.
 // It extract the containers and images from the pod,
 // adding them into the cache.
@@ -43,19 +43,24 @@ func (model *Model) AddPod(newPod common.Pod) bool {
 	}
 	log.Infof("about to add pod: UID %s, qualfied name %s", newPod.UID, newPod.QualifiedName())
 	for _, newCont := range newPod.Containers {
-		_, hasImage := model.Images[newCont.Image]
-		if !hasImage {
-			addedImage := NewImageScanResults()
-			model.Images[newCont.Image] = addedImage
-			log.Infof("adding image %s to image scan queue", newCont.Image)
-			model.addImageToQueue(newCont.Image)
-		} else {
-			log.Infof("not adding image %s to image scan queue, already have in cache", newCont.Image)
-		}
+		model.AddImage(newCont.Image)
 	}
 	log.Infof("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
 	model.Pods[newPod.QualifiedName()] = newPod
 	return true
+}
+
+// AddImage queues up an image for scanning if it hasn't yet been seen.
+func (model *Model) AddImage(image common.Image) {
+	_, hasImage := model.Images[image]
+	if !hasImage {
+		addedImage := NewImageScanResults()
+		model.Images[image] = addedImage
+		log.Infof("adding image %s to image scan queue", image.Name())
+		model.addImageToQueue(image)
+	} else {
+		log.Infof("not adding image %s to image scan queue, already have in cache", image.Name())
+	}
 }
 
 // image state transitions

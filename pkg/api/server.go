@@ -73,20 +73,42 @@ func SetupHTTPServer(responder Responder) {
 			http.NotFound(w, r)
 		}
 	})
-	// http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
-	// 	body, err := ioutil.ReadAll(r.Body)
-	// 	if err != nil {
-	// 		http.Error(w, err.Error(), 400)
-	// 		return
-	// 	}
-	// 	var image common.Image
-	// 	err = json.Unmarshal(body, &image)
-	// 	if err != nil {
-	// 		http.Error(w, err.Error(), 400)
-	// 		return
-	// 	}
-	// 	responder.Image(w, r, image)
-	// })
+	http.HandleFunc("/allpods", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			var allPods AllPods
+			err = json.Unmarshal(body, &allPods)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			responder.UpdateAllPods(allPods)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+	http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			var image common.Image
+			err = json.Unmarshal(body, &image)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+				return
+			}
+			responder.AddImage(image)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
 
 	// for providing data to perceiver
 	http.HandleFunc("/scanresults", func(w http.ResponseWriter, r *http.Request) {

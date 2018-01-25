@@ -25,6 +25,8 @@ func newReducer(initialModel Model,
 	addPod <-chan common.Pod,
 	updatePod <-chan common.Pod,
 	deletePod <-chan string,
+	addImage <-chan common.Image,
+	allPods <-chan []common.Pod,
 	postNextImage <-chan func(image *common.Image),
 	finishScanClientJob <-chan api.FinishedScanClientJob,
 	hubScanResults <-chan hub.Project) *reducer {
@@ -58,6 +60,22 @@ func newReducer(initialModel Model,
 				model, err = updateModelDeletePod(podName, model)
 				if err != nil {
 					log.Errorf("unable to delete pod %s: %s", podName, err.Error())
+				}
+				go func() {
+					modelStream <- model
+				}()
+			case image := <-addImage:
+				model, err = updateModelAddImage(image, model)
+				if err != nil {
+					log.Errorf("unable to add image %s: %s", image.Name(), err.Error())
+				}
+				go func() {
+					modelStream <- model
+				}()
+			case pods := <-allPods:
+				model, err = updateModelUpdateAllPods(pods, model)
+				if err != nil {
+					log.Errorf("unable to update all pods: %s", err.Error())
 				}
 				go func() {
 					modelStream <- model
@@ -134,6 +152,19 @@ func updateModelDeletePod(podName string, model Model) (Model, error) {
 		return model, fmt.Errorf("unable to delete pod %s, pod not found", podName)
 	}
 	delete(model.Pods, podName)
+	return model, nil
+}
+
+func updateModelAddImage(image common.Image, model Model) (Model, error) {
+	model.AddImage(image)
+	return model, nil
+}
+
+func updateModelUpdateAllPods(pods []common.Pod, model Model) (Model, error) {
+	model.Pods = map[string]common.Pod{}
+	for _, pod := range pods {
+		model.AddPod(pod)
+	}
 	return model, nil
 }
 

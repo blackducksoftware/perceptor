@@ -25,6 +25,7 @@ func main() {
 	log.Info("started")
 
 	podURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.PodPath)
+	allPodsURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.AllPodsPath)
 	scanResultsURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.ScanResultsPath)
 
 	// 1. get kube client
@@ -136,6 +137,38 @@ func main() {
 				}
 			} else {
 				log.Errorf("unable to Unmarshal ScanResults from url %s: %s", scanResultsURL, err.Error())
+			}
+		}
+	}()
+
+	// 4. send over all pod information every <insert-time-period>.  This is a hack
+	//    for when perceptor misses events -- either because it started after perceiver,
+	//    or because it went down.
+	go func() {
+		duration := 20 * time.Second
+		for {
+			time.Sleep(duration)
+			pods, err := clusterClient.GetAllPods()
+			if err != nil {
+				log.Errorf("unable to get all pods: %s", err.Error())
+				continue
+			}
+			log.Infof("about to PUT all pods -- found %d pods", len(pods))
+			jsonBytes, err := json.Marshal(api.NewAllPods(pods))
+			if err != nil {
+				log.Errorf("unable to serialize all pods: %s", err.Error())
+				continue
+			}
+			resp, err := http.Post(allPodsURL, "application/json", bytes.NewBuffer(jsonBytes))
+			if err != nil {
+				log.Errorf("unable to POST to %s: %s", allPodsURL, err.Error())
+				continue
+			}
+			defer resp.Body.Close()
+			if err == nil && resp.StatusCode == 200 {
+				log.Infof("http POST request to %s succeeded", allPodsURL)
+			} else {
+				log.Errorf("http POST request to %s failed: %s", allPodsURL, err.Error())
 			}
 		}
 	}()

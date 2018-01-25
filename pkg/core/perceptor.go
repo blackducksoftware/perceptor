@@ -63,6 +63,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		httpResponder.addPod,
 		httpResponder.updatePod,
 		httpResponder.deletePod,
+		httpResponder.addImage,
+		httpResponder.allPods,
 		httpResponder.postNextImage,
 		httpResponder.postFinishScanJob,
 		hubScanResults)

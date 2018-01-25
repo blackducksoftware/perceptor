@@ -18,10 +18,20 @@ func TestReducer(t *testing.T) {
 	addPod := make(chan common.Pod)
 	updatePod := make(chan common.Pod)
 	deletePod := make(chan string)
+	addImage := make(chan common.Image)
+	updateAllPods := make(chan []common.Pod)
 	postNextImage := make(chan func(image *common.Image))
 	finishScanClientJob := make(chan api.FinishedScanClientJob)
 	hubScanResults := make(chan hub.Project)
-	reducer := newReducer(*initialModel, addPod, updatePod, deletePod, postNextImage, finishScanClientJob, hubScanResults)
+	reducer := newReducer(*initialModel,
+		addPod,
+		updatePod,
+		deletePod,
+		addImage,
+		updateAllPods,
+		postNextImage,
+		finishScanClientJob,
+		hubScanResults)
 
 	// 1. add a pod
 	//   this should add all the images in the pod to the scan queue (if they haven't already been added)

@@ -17,6 +17,8 @@ type Responder interface {
 	UpdatePod(pod common.Pod)
 	DeletePod(qualifiedName string)
 	GetScanResults() ScanResults
+	AddImage(image common.Image)
+	UpdateAllPods(allPods AllPods)
 
 	// scanner
 	GetNextImage(func(nextImage NextImage))
