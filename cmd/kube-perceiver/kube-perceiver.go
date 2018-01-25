@@ -44,7 +44,7 @@ func main() {
 				jsonBytes, err := json.Marshal(addPod.New)
 				if err != nil {
 					log.Errorf("unable to serialize pod: %s", err.Error())
-					panic(err)
+					continue
 				}
 				resp, err := http.Post(podURL, "application/json", bytes.NewBuffer(jsonBytes))
 				if err != nil {
@@ -52,22 +52,22 @@ func main() {
 					continue
 				}
 				defer resp.Body.Close()
-				if err == nil && resp.StatusCode == 200 {
+				if resp.StatusCode == 200 {
 					log.Infof("http POST request to %s succeeded", podURL)
 				} else {
-					log.Errorf("http POST request to %s failed: %s", podURL, err.Error())
+					log.Errorf("http POST request to %s failed with status code %d", podURL, resp.StatusCode)
 				}
 			case updatePod := <-clusterClient.PodUpdate():
 				log.Infof("cluster manager event -- update pod: UID %s, name %s", updatePod.New.UID, updatePod.New.QualifiedName())
 				jsonBytes, err := json.Marshal(updatePod.New)
 				if err != nil {
 					log.Errorf("unable to serialize pod: %s", err.Error())
-					panic(err)
+					continue
 				}
 				req, err := http.NewRequest("PUT", podURL, bytes.NewBuffer(jsonBytes))
 				if err != nil {
 					log.Errorf("unable to create PUT request for %s: %s", podURL, err.Error())
-					panic(err)
+					continue
 				}
 				req.Header.Set("Content-Type", "application/json")
 				resp, err := http.DefaultClient.Do(req)
@@ -76,22 +76,22 @@ func main() {
 					continue
 				}
 				defer resp.Body.Close()
-				if err == nil && resp.StatusCode == 200 {
+				if resp.StatusCode == 200 {
 					log.Infof("http PUT request to %s succeeded", podURL)
 				} else {
-					log.Errorf("http PUT request to %s failed: %s", podURL, err.Error())
+					log.Errorf("http PUT request to %s failed with status code %d", podURL, resp.StatusCode)
 				}
 			case deletePod := <-clusterClient.PodDelete():
 				log.Infof("cluster manager event -- delete pod: qualified name %s", deletePod.QualifiedName)
 				jsonBytes, err := json.Marshal(deletePod)
 				if err != nil {
 					log.Errorf("unable to serialize pod: %s", err.Error())
-					panic(err)
+					continue
 				}
 				req, err := http.NewRequest("DELETE", podURL, bytes.NewBuffer(jsonBytes))
 				if err != nil {
 					log.Errorf("unable to create DELETE request for %s: %s", podURL, err.Error())
-					panic(err)
+					continue
 				}
 				req.Header.Set("Content-Type", "application/json")
 				resp, err := http.DefaultClient.Do(req)
@@ -100,10 +100,10 @@ func main() {
 					continue
 				}
 				defer resp.Body.Close()
-				if err == nil && resp.StatusCode == 200 {
+				if resp.StatusCode == 200 {
 					log.Infof("http DELETE request to %s succeeded", podURL)
 				} else {
-					log.Errorf("http DELETE request to %s failed: %s", podURL, err.Error())
+					log.Errorf("http DELETE request to %s failed with status code %d", podURL, resp.StatusCode)
 				}
 			}
 		}
@@ -125,6 +125,7 @@ func main() {
 			bodyBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				log.Errorf("unable to read resp body from %s: %s", scanResultsURL, err.Error())
+				continue
 			}
 
 			var scanResults api.ScanResults
@@ -154,21 +155,29 @@ func main() {
 				continue
 			}
 			log.Infof("about to PUT all pods -- found %d pods", len(pods))
+
 			jsonBytes, err := json.Marshal(api.NewAllPods(pods))
 			if err != nil {
 				log.Errorf("unable to serialize all pods: %s", err.Error())
 				continue
 			}
-			resp, err := http.Post(allPodsURL, "application/json", bytes.NewBuffer(jsonBytes))
+
+			req, err := http.NewRequest("PUT", allPodsURL, bytes.NewBuffer(jsonBytes))
 			if err != nil {
-				log.Errorf("unable to POST to %s: %s", allPodsURL, err.Error())
+				log.Errorf("unable to create PUT request for %s: %s", allPodsURL, err.Error())
+				continue
+			}
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Errorf("unable to PUT to %s: %s", allPodsURL, err.Error())
 				continue
 			}
 			defer resp.Body.Close()
-			if err == nil && resp.StatusCode == 200 {
+			if resp.StatusCode == 200 {
 				log.Infof("http POST request to %s succeeded", allPodsURL)
 			} else {
-				log.Errorf("http POST request to %s failed: %s", allPodsURL, err.Error())
+				log.Errorf("http POST request to %s failed with status code %d", allPodsURL, resp.StatusCode)
 			}
 		}
 	}()

@@ -243,9 +243,7 @@ func newKubeClientHelper(config *rest.Config) (*KubeClient, error) {
 		return nil, err
 	}
 
-	// TODO set the namespace
 	namespace := v1.NamespaceAll
-	// namespace := "mff"
 
 	// create the pod watcher
 	podListWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "pods", namespace, fields.Everything())
