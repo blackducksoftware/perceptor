@@ -85,16 +85,22 @@ func (model *Model) addImageToQueue(image common.Image) {
 }
 
 func (model *Model) getNextImageFromQueue() *common.Image {
+	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
+		log.Info("max concurrent scan count reached, can't start a new scan")
+		return nil
+	}
+
 	if len(model.ImageScanQueue) == 0 {
+		log.Info("scan queue empty, can't start a new scan")
 		return nil
 	}
 
 	first := model.ImageScanQueue[0]
 	results := model.safeGet(first)
 	if results.ScanStatus != ScanStatusInQueue {
-		message := fmt.Sprintf("can not start scanning image %s, status is not InQueue (%d)", first.Name(), results.ScanStatus)
+		message := fmt.Sprintf("can't start scanning image %s, status is not InQueue (%d)", first.Name(), results.ScanStatus)
 		log.Errorf(message)
-		panic(message)
+		panic(message) // TODO get rid of this panic
 	}
 
 	results.ScanStatus = ScanStatusRunningScanClient
@@ -105,7 +111,7 @@ func (model *Model) getNextImageFromQueue() *common.Image {
 func (model *Model) errorRunningScanClient(image common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("can not error out scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
+		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
 		log.Errorf(message)
 		panic(message)
 	}
@@ -117,7 +123,7 @@ func (model *Model) errorRunningScanClient(image common.Image) {
 func (model *Model) finishRunningScanClient(image common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("can not finish running scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
+		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
 		log.Errorf(message)
 		panic(message)
 	}
@@ -127,7 +133,7 @@ func (model *Model) finishRunningScanClient(image common.Image) {
 // func (model *Model) finishRunningHubScan(image common.Image) {
 // 	results := model.safeGet(image)
 // 	if results.ScanStatus != ScanStatusRunningHubScan {
-// 		message := fmt.Sprintf("can not finish running hub scan for image %s, scan not in progress (%d)", image.Name(), results.ScanStatus)
+// 		message := fmt.Sprintf("cannot finish running hub scan for image %s, scan not in progress (%d)", image.Name(), results.ScanStatus)
 // 		log.Errorf(message)
 // 		panic(message)
 // 	}
