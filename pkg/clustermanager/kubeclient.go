@@ -196,18 +196,13 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name stri
 // across all namespaces.
 func (client *KubeClient) GetAllPods() ([]common.Pod, error) {
 	pods := []common.Pod{}
-	namespaces, err := client.clientset.CoreV1().Namespaces().List(meta_v1.ListOptions{})
+	kubePods, err := client.clientset.CoreV1().Pods(v1.NamespaceAll).List(meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, namespace := range namespaces.Items {
-		kubePods, err := client.clientset.CoreV1().Pods(namespace.GetNamespace()).List(meta_v1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		for _, kubePod := range kubePods.Items {
-			pods = append(pods, *NewPod(&kubePod))
-		}
+	for _, kubePod := range kubePods.Items {
+		// log.Infof("found pod in %s: %s", kubePod.Namespace, kubePod.Name)
+		pods = append(pods, *NewPod(&kubePod))
 	}
 	return pods, nil
 }

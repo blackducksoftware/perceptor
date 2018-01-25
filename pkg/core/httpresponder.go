@@ -117,6 +117,11 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
 	hr.postNextImage <- func(image *common.Image) {
 		continuation(*api.NewNextImage(image))
+		imageString := "null"
+		if image != nil {
+			imageString = image.Name()
+		}
+		log.Infof("handled GET next image -- %s", imageString)
 	}
 }
 

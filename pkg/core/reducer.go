@@ -121,29 +121,13 @@ func newReducer(initialModel Model,
 // perceivers
 
 func updateModelAddPod(pod common.Pod, model Model) (Model, error) {
-	_, ok := model.Pods[pod.QualifiedName()]
-	if ok {
-		return model, fmt.Errorf("attempted to add pod %s, but pod name was already present", pod.QualifiedName())
-	}
-	log.Infof("about to add pod: UID %s, qualified name %s", pod.UID, pod.QualifiedName())
-	for _, newCont := range pod.Containers {
-		_, hasImage := model.Images[newCont.Image]
-		if !hasImage {
-			addedImage := NewImageScanResults()
-			model.Images[newCont.Image] = addedImage
-			log.Infof("adding image %s to image scan queue", newCont.Image)
-			model.addImageToQueue(newCont.Image)
-		} else {
-			log.Infof("not adding image %s to image scan queue, already have in cache", newCont.Image)
-		}
-	}
-	log.Infof("done adding containers+images from pod %s -- %s", pod.UID, pod.QualifiedName())
-	model.Pods[pod.QualifiedName()] = pod
+	model.AddPod(pod)
 	return model, nil
 }
 
 func updateModelUpdatePod(pod common.Pod, model Model) (Model, error) {
-	return model, fmt.Errorf("update actions are not yet implemented")
+	model.AddPod(pod)
+	return model, nil
 }
 
 func updateModelDeletePod(podName string, model Model) (Model, error) {

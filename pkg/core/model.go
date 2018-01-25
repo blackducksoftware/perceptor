@@ -30,27 +30,22 @@ func (model *Model) DeletePod(podName string) {
 }
 
 // AddPod adds a pod and all the images in a pod to the model.
-// It returns true if it hasn't yet seen the pod,
-// and false if the pod has already been added.
+// If the pod is already present in the model, it will be removed
+// and a new one created in its place.
+// The key is the combination of the pod's namespace and name.
 // It extract the containers and images from the pod,
 // adding them into the cache.
-func (model *Model) AddPod(newPod common.Pod) bool {
-	_, ok := model.Pods[newPod.QualifiedName()]
-	if ok {
-		// TODO should we update the cache?
-		// skipping for now
-		return false
-	}
-	log.Infof("about to add pod: UID %s, qualfied name %s", newPod.UID, newPod.QualifiedName())
+func (model *Model) AddPod(newPod common.Pod) {
+	log.Infof("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
 	}
 	log.Infof("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
 	model.Pods[newPod.QualifiedName()] = newPod
-	return true
 }
 
-// AddImage queues up an image for scanning if it hasn't yet been seen.
+// AddImage adds an image to the cache, and
+// queues it up for scanning if it hasn't yet been seen.
 func (model *Model) AddImage(image common.Image) {
 	_, hasImage := model.Images[image]
 	if !hasImage {
