@@ -3,31 +3,13 @@ package clustermanager
 import (
 	"fmt"
 	"regexp"
-
-	dockerreference "github.com/docker/distribution/reference"
 )
 
 var prefix = regexp.MustCompile("docker-pullable://")
-var tagRegexp = regexp.MustCompile(":(" + dockerreference.TagRegexp.String() + ")$")
 
 // not sure why this doesn't work:
 // var digestRegexp = regexp.MustCompile("@sha256:(" + dockerreference.DigestRegexp.String() + ")$")
 var digestRegexp = regexp.MustCompile("@sha256:([a-zA-Z0-9]+)$")
-
-// ParseImageString parses an image pulled from kubernetes.
-// Example image:
-//   registry.kipp.blackducksoftware.com/blackducksoftware/hub-registration:4.3.0
-// TODO: delete this code, it doesn't work when the tag is missing, and it'd
-//   probably be really hard to get it working in this terrible fashion
-func ParseImageString(image string) (string, string, error) {
-	match := tagRegexp.FindStringSubmatchIndex(image)
-	if len(match) != 4 {
-		return "", "", fmt.Errorf("unable to match tag regex <%s> to input <%s>", tagRegexp.String(), image)
-	}
-	name := image[:match[0]]
-	tag := image[match[2]:match[3]]
-	return name, tag, nil
-}
 
 // ParseImageIDString parses an ImageID pulled from kubernetes.
 // Example image id:

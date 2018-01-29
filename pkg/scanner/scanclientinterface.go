@@ -11,13 +11,9 @@ type ScanClientInterface interface {
 }
 
 type ScanJob struct {
-	ProjectName string
-	Image       common.Image
+	Image common.Image
 }
 
-func NewScanJob(projectName string, image common.Image) *ScanJob {
-	return &ScanJob{
-		ProjectName: projectName,
-		Image:       image,
-	}
+func NewScanJob(image common.Image) *ScanJob {
+	return &ScanJob{Image: image}
 }

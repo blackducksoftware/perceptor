@@ -12,7 +12,7 @@ func NewPod(kubePod *v1.Pod) *common.Pod {
 	for _, newCont := range kubePod.Status.ContainerStatuses {
 		name, sha, err := ParseImageIDString(newCont.ImageID)
 		if err != nil {
-			log.Errorf("unable to parse kubernetes imageID string %s: %s", newCont.ImageID, err.Error())
+			log.Errorf("unable to parse kubernetes imageID string %s from pod %s/%s: %s", newCont.ImageID, kubePod.Namespace, kubePod.Name, err.Error())
 			continue
 		}
 		addedCont := common.NewContainer(*common.NewImage(name, sha, newCont.Image), newCont.Name)

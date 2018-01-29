@@ -73,7 +73,7 @@ func (hr *HTTPResponder) UpdatePod(pod common.Pod) {
 
 func (hr *HTTPResponder) AddImage(image common.Image) {
 	hr.addImage <- image
-	log.Infof("handled add image %s", image.Name())
+	log.Infof("handled add image %s", image.HumanReadableName())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
@@ -87,12 +87,17 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	pods := []api.Pod{}
 	images := []api.Image{}
 	for podName, pod := range hr.model.Pods {
-		scanResults, err := hr.model.scanResults(podName)
+		policyViolationCount, vulnerabilityCount, overallStatus, err := hr.model.scanResults(podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
 			continue
 		}
-		pods = append(pods, api.Pod{Namespace: pod.Namespace, Name: pod.Name, PolicyViolations: scanResults.PolicyViolationCount, Vulnerabilities: scanResults.VulnerabilityCount, OverallStatus: scanResults.OverallStatus})
+		pods = append(pods, api.Pod{
+			Namespace:        pod.Namespace,
+			Name:             pod.Name,
+			PolicyViolations: policyViolationCount,
+			Vulnerabilities:  vulnerabilityCount,
+			OverallStatus:    overallStatus})
 	}
 	for image, imageResults := range hr.model.Images {
 		scanID := "TODO"
@@ -100,11 +105,12 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 		policyViolations := 0
 		vulnerabilities := 0
 		if imageResults.ScanResults != nil {
-			policyViolations = imageResults.ScanResults.PolicyViolationCount
-			vulnerabilities = imageResults.ScanResults.VulnerabilityCount
+			policyViolations = imageResults.ScanResults.PolicyViolationCount()
+			vulnerabilities = imageResults.ScanResults.VulnerabilityCount()
 		}
 		apiImage := api.Image{
-			Name:              image.Name(),
+			Name:              image.HumanReadableName(),
+			Sha:               image.Sha,
 			ScanID:            scanID,
 			PolicyViolations:  policyViolations,
 			Vulnerabilities:   vulnerabilities,
@@ -119,7 +125,7 @@ func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)
 		continuation(*api.NewNextImage(image))
 		imageString := "null"
 		if image != nil {
-			imageString = image.Name()
+			imageString = image.HumanReadableName()
 		}
 		log.Infof("handled GET next image -- %s", imageString)
 	}

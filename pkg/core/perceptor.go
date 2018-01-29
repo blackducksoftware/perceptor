@@ -1,9 +1,11 @@
 package core
 
 import (
+	"sync"
 	"time"
 
 	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
+	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 	log "github.com/sirupsen/logrus"
@@ -16,14 +18,14 @@ import (
 // It grabs the scan results from the hub and adds them to its model.
 // It publishes vulnerabilities that the cluster can find out about.
 type Perceptor struct {
-	hubClient      hub.FetcherInterface
-	httpResponder  *HTTPResponder
-	HubProjectName string
+	hubClient     hub.FetcherInterface
+	httpResponder *HTTPResponder
 	// reducer
 	reducer *reducer
 	// channels
-	hubScanResults      chan hub.Project
-	finishScanClientJob chan api.FinishedScanClientJob
+	checkNextImageInHub chan func(image *common.Image)
+	hubScanResults      chan HubImageScan
+	inProgressHubScans  []common.Image
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock scanclient
@@ -47,16 +49,14 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	// 0. this will help with circular communication
 	model := make(chan Model)
 	imageScanStats := make(chan pmetrics.ImageScanStats)
-	hubScanResults := make(chan hub.Project)
+	hubScanResults := make(chan HubImageScan)
+	checkNextImageInHub := make(chan func(image *common.Image))
 
 	// 1. here's the responder
 	httpResponder := NewHTTPResponder(model, pmetrics.MetricsHandler(imageScanStats))
 	api.SetupHTTPServer(httpResponder)
 
 	concurrentScanLimit := 1
-
-	// 2. eventually, these two events will be coming in over the REST API
-	finishScanClientJob := make(chan api.FinishedScanClientJob)
 
 	// 3. now for the reducer
 	reducer := newReducer(*NewModel(concurrentScanLimit),
@@ -67,13 +67,25 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		httpResponder.allPods,
 		httpResponder.postNextImage,
 		httpResponder.postFinishScanJob,
+		checkNextImageInHub,
 		hubScanResults)
+
+	// 5. instantiate perceptor
+	perceptor := Perceptor{
+		hubClient:           hubClient,
+		httpResponder:       httpResponder,
+		reducer:             reducer,
+		checkNextImageInHub: checkNextImageInHub,
+		hubScanResults:      hubScanResults,
+		inProgressHubScans:  []common.Image{},
+	}
 
 	// 4. close the circle
 	go func() {
 		for {
 			select {
 			case nextModel := <-reducer.model:
+				perceptor.inProgressHubScans = nextModel.inProgressHubScans()
 				model <- nextModel
 			case nextImageScanStats := <-reducer.imageScanStats:
 				imageScanStats <- nextImageScanStats
@@ -81,44 +93,62 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		}
 	}()
 
-	// 5. instantiate perceptor
-	perceptor := Perceptor{
-		hubClient:           hubClient,
-		httpResponder:       httpResponder,
-		HubProjectName:      hub.PerceptorProjectName,
-		reducer:             reducer,
-		hubScanResults:      hubScanResults,
-		finishScanClientJob: finishScanClientJob,
-	}
-
 	// 7. hit the hub for results
-	go perceptor.startPollingHub()
+	go perceptor.startCheckingForImagesInHub()
+	go perceptor.startPollingHubForCompletedScans()
 
 	// 8. done
 	return &perceptor
 }
 
-func (perceptor *Perceptor) startPollingHub() {
+func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 	for {
-		// wait around for a while before checking the hub again
 		time.Sleep(20 * time.Second)
-		log.Info("poll for finished scans")
 
-		project, err := perceptor.hubClient.FetchProjectByName(perceptor.HubProjectName)
-
-		if err != nil {
-			log.Errorf("error fetching project %s: %s", perceptor.HubProjectName, err.Error())
-			continue
+		for _, image := range perceptor.inProgressHubScans {
+			scan, err := perceptor.hubClient.FetchScanFromImage(image)
+			if err != nil {
+				log.Errorf("unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
+			} else {
+				if scan == nil {
+					log.Infof("unable to find image scan for image %s, found nil", image.HubProjectName())
+				} else {
+					log.Infof("found image scan for image %s: %v", image.HubProjectName(), *scan)
+				}
+				perceptor.hubScanResults <- HubImageScan{Image: image, Scan: scan}
+			}
 		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
 
-		if project == nil {
-			log.Errorf("cannot find project %s", perceptor.HubProjectName)
-			continue
+func (perceptor *Perceptor) startCheckingForImagesInHub() {
+	for {
+		var wg sync.WaitGroup
+		wg.Add(1)
+		var image *common.Image
+		perceptor.checkNextImageInHub <- func(i *common.Image) {
+			image = i
+			wg.Done()
 		}
+		wg.Wait()
 
-		log.Infof("about to add scan results from project %s: found %d versions", perceptor.HubProjectName, len(project.Versions))
-		go func() {
-			perceptor.hubScanResults <- *project
-		}()
+		if image != nil {
+			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
+			if err != nil {
+				log.Errorf("unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
+			} else {
+				if scan == nil {
+					log.Infof("unable to find image scan for image %s, found nil", image.HubProjectName())
+				} else {
+					log.Infof("found image scan for image %s: %v", image.HubProjectName(), *scan)
+				}
+				perceptor.hubScanResults <- HubImageScan{Image: *image, Scan: scan}
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			// slow down the chatter if we didn't find something
+			time.Sleep(20 * time.Second)
+		}
 	}
 }

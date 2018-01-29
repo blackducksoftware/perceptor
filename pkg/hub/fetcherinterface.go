@@ -1,5 +1,7 @@
 package hub
 
+import "bitbucket.org/bdsengineering/perceptor/pkg/common"
+
 type FetcherInterface interface {
-	FetchProjectByName(projectName string) (*Project, error)
+	FetchScanFromImage(image common.Image) (*ImageScan, error)
 }

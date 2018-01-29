@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 )
 
 // need: mock hub, ?mock apiserver?
@@ -41,5 +43,9 @@ func (hub *MockHub) startRandomScanFinishing() {
 }
 
 func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
+	return nil, nil
+}
+
+func (hub *MockHub) FetchScanFromImage(image common.Image) (*ImageScan, error) {
 	return nil, nil
 }

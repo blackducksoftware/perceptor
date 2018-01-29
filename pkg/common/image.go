@@ -8,6 +8,8 @@ import (
 type Image struct {
 	// Name combines Host, User, and Project
 	// DockerImage is the kubernetes .Image string, which may or may not include the registry, user, tag, and sha
+	//   DockerImage should probably only be used as a human-readable string, not for storing or organizing
+	//   data, because it is so nebulous and ambiguous.
 	Name        string
 	Sha         string
 	DockerImage string
@@ -15,6 +17,18 @@ type Image struct {
 
 func NewImage(name string, sha string, dockerImage string) *Image {
 	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
+}
+
+func (image *Image) HubProjectName() string {
+	return image.Name
+}
+
+func (image *Image) HubVersionName() string {
+	return image.Sha
+}
+
+func (image *Image) HubScanName() string {
+	return image.DockerImage
 }
 
 // Name returns a nice, easy to read string
