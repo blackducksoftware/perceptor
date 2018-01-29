@@ -1,5 +1,7 @@
 package hubapi
 
+import "fmt"
+
 const (
 	ProjectVersionPhasePlanning    = "PLANNING"
 	ProjectVersionPhaseDevelopment = "DEVELOPMENT"
@@ -109,4 +111,31 @@ func (v *ProjectVersion) GetProjectVersionRiskProfileLink() (*ResourceLink, erro
 
 func (v *ProjectVersion) GetProjectVersionPolicyStatusLink() (*ResourceLink, error) {
 	return v.Meta.FindLinkByRel("policy-status")
+}
+
+// GetProjectsOptions describes the parameter model for the projects list
+// GET endpoint.
+type GetProjectsOptions struct {
+	Limit  *int
+	Offset *int
+	Sort   *string
+	Q      *string
+}
+
+// Parameters implements the URLParameters interface.
+func (gpo *GetProjectsOptions) Parameters() map[string]string {
+	params := make(map[string]string)
+	if gpo.Limit != nil {
+		params["limit"] = fmt.Sprintf("%d", *gpo.Limit)
+	}
+	if gpo.Offset != nil {
+		params["offset"] = fmt.Sprintf("%d", *gpo.Offset)
+	}
+	if gpo.Sort != nil {
+		params["sort"] = *gpo.Sort
+	}
+	if gpo.Q != nil {
+		params["q"] = *gpo.Q
+	}
+	return params
 }

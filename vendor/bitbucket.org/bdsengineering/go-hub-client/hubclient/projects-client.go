@@ -14,12 +14,16 @@ import (
 // Or maybe a special return type that can keep querying for all of them when it runs out?
 // Is there any iterator type in GoLang?
 
-func (c *Client) ListProjects() (*hubapi.ProjectList, error) {
+func (c *Client) ListProjects(options *hubapi.GetProjectsOptions) (*hubapi.ProjectList, error) {
 
 	// Need offset/limit
 	// Should we abstract list fetching like we did with a single Get?
+	params := ""
+	if options != nil {
+		params = fmt.Sprintf("?%s", hubapi.ParameterString(options))
+	}
 
-	projectsURL := fmt.Sprintf("%s/api/projects", c.baseURL)
+	projectsURL := fmt.Sprintf("%s/api/projects%s", c.baseURL, params)
 
 	var projectList hubapi.ProjectList
 	err := c.httpGetJSON(projectsURL, &projectList, 200)
