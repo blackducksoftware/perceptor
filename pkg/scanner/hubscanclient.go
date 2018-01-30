@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"time"
 
+	"bitbucket.org/bdsengineering/perceptor/pkg/api"
+	"bitbucket.org/bdsengineering/perceptor/pkg/core"
 	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,11 +22,11 @@ type HubScanClient struct {
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
-func NewHubScanClient(username string, password string, host string) (*HubScanClient, error) {
+func NewHubScanClient(cfg *core.PerceptorConfig) (*HubScanClient, error) {
 	hsc := HubScanClient{
-		host:        host,
-		username:    username,
-		password:    password,
+		host:        cfg.HubHost,
+		username:    cfg.HubUser,
+		password:    cfg.HubUserPassword,
 		imagePuller: pdocker.NewImagePuller()}
 	return &hsc, nil
 }
@@ -39,7 +41,7 @@ func mapKeys(m map[string]ScanJob) []string {
 	return keys
 }
 
-func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
+func (hsc *HubScanClient) Scan(job ScanJob) (*api.ScanClientJobResults, error) {
 	pullStats, err := hsc.imagePuller.PullImage(job.Image)
 	if err != nil {
 		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), err.Error())
@@ -80,7 +82,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 		return nil, err
 	}
 	log.Infof("successfully completed java scanner: %s", stdoutStderr)
-	return &ScanClientJobResults{
+	return &api.ScanClientJobResults{
 		PullDuration:       pullStats.Duration,
 		TarFileSizeMBs:     pullStats.TarFileSizeMBs,
 		ScanClientDuration: stop.Sub(start)}, nil

@@ -10,6 +10,7 @@ import (
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"bitbucket.org/bdsengineering/perceptor/pkg/core"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,12 +29,13 @@ import (
 func main() {
 	log.Info("started")
 
-	// TODO viperize
-	username := "sysadmin"
-	password := "blackduck"
-	host := "34.227.56.110.xip.io"
+	config, err := core.GetPerceptorConfig()
+	if err != nil {
+		log.Error("Failed to load configuration")
+		panic(err)
+	}
 
-	scanClient, err := scanner.NewHubScanClient(username, password, host)
+	scanClient, err := scanner.NewHubScanClient(config)
 	if err != nil {
 		log.Errorf("unable to instantiate hub scan client: %s", err.Error())
 		panic(err)

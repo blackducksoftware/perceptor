@@ -8,7 +8,6 @@ items:
   kind: ReplicationController
   metadata:
     name: perceptor
-    namespace: bds-perceptor
     labels:
       app: perceptor-app
   spec:
@@ -20,11 +19,10 @@ items:
         labels:
           name: bds-perceptor
         name: perceptor
-        namespace: bds-perceptor
       spec:
         containers:
           - name: perceptor
-            image: mfenwickbd/perceptor:latest
+            image: gcr.io/gke-verification/perceptor:latest
             imagePullPolicy: Always
             command:
               - ./perceptor
@@ -36,12 +34,14 @@ items:
                 cpu: 50m
               limits:
                 cpu: 500m
-  #          env:
-  #          - name: ENV1
-  #             value:
-  #          - name: ENV2
-  #            value:
+            volumeMounts:
+            - name: perceptor-config
+              mountPath: /etc/perceptor
             terminationMessagePath: /dev/termination-log
+        volumes:
+          - name: perceptor-config
+            configMap:
+              name: perceptor-config
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
@@ -49,7 +49,6 @@ items:
   kind: Service
   metadata:
     name: perceptor
-    namespace: bds-perceptor
   spec:
     selector:
       name: bds-perceptor
@@ -58,3 +57,12 @@ items:
       port: 3001
       protocol: TCP
       targetPort: 3000
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: perceptor-config
+  data:
+    perceptor_conf.yaml: |
+      HubHost: "nginx-webapp-logstash"
+      HubUser: "sysadmin"
+      HubUserPassword: "blackduck"

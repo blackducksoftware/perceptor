@@ -9,7 +9,6 @@ import (
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	"bitbucket.org/bdsengineering/perceptor/pkg/metrics"
-	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	"github.com/prometheus/common/log"
 )
 
@@ -129,7 +128,7 @@ func TestReducer(t *testing.T) {
 	// 3. finish a scan
 	//   this should cause the image status to be set to running hub scan,
 	//   and results to be added in the image dict
-	results3 := scanner.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
+	results3 := api.ScanClientJobResults{PullDuration: 32, ScanClientDuration: 17, TarFileSizeMBs: 22}
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
@@ -320,7 +319,7 @@ func TestReducer(t *testing.T) {
 	}
 
 	// 9. finish scan client with success
-	results9 := scanner.ScanClientJobResults{PullDuration: 127, ScanClientDuration: 84, TarFileSizeMBs: 339}
+	results9 := api.ScanClientJobResults{PullDuration: 127, ScanClientDuration: 84, TarFileSizeMBs: 339}
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")

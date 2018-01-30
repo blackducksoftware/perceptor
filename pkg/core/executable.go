@@ -11,9 +11,12 @@ import (
 func RunLocally(kubeconfigPath string) {
 	log.Info("start")
 
-	hubHost := "34.227.56.110.xip.io"
-	// hubHost := "54.147.161.205.xip.io"
-	clusterMasterURL := "https://" + hubHost + ":8443"
+	config := &PerceptorConfig{
+		HubHost: "34.227.56.110.xip.io",
+		HubUser: "sysadmin",
+		HubUserPassword: "blackduck",
+	}
+	clusterMasterURL := "https://" + config.HubHost + ":8443"
 
 	openshiftMasterUsername := "admin"
 	openshiftMasterPassword := "123"
@@ -26,10 +29,7 @@ func RunLocally(kubeconfigPath string) {
 
 	log.Info("logged into openshift")
 
-	hubUsername := "sysadmin"
-	hubPassword := "blackduck"
-
-	perceptor, err := NewPerceptor(hubUsername, hubPassword, hubHost)
+	perceptor, err := NewPerceptor(config)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
@@ -45,13 +45,16 @@ func RunLocally(kubeconfigPath string) {
 func RunFromInsideCluster() {
 	log.Info("start")
 
-	hubHost := "34.227.56.110.xip.io"
-	// hubHost := "54.147.161.205.xip.io"
+	config, err := GetPerceptorConfig()
+	if err != nil {
+		log.Error("Failed to load configuration: %s", err.Error())
+		panic(err)
+	}
 
-	hubUsername := "sysadmin"
-	hubPassword := "blackduck"
+	// TODO: Start watching the config file.  Will need to refactor to allow hub client to be
+	// recreated, possibly other things
 
-	perceptor, err := NewPerceptor(hubUsername, hubPassword, hubHost)
+	perceptor, err := NewPerceptor(config)
 
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
