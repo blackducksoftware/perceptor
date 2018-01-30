@@ -9,10 +9,11 @@ import (
 
 // Model is the root of the core model
 type Model struct {
-	// map of "<namespace>/<name>" to pod
+	// Pods is a map of "<namespace>/<name>" to pod
 	Pods                map[string]common.Pod
 	Images              map[common.Image]*ImageScanResults
 	ImageScanQueue      []common.Image
+	ImageHubCheckQueue  []common.Image
 	ConcurrentScanLimit int
 }
 
@@ -21,6 +22,7 @@ func NewModel(concurrentScanLimit int) *Model {
 		Pods:                make(map[string]common.Pod),
 		Images:              make(map[common.Image]*ImageScanResults),
 		ImageScanQueue:      []common.Image{},
+		ImageHubCheckQueue:  []common.Image{},
 		ConcurrentScanLimit: concurrentScanLimit}
 }
 
@@ -36,25 +38,25 @@ func (model *Model) DeletePod(podName string) {
 // It extract the containers and images from the pod,
 // adding them into the cache.
 func (model *Model) AddPod(newPod common.Pod) {
-	log.Infof("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
+	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
 	}
-	log.Infof("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
+	log.Debugf("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
 	model.Pods[newPod.QualifiedName()] = newPod
 }
 
-// AddImage adds an image to the cache, and
-// queues it up for scanning if it hasn't yet been seen.
+// AddImage adds an image to the model, sets its status to NotScanned,
+// and adds it to the queue for hub checking.
 func (model *Model) AddImage(image common.Image) {
 	_, hasImage := model.Images[image]
 	if !hasImage {
 		addedImage := NewImageScanResults()
 		model.Images[image] = addedImage
-		log.Infof("adding image %s to image scan queue", image.Name())
-		model.addImageToQueue(image)
+		log.Debugf("added image %s to model", image.HumanReadableName())
+		model.addImageToHubCheckQueue(image)
 	} else {
-		log.Infof("not adding image %s to image scan queue, already have in cache", image.Name())
+		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
 	}
 }
 
@@ -63,38 +65,77 @@ func (model *Model) AddImage(image common.Image) {
 func (model *Model) safeGet(image common.Image) *ImageScanResults {
 	results, ok := model.Images[image]
 	if !ok {
-		message := fmt.Sprintf("expected to already have image %s, but did not", image.Name())
+		message := fmt.Sprintf("expected to already have image %s, but did not", image.HumanReadableName())
 		log.Error(message)
-		panic(message)
+		panic(message) // TODO get rid of panic
 	}
 	return results
 }
 
-func (model *Model) addImageToQueue(image common.Image) {
+func (model *Model) addImageToHubCheckQueue(image common.Image) {
 	results := model.safeGet(image)
 	switch results.ScanStatus {
-	case ScanStatusNotScanned, ScanStatusError:
+	case ScanStatusUnknown, ScanStatusError:
 		break
 	default:
-		message := fmt.Sprintf("cannot add image %s to queue, status is neither NotScanned nor Error (%d)", image.Name(), results.ScanStatus)
+		message := fmt.Sprintf("cannot add image %s to hub check queue, status is neither Unknown nor Error (%s)", image.HumanReadableName(), results.ScanStatus)
 		log.Error(message)
-		panic(message)
+		panic(message) // TODO get rid of panic
+	}
+	results.ScanStatus = ScanStatusInHubCheckQueue
+	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, image)
+}
+
+func (model *Model) addImageToScanQueue(image common.Image) {
+	results := model.safeGet(image)
+	switch results.ScanStatus {
+	case ScanStatusCheckingHub, ScanStatusError:
+		break
+	default:
+		message := fmt.Sprintf("cannot add image %s to scan queue, status is neither CheckingHub nor Error (%s)", image.HumanReadableName(), results.ScanStatus)
+		log.Error(message)
+		panic(message) // TODO get rid of panic
 	}
 	results.ScanStatus = ScanStatusInQueue
 	model.ImageScanQueue = append(model.ImageScanQueue, image)
 }
 
-func (model *Model) getNextImageFromQueue() *common.Image {
+func (model *Model) getNextImageFromHubCheckQueue() *common.Image {
+	if len(model.ImageHubCheckQueue) == 0 {
+		log.Info("hub check queue empty")
+		return nil
+	}
+
+	first := model.ImageHubCheckQueue[0]
+	results := model.safeGet(first)
+	if results.ScanStatus != ScanStatusInHubCheckQueue {
+		message := fmt.Sprintf("can't start checking hub for image %s, status is not ScanStatusInHubCheckQueue (%s)", first.HumanReadableName(), results.ScanStatus)
+		log.Errorf(message)
+		panic(message) // TODO get rid of this panic
+	}
+
+	results.ScanStatus = ScanStatusCheckingHub
+	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
+	return &first
+}
+
+func (model *Model) getNextImageFromScanQueue() *common.Image {
+	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
+		log.Infof("max concurrent scan count reached, can't start a new scan -- %v", model.inProgressScanJobs())
+		return nil
+	}
+
 	if len(model.ImageScanQueue) == 0 {
+		log.Info("scan queue empty, can't start a new scan")
 		return nil
 	}
 
 	first := model.ImageScanQueue[0]
 	results := model.safeGet(first)
 	if results.ScanStatus != ScanStatusInQueue {
-		message := fmt.Sprintf("can not start scanning image %s, status is not InQueue (%d)", first.Name(), results.ScanStatus)
+		message := fmt.Sprintf("can't start scanning image %s, status is not InQueue (%s)", first.HumanReadableName(), results.ScanStatus)
 		log.Errorf(message)
-		panic(message)
+		panic(message) // TODO get rid of this panic
 	}
 
 	results.ScanStatus = ScanStatusRunningScanClient
@@ -105,21 +146,21 @@ func (model *Model) getNextImageFromQueue() *common.Image {
 func (model *Model) errorRunningScanClient(image common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("can not error out scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
+		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
 		log.Errorf(message)
 		panic(message)
 	}
 	results.ScanStatus = ScanStatusError
 	// for now, just readd the image to the queue upon error
-	model.addImageToQueue(image)
+	model.addImageToScanQueue(image)
 }
 
 func (model *Model) finishRunningScanClient(image common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("can not finish running scan client for image %s, scan client not in progress (%d)", image.Name(), results.ScanStatus)
+		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
 		log.Errorf(message)
-		panic(message)
+		panic(message) // TODO get rid of panic
 	}
 	results.ScanStatus = ScanStatusRunningHubScan
 }
@@ -127,7 +168,7 @@ func (model *Model) finishRunningScanClient(image common.Image) {
 // func (model *Model) finishRunningHubScan(image common.Image) {
 // 	results := model.safeGet(image)
 // 	if results.ScanStatus != ScanStatusRunningHubScan {
-// 		message := fmt.Sprintf("can not finish running hub scan for image %s, scan not in progress (%d)", image.Name(), results.ScanStatus)
+// 		message := fmt.Sprintf("cannot finish running hub scan for image %s, scan not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
 // 		log.Errorf(message)
 // 		panic(message)
 // 	}
@@ -153,10 +194,21 @@ func (model *Model) inProgressScanCount() int {
 	return len(model.inProgressScanJobs())
 }
 
-func (model *Model) scanResults(podName string) (*ScanResults, error) {
+func (model *Model) inProgressHubScans() []common.Image {
+	inProgressHubScans := []common.Image{}
+	for image, results := range model.Images {
+		switch results.ScanStatus {
+		case ScanStatusRunningHubScan:
+			inProgressHubScans = append(inProgressHubScans, image)
+		}
+	}
+	return inProgressHubScans
+}
+
+func (model *Model) scanResults(podName string) (int, int, string, error) {
 	pod, ok := model.Pods[podName]
 	if !ok {
-		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
+		return 0, 0, "", fmt.Errorf("could not find pod of name %s in cache", podName)
 	}
 
 	overallStatus := ""
@@ -173,17 +225,13 @@ func (model *Model) scanResults(podName string) (*ScanResults, error) {
 		if imageScanResults.ScanResults == nil {
 			continue
 		}
-		policyViolationCount += imageScanResults.ScanResults.PolicyViolationCount
-		vulnerabilityCount += imageScanResults.ScanResults.VulnerabilityCount
+		policyViolationCount += imageScanResults.ScanResults.PolicyViolationCount()
+		vulnerabilityCount += imageScanResults.ScanResults.VulnerabilityCount()
 		// TODO what's the right way to combine all the 'OverallStatus' values
 		//   from the individual image scans?
-		if imageScanResults.ScanResults.OverallStatus != "NOT_IN_VIOLATION" {
-			overallStatus = imageScanResults.ScanResults.OverallStatus
+		if imageScanResults.ScanResults.OverallStatus() != "NOT_IN_VIOLATION" {
+			overallStatus = imageScanResults.ScanResults.OverallStatus()
 		}
 	}
-	return &ScanResults{
-		OverallStatus:        overallStatus,
-		PolicyViolationCount: policyViolationCount,
-		VulnerabilityCount:   vulnerabilityCount,
-	}, nil
+	return policyViolationCount, vulnerabilityCount, overallStatus, nil
 }

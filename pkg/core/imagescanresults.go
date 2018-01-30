@@ -1,14 +1,15 @@
 package core
 
+import "bitbucket.org/bdsengineering/perceptor/pkg/hub"
+
 type ImageScanResults struct {
 	ScanStatus  ScanStatus
-	ScanResults *ScanResults
-	// Name string
+	ScanResults *hub.ImageScan
 }
 
 func NewImageScanResults() *ImageScanResults {
 	return &ImageScanResults{
-		ScanStatus:  ScanStatusNotScanned,
+		ScanStatus:  ScanStatusUnknown,
 		ScanResults: nil,
 	}
 }

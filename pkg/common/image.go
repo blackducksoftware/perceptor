@@ -6,23 +6,52 @@ import (
 	"strings"
 )
 
-type Image string
+type Image struct {
+	// Name combines Host, User, and Project
+	// DockerImage is the kubernetes .Image string, which may or may not include the registry, user, tag, and sha
+	//   DockerImage should probably only be used as a human-readable string, not for storing or organizing
+	//   data, because it is so nebulous and ambiguous.
+	Name        string
+	Sha         string
+	DockerImage string
+}
 
-func (image *Image) Name() string {
-	return string(*image)
+func NewImage(name string, sha string, dockerImage string) *Image {
+	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
+}
+
+func (image *Image) HubProjectName() string {
+	return image.Name
+}
+
+func (image *Image) HubVersionName() string {
+	return image.Sha
+}
+
+func (image *Image) HubScanName() string {
+	return image.DockerImage
+}
+
+// Name returns a nice, easy to read string
+func (image *Image) HumanReadableName() string {
+	return image.DockerImage
+}
+
+// FullName combines Name with the image sha
+func (image *Image) ShaName() string {
+	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
 }
 
 func (image *Image) TarFilePath() string {
-	// have to get rid of `/` so that it's not interpreted as directory separators
-	sanitizedName := strings.Replace(string(*image), "/", "_", -1)
-	// TODO use os.join or something
-	return fmt.Sprintf("./tmp/%s.tar", sanitizedName)
+	filePath := strings.Replace(image.ShaName(), "/", "_", -1)
+	return fmt.Sprintf("./tmp/%s.tar", filePath)
 }
 
 func (image *Image) URLEncodedName() string {
-	return url.QueryEscape(image.Name())
+	return url.QueryEscape(image.ShaName())
 }
 
+// CreateURL returns the URL used for hitting the docker daemon's create endpoint
 func (image *Image) CreateURL() string {
 	// TODO v1.24 refers to the docker version.  figure out how to avoid hard-coding this
 	// TODO can probably use the docker api code for this
@@ -30,12 +59,7 @@ func (image *Image) CreateURL() string {
 	//	return fmt.Sprintf("http://localhost/v1.24/images/create?fromImage=%s&tag=%s", image.name, image.tag)
 }
 
+// GetURL returns the URL used for hitting the docker daemon's get endpoint
 func (image *Image) GetURL() string {
-	// TODO we'll leave off user for now, but maybe it should be added back in later ???
-	//   the digest could also be added in
-	// imageName := fmt.Sprintf("%s%s%s%s%s", image.user, "%2F", image.name, "%3A", image.tag)
-	// TODO let's maybe trying keeping everything together in image -- example of which is:
-	//   172.30.89.171:5000/blackduck-scan/hub_ose_arbiter:4.3.0
-	// imageName := fmt.Sprintf("%s%s%s", image.name, "%3A", image.tag)
 	return fmt.Sprintf("http://localhost/v1.24/images/%s/get", image.URLEncodedName())
 }

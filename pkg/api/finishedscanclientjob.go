@@ -8,5 +8,5 @@ import (
 type FinishedScanClientJob struct {
 	Image   common.Image
 	Results *scanner.ScanClientJobResults
-	Err     error
+	Err     string
 }

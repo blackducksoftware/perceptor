@@ -42,7 +42,7 @@ func mapKeys(m map[string]ScanJob) []string {
 func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 	pullStats, err := hsc.imagePuller.PullImage(job.Image)
 	if err != nil {
-		log.Errorf("unable to pull docker image %s: %s", job.Image.Name(), err.Error())
+		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), err.Error())
 		return nil, err
 	}
 	// TODO coupla problems here:
@@ -62,14 +62,14 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 		"--host", hsc.host,
 		"--port", "443", // "--port", "8443", // TODO or should this be 8080 or something else? or should we just leave it off and let it default?
 		"--scheme", "https", // TODO or should this be http?
-		"--project", job.ProjectName,
-		"--release", job.Image.Name(),
+		"--project", job.Image.HubProjectName(),
+		"--release", job.Image.HubVersionName(),
 		"--username", hsc.username,
-		"--name", job.Image.Name(), // this is the scan name, maybe ... ???
+		"--name", job.Image.HubScanName(),
 		"--insecure", // TODO not sure about this
 		"-v",
 		path)
-	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
+	log.Infof("running command %v for image %s\n", cmd, job.Image.HumanReadableName())
 	start := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
 	stop := time.Now()
@@ -89,13 +89,13 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*ScanClientJobResults, error) {
 func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {
 	pathToScanner := "./dependencies/scan.cli-4.3.0/bin/scan.cli.sh"
 	cmd := exec.Command(pathToScanner,
-		"--project", job.ProjectName,
+		"--project", job.Image.HubProjectName(),
 		"--host", hsc.host,
 		"--port", "443",
 		"--insecure",
 		"--username", hsc.username,
-		job.Image.Name())
-	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
+		job.Image.HumanReadableName())
+	log.Infof("running command %v for image %s\n", cmd, job.Image.HumanReadableName())
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.cli.sh: %s", err.Error())
@@ -110,13 +110,13 @@ func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {
 func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
 	pathToScanner := "./dependencies/scan.cli-4.3.0/bin/scan.docker.sh"
 	cmd := exec.Command(pathToScanner,
-		"--image", job.Image.Name(),
-		"--name", job.Image.Name(),
-		"--release", job.Image.Name(),
-		"--project", job.ProjectName,
+		"--image", job.Image.ShaName(),
+		"--name", job.Image.HumanReadableName(),
+		"--release", job.Image.HubVersionName(),
+		"--project", job.Image.HubProjectName(),
 		"--host", hsc.host,
 		"--username", hsc.username)
-	log.Infof("running command %v for image %s\n", cmd, job.Image.Name())
+	log.Infof("running command %v for image %s\n", cmd, job.Image.HumanReadableName())
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		message := fmt.Sprintf("failed to run scan.docker.sh: %s", err.Error())

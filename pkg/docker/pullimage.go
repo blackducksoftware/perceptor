@@ -44,7 +44,7 @@ func (ip *ImagePuller) PullImage(image common.Image) (*ImagePullStats, error) {
 		return nil, err
 	}
 
-	log.Infof("Processing image: %s", image.Name())
+	log.Infof("Processing image: %s", image.HumanReadableName())
 
 	fileSize, err := ip.saveImageToTar(image)
 	if err != nil {
@@ -54,7 +54,7 @@ func (ip *ImagePuller) PullImage(image common.Image) (*ImagePullStats, error) {
 
 	stop := time.Now()
 
-	log.Infof("Ready to scan %s %s", image.Name(), image.TarFilePath())
+	log.Infof("Ready to scan %s %s", image.HumanReadableName(), image.TarFilePath())
 	return &ImagePullStats{Duration: stop.Sub(start), TarFileSizeMBs: *fileSize}, nil
 }
 

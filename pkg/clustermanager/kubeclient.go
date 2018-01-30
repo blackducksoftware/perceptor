@@ -201,7 +201,6 @@ func (client *KubeClient) GetAllPods() ([]common.Pod, error) {
 		return nil, err
 	}
 	for _, kubePod := range kubePods.Items {
-		// log.Infof("found pod in %s: %s", kubePod.Namespace, kubePod.Name)
 		pods = append(pods, *NewPod(&kubePod))
 	}
 	return pods, nil

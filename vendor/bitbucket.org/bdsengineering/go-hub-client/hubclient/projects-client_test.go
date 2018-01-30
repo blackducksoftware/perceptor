@@ -18,7 +18,7 @@ func TestFetchPolicyStatus(t *testing.T) {
 		t.Fail()
 		return
 	}
-	projectList, err := client.ListProjects()
+	projectList, err := client.ListProjects(nil)
 	if err != nil {
 		t.Log("unable to fetch project list: " + err.Error())
 		t.Fail()

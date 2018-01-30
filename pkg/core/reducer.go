@@ -1,12 +1,8 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,8 +25,9 @@ func newReducer(initialModel Model,
 	allPods <-chan []common.Pod,
 	postNextImage <-chan func(image *common.Image),
 	finishScanClientJob <-chan api.FinishedScanClientJob,
-	hubScanResults <-chan hub.Project) *reducer {
-	var err error
+	getNextImageForHubPolling <-chan func(image *common.Image),
+	hubCheckResults <-chan HubImageScan,
+	hubScanResults <-chan HubImageScan) *reducer {
 	model := initialModel
 	modelStream := make(chan Model)
 	imageScanStats := make(chan pmetrics.ImageScanStats)
@@ -41,58 +38,37 @@ func newReducer(initialModel Model,
 		for {
 			select {
 			case pod := <-addPod:
-				model, err = updateModelAddPod(pod, model)
-				if err != nil {
-					log.Errorf("unable to add pod %s: %s", pod.QualifiedName(), err.Error())
-				}
+				model = updateModelAddPod(pod, model)
 				go func() {
 					modelStream <- model
 				}()
 			case pod := <-updatePod:
-				model, err = updateModelUpdatePod(pod, model)
-				if err != nil {
-					log.Errorf("unable to update pod %s: %s", pod.QualifiedName(), err.Error())
-				}
+				model = updateModelUpdatePod(pod, model)
 				go func() {
 					modelStream <- model
 				}()
 			case podName := <-deletePod:
-				model, err = updateModelDeletePod(podName, model)
-				if err != nil {
-					log.Errorf("unable to delete pod %s: %s", podName, err.Error())
-				}
+				model = updateModelDeletePod(podName, model)
 				go func() {
 					modelStream <- model
 				}()
 			case image := <-addImage:
-				model, err = updateModelAddImage(image, model)
-				if err != nil {
-					log.Errorf("unable to add image %s: %s", image.Name(), err.Error())
-				}
+				model = updateModelAddImage(image, model)
 				go func() {
 					modelStream <- model
 				}()
 			case pods := <-allPods:
-				model, err = updateModelUpdateAllPods(pods, model)
-				if err != nil {
-					log.Errorf("unable to update all pods: %s", err.Error())
-				}
+				model = updateModelUpdateAllPods(pods, model)
 				go func() {
 					modelStream <- model
 				}()
 			case continuation := <-postNextImage:
-				model, err = updateModelNextImage(continuation, model)
-				if err != nil {
-					log.Errorf("unable to get next image for scanning: %s", err.Error())
-				}
+				model = updateModelNextImage(continuation, model)
 				go func() {
 					modelStream <- model
 				}()
 			case jobResults := <-finishScanClientJob:
-				model, err = updateModelFinishedScanClientJob(jobResults, model)
-				if err != nil {
-					log.Errorf("unable to add finished scan client job results for image %s: %s", jobResults.Image.Name(), err.Error())
-				}
+				model = updateModelFinishedScanClientJob(jobResults, model)
 				go func() {
 					modelStream <- model
 				}()
@@ -104,11 +80,18 @@ func newReducer(initialModel Model,
 							TarFileSizeMBs: jobResults.Results.TarFileSizeMBs}
 					}()
 				}
-			case project := <-hubScanResults:
-				model, err = updateModelAddHubScanResults(project, model)
-				if err != nil {
-					log.Errorf("unable to add hub scan results: %s", err.Error())
-				}
+			case continuation := <-getNextImageForHubPolling:
+				model = updateModelGetNextImageForHubPolling(continuation, model)
+				go func() {
+					modelStream <- model
+				}()
+			case imageScan := <-hubCheckResults:
+				model = updateModelAddHubCheckResults(imageScan, model)
+				go func() {
+					modelStream <- model
+				}()
+			case imageScan := <-hubScanResults:
+				model = updateModelAddHubScanResults(imageScan, model)
 				go func() {
 					modelStream <- model
 				}()
@@ -120,111 +103,103 @@ func newReducer(initialModel Model,
 
 // perceivers
 
-func updateModelAddPod(pod common.Pod, model Model) (Model, error) {
+func updateModelAddPod(pod common.Pod, model Model) Model {
 	model.AddPod(pod)
-	return model, nil
+	return model
 }
 
-func updateModelUpdatePod(pod common.Pod, model Model) (Model, error) {
+func updateModelUpdatePod(pod common.Pod, model Model) Model {
 	model.AddPod(pod)
-	return model, nil
+	return model
 }
 
-func updateModelDeletePod(podName string, model Model) (Model, error) {
+func updateModelDeletePod(podName string, model Model) Model {
 	_, ok := model.Pods[podName]
 	if !ok {
-		return model, fmt.Errorf("unable to delete pod %s, pod not found", podName)
+		log.Warnf("unable to delete pod %s, pod not found", podName)
+		return model
 	}
 	delete(model.Pods, podName)
-	return model, nil
+	return model
 }
 
-func updateModelAddImage(image common.Image, model Model) (Model, error) {
+func updateModelAddImage(image common.Image, model Model) Model {
 	model.AddImage(image)
-	return model, nil
+	return model
 }
 
-func updateModelUpdateAllPods(pods []common.Pod, model Model) (Model, error) {
+func updateModelUpdateAllPods(pods []common.Pod, model Model) Model {
 	model.Pods = map[string]common.Pod{}
 	for _, pod := range pods {
 		model.AddPod(pod)
 	}
-	return model, nil
+	return model
 }
 
-func updateModelNextImage(continuation func(image *common.Image), model Model) (Model, error) {
+func updateModelNextImage(continuation func(image *common.Image), model Model) Model {
 	log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.inProgressScanCount())
-	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
-		log.Info("max concurrent scan count reached, not starting a new scan yet")
-		continuation(nil)
-		return model, nil
-	}
-
-	if len(model.ImageScanQueue) == 0 {
-		log.Info("scan queue empty, not starting a new scan")
-		continuation(nil)
-		return model, nil
-	}
-
-	first := model.ImageScanQueue[0]
-	results := model.safeGet(first)
-	if results.ScanStatus != ScanStatusInQueue {
-		continuation(nil)
-		message := fmt.Sprintf("can not start scanning image %s, status is not InQueue (%d)", first.Name(), results.ScanStatus)
-		log.Errorf(message)
-		return model, errors.New(message)
-	}
-
-	log.Infof("about to scan image %s", first.Name())
-	continuation(&first)
-	results.ScanStatus = ScanStatusRunningScanClient
-	model.ImageScanQueue = model.ImageScanQueue[1:]
-	return model, nil
+	image := model.getNextImageFromScanQueue()
+	continuation(image)
+	return model
 }
 
-func updateModelFinishedScanClientJob(results api.FinishedScanClientJob, model Model) (Model, error) {
+func updateModelFinishedScanClientJob(results api.FinishedScanClientJob, model Model) Model {
 	newModel := model
-	if results.Err == nil {
+	log.Infof("finished scan client job action: error was empty? %t, %v, %v", results.Err == "", results.Image, results.Results)
+	if results.Err == "" {
 		newModel.finishRunningScanClient(results.Image)
 	} else {
 		newModel.errorRunningScanClient(results.Image)
 	}
-	return newModel, nil
+	return newModel
 }
 
-func updateModelAddHubScanResults(project hub.Project, model Model) (Model, error) {
-	newModel := model
-	for _, version := range project.Versions {
-		err := addScanResult(&newModel, version)
-		if err != nil {
-			// if there's an error, don't make any changes
-			return model, err
-		}
-	}
-	return newModel, nil
+func updateModelGetNextImageForHubPolling(continuation func(image *common.Image), model Model) Model {
+	log.Infof("looking for next image to search for in hub")
+	image := model.getNextImageFromHubCheckQueue()
+	continuation(image)
+	return model
 }
 
-func addScanResult(model *Model, version hub.Version) error {
-	image := common.Image(version.VersionName)
+func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
+	image := scan.Image
 
-	// add scan results into cache
 	scanResults, ok := model.Images[image]
 	if !ok {
-		return fmt.Errorf("expected to already have image %s, but did not", image.Name())
+		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
+		return model
 	}
 
-	if scanResults.ScanResults == nil {
-		scanResults.ScanResults = NewScanResults()
+	scanResults.ScanResults = scan.Scan
+
+	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
+	if scan.Scan == nil {
+		model.addImageToScanQueue(image)
+	} else if scan.Scan.IsDone() {
+		scanResults.ScanStatus = ScanStatusComplete
+	} else {
+		// TODO
+		// it could be in the scan client stage, in the hub stage ... maybe perceptor crashed and just came back up
 	}
 
-	scanResults.ScanResults.VulnerabilityCount = version.RiskProfile.HighRiskVulnerabilityCount()
-	scanResults.ScanResults.OverallStatus = version.PolicyStatus.OverallStatus
-	scanResults.ScanResults.PolicyViolationCount = version.PolicyStatus.ViolationCount()
+	return model
+}
 
-	log.Infof("completing image scan of version %s ? %t", version.VersionName, version.IsImageScanDone())
-	if version.IsImageScanDone() {
+func updateModelAddHubScanResults(scan HubImageScan, model Model) Model {
+	image := scan.Image
+
+	scanResults, ok := model.Images[image]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
+		return model
+	}
+
+	scanResults.ScanResults = scan.Scan
+
+	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
+	if scan.Scan != nil && scan.Scan.IsDone() {
 		scanResults.ScanStatus = ScanStatusComplete
 	}
 
-	return nil
+	return model
 }
