@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type Image struct {
@@ -38,11 +39,12 @@ func (image *Image) HumanReadableName() string {
 
 // FullName combines Name with the image sha
 func (image *Image) ShaName() string {
-	return fmt.Sprintf("%s/@sha256:%s", image.Name, image.Sha)
+	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
 }
 
 func (image *Image) TarFilePath() string {
-	return fmt.Sprintf("./tmp/%s.tar", image.ShaName())
+	filePath := strings.Replace(image.ShaName(), "/", "_", -1)
+	return fmt.Sprintf("./tmp/%s.tar", filePath)
 }
 
 func (image *Image) URLEncodedName() string {

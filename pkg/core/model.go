@@ -38,11 +38,11 @@ func (model *Model) DeletePod(podName string) {
 // It extract the containers and images from the pod,
 // adding them into the cache.
 func (model *Model) AddPod(newPod common.Pod) {
-	log.Infof("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
+	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
 	}
-	log.Infof("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
+	log.Debugf("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
 	model.Pods[newPod.QualifiedName()] = newPod
 }
 
@@ -53,10 +53,10 @@ func (model *Model) AddImage(image common.Image) {
 	if !hasImage {
 		addedImage := NewImageScanResults()
 		model.Images[image] = addedImage
-		log.Infof("added image %s to model", image.HumanReadableName())
+		log.Debugf("added image %s to model", image.HumanReadableName())
 		model.addImageToHubCheckQueue(image)
 	} else {
-		log.Infof("not adding image %s to model, already have in cache", image.HumanReadableName())
+		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
 	}
 }
 
@@ -121,7 +121,7 @@ func (model *Model) getNextImageFromHubCheckQueue() *common.Image {
 
 func (model *Model) getNextImageFromScanQueue() *common.Image {
 	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
-		log.Info("max concurrent scan count reached, can't start a new scan")
+		log.Infof("max concurrent scan count reached, can't start a new scan -- %v", model.inProgressScanJobs())
 		return nil
 	}
 

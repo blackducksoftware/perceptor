@@ -24,6 +24,7 @@ type Perceptor struct {
 	reducer *reducer
 	// channels
 	checkNextImageInHub chan func(image *common.Image)
+	hubCheckResults     chan HubImageScan
 	hubScanResults      chan HubImageScan
 	inProgressHubScans  []common.Image
 }
@@ -50,6 +51,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	model := make(chan Model)
 	imageScanStats := make(chan pmetrics.ImageScanStats)
 	hubScanResults := make(chan HubImageScan)
+	hubCheckResults := make(chan HubImageScan)
 	checkNextImageInHub := make(chan func(image *common.Image))
 
 	// 1. here's the responder
@@ -68,6 +70,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		httpResponder.postNextImage,
 		httpResponder.postFinishScanJob,
 		checkNextImageInHub,
+		hubCheckResults,
 		hubScanResults)
 
 	// 5. instantiate perceptor
@@ -76,6 +79,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		httpResponder:       httpResponder,
 		reducer:             reducer,
 		checkNextImageInHub: checkNextImageInHub,
+		hubCheckResults:     hubCheckResults,
 		hubScanResults:      hubScanResults,
 		inProgressHubScans:  []common.Image{},
 	}
@@ -143,7 +147,7 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 				} else {
 					log.Infof("found image scan for image %s: %v", image.HubProjectName(), *scan)
 				}
-				perceptor.hubScanResults <- HubImageScan{Image: *image, Scan: scan}
+				perceptor.hubCheckResults <- HubImageScan{Image: *image, Scan: scan}
 			}
 			time.Sleep(1 * time.Second)
 		} else {

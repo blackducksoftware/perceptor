@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"testing"
 
 	"reflect"
@@ -25,6 +24,7 @@ func TestReducer(t *testing.T) {
 	postNextImage := make(chan func(image *common.Image))
 	nextHubCheckImage := make(chan func(image *common.Image))
 	finishScanClientJob := make(chan api.FinishedScanClientJob)
+	hubCheckResults := make(chan HubImageScan)
 	hubScanResults := make(chan HubImageScan)
 	reducer := newReducer(*initialModel,
 		addPod,
@@ -35,6 +35,7 @@ func TestReducer(t *testing.T) {
 		postNextImage,
 		finishScanClientJob,
 		nextHubCheckImage,
+		hubCheckResults,
 		hubScanResults)
 
 	image1 := *common.NewImage("image1", "fe67acf", "mfbd/image1")
@@ -86,7 +87,7 @@ func TestReducer(t *testing.T) {
 
 	// 1b. move image1 from hub check queue into scan queue
 	go func() {
-		hubScanResults <- HubImageScan{
+		hubCheckResults <- HubImageScan{
 			Image: image1,
 			Scan:  nil,
 		}
@@ -132,7 +133,7 @@ func TestReducer(t *testing.T) {
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
-		finishScanClientJob <- api.FinishedScanClientJob{Err: nil, Image: *nextImage, Results: &results3}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: "", Image: *nextImage, Results: &results3}
 	}()
 
 	newModel = <-reducer.model
@@ -222,7 +223,7 @@ func TestReducer(t *testing.T) {
 
 	// 6b. move image2 from hub check queue into scan queue
 	go func() {
-		hubScanResults <- HubImageScan{
+		hubCheckResults <- HubImageScan{
 			Image: image2,
 			Scan:  nil,
 		}
@@ -272,7 +273,7 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		finishScanClientJob <- api.FinishedScanClientJob{Err: errors.New("oops"), Image: *nextImage, Results: nil}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: "oops", Image: *nextImage, Results: nil}
 	}()
 
 	newModel = <-reducer.model
@@ -323,7 +324,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		finishScanClientJob <- api.FinishedScanClientJob{Err: nil, Image: *nextImage, Results: &results9}
+		finishScanClientJob <- api.FinishedScanClientJob{Err: "", Image: *nextImage, Results: &results9}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -359,4 +360,24 @@ func TestReducer(t *testing.T) {
 	}
 
 	log.Info("done with all messages")
+}
+
+func TestScanClientFails(t *testing.T) {
+	concurrentScanLimit := 1
+	model := NewModel(concurrentScanLimit)
+	image := *common.NewImage("abc", "23bcf2dae3", "bds/abc")
+	model.AddImage(image)
+	model.Images[image].ScanStatus = ScanStatusRunningScanClient
+	model.errorRunningScanClient(image)
+
+	if model.Images[image].ScanStatus != ScanStatusInQueue {
+		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image].ScanStatus)
+		t.Fail()
+	}
+
+	nextImage := model.getNextImageFromScanQueue()
+	if image != *nextImage {
+		t.Logf("expected nextImage of %v, got %v", image, nextImage)
+		t.Fail()
+	}
 }

@@ -10,7 +10,6 @@ import (
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
-	hub "bitbucket.org/bdsengineering/perceptor/pkg/hub"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,7 +44,7 @@ func main() {
 			time.Sleep(20 * time.Second)
 			image := requestScanJob()
 			if image != nil {
-				job := scanner.NewScanJob(hub.PerceptorProjectName, *image)
+				job := scanner.NewScanJob(*image)
 				runScanJob(scanClient, *job)
 			}
 		}
@@ -75,7 +74,7 @@ func requestScanJob() *common.Image {
 	if err == nil && resp.StatusCode == 200 {
 		imageName := "null"
 		if nextImage.Image != nil {
-			imageName = nextImage.Image.Name()
+			imageName = nextImage.Image.ShaName()
 		}
 		log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageName)
 		return nextImage.Image
@@ -87,13 +86,23 @@ func requestScanJob() *common.Image {
 
 func runScanJob(scanClient *scanner.HubScanClient, job scanner.ScanJob) {
 	scanResults, err := scanClient.Scan(job)
-	finishedJob := api.FinishedScanClientJob{Err: err, Image: job.Image, Results: scanResults}
+	errorString := ""
+	if err != nil {
+		errorString = err.Error()
+	}
+	finishedJob := api.FinishedScanClientJob{Err: errorString, Image: job.Image, Results: scanResults}
+	log.Infof("about to finish job, going to send over %v", finishedJob)
 	finishScan(finishedJob)
 }
 
 func finishScan(results api.FinishedScanClientJob) {
 	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
 	jsonBytes, err := json.Marshal(results)
+	if err != nil {
+		log.Errorf("unable to marshal json for finished job: %s", err.Error())
+		panic(err)
+	}
+	log.Infof("about to send over json text for finishing a job: %s", string(jsonBytes))
 	resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
