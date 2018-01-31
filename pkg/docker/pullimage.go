@@ -35,27 +35,31 @@ func NewImagePuller() *ImagePuller {
 //   2. pulling down the newly created image and saving as a tarball
 // It does this by accessing the host's docker daemon, locally, over the docker
 // socket.  This gives us a window into any images that are local.
-func (ip *ImagePuller) PullImage(image common.Image) (*ImagePullStats, error) {
+func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
+	stats := ImagePullStats{}
 	start := time.Now()
 
 	err := ip.createImageInLocalDocker(image)
 	if err != nil {
-		log.Errorf("unable to create image in local docker: %s", err.Error())
-		return nil, err
+		stats.Err = &ImagePullError{Code: ErrorTypeUnableToCreateImage, RootCause: err}
+		return stats
 	}
 
 	log.Infof("Processing image: %s", image.HumanReadableName())
 
-	fileSize, err := ip.saveImageToTar(image)
+	fileSize, pullError := ip.saveImageToTar(image)
 	if err != nil {
-		log.Errorf("Error while making tar file: %s", err)
-		return nil, err
+		stats.Err = pullError
+		return stats
 	}
 
 	stop := time.Now()
 
-	log.Infof("Ready to scan %s %s", image.HumanReadableName(), image.TarFilePath())
-	return &ImagePullStats{Duration: stop.Sub(start), TarFileSizeMBs: *fileSize}, nil
+	log.Infof("Ready to scan image %s at path %s", image.HumanReadableName(), image.TarFilePath())
+	duration := stop.Sub(start)
+	stats.Duration = &duration
+	stats.TarFileSizeMBs = fileSize
+	return stats
 }
 
 // createImageInLocalDocker could also be implemented using curl:
@@ -83,13 +87,15 @@ func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (err error) 
 
 // saveImageToTar: part of what it does is to issue an http request similar to the following:
 //   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
-func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, error) {
+func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, *ImagePullError) {
 	log.Infof("Making http request: [%s]", image.GetURL())
 	resp, err := ip.client.Get(image.GetURL())
 	if err != nil {
-		return nil, err
+		return nil, &ImagePullError{Code: ErrorTypeUnableToGetImage, RootCause: err}
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP ERROR: received status != 200 on resp OK: %s", resp.Status)
+		return nil, &ImagePullError{
+			Code:      ErrorTypeBadStatusCodeFromGetImage,
+			RootCause: fmt.Errorf("HTTP ERROR: received status != 200 from %s: %s", image.GetURL(), resp.Status)}
 	}
 
 	log.Infof("GET request for %s successful", image.GetURL())
@@ -107,12 +113,10 @@ func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, error) {
 
 	f, err := os.OpenFile(tarFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
-		log.Errorf("Error opening file: %s", err.Error())
-		return nil, err
+		return nil, &ImagePullError{Code: ErrorTypeUnableToCreateTarFile, RootCause: err}
 	}
 	if _, err = io.Copy(f, body); err != nil {
-		log.Errorf("Error copying file: %s", err.Error())
-		return nil, err
+		return nil, &ImagePullError{Code: ErrorTypeUnableToCopyTarFile, RootCause: err}
 	}
 
 	// What's the right way to get the size of the file?
@@ -122,8 +126,7 @@ func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, error) {
 	stats, err := os.Stat(tarFilePath)
 
 	if err != nil {
-		log.Errorf("Error getting file stats: %s", err.Error())
-		return nil, err
+		return nil, &ImagePullError{Code: ErrorTypeUnableToGetFileStats, RootCause: err}
 	}
 
 	fileSizeInMBs := int(stats.Size() / (1024 * 1024))

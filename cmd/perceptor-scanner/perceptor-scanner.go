@@ -10,9 +10,9 @@ import (
 
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"bitbucket.org/bdsengineering/perceptor/pkg/core"
 	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // TODO metrics
@@ -29,37 +29,59 @@ import (
 func main() {
 	log.Info("started")
 
-	config, err := core.GetPerceptorConfig()
+	config, err := GetScannerConfig()
 	if err != nil {
 		log.Error("Failed to load configuration")
 		panic(err)
 	}
 
-	scanClient, err := scanner.NewHubScanClient(config)
+	scanClient, err := scanner.NewHubScanClient(config.HubHost, config.HubUser, config.HubUserPassword)
 	if err != nil {
 		log.Errorf("unable to instantiate hub scan client: %s", err.Error())
 		panic(err)
 	}
 
+	imageScanStats := make(chan scanner.ScanClientJobResults)
+	httpStats := make(chan scanner.HttpResult)
+
 	go func() {
 		for {
 			time.Sleep(20 * time.Second)
-			image := requestScanJob()
-			if image != nil {
-				job := scanner.NewScanJob(*image)
-				runScanJob(scanClient, *job)
+			err := requestAndRunScanJob(scanClient, imageScanStats, httpStats)
+			if err != nil {
+				log.Errorf("error requesting or running scan job: %v", err)
 			}
 		}
 	}()
+
+	http.Handle("/metrics", scanner.ScannerMetricsHandler(imageScanStats, httpStats))
 
 	addr := fmt.Sprintf(":%s", api.PerceptorScannerPort)
 	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
 }
 
-func requestScanJob() *common.Image {
+func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan<- scanner.ScanClientJobResults, httpStats chan<- scanner.HttpResult) error {
+	image := requestScanJob(httpStats)
+	if image == nil {
+		return nil
+	}
+	job := scanner.NewScanJob(*image)
+	scanResults := scanClient.Scan(*job)
+	imageScanStats <- scanResults
+	errorString := ""
+	if scanResults.Err != nil {
+		errorString = scanResults.Err.Error()
+	}
+	finishedJob := api.FinishedScanClientJob{Err: errorString, Image: job.Image}
+	log.Infof("about to finish job, going to send over %v", finishedJob)
+	return finishScan(finishedJob, httpStats)
+}
+
+func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
 	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
+	httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
 		return nil
@@ -86,34 +108,55 @@ func requestScanJob() *common.Image {
 	return nil
 }
 
-func runScanJob(scanClient *scanner.HubScanClient, job scanner.ScanJob) {
-	scanResults, err := scanClient.Scan(job)
-	errorString := ""
-	if err != nil {
-		errorString = err.Error()
-	}
-	finishedJob := api.FinishedScanClientJob{Err: errorString, Image: job.Image, Results: scanResults}
-	log.Infof("about to finish job, going to send over %v", finishedJob)
-	finishScan(finishedJob)
-}
-
-func finishScan(results api.FinishedScanClientJob) {
+func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.HttpResult) error {
 	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
 	jsonBytes, err := json.Marshal(results)
 	if err != nil {
 		log.Errorf("unable to marshal json for finished job: %s", err.Error())
-		panic(err)
+		return err
 	}
 	log.Infof("about to send over json text for finishing a job: %s", string(jsonBytes))
-	resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
-	if err != nil {
-		log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 200 {
+	// TODO change to exponential backoff or something ... but don't loop indefinitely in production
+	for {
+		resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
+		httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
+		if err != nil {
+			log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
+			continue
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			log.Errorf("POST to %s failed with status code %d", finishedScanURL, resp.StatusCode)
+			continue
+		}
+
 		log.Infof("POST to %s succeeded", finishedScanURL)
-	} else {
-		log.Errorf("POST to %s failed with status code %d", finishedScanURL, resp.StatusCode)
+		return nil
 	}
+}
+
+// ScannerConfig contains all configuration for Perceptor
+type ScannerConfig struct {
+	HubHost         string
+	HubUser         string
+	HubUserPassword string
+}
+
+// GetScannerConfig returns a configuration object to configure Perceptor
+func GetScannerConfig() (*ScannerConfig, error) {
+	var cfg *ScannerConfig
+
+	viper.SetConfigName("scanner_conf")
+	viper.AddConfigPath("/etc/scanner_conf")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
+	}
+	return cfg, nil
 }
