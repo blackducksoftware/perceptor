@@ -67,18 +67,18 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 		prometheus.HistogramOpts{
 			Namespace: "perceptor",
 			Subsystem: "scanner",
-			Name:      "get next image HTTP results",
+			Name:      "getNextImageHTTPResults",
 			Help:      "HTTP status codes from asking perceptor for images",
-			Buckets:   prometheus.LinearBuckets(0, 1, 1000),
+			Buckets:   prometheus.LinearBuckets(0, 100, 6),
 		}, []string{"statusCode"})
 
 	postFinishedScanHTTPResults := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "perceptor",
 			Subsystem: "scanner",
-			Name:      "post finished scan HTTP results",
+			Name:      "postFinishedScanHTTPResults",
 			Help:      "HTTP status codes from posting scan results to perceptor",
-			Buckets:   prometheus.LinearBuckets(0, 1, 1000),
+			Buckets:   prometheus.LinearBuckets(0, 100, 6),
 		}, []string{"statusCode"})
 
 	go func() {
