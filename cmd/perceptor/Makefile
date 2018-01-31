@@ -8,10 +8,7 @@ build:
 	docker build -t registry.kipp.blackducksoftware.com/kube-perceptor .
 
 compile:
-	CGO_ENABLED=0 
-	GOOS=linux 
-	GOARCH=amd64 
-	go build -o ./dependencies/perceptor perceptor.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dependencies/perceptor perceptor.go
 
 test:
 	go test ./...
