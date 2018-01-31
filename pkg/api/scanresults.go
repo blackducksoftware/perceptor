@@ -1,8 +1,5 @@
 package api
 
-import (
-	"time"
-)
 type ScanResults struct {
 	// TODO should ScannerVersion and HubServer be handled by perceiver, or supplied by perceptor?
 	ScannerVersion string
@@ -32,10 +29,4 @@ type Image struct {
 	Vulnerabilities   int
 	ProjectVersionURL string
 	ScanID            string
-}
-
-type ScanClientJobResults struct {
-	PullDuration       time.Duration
-	TarFileSizeMBs     int
-	ScanClientDuration time.Duration
 }

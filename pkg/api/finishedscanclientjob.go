@@ -5,7 +5,6 @@ import (
 )
 
 type FinishedScanClientJob struct {
-	Image   common.Image
-	Results *ScanClientJobResults
-	Err     string
+	Image common.Image
+	Err   string
 }

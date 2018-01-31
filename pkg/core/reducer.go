@@ -72,14 +72,6 @@ func newReducer(initialModel Model,
 				go func() {
 					modelStream <- model
 				}()
-				if jobResults.Results != nil {
-					go func() {
-						imageScanStats <- pmetrics.ImageScanStats{
-							PullDuration:   jobResults.Results.PullDuration,
-							ScanDuration:   jobResults.Results.ScanClientDuration,
-							TarFileSizeMBs: jobResults.Results.TarFileSizeMBs}
-					}()
-				}
 			case continuation := <-getNextImageForHubPolling:
 				model = updateModelGetNextImageForHubPolling(continuation, model)
 				go func() {
@@ -145,7 +137,7 @@ func updateModelNextImage(continuation func(image *common.Image), model Model) M
 
 func updateModelFinishedScanClientJob(results api.FinishedScanClientJob, model Model) Model {
 	newModel := model
-	log.Infof("finished scan client job action: error was empty? %t, %v, %v", results.Err == "", results.Image, results.Results)
+	log.Infof("finished scan client job action: error was empty? %t, %v", results.Err == "", results.Image)
 	if results.Err == "" {
 		newModel.finishRunningScanClient(results.Image)
 	} else {

@@ -159,6 +159,9 @@ func (client *KubeClient) SetBlackDuckPodAnnotations(namespace string, name stri
 		return err
 	}
 	annotations := kubePod.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
 	// BlackDuckAnnotations -> string
 	jsonBytes, err := json.Marshal(bdAnnotations)
 	if err != nil {

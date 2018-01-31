@@ -5,8 +5,6 @@ import (
 	"os/exec"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/api"
-	"bitbucket.org/bdsengineering/perceptor/pkg/core"
 	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,11 +20,11 @@ type HubScanClient struct {
 
 // NewHubScanClient requires login credentials in order to instantiate
 // a HubScanClient.
-func NewHubScanClient(cfg *core.PerceptorConfig) (*HubScanClient, error) {
+func NewHubScanClient(host string, username string, password string) (*HubScanClient, error) {
 	hsc := HubScanClient{
-		host:        cfg.HubHost,
-		username:    cfg.HubUser,
-		password:    cfg.HubUserPassword,
+		host:        host,
+		username:    username,
+		password:    password,
 		imagePuller: pdocker.NewImagePuller()}
 	return &hsc, nil
 }
@@ -41,11 +39,15 @@ func mapKeys(m map[string]ScanJob) []string {
 	return keys
 }
 
-func (hsc *HubScanClient) Scan(job ScanJob) (*api.ScanClientJobResults, error) {
-	pullStats, err := hsc.imagePuller.PullImage(job.Image)
-	if err != nil {
-		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), err.Error())
-		return nil, err
+func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
+	results := ScanClientJobResults{}
+	pullStats := hsc.imagePuller.PullImage(job.Image)
+	results.PullDuration = pullStats.Duration
+	results.TarFileSizeMBs = pullStats.TarFileSizeMBs
+	if pullStats.Err != nil {
+		results.Err = &ScanError{Code: ErrorTypeUnableToPullDockerImage, RootCause: pullStats.Err}
+		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), pullStats.Err.Error())
+		return results
 	}
 	// TODO coupla problems here:
 	//   1. hardcoded path
@@ -75,17 +77,15 @@ func (hsc *HubScanClient) Scan(job ScanJob) (*api.ScanClientJobResults, error) {
 	start := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
 	stop := time.Now()
+	scanClientDuration := stop.Sub(start)
+	results.ScanClientDuration = &scanClientDuration
 	if err != nil {
-		message := fmt.Sprintf("failed to run java scanner: %s", err.Error())
-		log.Error(message)
-		log.Errorf("output from java scanner:\n%v\n", string(stdoutStderr))
-		return nil, err
+		results.Err = &ScanError{Code: ErrorTypeFailedToRunJavaScanner, RootCause: err}
+		log.Errorf("java scanner failed with output:\n%s\n", string(stdoutStderr))
+		return results
 	}
 	log.Infof("successfully completed java scanner: %s", stdoutStderr)
-	return &api.ScanClientJobResults{
-		PullDuration:       pullStats.Duration,
-		TarFileSizeMBs:     pullStats.TarFileSizeMBs,
-		ScanClientDuration: stop.Sub(start)}, nil
+	return results
 }
 
 func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {
