@@ -48,7 +48,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 	log.Infof("Processing image: %s", image.HumanReadableName())
 
 	fileSize, pullError := ip.saveImageToTar(image)
-	if err != nil {
+	if pullError != nil {
 		stats.Err = pullError
 		return stats
 	}
