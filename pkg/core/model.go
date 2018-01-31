@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +17,67 @@ type Model struct {
 	ImageScanQueue      []common.Image
 	ImageHubCheckQueue  []common.Image
 	ConcurrentScanLimit int
+}
+
+func (model Model) MarshalJSON() ([]byte, error) {
+	strs := []string{"{"}
+	// pods
+	strs = append(strs, "\"Pods\":")
+	podBytes, err := json.Marshal(model.Pods)
+	if err != nil {
+		return []byte{}, err
+	}
+	strs = append(strs, string(podBytes))
+	strs = append(strs, ",")
+	// images
+	strs = append(strs, "\"Images\":{")
+	images := []string{}
+	for key, val := range model.Images {
+		resultsBytes, err := json.Marshal(val.ScanResults)
+		if err != nil {
+			return []byte{}, err
+		}
+		myMap := map[string]string{
+			"ScanStatus":  val.ScanStatus.String(),
+			"ScanResults": string(resultsBytes),
+			"Name":        key.Name,
+			"DockerImage": key.DockerImage,
+		}
+		mapBytes, err := json.Marshal(myMap)
+		if err != nil {
+			return []byte{}, err
+		}
+		images = append(images, fmt.Sprintf("\"%s\":%s", key.Sha, string(mapBytes)))
+	}
+	strs = append(strs, strings.Join(images, ","))
+	strs = append(strs, "},")
+	// ImageScanQueue
+	strs = append(strs, "\"ImageScanQueue\":")
+	scanQueueBytes, err := json.Marshal(model.ImageScanQueue)
+	if err != nil {
+		return []byte{}, err
+	}
+	strs = append(strs, string(scanQueueBytes))
+	strs = append(strs, ",")
+	// ImageHubCheckQueue
+	strs = append(strs, "\"ImageHubCheckQueue\":")
+	checkQueueBytes, err := json.Marshal(model.ImageHubCheckQueue)
+	if err != nil {
+		return []byte{}, err
+	}
+	strs = append(strs, string(checkQueueBytes))
+	strs = append(strs, ",")
+	// ConcurrentScanLimit
+	strs = append(strs, "\"ConcurrentScanLimit\":")
+	concurrentLimitBytes, err := json.Marshal(model.ConcurrentScanLimit)
+	if err != nil {
+		return []byte{}, err
+	}
+	strs = append(strs, string(concurrentLimitBytes))
+	// closing bracket
+	strs = append(strs, "}")
+	// done
+	return []byte(strings.Join(strs, "")), nil
 }
 
 func NewModel(concurrentScanLimit int) *Model {
