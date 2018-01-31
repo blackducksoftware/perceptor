@@ -12,8 +12,8 @@ func RunLocally(kubeconfigPath string) {
 	log.Info("start")
 
 	config := &PerceptorConfig{
-		HubHost: "34.227.56.110.xip.io",
-		HubUser: "sysadmin",
+		HubHost:         "34.227.56.110.xip.io",
+		HubUser:         "sysadmin",
 		HubUserPassword: "blackduck",
 	}
 	clusterMasterURL := "https://" + config.HubHost + ":8443"
@@ -47,7 +47,7 @@ func RunFromInsideCluster() {
 
 	config, err := GetPerceptorConfig()
 	if err != nil {
-		log.Error("Failed to load configuration: %s", err.Error())
+		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
 	}
 
