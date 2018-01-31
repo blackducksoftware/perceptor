@@ -81,31 +81,39 @@ func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan
 func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
 	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
-	httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
+	if resp != nil {
+		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
+	} else {
+		// let's just assume this is due to something we did wrong
+		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: 400}
+	}
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
+		return nil
+	} else if resp.StatusCode != 200 {
+		log.Errorf("http POST request to %s failed with status code %d", nextImageURL, resp.StatusCode)
 		return nil
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("unable to read resp body from %s: %s", nextImageURL, err.Error())
+		log.Errorf("unable to read response body from %s: %s", nextImageURL, err.Error())
 		return nil
 	}
 
 	var nextImage api.NextImage
 	err = json.Unmarshal(bodyBytes, &nextImage)
-	if err == nil && resp.StatusCode == 200 {
-		imageName := "null"
-		if nextImage.Image != nil {
-			imageName = nextImage.Image.ShaName()
-		}
-		log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageName)
-		return nextImage.Image
+	if err != nil {
+		log.Errorf("unmarshaling JSON body bytes %s failed for URL %s: %s", string(bodyBytes), nextImageURL, err.Error())
+		return nil
 	}
 
-	log.Errorf("http POST request to %s failed: %s", nextImageURL, err.Error())
-	return nil
+	imageName := "null"
+	if nextImage.Image != nil {
+		imageName = nextImage.Image.ShaName()
+	}
+	log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageName)
+	return nextImage.Image
 }
 
 func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.HttpResult) error {
@@ -119,7 +127,11 @@ func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.Http
 	// TODO change to exponential backoff or something ... but don't loop indefinitely in production
 	for {
 		resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
-		httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
+		if resp != nil {
+			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
+		} else {
+			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: 400}
+		}
 		if err != nil {
 			log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
 			continue

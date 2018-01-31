@@ -49,16 +49,16 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 		prometheus.HistogramOpts{
 			Namespace: "perceptor",
 			Subsystem: "scanner",
-			Name:      "errors",
+			Name:      "scannerErrors",
 			Help:      "error codes from image scanning",
-			Buckets:   []float64{ErrorTypeFailedToRunJavaScanner, ErrorTypeUnableToPullDockerImage},
+			Buckets:   []float64{ErrorTypeUnableToPullDockerImage, ErrorTypeFailedToRunJavaScanner},
 		}, []string{"errorCode"})
 
 	dockerErrors := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "perceptor",
 			Subsystem: "scanner",
-			Name:      "docker errors",
+			Name:      "dockerErrors",
 			Help:      "error codes from pulling images from docker",
 			Buckets:   prometheus.LinearBuckets(float64(docker.ErrorTypeUnableToCreateImage), 1, int(docker.ErrorTypeUnableToGetFileStats)+1),
 		}, []string{"dockerErrorCode"})
@@ -118,6 +118,8 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 	prometheus.MustRegister(scanDuration)
 	prometheus.MustRegister(errors)
 	prometheus.MustRegister(dockerErrors)
+	prometheus.MustRegister(getNextImageHTTPResults)
+	prometheus.MustRegister(postFinishedScanHTTPResults)
 
 	return prometheus.Handler()
 }
