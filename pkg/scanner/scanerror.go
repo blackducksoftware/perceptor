@@ -16,7 +16,7 @@ type ScanError struct {
 	RootCause error
 }
 
-func (se *ScanError) Error() string {
+func (se ScanError) Error() string {
 	switch se.Code {
 	case ErrorTypeUnableToPullDockerImage:
 		return fmt.Sprintf("unable to pull docker image: %s", se.RootCause.Error())
