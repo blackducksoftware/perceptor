@@ -112,12 +112,12 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 		for _, image := range perceptor.inProgressHubScans {
 			scan, err := perceptor.hubClient.FetchScanFromImage(image)
 			if err != nil {
-				log.Errorf("unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
+				log.Errorf("check hub for completed scans -- unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
 			} else {
 				if scan == nil {
-					log.Infof("unable to find image scan for image %s, found nil", image.HubProjectName())
+					log.Infof("check hub for completed scans -- unable to find image scan for image %s, found nil", image.HubProjectName())
 				} else {
-					log.Infof("found image scan for image %s: %v", image.HubProjectName(), *scan)
+					log.Infof("check hub for completed scans -- found image scan for image %s: %%v", image.HubProjectName(), *scan)
 				}
 				perceptor.hubScanResults <- HubImageScan{Image: image, Scan: scan}
 			}
@@ -140,12 +140,12 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 		if image != nil {
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
 			if err != nil {
-				log.Errorf("unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
+				log.Errorf("check images in hub -- unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
 			} else {
 				if scan == nil {
-					log.Infof("unable to find image scan for image %s, found nil", image.HubProjectName())
+					log.Infof("check images in hub -- unable to find image scan for image %s, found nil", image.HubProjectName())
 				} else {
-					log.Infof("found image scan for image %s: %v", image.HubProjectName(), *scan)
+					log.Infof("check images in hub -- found image scan for image %s: %+v", image.HubProjectName(), *scan)
 				}
 				perceptor.hubCheckResults <- HubImageScan{Image: *image, Scan: scan}
 			}
