@@ -28,8 +28,11 @@ func (image *Image) HubVersionName() string {
 	return image.Sha
 }
 
+// HubScanName has to be unique; otherwise, multiple
+// code locations could be mapped to the same scan,
+// which would be confusing
 func (image *Image) HubScanName() string {
-	return image.DockerImage
+	return image.Sha
 }
 
 // Name returns a nice, easy to read string

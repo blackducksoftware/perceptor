@@ -317,17 +317,23 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 
 func (hf *Fetcher) FetchScanFromImage(image common.Image) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectName())
-	projs, err := hf.client.ListProjects(&hubapi.GetProjectsOptions{Q: &queryString})
+	projectList, err := hf.client.ListProjects(&hubapi.GetProjectsOptions{Q: &queryString})
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err
 	}
-	if len(projs.Items) == 0 {
+	projects := []hubapi.Project{}
+	for _, proj := range projectList.Items {
+		if proj.Name == image.HubProjectName() {
+			projects = append(projects, proj)
+		}
+	}
+	if len(projects) == 0 {
 		return nil, nil
 	}
-	if len(projs.Items) > 1 {
-		return nil, fmt.Errorf("expected 1 project of name %s, found %d", image.HubProjectName(), len(projs.Items))
+	if len(projects) > 1 {
+		return nil, fmt.Errorf("expected 1 project of name %s, found %d", image.HubProjectName(), len(projects))
 	}
-	project := projs.Items[0]
+	project := projects[0]
 	return hf.fetchImageScanUsingProject(project, image)
 }
