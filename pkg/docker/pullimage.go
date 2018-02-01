@@ -1,8 +1,10 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -49,6 +51,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 
 	fileSize, pullError := ip.saveImageToTar(image)
 	if pullError != nil {
+		log.Errorf("save image %+v to tar failed: %s", image, pullError.Error())
 		stats.Err = pullError
 		return stats
 	}
@@ -72,16 +75,19 @@ func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (err error) 
 	imageURL := image.CreateURL()
 	log.Infof("Attempting to create %s ......", imageURL)
 	resp, err := ip.client.Post(imageURL, "", nil)
+	if err != nil {
+		log.Errorf("Create failed for image %s: %s", imageURL, err.Error())
+		return err
+	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 200 && err == nil {
-		log.Infof("Create succeeded for %s %v", imageURL, resp)
-	} else if err == nil {
-		// This should get hit if there's a 404
-		log.Infof("Create may have failed for %s: status code %d, response", imageURL, resp.StatusCode, resp)
-	} else {
-		log.Errorf("Create failed for image %s: %s", imageURL, err.Error())
+	if resp.StatusCode != 200 {
+		message := fmt.Sprintf("Create may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp)
+		log.Errorf(message)
+		return errors.New(message)
 	}
+
+	_, err = ioutil.ReadAll(resp.Body)
 	return err
 }
 
