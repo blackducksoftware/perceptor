@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: if-route
+  namespace: bds-perceptor
+spec:
+  host: if-bds-perceptor.34.227.56.110.xip.io
+  to:
+    kind: Service
+    name: if
+    weight: 100
+  wildcardPolicy: None
