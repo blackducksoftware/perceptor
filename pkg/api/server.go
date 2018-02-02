@@ -17,14 +17,14 @@ func SetupHTTPServer(responder Responder) {
 		if r.Method == "GET" {
 			responder.GetMetrics(w, r)
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			fmt.Fprint(w, responder.GetModel())
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 
@@ -35,14 +35,14 @@ func SetupHTTPServer(responder Responder) {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				log.Errorf("unable to read body for pod POST: %s", err.Error())
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var pod common.Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
 				log.Infof("unable to ummarshal JSON for pod POST: %s", err.Error())
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			responder.AddPod(pod)
@@ -50,13 +50,13 @@ func SetupHTTPServer(responder Responder) {
 		case "PUT":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var pod common.Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			responder.UpdatePod(pod)
@@ -64,49 +64,49 @@ func SetupHTTPServer(responder Responder) {
 		case "DELETE":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			responder.DeletePod(string(body))
 			fmt.Fprint(w, "")
 		default:
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 	http.HandleFunc("/allpods", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "PUT" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var allPods AllPods
 			err = json.Unmarshal(body, &allPods)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			responder.UpdateAllPods(allPods)
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 	http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var image common.Image
 			err = json.Unmarshal(body, &image)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			responder.AddImage(image)
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 
@@ -116,12 +116,12 @@ func SetupHTTPServer(responder Responder) {
 			scanResults := responder.GetScanResults()
 			jsonBytes, err := json.Marshal(scanResults)
 			if err != nil {
-				http.Error(w, err.Error(), 500)
+				responder.Error(w, r, err, 500)
 				return
 			}
 			fmt.Fprint(w, string(jsonBytes))
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 
@@ -133,15 +133,15 @@ func SetupHTTPServer(responder Responder) {
 			responder.GetNextImage(func(nextImage NextImage) {
 				jsonBytes, err := json.Marshal(nextImage)
 				if err != nil {
-					http.Error(w, err.Error(), 500)
-					return
+					responder.Error(w, r, err, 500)
+				} else {
+					fmt.Fprint(w, string(jsonBytes))
 				}
-				fmt.Fprint(w, string(jsonBytes))
 				wg.Done()
 			})
 			wg.Wait()
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 
@@ -149,7 +149,7 @@ func SetupHTTPServer(responder Responder) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var scanResults FinishedScanClientJob
@@ -157,7 +157,7 @@ func SetupHTTPServer(responder Responder) {
 			responder.PostFinishScan(scanResults)
 			fmt.Fprint(w, "")
 		} else {
-			http.NotFound(w, r)
+			responder.NotFound(w, r)
 		}
 	})
 }

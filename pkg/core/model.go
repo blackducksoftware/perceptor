@@ -214,6 +214,7 @@ func (model *Model) errorRunningScanClient(image common.Image) {
 		panic(message)
 	}
 	results.ScanStatus = ScanStatusError
+	// TODO get rid of these
 	// for now, just readd the image to the queue upon error
 	model.addImageToScanQueue(image)
 }

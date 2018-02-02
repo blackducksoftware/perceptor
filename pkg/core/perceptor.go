@@ -7,7 +7,6 @@ import (
 	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
-	pmetrics "bitbucket.org/bdsengineering/perceptor/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,28 +46,46 @@ func NewPerceptor(cfg *PerceptorConfig) (*Perceptor, error) {
 }
 
 func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
-	// 0. this will help with circular communication
+	// 0. prepare for circular communication
 	model := make(chan Model)
-	imageScanStats := make(chan pmetrics.ImageScanStats)
+	actions := make(chan action)
+
 	hubScanResults := make(chan HubImageScan)
 	hubCheckResults := make(chan HubImageScan)
 	checkNextImageInHub := make(chan func(image *common.Image))
+	metricsHandler := newMetrics()
 
 	// 1. here's the responder
-	httpResponder := NewHTTPResponder(model, pmetrics.MetricsHandler(imageScanStats))
+	httpResponder := NewHTTPResponder(model, metricsHandler)
 	api.SetupHTTPServer(httpResponder)
 
 	concurrentScanLimit := 1
 
+	// 2. combine actions
+	go func() {
+		for {
+			select {
+			case pod := <-httpResponder.addPod:
+				actions <- addPod{pod}
+			case pod := <-httpResponder.updatePod:
+				actions <- updatePod{pod}
+			case podName := <-httpResponder.deletePod:
+				actions <- deletePod{podName}
+			case image := <-httpResponder.addImage:
+				actions <- addImage{image}
+			case pods := <-httpResponder.allPods:
+				actions <- allPods{pods}
+			case job := <-httpResponder.postFinishScanJob:
+				actions <- finishScanClient{job}
+			case continuation := <-httpResponder.postNextImage:
+				actions <- getNextImage{continuation}
+			}
+		}
+	}()
+
 	// 3. now for the reducer
 	reducer := newReducer(*NewModel(concurrentScanLimit),
-		httpResponder.addPod,
-		httpResponder.updatePod,
-		httpResponder.deletePod,
-		httpResponder.addImage,
-		httpResponder.allPods,
-		httpResponder.postNextImage,
-		httpResponder.postFinishScanJob,
+		actions,
 		checkNextImageInHub,
 		hubCheckResults,
 		hubScanResults)
@@ -90,9 +107,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 			select {
 			case nextModel := <-reducer.model:
 				perceptor.inProgressHubScans = nextModel.inProgressHubScans()
+				metricsHandler.updateModel(nextModel)
 				model <- nextModel
-			case nextImageScanStats := <-reducer.imageScanStats:
-				imageScanStats <- nextImageScanStats
 			}
 		}
 	}()

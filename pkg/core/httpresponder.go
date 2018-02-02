@@ -13,7 +13,7 @@ import (
 // HTTPResponder ...
 type HTTPResponder struct {
 	model             Model
-	metricsHandler    http.Handler
+	metricsHandler    *metrics
 	addPod            chan common.Pod
 	updatePod         chan common.Pod
 	deletePod         chan string
@@ -23,7 +23,7 @@ type HTTPResponder struct {
 	postFinishScanJob chan api.FinishedScanClientJob
 }
 
-func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResponder {
+func NewHTTPResponder(model <-chan Model, metricsHandler *metrics) *HTTPResponder {
 	hr := HTTPResponder{
 		metricsHandler:    metricsHandler,
 		addPod:            make(chan common.Pod),
@@ -45,7 +45,7 @@ func NewHTTPResponder(model <-chan Model, metricsHandler http.Handler) *HTTPResp
 }
 
 func (hr *HTTPResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	hr.metricsHandler.ServeHTTP(w, r)
+	hr.metricsHandler.httpHandler.ServeHTTP(w, r)
 }
 
 func (hr *HTTPResponder) GetModel() string {
@@ -57,33 +57,39 @@ func (hr *HTTPResponder) GetModel() string {
 }
 
 func (hr *HTTPResponder) AddPod(pod common.Pod) {
+	hr.metricsHandler.addPod(pod)
 	hr.addPod <- pod
 	log.Infof("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) DeletePod(qualifiedName string) {
+	hr.metricsHandler.deletePod(qualifiedName)
 	hr.deletePod <- qualifiedName
 	log.Infof("handled delete pod %s", qualifiedName)
 }
 
 func (hr *HTTPResponder) UpdatePod(pod common.Pod) {
+	hr.metricsHandler.updatePod(pod)
 	hr.updatePod <- pod
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) AddImage(image common.Image) {
+	hr.metricsHandler.addImage(image)
 	hr.addImage <- image
 	log.Infof("handled add image %s", image.HumanReadableName())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
+	hr.metricsHandler.allPods(allPods)
 	hr.allPods <- allPods.Pods
 	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
 }
 
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
-	scannerVersion := "" // TODO
-	hubServer := ""      // TODO
+	hr.metricsHandler.getScanResults()
+	scannerVersion := "TODO"
+	hubServer := "TODO"
 	pods := []api.Pod{}
 	images := []api.Image{}
 	for podName, pod := range hr.model.Pods {
@@ -100,7 +106,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 			OverallStatus:    overallStatus})
 	}
 	for image, imageResults := range hr.model.Images {
-		scanID := "TODO"
+		scanID := image.HubScanName()
 		projectVersionURL := "TODO"
 		policyViolations := 0
 		vulnerabilities := 0
@@ -121,6 +127,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 }
 
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
+	hr.metricsHandler.getNextImage()
 	hr.postNextImage <- func(image *common.Image) {
 		continuation(*api.NewNextImage(image))
 		imageString := "null"
@@ -132,6 +139,19 @@ func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)
 }
 
 func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
+	hr.metricsHandler.postFinishedScan()
 	hr.postFinishScanJob <- job
 	log.Infof("handled finished scan job -- %v", job)
+}
+
+// errors
+
+func (hr *HTTPResponder) NotFound(w http.ResponseWriter, r *http.Request) {
+	hr.metricsHandler.httpNotFound(r)
+	http.NotFound(w, r)
+}
+
+func (hr *HTTPResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+	hr.metricsHandler.httpError(r, err)
+	http.Error(w, err.Error(), statusCode)
 }

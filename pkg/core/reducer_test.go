@@ -14,24 +14,12 @@ import (
 func TestReducer(t *testing.T) {
 	concurrentScanLimit := 1
 	initialModel := NewModel(concurrentScanLimit)
-	addPod := make(chan common.Pod)
-	updatePod := make(chan common.Pod)
-	deletePod := make(chan string)
-	addImage := make(chan common.Image)
-	updateAllPods := make(chan []common.Pod)
-	postNextImage := make(chan func(image *common.Image))
+	actions := make(chan action)
 	nextHubCheckImage := make(chan func(image *common.Image))
-	finishScanClientJob := make(chan api.FinishedScanClientJob)
 	hubCheckResults := make(chan HubImageScan)
 	hubScanResults := make(chan HubImageScan)
 	reducer := newReducer(*initialModel,
-		addPod,
-		updatePod,
-		deletePod,
-		addImage,
-		updateAllPods,
-		postNextImage,
-		finishScanClientJob,
+		actions,
 		nextHubCheckImage,
 		hubCheckResults,
 		hubScanResults)
@@ -43,10 +31,10 @@ func TestReducer(t *testing.T) {
 	//   this should add all the images in the pod to the hub check queue (if they haven't already been added),
 	//   add them to the image dictionary, and set their status to HubCheck
 	go func() {
-		addPod <- *common.NewPod("pod1", "uid1", "namespace1", []common.Container{
+		actions <- addPod{*common.NewPod("pod1", "uid1", "namespace1", []common.Container{
 			*common.NewContainer(image1, "container1"),
 			*common.NewContainer(image2, "container2"),
-		})
+		})}
 	}()
 	newModel := <-reducer.model
 	if len(newModel.ImageHubCheckQueue) != 2 {
@@ -97,9 +85,9 @@ func TestReducer(t *testing.T) {
 	//   change its status to InProgress
 	var nextImage *common.Image
 	go func() {
-		postNextImage <- func(image *common.Image) {
+		actions <- getNextImage{func(image *common.Image) {
 			nextImage = image
-		}
+		}}
 	}()
 
 	newModel = <-reducer.model
@@ -130,7 +118,7 @@ func TestReducer(t *testing.T) {
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
-		finishScanClientJob <- api.FinishedScanClientJob{Err: "", Image: *nextImage}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
 	}()
 
 	newModel = <-reducer.model
@@ -147,9 +135,9 @@ func TestReducer(t *testing.T) {
 	// 4. ask for the next image from the queue. this hits the concurrency limit,
 	//    so it should not do anything
 	go func() {
-		postNextImage <- func(image *common.Image) {
+		actions <- getNextImage{func(image *common.Image) {
 			nextImage = image
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	if nextImage != nil {
@@ -234,9 +222,9 @@ func TestReducer(t *testing.T) {
 	//   remove the first item from the queue
 	//   change its status to InProgress
 	go func() {
-		postNextImage <- func(image *common.Image) {
+		actions <- getNextImage{func(image *common.Image) {
 			nextImage = image
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	if nextImage == nil {
@@ -264,7 +252,7 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		finishScanClientJob <- api.FinishedScanClientJob{Err: "oops", Image: *nextImage}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: *nextImage}}
 	}()
 
 	newModel = <-reducer.model
@@ -282,9 +270,9 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 8")
 	go func() {
 		log.Info("send message 8")
-		postNextImage <- func(image *common.Image) {
+		actions <- getNextImage{func(image *common.Image) {
 			nextImage = image
-		}
+		}}
 		log.Info("finished sending message 8")
 	}()
 	log.Info("get model 8")
@@ -312,7 +300,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		finishScanClientJob <- api.FinishedScanClientJob{Err: "", Image: *nextImage}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -330,10 +318,10 @@ func TestReducer(t *testing.T) {
 
 	// 11. ask for next image, get nil because queue is empty
 	go func() {
-		postNextImage <- func(image *common.Image) {
+		actions <- getNextImage{func(image *common.Image) {
 			log.Infof("image: %v, %t", image, image == nil)
 			nextImage = image
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	if nextImage != nil {

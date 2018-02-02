@@ -60,7 +60,7 @@ func (hf *Fetcher) fetchProject(p hubapi.Project) (*Project, error) {
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	versions, err := client.ListProjectVersions(*link)
+	versions, err := client.ListProjectVersions(*link, nil)
 	if err != nil {
 		log.Errorf("error fetching project version: %v", err)
 		return nil, err
@@ -188,7 +188,11 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	versionList, err := client.ListProjectVersions(*link) // TODO search by name
+	// TODO search by name
+	// q := fmt.Sprintf("versionName:%s", image.HubVersionName())
+	// options := hubapi.GetListOptions{Q: &q}
+	// versionList, err := client.ListProjectVersions(*link, &options)
+	versionList, err := client.ListProjectVersions(*link, nil)
 	if err != nil {
 		log.Errorf("error fetching project versions: %v", err)
 		return nil, err
@@ -317,7 +321,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 
 func (hf *Fetcher) FetchScanFromImage(image common.Image) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectName())
-	projectList, err := hf.client.ListProjects(&hubapi.GetProjectsOptions{Q: &queryString})
+	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err

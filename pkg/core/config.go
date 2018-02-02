@@ -9,7 +9,7 @@ import (
 
 // PerceptorConfig contains all configuration for Perceptor
 type PerceptorConfig struct {
-	HubHost          string
+	HubHost         string
 	HubUser         string
 	HubUserPassword string
 }

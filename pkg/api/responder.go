@@ -23,4 +23,8 @@ type Responder interface {
 	// scanner
 	GetNextImage(func(nextImage NextImage))
 	PostFinishScan(job FinishedScanClientJob)
+
+	// errors
+	NotFound(w http.ResponseWriter, r *http.Request)
+	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
 }
