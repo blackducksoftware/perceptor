@@ -2,6 +2,7 @@ package hubapi
 
 import (
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -19,7 +20,7 @@ func ParameterString(params URLParameters) string {
 	dict := params.Parameters()
 
 	var keys []string
-	for k, _ := range dict {
+	for k := range dict {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -27,8 +28,7 @@ func ParameterString(params URLParameters) string {
 	pairs := []string{}
 	for _, key := range keys {
 		val := dict[key]
-		// TODO there should be some real URL encoding eventually
-		pairs = append(pairs, fmt.Sprintf("%s=%s", key, val))
+		pairs = append(pairs, fmt.Sprintf("%s=%s", url.QueryEscape(key), url.QueryEscape(val)))
 	}
 	return strings.Join(pairs, "&")
 }

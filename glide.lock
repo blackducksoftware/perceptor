@@ -1,8 +1,8 @@
 hash: 49defa33f6035511c08698023c45234f10441f81be571871061bdf0af34f2d26
-updated: 2018-01-29T11:59:21.345560243-05:00
+updated: 2018-02-02T15:21:47.254360892-05:00
 imports:
 - name: bitbucket.org/bdsengineering/go-hub-client
-  version: ca5a66a4eed14b41a7b9fd22b3676ecd5b7196b1
+  version: 266c81256672d8b9e8f444b6525d90815f40dfc6
   repo: git@bitbucket.org:bdsengineering/go-hub-client.git
   vcs: git
   subpackages:
@@ -156,7 +156,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+  version: d670f9405373e636a5a2765eea47fac0c9bc91a4
 - name: k8s.io/api
   version: 11147472b7c934c474a2c484af3c0c5210b7a3af
   subpackages:
@@ -189,7 +189,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: b621949a1923cee3fce8bca9613e9a83609f0bbc
+  version: bfe7139b14565386b4470736ca765bf21616b60e
   subpackages:
   - pkg/api/errors
   - pkg/api/meta

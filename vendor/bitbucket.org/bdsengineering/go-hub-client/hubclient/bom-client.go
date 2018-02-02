@@ -25,7 +25,7 @@ func (c *Client) ListProjectVersionComponents(link hubapi.ResourceLink) (*hubapi
 }
 
 // TODO: Should this be used?
-func (c *Client) ListProjectVerionVulnerableComponents(link hubapi.ResourceLink) (*hubapi.BomVulnerableComponentList, error) {
+func (c *Client) ListProjectVersionVulnerableComponents(link hubapi.ResourceLink) (*hubapi.BomVulnerableComponentList, error) {
 
 	// Need offset/limit
 	// Should we abstract list fetching like we did with a single Get?
@@ -57,7 +57,7 @@ func (c *Client) PageProjectVersionVulnerableComponents(link hubapi.ResourceLink
 	return &bomList, nil
 }
 
-func (c *Client) CountProjectVerionVulnerableComponents(link hubapi.ResourceLink) (uint32, error) {
+func (c *Client) CountProjectVersionVulnerableComponents(link hubapi.ResourceLink) (uint32, error) {
 
 	// Need offset/limit
 	// Should we abstract list fetching like we did with a single Get?
@@ -73,10 +73,10 @@ func (c *Client) CountProjectVerionVulnerableComponents(link hubapi.ResourceLink
 	return bomList.TotalCount, nil
 }
 
-func (c *Client) ListAllProjectVerionVulnerableComponents(link hubapi.ResourceLink) ([]hubapi.BomVulnerableComponent, error) {
+func (c *Client) ListAllProjectVersionVulnerableComponents(link hubapi.ResourceLink) ([]hubapi.BomVulnerableComponent, error) {
 
 	log.Debugf("***** Getting total count.")
-	//totalCount, err := c.CountProjectVerionVulnerableComponents(link)
+	//totalCount, err := c.CountProjectVersionVulnerableComponents(link)
 	totalCount := uint32(100)
 	log.Debugf("***** Got total count: %d", totalCount)
 

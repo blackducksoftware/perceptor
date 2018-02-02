@@ -263,6 +263,42 @@ func (c *Client) httpPostJSON(url string, data interface{}, contentType string, 
 	return resp.Header.Get("Location"), nil
 }
 
+func (c *Client) httpDelete(url string, contentType string, expectedStatusCode int) error {
+
+	var resp *http.Response
+	var err error
+
+	if c.debugFlags&HubClientDebugTimings != 0 {
+		log.Debugf("DEBUG HTTP STARTING DELETE REQUEST: %s", url)
+	}
+
+	httpStart := time.Now()
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer([]byte{}))
+	req.Header.Set(HeaderNameContentType, contentType)
+
+	if err != nil {
+		log.Errorf("Error making http delete request: %+v.", err)
+		return err
+	}
+
+	c.doPreRequest(req)
+	log.Debugf("DELETE Request: %+v.", req)
+
+	if resp, err = c.httpClient.Do(req); err != nil {
+		log.Errorf("Error getting HTTP Response: %+v.", err)
+		readResponseBody(resp)
+		return err
+	}
+
+	httpElapsed := time.Since(httpStart)
+
+	if c.debugFlags&HubClientDebugTimings != 0 {
+		log.Debugf("DEBUG HTTP DELETE ELAPSED TIME: %d ms.   -- Request: %s", (httpElapsed / 1000 / 1000), url)
+	}
+
+	return c.processResponse(resp, nil, expectedStatusCode)
+}
+
 func (c *Client) doPreRequest(request *http.Request) {
 
 	if c.useAuthToken {

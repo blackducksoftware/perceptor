@@ -1,7 +1,10 @@
 package hubclient
 
 import (
+	"fmt"
 	"testing"
+
+	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
 )
 
 // TestFetchPolicyStatus is a very brittle test because it requires:
@@ -36,7 +39,7 @@ func TestFetchPolicyStatus(t *testing.T) {
 		t.Fail()
 		return
 	}
-	versions, err := client.ListProjectVersions(*projectVersionsLink)
+	versions, err := client.ListProjectVersions(*projectVersionsLink, nil)
 	if err != nil {
 		t.Log("unable to fetch project versions list: " + err.Error())
 		t.Fail()
@@ -69,6 +72,20 @@ func TestFetchPolicyStatus(t *testing.T) {
 
 	if len(policyStatus.OverallStatus) == 0 {
 		t.Log("expected non-empty overall status")
+		t.Fail()
+		return
+	}
+
+	// check whether project version supports options
+	qOption := fmt.Sprintf("versionName:%s", version.VersionName)
+	versionsWithOptions, err := client.ListProjectVersions(*projectVersionsLink, &hubapi.GetListOptions{Q: &qOption})
+	if err != nil {
+		t.Log("unable to fetch project versions list: with options " + err.Error())
+		t.Fail()
+		return
+	}
+	if len(versionsWithOptions.Items) != 1 {
+		t.Logf("expected one project version with name %s, found %d", version.VersionName, len(versionsWithOptions.Items))
 		t.Fail()
 		return
 	}

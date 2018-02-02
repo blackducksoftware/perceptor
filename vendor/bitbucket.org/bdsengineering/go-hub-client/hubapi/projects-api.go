@@ -113,9 +113,8 @@ func (v *ProjectVersion) GetProjectVersionPolicyStatusLink() (*ResourceLink, err
 	return v.Meta.FindLinkByRel("policy-status")
 }
 
-// GetProjectsOptions describes the parameter model for the projects list
-// GET endpoint.
-type GetProjectsOptions struct {
+// GetListOptions describes the parameter model for the list GET endpoints.
+type GetListOptions struct {
 	Limit  *int
 	Offset *int
 	Sort   *string
@@ -123,19 +122,19 @@ type GetProjectsOptions struct {
 }
 
 // Parameters implements the URLParameters interface.
-func (gpo *GetProjectsOptions) Parameters() map[string]string {
+func (glo *GetListOptions) Parameters() map[string]string {
 	params := make(map[string]string)
-	if gpo.Limit != nil {
-		params["limit"] = fmt.Sprintf("%d", *gpo.Limit)
+	if glo.Limit != nil {
+		params["limit"] = fmt.Sprintf("%d", *glo.Limit)
 	}
-	if gpo.Offset != nil {
-		params["offset"] = fmt.Sprintf("%d", *gpo.Offset)
+	if glo.Offset != nil {
+		params["offset"] = fmt.Sprintf("%d", *glo.Offset)
 	}
-	if gpo.Sort != nil {
-		params["sort"] = *gpo.Sort
+	if glo.Sort != nil {
+		params["sort"] = *glo.Sort
 	}
-	if gpo.Q != nil {
-		params["q"] = *gpo.Q
+	if glo.Q != nil {
+		params["q"] = *glo.Q
 	}
 	return params
 }

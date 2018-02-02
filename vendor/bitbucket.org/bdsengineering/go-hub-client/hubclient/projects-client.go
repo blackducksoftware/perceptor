@@ -14,10 +14,8 @@ import (
 // Or maybe a special return type that can keep querying for all of them when it runs out?
 // Is there any iterator type in GoLang?
 
-func (c *Client) ListProjects(options *hubapi.GetProjectsOptions) (*hubapi.ProjectList, error) {
+func (c *Client) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectList, error) {
 
-	// Need offset/limit
-	// Should we abstract list fetching like we did with a single Get?
 	params := ""
 	if options != nil {
 		params = fmt.Sprintf("?%s", hubapi.ParameterString(options))
@@ -65,13 +63,22 @@ func (c *Client) CreateProject(projectRequest *hubapi.ProjectRequest) (string, e
 	return location, err
 }
 
-func (c *Client) ListProjectVersions(link hubapi.ResourceLink) (*hubapi.ProjectVersionList, error) {
+func (c *Client) DeleteProject(projectId string) error {
+	url := fmt.Sprintf("%s/api/projects/%s", c.baseURL, projectId)
+	return c.httpDelete(url, "application/json", 204)
+}
 
-	// Need offset/limit
-	// Should we abstract list fetching like we did with a single Get?
+func (c *Client) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.ProjectVersionList, error) {
+
+	params := ""
+	if options != nil {
+		params = fmt.Sprintf("?%s", hubapi.ParameterString(options))
+	}
+
+	projectVersionsURL := fmt.Sprintf("%s%s", link.Href, params)
 
 	var versionList hubapi.ProjectVersionList
-	err := c.httpGetJSON(link.Href, &versionList, 200)
+	err := c.httpGetJSON(projectVersionsURL, &versionList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve project version list list: %+v.", err)
