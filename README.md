@@ -35,7 +35,8 @@ and scanners to communicate with it.
 
 ## REST API
 
-See [here](https://confluence.dc1.lan/display/DEV/REST+API+-+Overview+and+Guidelines) for guidelines on patterns.
+ - [guidelines](https://confluence.dc1.lan/display/DEV/REST+API+-+Overview+and+Guidelines)
+ - [docs](./core-rest-api.swagger) -- check out [this online viewer](https://editor.swagger.io//#) to get a nice UI
 
 
 # Scanners
