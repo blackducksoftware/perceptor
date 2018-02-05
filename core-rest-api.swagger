@@ -1,0 +1,276 @@
+swagger: "2.0"
+info:
+  description: "Perceptor core REST API"
+  version: "1.0.0"
+  title: "Perceptor Core"
+  termsOfService: "https://www.blackducksoftware.com/"
+  contact:
+    email: "blackduck@blackducksoftware.com"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+host: "perceptor"
+basePath: "/perceptor"
+tags:
+- name: "perceiver"
+  description: "handles receiving data from, and providing data to, perceivers"
+  externalDocs:
+    description: "Find out more"
+    url: "https://www.blackducksoftware.com/"
+- name: "scanner"
+  description: "handles receiving data from, and providing data to, scanner workers"
+  externalDocs:
+    description: "Find out more"
+    url: "https://www.blackducksoftware.com/"
+schemes:
+- "http"
+paths:
+  /pod:
+    post:
+      tags:
+      - "perceiver"
+      summary: "Add a new pod"
+      description: ""
+      operationId: "addPod"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "New pod object"
+        required: true
+        schema:
+          $ref: "#/definitions/Pod"
+      responses:
+        405:
+          description: "Invalid input"
+    put:
+      tags:
+      - "perceiver"
+      summary: "Update an existing pod or add if necessary"
+      description: ""
+      operationId: "updatePod"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Pod object"
+        required: true
+        schema:
+          $ref: "#/definitions/Pod"
+      responses:
+        200:
+          description: "successful"
+        400:
+          description: "request problem"
+    delete:
+      tags:
+      - "perceiver"
+      summary: "Delete a pod"
+      description: ""
+      operationId: "deletePod"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Pod object"
+        required: true
+        schema:
+          $ref: "#/definitions/Pod"
+      responses:
+        200:
+          description: "successful"
+        400:
+          description: "request problem"
+  /scanresults:
+    get:
+      tags:
+      - "perceiver"
+      summary: "Get scan results for all pods and images"
+      description: ""
+      operationId: "getScanResults"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "username"
+        in: "path"
+        description: "The name that needs to be fetched. Use user1 for testing. "
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/ScanResults"
+  /allpods:
+    post:
+      tags:
+      - "perceiver"
+      summary: "updates all pods"
+      description: ""
+      operationId: "allPods"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "AllPods object"
+        required: true
+        schema:
+          $ref: "#/definitions/AllPods"
+      responses:
+        200:
+          description: "success"
+  /nextimage:
+    post:
+      tags:
+      - "scanner"
+      summary: "gets next image for scanning"
+      description: ""
+      operationId: "getNextImage"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "NextImage object"
+        required: true
+        schema:
+          $ref: "#/definitions/NextImage"
+      responses:
+        200:
+          description: "success"
+  /finishedscan:
+    post:
+      tags:
+      - "scanner"
+      summary: "lets core know that a scan has finished"
+      description: ""
+      operationId: "finishedScan"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "FinishedScanClientJob object"
+        required: true
+        schema:
+          $ref: "#/definitions/FinishedScanClientJob"
+      responses:
+        200:
+          description: "success"
+definitions:
+  NextImage:
+    type: "object"
+    properties:
+      Image:
+        $ref: "#/definitions/Image"
+  FinishedScanClientJob:
+    type: "object"
+    properties:
+      Image:
+        $ref: "#/definitions/Image"
+      Err:
+        type: "string"
+        description: "empty string means no error"
+  ScanResults:
+    type: "object"
+    properties:
+      Pods:
+        type: "array"
+        items:
+          $ref: "#/definitions/ScannedPod"
+      Images:
+        type: "array"
+        items:
+          $ref: "#/definitions/ScannedImage"
+  ScannedPod:
+    type: "object"
+    properties:
+      Namespace:
+        type: "string"
+      Name:
+        type: "string"
+      PolicyViolations:
+        type: "string"
+      Vulnerabilities:
+        type: "integer"
+      OverallStatus:
+        type: "string"
+  ScannedImage:
+    type: "object"
+    properties:
+      Name:
+        type: "string"
+      Sha:
+        type: "string"
+      PolicyViolations: 
+        type: "integer"
+      Vulnerabilities:
+        type: "integer"
+      OverallStatus:
+        type: "string"
+      ProjectVersionURL:
+        type: "string"
+      ScanID:
+        type: "string"
+  AllPods:
+    type: "object"
+    properties:
+      Pods:
+        type: "array"
+        items:
+          $ref: "#/definitions/Pod"
+  Image:
+    type: "object"
+    properties:
+      Name:
+        type: "string"
+      Sha:
+        type: "string"
+      DockerImage:
+        type: "string"
+  Pod:
+    type: "object"
+    required:
+    - "Name"
+    - "UID"
+    - "Namespace"
+    - "Containers"
+    properties:
+      Name:
+        type: "string"
+      UID:
+        type: "string"
+      Namespace:
+        type: "string"
+      Containers:
+        type: "array"
+        items:
+          $ref: "#/definitions/Container"
+    xml:
+      name: "Pet"
+  Container:
+    type: "object"
+    properties:
+      Name:
+        type: "string"
+      Image:
+        $ref: "#/definitions/Image"
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"
