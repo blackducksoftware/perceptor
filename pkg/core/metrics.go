@@ -7,12 +7,11 @@ import (
 	"bitbucket.org/bdsengineering/perceptor/pkg/api"
 	"bitbucket.org/bdsengineering/perceptor/pkg/common"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 )
 
 type metrics struct {
-	httpHandler                  http.Handler
-	handledSuccessfulHttpRequest *prometheus.HistogramVec
+	httpHandler        http.Handler
+	handledHTTPRequest *prometheus.CounterVec
 }
 
 func newMetrics() *metrics {
@@ -25,47 +24,49 @@ func newMetrics() *metrics {
 // successful http requests received
 
 func (m *metrics) addPod(pod common.Pod) {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(0)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "POST", "code": "200"}).Add(1)
 }
 
 func (m *metrics) updatePod(pod common.Pod) {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(1)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "PUT", "code": "200"}).Add(1)
 }
 
 func (m *metrics) deletePod(podName string) {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(2)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "DELETE", "code": "200"}).Add(1)
 }
 
 func (m *metrics) addImage(image common.Image) {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(3)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "image", "method": "POST", "code": "200"}).Add(1)
 }
 
 func (m *metrics) allPods(pods api.AllPods) {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(4)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "allpods", "method": "POST", "code": "200"}).Add(1)
 }
 
 func (m *metrics) getNextImage() {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(5)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "nextimage", "method": "POST", "code": "200"}).Add(1)
 }
 
 func (m *metrics) postFinishedScan() {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(6)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "finishedscan", "method": "POST", "code": "200"}).Add(1)
 }
 
 func (m *metrics) getScanResults() {
-	m.handledSuccessfulHttpRequest.WithLabelValues("path").Observe(7)
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "scanresults", "method": "GET", "code": "200"}).Add(1)
 }
 
 // unsuccessful http requests received
 
 func (m *metrics) httpNotFound(request *http.Request) {
-	// TODO
-	log.Infof("404 when handling HTTP request to %s", request.URL.Path)
+	path := request.URL.Path
+	method := request.Method
+	m.handledHTTPRequest.With(prometheus.Labels{"path": path, "method": method, "code": "404"}).Add(1)
 }
 
 func (m *metrics) httpError(request *http.Request, err error) {
-	// TODO
-	log.Infof("error handling HTTP request to %s: %s", request.URL.Path, err.Error())
+	path := request.URL.Path
+	method := request.Method
+	m.handledHTTPRequest.With(prometheus.Labels{"path": path, "method": method, "code": "500"}).Add(1)
 }
 
 // model
@@ -84,14 +85,13 @@ func (m *metrics) setup() {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
-	m.handledSuccessfulHttpRequest = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "perceptor-core",
-			Name:      "handledSuccessfulHttpRequest",
-			Help:      "requests, handled by perceptor core, which were successful",
-			Buckets:   prometheus.LinearBuckets(0, 1, 8),
-		},
-		[]string{"path"})
-	prometheus.MustRegister(m.handledSuccessfulHttpRequest)
+	m.handledHTTPRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Name:        "core_http_status_codes",
+		Subsystem:   "core",
+		Help:        "status codes for HTTP requests handled by perceptor core",
+		ConstLabels: map[string]string{},
+	},
+		[]string{"path", "method", "code"})
+	prometheus.MustRegister(m.handledHTTPRequest)
 }
