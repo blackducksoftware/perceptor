@@ -2,7 +2,6 @@ package hubclient
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
@@ -40,23 +39,22 @@ func TestCreateAndDeleteProject(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	projectID := ""
-	for _, proj := range projectList.Items {
-		if proj.Name == projectName {
-			strs := strings.Split(proj.Meta.Href, "/")
-			if len(strs) > 0 {
-				projectID = strs[len(strs)-1]
-			}
-			break
+	projects := []hubapi.Project{}
+	for _, project := range projectList.Items {
+		if project.Name == projectName {
+			projects = append(projects, project)
 		}
 	}
 
-	if projectID == "" {
-		t.Errorf("failed to find project of name %s", projectName)
+	if len(projects) != 1 {
+		t.Errorf("expected 1 project of name %s, found %d", projectName, len(projects))
 	}
 
+	project := projects[0]
+	projectURL := project.Meta.Href
+
 	// delete project
-	err = client.DeleteProject(projectID)
+	err = client.DeleteProject(projectURL)
 	if err != nil {
 		t.Error(err)
 	}

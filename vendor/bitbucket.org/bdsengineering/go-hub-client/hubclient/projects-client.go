@@ -63,9 +63,8 @@ func (c *Client) CreateProject(projectRequest *hubapi.ProjectRequest) (string, e
 	return location, err
 }
 
-func (c *Client) DeleteProject(projectId string) error {
-	url := fmt.Sprintf("%s/api/projects/%s", c.baseURL, projectId)
-	return c.httpDelete(url, "application/json", 204)
+func (c *Client) DeleteProject(projectURL string) error {
+	return c.httpDelete(projectURL, "application/json", 204)
 }
 
 func (c *Client) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.ProjectVersionList, error) {

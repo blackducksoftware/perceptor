@@ -91,18 +91,10 @@ func deleteImageFromHub(baseURL string, hubClient *hubclient.Client, image commo
 		return
 	}
 	project := projects[0]
-	// 2. grab that project's id
-	projectID := splitLast(project.Meta.Href)
-	if projectID == nil {
-		return
-	}
-	// time.Sleep(1 * time.Second)
-	// 3. build the URL
-	// deleteURL := fmt.Sprintf("%s:443/api/projects/%s", baseURL, *projectID)
 	// 4. delete the project
-	err = hubClient.DeleteProject(*projectID)
+	err = hubClient.DeleteProject(project.Meta.Href)
 	if err != nil {
-		log.Errorf("unable to DELETE project %s : %s from status code", *projectID, err.Error())
+		log.Errorf("unable to DELETE project %s : %s from status code", project.Meta.Href, err.Error())
 		panic(err)
 	}
 }

@@ -1,8 +1,8 @@
 hash: 49defa33f6035511c08698023c45234f10441f81be571871061bdf0af34f2d26
-updated: 2018-02-02T15:21:47.254360892-05:00
+updated: 2018-02-05T14:08:37.133978044-05:00
 imports:
 - name: bitbucket.org/bdsengineering/go-hub-client
-  version: 266c81256672d8b9e8f444b6525d90815f40dfc6
+  version: b83fbaf780c5d8505a178175db0ac01fb9d2edc9
   repo: git@bitbucket.org:bdsengineering/go-hub-client.git
   vcs: git
   subpackages:
@@ -85,7 +85,7 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/mitchellh/mapstructure
-  version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
+  version: a4e142e9c047c904fa2f1e144d9a84e6133024bc
 - name: github.com/pelletier/go-toml
   version: acdc4509485b587f5e675510c4f2c63e90ff68a8
 - name: github.com/peterbourgon/diskv
@@ -189,7 +189,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: bfe7139b14565386b4470736ca765bf21616b60e
+  version: b29a2d60548358f302231eeb5359d57ed9adebc2
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
