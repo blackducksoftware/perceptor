@@ -33,6 +33,11 @@ and the information relating to those images from the hub.
 It contains business logic for deciding when and what to scan, and provides a REST API for perceivers
 and scanners to communicate with it.
 
+## REST API
+
+See [here](https://confluence.dc1.lan/display/DEV/REST+API+-+Overview+and+Guidelines) for guidelines on patterns.
+
+
 # Scanners
 
 A replication controller.  Each pod is responsible for grabbing the tar file of a docker image,
