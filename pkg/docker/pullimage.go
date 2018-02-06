@@ -41,15 +41,20 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 	stats := ImagePullStats{}
 	start := time.Now()
 
-	err := ip.createImageInLocalDocker(image)
+	createDuration, err := ip.createImageInLocalDocker(image)
+	if createDuration != nil {
+		stats.CreateDuration = createDuration
+	}
 	if err != nil {
 		stats.Err = &ImagePullError{Code: ErrorTypeUnableToCreateImage, RootCause: err}
 		return stats
 	}
-
 	log.Infof("Processing image: %s", image.HumanReadableName())
 
+	startSave := time.Now()
 	fileSize, pullError := ip.saveImageToTar(image)
+	saveDuration := time.Now().Sub(startSave)
+	stats.SaveDuration = &saveDuration
 	if pullError != nil {
 		log.Errorf("save image %+v to tar failed: %s", image, pullError.Error())
 		stats.Err = pullError
@@ -60,7 +65,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 
 	log.Infof("Ready to scan image %s at path %s", image.HumanReadableName(), image.TarFilePath())
 	duration := stop.Sub(start)
-	stats.Duration = &duration
+	stats.TotalDuration = &duration
 	stats.TarFileSizeMBs = fileSize
 	return stats
 }
@@ -71,24 +76,26 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 //
-func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (err error) {
+func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (*time.Duration, error) {
+	start := time.Now()
 	imageURL := image.CreateURL()
 	log.Infof("Attempting to create %s ......", imageURL)
 	resp, err := ip.client.Post(imageURL, "", nil)
 	if err != nil {
 		log.Errorf("Create failed for image %s: %s", imageURL, err.Error())
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		message := fmt.Sprintf("Create may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp)
 		log.Errorf(message)
-		return errors.New(message)
+		return nil, errors.New(message)
 	}
 
 	_, err = ioutil.ReadAll(resp.Body)
-	return err
+	duration := time.Now().Sub(start)
+	return &duration, err
 }
 
 // saveImageToTar: part of what it does is to issue an http request similar to the following:

@@ -13,27 +13,31 @@ const (
 	ErrorTypeUnableToGetFileStats      ErrorType = iota
 )
 
+func (et ErrorType) String() string {
+	switch et {
+	case ErrorTypeUnableToCreateImage:
+		return "unable to create image in local docker"
+	case ErrorTypeUnableToGetImage:
+		return "unable to get image"
+	case ErrorTypeBadStatusCodeFromGetImage:
+		return "bad status code from GET image"
+	case ErrorTypeUnableToCreateTarFile:
+		return "Error opening file"
+	case ErrorTypeUnableToCopyTarFile:
+		return "Error copying file"
+	case ErrorTypeUnableToGetFileStats:
+		return "Error getting file stats"
+	}
+	panic(fmt.Errorf("invalid ErrorType value: %d", et))
+}
+
 type ImagePullError struct {
 	Code      ErrorType
 	RootCause error
 }
 
 func (ipe *ImagePullError) String() string {
-	switch ipe.Code {
-	case ErrorTypeUnableToCreateImage:
-		return fmt.Sprintf("unable to create image in local docker: %s", ipe.RootCause.Error())
-	case ErrorTypeUnableToGetImage:
-		return fmt.Sprintf("unable to get image: %s", ipe.RootCause.Error())
-	case ErrorTypeBadStatusCodeFromGetImage:
-		return fmt.Sprintf("bad status code from GET image: %s", ipe.RootCause.Error())
-	case ErrorTypeUnableToCreateTarFile:
-		return fmt.Sprintf("Error opening file: %s", ipe.RootCause.Error())
-	case ErrorTypeUnableToCopyTarFile:
-		return fmt.Sprintf("Error copying file: %s", ipe.RootCause.Error())
-	case ErrorTypeUnableToGetFileStats:
-		return fmt.Sprintf("Error getting file stats: %s", ipe.RootCause.Error())
-	}
-	panic(fmt.Errorf("invalid ErrorType value: %d", ipe.Code))
+	return fmt.Sprintf("%s: %s", ipe.Code.String(), ipe.RootCause.Error())
 }
 
 func (ipe ImagePullError) Error() string {

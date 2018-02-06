@@ -1,10 +1,13 @@
 package scanner
 
-import "time"
+import (
+	"time"
+
+	"bitbucket.org/bdsengineering/perceptor/pkg/docker"
+)
 
 type ScanClientJobResults struct {
-	PullDuration       *time.Duration
-	TarFileSizeMBs     *int
+	DockerStats        docker.ImagePullStats
 	ScanClientDuration *time.Duration
 	Err                *ScanError
 }

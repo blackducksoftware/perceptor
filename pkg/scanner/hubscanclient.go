@@ -42,8 +42,7 @@ func mapKeys(m map[string]ScanJob) []string {
 func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	results := ScanClientJobResults{}
 	pullStats := hsc.imagePuller.PullImage(job.Image)
-	results.PullDuration = pullStats.Duration
-	results.TarFileSizeMBs = pullStats.TarFileSizeMBs
+	results.DockerStats = pullStats
 	if pullStats.Err != nil {
 		results.Err = &ScanError{Code: ErrorTypeUnableToPullDockerImage, RootCause: pullStats.Err}
 		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), pullStats.Err.Error())

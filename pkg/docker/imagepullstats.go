@@ -5,7 +5,9 @@ import (
 )
 
 type ImagePullStats struct {
-	Duration       *time.Duration
+	CreateDuration *time.Duration
+	SaveDuration   *time.Duration
+	TotalDuration  *time.Duration
 	TarFileSizeMBs *int
 	Err            *ImagePullError
 }

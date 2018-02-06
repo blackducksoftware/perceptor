@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -25,61 +26,31 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 		},
 		[]string{"tarballSize"})
 
-	pullDuration := prometheus.NewHistogramVec(
+	durations := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "perceptor",
 			Subsystem: "scanner",
-			Name:      "pullduration",
-			Help:      "pull duration in seconds",
+			Name:      "timings",
+			Help:      "time durations of scanner operations",
 			Buckets:   prometheus.ExponentialBuckets(0.25, 2, 20),
 		},
-		[]string{"pullDurationSeconds"})
+		[]string{"stage", "durationSeconds"})
 
-	scanDuration := prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "metrics",
-			Name:      "scanduration",
-			Help:      "scan duration in seconds",
-			Buckets:   prometheus.ExponentialBuckets(1, 2, 15),
-		},
-		[]string{"scanDurationSeconds"})
+	errors := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "scanner",
+		Name:      "scannerErrors",
+		Help:      "error codes from image pulling and scanning",
+	}, []string{"task", "errorName"})
 
-	errors := prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "scannerErrors",
-			Help:      "error codes from image scanning",
-			Buckets:   []float64{ErrorTypeUnableToPullDockerImage, ErrorTypeFailedToRunJavaScanner},
-		}, []string{"errorCode"})
-
-	dockerErrors := prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "dockerErrors",
-			Help:      "error codes from pulling images from docker",
-			Buckets:   prometheus.LinearBuckets(float64(docker.ErrorTypeUnableToCreateImage), 1, int(docker.ErrorTypeUnableToGetFileStats)+1),
-		}, []string{"dockerErrorCode"})
-
-	getNextImageHTTPResults := prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "getNextImageHTTPResults",
-			Help:      "HTTP status codes from asking perceptor for images",
-			Buckets:   prometheus.LinearBuckets(0, 100, 6),
-		}, []string{"statusCode"})
-
-	postFinishedScanHTTPResults := prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "postFinishedScanHTTPResults",
-			Help:      "HTTP status codes from posting scan results to perceptor",
-			Buckets:   prometheus.LinearBuckets(0, 100, 6),
-		}, []string{"statusCode"})
+	httpResults := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Subsystem:   "scanner",
+		Name:        "http_response_status_codes",
+		Help:        "status codes for responses from HTTP requests issued by scanner",
+		ConstLabels: map[string]string{},
+	},
+		[]string{"request", "code"})
 
 	go func() {
 		for {
@@ -87,39 +58,50 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 			case stats := <-imageScanStats:
 				log.Infof("got new image scan stats: %v", stats)
 				if stats.ScanClientDuration != nil {
-					scanDuration.WithLabelValues("scanDurationSeconds").Observe(float64(stats.ScanClientDuration.Seconds()))
+					durations.With(prometheus.Labels{"stage": "scan client"}).Observe(stats.ScanClientDuration.Seconds())
 				}
-				if stats.PullDuration != nil {
-					pullDuration.WithLabelValues("pullDurationSeconds").Observe(float64(stats.PullDuration.Seconds()))
+				if stats.DockerStats.CreateDuration != nil {
+					durations.With(prometheus.Labels{"stage": "docker create"}).Observe(stats.DockerStats.CreateDuration.Seconds())
 				}
-				if stats.TarFileSizeMBs != nil {
-					tarballSize.WithLabelValues("tarballSize").Observe(float64(*stats.TarFileSizeMBs))
+				if stats.DockerStats.SaveDuration != nil {
+					durations.With(prometheus.Labels{"stage": "docker save"}).Observe(stats.DockerStats.SaveDuration.Seconds())
+				}
+				if stats.DockerStats.TotalDuration != nil {
+					durations.With(prometheus.Labels{"stage": "docker get image total"}).Observe(stats.DockerStats.TotalDuration.Seconds())
+				}
+				if stats.DockerStats.TarFileSizeMBs != nil {
+					tarballSize.WithLabelValues("tarballSize").Observe(float64(*stats.DockerStats.TarFileSizeMBs))
 				}
 				err := stats.Err
 				if err != nil {
-					errors.WithLabelValues("errorCode").Observe(float64(err.Code))
-					imagePullError, ok := err.RootCause.(docker.ImagePullError)
-					if ok {
-						dockerErrors.WithLabelValues("dockerErrorCode").Observe(float64(imagePullError.Code))
+					var task string
+					var errorName string
+					switch e := err.RootCause.(type) {
+					case docker.ImagePullError:
+						task = "docker pull"
+						errorName = e.Code.String()
+					default:
+						task = "running scan client"
+						errorName = err.Code.String()
 					}
+					errors.With(prometheus.Labels{"task": task, "errorName": errorName})
 				}
 			case httpStats := <-httpStats:
+				var request string
 				switch httpStats.Path {
 				case PathGetNextImage:
-					getNextImageHTTPResults.WithLabelValues("statusCode").Observe(float64(httpStats.StatusCode))
+					request = "getNextImage"
 				case PathPostScanResults:
-					postFinishedScanHTTPResults.WithLabelValues("statusCode").Observe(float64(httpStats.StatusCode))
+					request = "finishScan"
 				}
+				httpResults.With(prometheus.Labels{"request": request, "code": fmt.Sprintf("%d", httpStats.StatusCode)})
 			}
 		}
 	}()
 	prometheus.MustRegister(tarballSize)
-	prometheus.MustRegister(pullDuration)
-	prometheus.MustRegister(scanDuration)
+	prometheus.MustRegister(durations)
 	prometheus.MustRegister(errors)
-	prometheus.MustRegister(dockerErrors)
-	prometheus.MustRegister(getNextImageHTTPResults)
-	prometheus.MustRegister(postFinishedScanHTTPResults)
+	prometheus.MustRegister(httpResults)
 
 	return prometheus.Handler()
 }

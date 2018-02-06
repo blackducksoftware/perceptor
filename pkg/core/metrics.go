@@ -73,6 +73,10 @@ func (m *metrics) httpError(request *http.Request, err error) {
 
 func (m *metrics) updateModel(model Model) {
 	// TODO
+	// number of images in each status
+	// number of pods
+	// number of images per pod
+	// number of times each image seen
 }
 
 // http requests issued
@@ -87,8 +91,8 @@ func (m *metrics) setup() {
 
 	m.handledHTTPRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   "perceptor",
-		Name:        "core_http_status_codes",
 		Subsystem:   "core",
+		Name:        "http_handled_status_codes",
 		Help:        "status codes for HTTP requests handled by perceptor core",
 		ConstLabels: map[string]string{},
 	},
