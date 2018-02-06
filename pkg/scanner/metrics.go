@@ -34,14 +34,14 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 			Help:      "time durations of scanner operations",
 			Buckets:   prometheus.ExponentialBuckets(0.25, 2, 20),
 		},
-		[]string{"stage", "durationSeconds"})
+		[]string{"stage"})
 
 	errors := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
 		Subsystem: "scanner",
 		Name:      "scannerErrors",
 		Help:      "error codes from image pulling and scanning",
-	}, []string{"task", "errorName"})
+	}, []string{"stage", "errorName"})
 
 	httpResults := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   "perceptor",
@@ -74,17 +74,17 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 				}
 				err := stats.Err
 				if err != nil {
-					var task string
+					var stage string
 					var errorName string
 					switch e := err.RootCause.(type) {
 					case docker.ImagePullError:
-						task = "docker pull"
+						stage = "docker pull"
 						errorName = e.Code.String()
 					default:
-						task = "running scan client"
+						stage = "running scan client"
 						errorName = err.Code.String()
 					}
-					errors.With(prometheus.Labels{"task": task, "errorName": errorName})
+					errors.With(prometheus.Labels{"stage": stage, "errorName": errorName})
 				}
 			case httpStats := <-httpStats:
 				var request string

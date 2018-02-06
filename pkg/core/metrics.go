@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -12,6 +13,7 @@ import (
 type metrics struct {
 	httpHandler        http.Handler
 	handledHTTPRequest *prometheus.CounterVec
+	statusGauge        *prometheus.GaugeVec
 }
 
 func newMetrics() *metrics {
@@ -72,14 +74,31 @@ func (m *metrics) httpError(request *http.Request, err error) {
 // model
 
 func (m *metrics) updateModel(model Model) {
-	// TODO
+	// TODO may actually need to watch out for performance, and not let this get called
+	// every single time the model gets updated
+
 	// number of images in each status
-	// number of pods
+	statusCounts := make(map[string]int)
+	for _, imageResults := range model.Images {
+		statusCounts[imageResults.ScanStatus.String()]++
+	}
+	for key, val := range statusCounts {
+		status := fmt.Sprintf("image_status_%s", key)
+		m.statusGauge.With(prometheus.Labels{"name": status}).Set(float64(val))
+	}
+
+	m.statusGauge.With(prometheus.Labels{"name": "number_of_pods"}).Set(float64(len(model.Pods)))
+	m.statusGauge.With(prometheus.Labels{"name": "number_of_images"}).Set(float64(len(model.Images)))
+
+	// TODO -- these may take more computational work
 	// number of images per pod
 	// number of times each image seen
+	// number of images without a pod pointing to them
 }
 
 // http requests issued
+
+// results from checking hub for completed projects (errors, unexpected things, etc.)
 
 // TODO
 
@@ -95,7 +114,15 @@ func (m *metrics) setup() {
 		Name:        "http_handled_status_codes",
 		Help:        "status codes for HTTP requests handled by perceptor core",
 		ConstLabels: map[string]string{},
-	},
-		[]string{"path", "method", "code"})
+	}, []string{"path", "method", "code"})
+
+	m.statusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "status_gauge",
+		Help:      "a gauge of statuses for perceptor core's current state",
+	}, []string{"name"})
+
 	prometheus.MustRegister(m.handledHTTPRequest)
+	prometheus.MustRegister(m.statusGauge)
 }
