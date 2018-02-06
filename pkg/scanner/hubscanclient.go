@@ -40,6 +40,7 @@ func mapKeys(m map[string]ScanJob) []string {
 }
 
 func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
+	startTotal := time.Now()
 	results := ScanClientJobResults{}
 	pullStats := hsc.imagePuller.PullImage(job.Image)
 	results.DockerStats = pullStats
@@ -73,11 +74,13 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 		"-v",
 		path)
 	log.Infof("running command %v for image %s\n", cmd, job.Image.HumanReadableName())
-	start := time.Now()
+	startScanClient := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
-	stop := time.Now()
-	scanClientDuration := stop.Sub(start)
+	stopScanClient := time.Now()
+	scanClientDuration := stopScanClient.Sub(startScanClient)
 	results.ScanClientDuration = &scanClientDuration
+	totalDuration := time.Now().Sub(startTotal)
+	results.TotalDuration = &totalDuration
 	if err != nil {
 		results.Err = &ScanError{Code: ErrorTypeFailedToRunJavaScanner, RootCause: err}
 		log.Errorf("java scanner failed with output:\n%s\n", string(stdoutStderr))

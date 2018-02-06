@@ -57,8 +57,12 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 			select {
 			case stats := <-imageScanStats:
 				log.Infof("got new image scan stats: %v", stats)
+				// durations
 				if stats.ScanClientDuration != nil {
 					durations.With(prometheus.Labels{"stage": "scan client"}).Observe(stats.ScanClientDuration.Seconds())
+				}
+				if stats.TotalDuration != nil {
+					durations.With(prometheus.Labels{"stage": "scan total"}).Observe(stats.TotalDuration.Seconds())
 				}
 				if stats.DockerStats.CreateDuration != nil {
 					durations.With(prometheus.Labels{"stage": "docker create"}).Observe(stats.DockerStats.CreateDuration.Seconds())
@@ -69,9 +73,11 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 				if stats.DockerStats.TotalDuration != nil {
 					durations.With(prometheus.Labels{"stage": "docker get image total"}).Observe(stats.DockerStats.TotalDuration.Seconds())
 				}
+				// file size
 				if stats.DockerStats.TarFileSizeMBs != nil {
 					tarballSize.WithLabelValues("tarballSize").Observe(float64(*stats.DockerStats.TarFileSizeMBs))
 				}
+				// errors
 				err := stats.Err
 				if err != nil {
 					var stage string
@@ -84,7 +90,7 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 						stage = "running scan client"
 						errorName = err.Code.String()
 					}
-					errors.With(prometheus.Labels{"stage": stage, "errorName": errorName})
+					errors.With(prometheus.Labels{"stage": stage, "errorName": errorName}).Inc()
 				}
 			case httpStats := <-httpStats:
 				var request string
@@ -94,7 +100,7 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 				case PathPostScanResults:
 					request = "finishScan"
 				}
-				httpResults.With(prometheus.Labels{"request": request, "code": fmt.Sprintf("%d", httpStats.StatusCode)})
+				httpResults.With(prometheus.Labels{"request": request, "code": fmt.Sprintf("%d", httpStats.StatusCode)}).Inc()
 			}
 		}
 	}()
