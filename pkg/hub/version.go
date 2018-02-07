@@ -48,10 +48,7 @@ func (version *Version) IsImageScanDone() bool {
 
 		for _, scanSummary := range codeLocation.ScanSummaries {
 			// and for each scan summary:
-			switch scanSummary.Status {
-			case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
-				continue
-			default:
+			if !isScanSummaryStatusDone(scanSummary.Status) {
 				return false
 			}
 		}

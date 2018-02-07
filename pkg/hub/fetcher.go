@@ -297,16 +297,23 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 		return nil, err
 	}
 
-	switch len(scanSummariesList.Items) {
+	scanSummaries := []hubapi.ScanSummary{}
+	for _, scanSummary := range scanSummariesList.Items {
+		if isScanSummaryStatusDone(scanSummary.Status) {
+			scanSummaries = append(scanSummaries, scanSummary)
+		}
+	}
+
+	switch len(scanSummaries) {
 	case 0:
-		return nil, nil // TODO should this be a half-filled-out ImageScan ?
+		return nil, nil
 	case 1:
 		break // good to go, continue
 	default:
 		return nil, fmt.Errorf("expected to find one scan summary for code location %s, found %d", image.HubScanName(), len(scanSummariesList.Items))
 	}
 
-	scanSummary := scanSummariesList.Items[0]
+	scanSummary := scanSummaries[0]
 
 	scan := ImageScan{
 		RiskProfile: RiskProfile{
@@ -334,6 +341,12 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 	return &scan, nil
 }
 
+// FetchScanFromImage returns an ImageScan only if:
+// - it can find a project with the matching name, with
+// - a project version with the matching name, with
+// - one code location, with
+// - one scan summary, with
+// - a completed status
 func (hf *Fetcher) FetchScanFromImage(image common.Image) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectName())
 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})

@@ -35,13 +35,10 @@ type ImageScan struct {
 	CodeLocationUpdatedAt            string
 }
 
+// IsDone returns whether the hub imagescan results indicate that the scan is
+// complete.
 func (scan *ImageScan) IsDone() bool {
-	switch scan.ScanSummary.Status {
-	case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
-		return true
-	default:
-		return false
-	}
+	return isScanSummaryStatusDone(scan.ScanSummary.Status)
 }
 
 func (scan *ImageScan) VulnerabilityCount() int {
