@@ -162,20 +162,16 @@ func (hf *Fetcher) fetchProject(p hubapi.Project) (*Project, error) {
 // FetchProjectByName searches for a project with the matching name,
 //   returning a populated Project model
 func (hf *Fetcher) FetchProjectByName(projectName string) (*Project, error) {
-	// TODO instead of listing projects like this, do:
-	//   https://34.227.56.110.xip.io/api/projects?&q=name:Perceptor
-	// this will require a change in the go-hub-client library
-	projs, err := hf.client.ListProjects(nil)
+	queryString := fmt.Sprintf("name:%s", projectName)
+	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err
 	}
-	for _, p := range projs.Items {
-		if p.Name != projectName {
-			// log.Info("skipping project ", p.Name, " as it doesn't match requested name ", projectName)
-			continue
+	for _, p := range projectList.Items {
+		if p.Name == projectName {
+			return hf.fetchProject(p)
 		}
-		return hf.fetchProject(p)
 	}
 	return nil, nil
 }
@@ -188,11 +184,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	// TODO search by name
-	// q := fmt.Sprintf("versionName:%s", image.HubVersionName())
-	// options := hubapi.GetListOptions{Q: &q}
-	// versionList, err := client.ListProjectVersions(*link, &options)
-	versionList, err := client.ListProjectVersions(*link, nil)
+	q := fmt.Sprintf("versionName:%s", image.HubVersionName())
+	options := hubapi.GetListOptions{Q: &q}
+	versionList, err := client.ListProjectVersions(*link, &options)
 	if err != nil {
 		log.Errorf("error fetching project versions: %v", err)
 		return nil, err

@@ -130,6 +130,7 @@ func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.Http
 		if resp != nil {
 			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
 		} else {
+			// TODO so this 400 is actually a lie ... need to change it
 			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: 400}
 		}
 		if err != nil {

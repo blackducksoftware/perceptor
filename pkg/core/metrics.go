@@ -90,13 +90,25 @@ func (m *metrics) updateModel(model Model) {
 func (m *metrics) generateStatusMetrics() {
 	model := m.latestModel
 
+	// log.Info("generating status metrics")
+
 	// number of images in each status
-	statusCounts := make(map[string]int)
+	statusCounts := make(map[ScanStatus]int)
 	for _, imageResults := range model.Images {
-		statusCounts[imageResults.ScanStatus.String()]++
+		statusCounts[imageResults.ScanStatus]++
 	}
-	for key, val := range statusCounts {
-		status := fmt.Sprintf("image_status_%s", key)
+	keys := []ScanStatus{
+		ScanStatusUnknown,
+		ScanStatusInHubCheckQueue,
+		ScanStatusCheckingHub,
+		ScanStatusInQueue,
+		ScanStatusRunningScanClient,
+		ScanStatusRunningHubScan,
+		ScanStatusComplete,
+		ScanStatusError}
+	for _, key := range keys {
+		val := statusCounts[key]
+		status := fmt.Sprintf("image_status_%s", key.String())
 		m.statusGauge.With(prometheus.Labels{"name": status}).Set(float64(val))
 	}
 
@@ -172,7 +184,9 @@ func (m *metrics) setup() {
 	prometheus.MustRegister(m.statusHistogram)
 
 	go func() {
-		m.generateStatusMetrics()
-		time.Sleep(15 * time.Second)
+		for {
+			m.generateStatusMetrics()
+			time.Sleep(15 * time.Second)
+		}
 	}()
 }
