@@ -28,36 +28,33 @@ import (
 )
 
 type action interface {
-  apply(model Model) Model
+	apply(model Model) Model
 }
 
-
 type addPod struct {
-  pod common.Pod
+	pod common.Pod
 }
 
 func (a addPod) apply(model Model) Model {
-  model.AddPod(a.pod)
+	model.AddPod(a.pod)
 	return model
 }
 
-
 type updatePod struct {
-  pod common.Pod
+	pod common.Pod
 }
 
 func (u updatePod) apply(model Model) Model {
-  model.AddPod(u.pod)
+	model.AddPod(u.pod)
 	return model
 }
 
-
 type deletePod struct {
-  podName string
+	podName string
 }
 
 func (d deletePod) apply(model Model) Model {
-  _, ok := model.Pods[d.podName]
+	_, ok := model.Pods[d.podName]
 	if !ok {
 		log.Warnf("unable to delete pod %s, pod not found", d.podName)
 		return model
@@ -66,48 +63,44 @@ func (d deletePod) apply(model Model) Model {
 	return model
 }
 
-
 type addImage struct {
-  image common.Image
+	image common.Image
 }
 
 func (a addImage) apply(model Model) Model {
-  model.AddImage(a.image)
+	model.AddImage(a.image)
 	return model
 }
 
-
 type allPods struct {
-  pods []common.Pod
+	pods []common.Pod
 }
 
 func (a allPods) apply(model Model) Model {
-  model.Pods = map[string]common.Pod{}
+	model.Pods = map[string]common.Pod{}
 	for _, pod := range a.pods {
 		model.AddPod(pod)
 	}
 	return model
 }
 
-
 type getNextImage struct {
-  continuation func(image *common.Image)
+	continuation func(image *common.Image)
 }
 
 func (g getNextImage) apply(model Model) Model {
-  log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.inProgressScanCount())
+	log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.inProgressScanCount())
 	image := model.getNextImageFromScanQueue()
 	g.continuation(image)
 	return model
 }
 
-
 type finishScanClient struct {
-  job api.FinishedScanClientJob
+	job api.FinishedScanClientJob
 }
 
 func (f finishScanClient) apply(model Model) Model {
-  newModel := model
+	newModel := model
 	log.Infof("finished scan client job action: error was empty? %t, %+v", f.job.Err == "", f.job.Image)
 	if f.job.Err == "" {
 		newModel.finishRunningScanClient(f.job.Image)
