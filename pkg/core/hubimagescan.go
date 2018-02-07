@@ -22,8 +22,8 @@ under the License.
 package core
 
 import (
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 type HubImageScan struct {

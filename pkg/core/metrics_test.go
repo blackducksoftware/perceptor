@@ -24,8 +24,8 @@ package core
 import (
 	"testing"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/api"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -24,7 +24,7 @@ package scanner
 import (
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	"github.com/blackducksoftware/perceptor/pkg/docker"
 )
 
 type ScanClientJobResults struct {

@@ -27,8 +27,8 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/api"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

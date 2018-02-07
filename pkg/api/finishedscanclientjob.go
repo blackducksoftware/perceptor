@@ -22,7 +22,7 @@ under the License.
 package api
 
 import (
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 type FinishedScanClientJob struct {

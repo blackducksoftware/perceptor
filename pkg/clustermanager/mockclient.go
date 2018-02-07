@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 // MockClient implements the client interface without actually requiring

@@ -22,7 +22,7 @@ under the License.
 package scanner
 
 import (
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 type ScanClientInterface interface {

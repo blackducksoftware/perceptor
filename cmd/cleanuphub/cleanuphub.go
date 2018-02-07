@@ -29,8 +29,8 @@ import (
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
-	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	clustermanager "github.com/blackducksoftware/perceptor/pkg/clustermanager"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 

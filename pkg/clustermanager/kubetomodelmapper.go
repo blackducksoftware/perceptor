@@ -22,7 +22,7 @@ under the License.
 package clustermanager
 
 import (
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/common/log"
 
 	"k8s.io/api/core/v1"

@@ -22,9 +22,9 @@ under the License.
 package core
 
 import (
-  "bitbucket.org/bdsengineering/perceptor/pkg/common"
-  "bitbucket.org/bdsengineering/perceptor/pkg/api"
-  log "github.com/sirupsen/logrus"
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
+	log "github.com/sirupsen/logrus"
 )
 
 type action interface {

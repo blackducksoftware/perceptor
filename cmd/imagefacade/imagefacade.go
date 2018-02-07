@@ -25,10 +25,10 @@ package main
 import (
 	"flag"
 
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
-	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
 )
 
 type input struct {

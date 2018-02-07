@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 // need: mock hub, ?mock apiserver?

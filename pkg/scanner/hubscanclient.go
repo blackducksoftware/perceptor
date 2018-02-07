@@ -26,7 +26,7 @@ import (
 	"os/exec"
 	"time"
 
-	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
 

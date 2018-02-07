@@ -24,7 +24,7 @@ package clustermanager
 import (
 	"fmt"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
 	"encoding/json"

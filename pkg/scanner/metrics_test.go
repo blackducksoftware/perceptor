@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	"github.com/blackducksoftware/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
 

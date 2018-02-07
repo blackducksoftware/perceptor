@@ -27,10 +27,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 
-	pdocker "bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
 )
 
 func main() {

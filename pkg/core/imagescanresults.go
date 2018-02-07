@@ -21,7 +21,7 @@ under the License.
 
 package core
 
-import "bitbucket.org/bdsengineering/perceptor/pkg/hub"
+import "github.com/blackducksoftware/perceptor/pkg/hub"
 
 type ImageScanResults struct {
 	ScanStatus  ScanStatus

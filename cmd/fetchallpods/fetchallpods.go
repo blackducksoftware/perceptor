@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
+	"github.com/blackducksoftware/perceptor/pkg/clustermanager"
 )
 
 func main() {

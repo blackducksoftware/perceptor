@@ -21,7 +21,7 @@ under the License.
 
 package hub
 
-import "bitbucket.org/bdsengineering/perceptor/pkg/common"
+import "github.com/blackducksoftware/perceptor/pkg/common"
 
 type FetcherInterface interface {
 	FetchScanFromImage(image common.Image) (*ImageScan, error)

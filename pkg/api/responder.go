@@ -24,7 +24,7 @@ package api
 import (
 	"net/http"
 
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 type Responder interface {

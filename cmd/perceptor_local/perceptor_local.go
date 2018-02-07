@@ -25,7 +25,7 @@ import (
 	"os"
 	"os/user"
 
-	core "bitbucket.org/bdsengineering/perceptor/pkg/core"
+	core "github.com/blackducksoftware/perceptor/pkg/core"
 	log "github.com/sirupsen/logrus"
 )
 

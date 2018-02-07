@@ -29,8 +29,8 @@ import (
 	"net/http"
 	"time"
 
-	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
-	clustermanager "bitbucket.org/bdsengineering/perceptor/pkg/clustermanager"
+	api "github.com/blackducksoftware/perceptor/pkg/api"
+	clustermanager "github.com/blackducksoftware/perceptor/pkg/clustermanager"
 	log "github.com/sirupsen/logrus"
 )
 

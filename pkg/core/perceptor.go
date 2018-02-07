@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"bitbucket.org/bdsengineering/perceptor/pkg/hub"
+	api "github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 

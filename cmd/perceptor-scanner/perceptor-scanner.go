@@ -29,9 +29,9 @@ import (
 	"net/http"
 	"time"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/api"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
-	"bitbucket.org/bdsengineering/perceptor/pkg/scanner"
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )

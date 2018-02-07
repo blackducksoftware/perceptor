@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/common/log"
 )
 

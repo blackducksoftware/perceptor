@@ -27,7 +27,7 @@ import (
 	"os"
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
-	scanner "bitbucket.org/bdsengineering/perceptor/pkg/scanner"
+	scanner "github.com/blackducksoftware/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )
 

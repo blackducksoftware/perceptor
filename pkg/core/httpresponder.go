@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "bitbucket.org/bdsengineering/perceptor/pkg/api"
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	api "github.com/blackducksoftware/perceptor/pkg/api"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/common/log"
 )
 

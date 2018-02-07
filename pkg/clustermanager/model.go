@@ -22,7 +22,7 @@ under the License.
 package clustermanager
 
 import (
-	common "bitbucket.org/bdsengineering/perceptor/pkg/common"
+	common "github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 // AddPod is a wrapper around the kubernetes API object

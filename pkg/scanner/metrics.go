@@ -26,7 +26,7 @@ import (
 	"net/http"
 	"os"
 
-	"bitbucket.org/bdsengineering/perceptor/pkg/docker"
+	"github.com/blackducksoftware/perceptor/pkg/docker"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )

@@ -21,7 +21,7 @@ under the License.
 
 package api
 
-import "bitbucket.org/bdsengineering/perceptor/pkg/common"
+import "github.com/blackducksoftware/perceptor/pkg/common"
 
 type AllPods struct {
 	Pods []common.Pod

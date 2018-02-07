@@ -22,7 +22,7 @@ under the License.
 package main
 
 import (
-	core "bitbucket.org/bdsengineering/perceptor/pkg/core"
+	core "github.com/blackducksoftware/perceptor/pkg/core"
 )
 
 func main() {

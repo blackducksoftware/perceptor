@@ -26,7 +26,7 @@ import (
 
 	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
 	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
-	"bitbucket.org/bdsengineering/perceptor/pkg/common"
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
