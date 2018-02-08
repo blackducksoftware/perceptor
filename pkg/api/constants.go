@@ -21,9 +21,10 @@ under the License.
 
 package api
 
-// Two things that should work:
+// Three things that should work:
 // curl -X GET http://perceptor.bds-perceptor.svc.cluster.local:3001/metrics
 // curl -X GET http://perceptor.bds-perceptor:3001/metrics
+// curl -X GET http://perceptor:3001/metrics
 const (
 	PerceptorBaseURL = "http://perceptor"
 	// perceptor-scanner paths
