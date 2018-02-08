@@ -50,11 +50,15 @@ import (
 func main() {
 	log.Info("started")
 
-	config, err := GetScannerConfig()
-	if err != nil {
-		log.Error("Failed to load configuration")
-		panic(err)
-	}
+	// config, err := GetScannerConfig()
+	// if err != nil {
+	// 	log.Error("Failed to load configuration")
+	// 	panic(err)
+	// }
+	config := ScannerConfig{
+		HubHost:         "34.227.56.110.xip.io",
+		HubUser:         "sysadmin",
+		HubUserPassword: "blackduck"}
 
 	scanClient, err := scanner.NewHubScanClient(config.HubHost, config.HubUser, config.HubUserPassword)
 	if err != nil {
