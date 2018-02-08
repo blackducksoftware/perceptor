@@ -1,4 +1,4 @@
-package: bitbucket.org/bdsengineering/perceptor
+package: github.com/blackducksoftware/perceptor
 import:
 - package: bitbucket.org/bdsengineering/go-hub-client
   repo: git@bitbucket.org:bdsengineering/go-hub-client.git
@@ -20,19 +20,3 @@ import:
   version: v1.0.4
 - package: github.com/spf13/viper
   version: v1.0.0
-- package: k8s.io/api
-  subpackages:
-  - core/v1
-- package: k8s.io/apimachinery
-  subpackages:
-  - pkg/apis/meta/v1
-  - pkg/fields
-  - pkg/util/runtime
-  - pkg/util/wait
-- package: k8s.io/client-go
-  version: v6.0.0
-  subpackages:
-  - kubernetes
-  - tools/cache
-  - tools/clientcmd
-  - util/workqueue
