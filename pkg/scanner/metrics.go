@@ -33,35 +33,38 @@ import (
 
 // ScannerMetricsHandler handles http requests to get prometheus metrics
 // for image scanning
-func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats <-chan HttpResult) http.Handler {
+func ScannerMetricsHandler(hostName string, imageScanStats <-chan ScanClientJobResults, httpStats <-chan HttpResult) http.Handler {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	tarballSize := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "tarballsize",
-			Help:      "tarball file size in MBs",
-			Buckets:   prometheus.ExponentialBuckets(1, 2, 15),
+			Namespace:   "perceptor",
+			Subsystem:   "scanner",
+			Name:        "tarballsize",
+			Help:        "tarball file size in MBs",
+			Buckets:     prometheus.ExponentialBuckets(1, 2, 15),
+			ConstLabels: map[string]string{"hostName": hostName},
 		},
 		[]string{"tarballSize"})
 
 	durations := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace: "perceptor",
-			Subsystem: "scanner",
-			Name:      "timings",
-			Help:      "time durations of scanner operations",
-			Buckets:   prometheus.ExponentialBuckets(0.25, 2, 20),
+			Namespace:   "perceptor",
+			Subsystem:   "scanner",
+			Name:        "timings",
+			Help:        "time durations of scanner operations",
+			Buckets:     prometheus.ExponentialBuckets(0.25, 2, 20),
+			ConstLabels: map[string]string{"hostName": hostName},
 		},
 		[]string{"stage"})
 
 	errors := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "perceptor",
-		Subsystem: "scanner",
-		Name:      "scannerErrors",
-		Help:      "error codes from image pulling and scanning",
+		Namespace:   "perceptor",
+		Subsystem:   "scanner",
+		Name:        "scannerErrors",
+		Help:        "error codes from image pulling and scanning",
+		ConstLabels: map[string]string{"hostName": hostName},
 	}, []string{"stage", "errorName"})
 
 	httpResults := prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -69,7 +72,7 @@ func ScannerMetricsHandler(imageScanStats <-chan ScanClientJobResults, httpStats
 		Subsystem:   "scanner",
 		Name:        "http_response_status_codes",
 		Help:        "status codes for responses from HTTP requests issued by scanner",
-		ConstLabels: map[string]string{},
+		ConstLabels: map[string]string{"hostName": hostName},
 	},
 		[]string{"request", "code"})
 
