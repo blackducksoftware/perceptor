@@ -26,7 +26,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -75,7 +77,13 @@ func main() {
 		}
 	}()
 
-	http.Handle("/metrics", scanner.ScannerMetricsHandler(imageScanStats, httpStats))
+	hostName, err := os.Hostname()
+	if err != nil {
+		log.Errorf("unable to get hostname: %s", err.Error())
+		hostName = fmt.Sprintf("%d", rand.Int())
+	}
+	log.Infof("using hostName %s", hostName)
+	http.Handle("/metrics", scanner.ScannerMetricsHandler(hostName, imageScanStats, httpStats))
 
 	addr := fmt.Sprintf(":%s", api.PerceptorScannerPort)
 	http.ListenAndServe(addr, nil)
