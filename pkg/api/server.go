@@ -28,7 +28,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,7 +58,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var pod common.Pod
+			var pod Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
 				log.Infof("unable to ummarshal JSON for pod POST: %s", err.Error())
@@ -74,7 +73,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var pod common.Pod
+			var pod Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
 				responder.Error(w, r, err, 400)
@@ -119,7 +118,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var image common.Image
+			var image Image
 			err = json.Unmarshal(body, &image)
 			if err != nil {
 				responder.Error(w, r, err, 400)

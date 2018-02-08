@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -68,7 +67,7 @@ func (m *metrics) addImage(image common.Image) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "image", "method": "POST", "code": "200"}).Inc()
 }
 
-func (m *metrics) allPods(pods api.AllPods) {
+func (m *metrics) allPods(pods []common.Pod) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "allpods", "method": "POST", "code": "200"}).Inc()
 }
 

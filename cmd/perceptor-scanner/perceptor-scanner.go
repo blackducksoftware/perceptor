@@ -52,15 +52,11 @@ import (
 func main() {
 	log.Info("started")
 
-	// config, err := GetScannerConfig()
-	// if err != nil {
-	// 	log.Error("Failed to load configuration")
-	// 	panic(err)
-	// }
-	config := ScannerConfig{
-		HubHost:         "34.227.56.110.xip.io",
-		HubUser:         "sysadmin",
-		HubUserPassword: "blackduck"}
+	config, err := GetScannerConfig()
+	if err != nil {
+		log.Errorf("Failed to load configuration: %s", err.Error())
+		panic(err)
+	}
 
 	scanClient, err := scanner.NewHubScanClient(config.HubHost, config.HubUser, config.HubUserPassword)
 	if err != nil {
@@ -192,8 +188,8 @@ type ScannerConfig struct {
 func GetScannerConfig() (*ScannerConfig, error) {
 	var cfg *ScannerConfig
 
-	viper.SetConfigName("scanner_conf")
-	viper.AddConfigPath("/etc/scanner_conf")
+	viper.SetConfigName("perceptor_scanner_conf")
+	viper.AddConfigPath("/etc/perceptor_scanner")
 
 	err := viper.ReadInConfig()
 	if err != nil {
