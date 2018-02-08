@@ -31,7 +31,7 @@ items:
               name: perceptor-config
         containers:
           - name: perceptor
-            image: gcr.io/gke-verification/rr-perceptor-scanner:latest
+            image: mfenwickbd/perceptor-scanner:latest
             imagePullPolicy: Always
             command:
               - ./dependencies/perceptor-scanner

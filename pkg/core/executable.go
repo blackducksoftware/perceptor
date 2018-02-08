@@ -66,11 +66,15 @@ func RunLocally(kubeconfigPath string) {
 func RunFromInsideCluster() {
 	log.Info("start")
 
-	config, err := GetPerceptorConfig()
-	if err != nil {
-		log.Errorf("Failed to load configuration: %s", err.Error())
-		panic(err)
-	}
+	// config, err := GetPerceptorConfig()
+	// if err != nil {
+	// 	log.Errorf("Failed to load configuration: %s", err.Error())
+	// 	panic(err)
+	// }
+	config := &PerceptorConfig{
+		HubHost:         "34.227.56.110.xip.io",
+		HubUser:         "sysadmin",
+		HubUserPassword: "blackduck"}
 
 	// TODO: Start watching the config file.  Will need to refactor to allow hub client to be
 	// recreated, possibly other things
