@@ -19,16 +19,25 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package core
 
-type ScanResults struct {
-	// TODO should ScannerVersion and HubServer be handled by perceiver, or supplied by perceptor?
-	ScannerVersion string
-	HubServer      string
-	Pods           []ScannedPod
-	Images         []ScannedImage
+import (
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/common"
+)
+
+func newImage(apiImage api.Image) *common.Image {
+	return common.NewImage(apiImage.Name, apiImage.Sha, apiImage.DockerImage)
 }
 
-func NewScanResults(scannerVersion string, hubServer string, pods []ScannedPod, images []ScannedImage) *ScanResults {
-	return &ScanResults{ScannerVersion: scannerVersion, HubServer: hubServer, Pods: pods, Images: images}
+func newContainer(apiContainer api.Container) *common.Container {
+	return common.NewContainer(*newImage(apiContainer.Image), apiContainer.Name)
+}
+
+func newPod(apiPod api.Pod) *common.Pod {
+	containers := []common.Container{}
+	for _, apiContainer := range apiPod.Containers {
+		containers = append(containers, *newContainer(apiContainer))
+	}
+	return common.NewPod(apiPod.Name, apiPod.UID, apiPod.Namespace, containers)
 }

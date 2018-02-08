@@ -21,14 +21,12 @@ under the License.
 
 package api
 
-type ScanResults struct {
-	// TODO should ScannerVersion and HubServer be handled by perceiver, or supplied by perceptor?
-	ScannerVersion string
-	HubServer      string
-	Pods           []ScannedPod
-	Images         []ScannedImage
+type Image struct {
+	Name        string
+	Sha         string
+	DockerImage string
 }
 
-func NewScanResults(scannerVersion string, hubServer string, pods []ScannedPod, images []ScannedImage) *ScanResults {
-	return &ScanResults{ScannerVersion: scannerVersion, HubServer: hubServer, Pods: pods, Images: images}
+func NewImage(name string, sha string, dockerImage string) *Image {
+	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
 }

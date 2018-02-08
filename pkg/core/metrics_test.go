@@ -24,7 +24,6 @@ package core
 import (
 	"testing"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,7 +36,7 @@ func TestMetrics(t *testing.T) {
 
 	m.addImage(common.Image{})
 	m.addPod(common.Pod{})
-	m.allPods(api.AllPods{})
+	m.allPods([]common.Pod{})
 	m.deletePod("abcd")
 	m.getNextImage()
 	m.getScanResults()

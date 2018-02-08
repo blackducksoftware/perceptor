@@ -77,7 +77,8 @@ func (hr *HTTPResponder) GetModel() string {
 	return string(jsonBytes)
 }
 
-func (hr *HTTPResponder) AddPod(pod common.Pod) {
+func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
+	pod := *newPod(apiPod)
 	hr.metricsHandler.addPod(pod)
 	hr.addPod <- pod
 	log.Infof("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
@@ -89,21 +90,27 @@ func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 	log.Infof("handled delete pod %s", qualifiedName)
 }
 
-func (hr *HTTPResponder) UpdatePod(pod common.Pod) {
+func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
+	pod := *newPod(apiPod)
 	hr.metricsHandler.updatePod(pod)
 	hr.updatePod <- pod
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
-func (hr *HTTPResponder) AddImage(image common.Image) {
+func (hr *HTTPResponder) AddImage(apiImage api.Image) {
+	image := *newImage(apiImage)
 	hr.metricsHandler.addImage(image)
 	hr.addImage <- image
 	log.Infof("handled add image %s", image.HumanReadableName())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
-	hr.metricsHandler.allPods(allPods)
-	hr.allPods <- allPods.Pods
+	pods := []common.Pod{}
+	for _, apiPod := range allPods.Pods {
+		pods = append(pods, *newPod(apiPod))
+	}
+	hr.metricsHandler.allPods(pods)
+	hr.allPods <- pods
 	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
 }
 
@@ -111,15 +118,15 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	hr.metricsHandler.getScanResults()
 	scannerVersion := "TODO"
 	hubServer := "TODO"
-	pods := []api.Pod{}
-	images := []api.Image{}
+	pods := []api.ScannedPod{}
+	images := []api.ScannedImage{}
 	for podName, pod := range hr.model.Pods {
 		policyViolationCount, vulnerabilityCount, overallStatus, err := hr.model.scanResults(podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
 			continue
 		}
-		pods = append(pods, api.Pod{
+		pods = append(pods, api.ScannedPod{
 			Namespace:        pod.Namespace,
 			Name:             pod.Name,
 			PolicyViolations: policyViolationCount,
@@ -135,7 +142,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 			policyViolations = imageResults.ScanResults.PolicyViolationCount()
 			vulnerabilities = imageResults.ScanResults.VulnerabilityCount()
 		}
-		apiImage := api.Image{
+		apiImage := api.ScannedImage{
 			Name:              image.HumanReadableName(),
 			Sha:               image.Sha,
 			ScanID:            scanID,

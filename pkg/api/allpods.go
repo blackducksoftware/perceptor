@@ -21,12 +21,10 @@ under the License.
 
 package api
 
-import "github.com/blackducksoftware/perceptor/pkg/common"
-
 type AllPods struct {
-	Pods []common.Pod
+	Pods []Pod
 }
 
-func NewAllPods(pods []common.Pod) *AllPods {
+func NewAllPods(pods []Pod) *AllPods {
 	return &AllPods{Pods: pods}
 }
