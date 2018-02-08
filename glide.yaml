@@ -1,7 +1,7 @@
 package: github.com/blackducksoftware/perceptor
 import:
-- package: bitbucket.org/bdsengineering/go-hub-client
-  repo: git@bitbucket.org:bdsengineering/go-hub-client.git
+- package: github.com/blackducksoftware/hub-client-go
+  repo: git@github.com:blackducksoftware/hub-client-go.git
   vcs: git
   subpackages:
   - hubapi

@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
+	"github.com/blackducksoftware/hub-client-go/hubclient"
 	scanner "github.com/blackducksoftware/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 )

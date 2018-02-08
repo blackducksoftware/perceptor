@@ -24,8 +24,8 @@ package hub
 import (
 	"fmt"
 
-	"bitbucket.org/bdsengineering/go-hub-client/hubapi"
-	"bitbucket.org/bdsengineering/go-hub-client/hubclient"
+	"github.com/blackducksoftware/hub-client-go/hubapi"
+	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
