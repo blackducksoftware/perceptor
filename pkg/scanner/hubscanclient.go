@@ -23,9 +23,11 @@ package scanner
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
 	log "github.com/sirupsen/logrus"
 )
@@ -65,6 +67,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	results := ScanClientJobResults{}
 	pullStats := hsc.imagePuller.PullImage(job.Image)
 	results.DockerStats = pullStats
+	defer cleanUpTarFile(job.Image)
 	if pullStats.Err != nil {
 		results.Err = &ScanError{Code: ErrorTypeUnableToPullDockerImage, RootCause: pullStats.Err}
 		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), pullStats.Err.Error())
@@ -151,4 +154,13 @@ func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
 	}
 	log.Infof("successfully completed ./scan.docker.sh: %s", stdoutStderr)
 	return nil
+}
+
+func cleanUpTarFile(image common.Image) {
+	err := os.Remove(image.TarFilePath())
+	if err != nil {
+		log.Errorf("unable to remove file %s: %s", image.TarFilePath(), err.Error())
+	} else {
+		log.Infof("successfully cleaned up file %s", image.TarFilePath())
+	}
 }
