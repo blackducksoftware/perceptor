@@ -52,7 +52,7 @@ func main() {
 
 	config, err := GetScannerConfig()
 	if err != nil {
-		log.Error("Failed to load configuration")
+		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
 	}
 
@@ -180,8 +180,8 @@ type ScannerConfig struct {
 func GetScannerConfig() (*ScannerConfig, error) {
 	var cfg *ScannerConfig
 
-	viper.SetConfigName("scanner_conf")
-	viper.AddConfigPath("/etc/scanner_conf")
+	viper.SetConfigName("perceptor_scanner_conf")
+	viper.AddConfigPath("/etc/perceptor_scanner")
 
 	err := viper.ReadInConfig()
 	if err != nil {
