@@ -27,7 +27,7 @@ import (
 	"os"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
-	scanner "github.com/blackducksoftware/perceptor/pkg/scanner"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,7 +60,7 @@ func listProjects() {
 	err = client.Login(username, password)
 	if err == nil {
 		log.Info("success logging in!")
-		projects, _ := client.ListProjects()
+		projects, _ := client.ListProjects(nil)
 		// log.Info("projects: %v", projects)
 		for _, p := range projects.Items {
 			log.Infof("project: %s: %s", p.Name, p.Description)
@@ -71,11 +71,11 @@ func listProjects() {
 }
 
 func HitHubAPI(projectName string) {
-	pf, err := scanner.NewHubFetcher(username, password, baseURL)
+	pf, err := hub.NewFetcher(username, password, baseURL)
 	if err != nil {
 		panic("unable to instantiate ProjectFetcher: " + err.Error())
 	}
-	project, err := pf.FetchProjectOfName(projectName)
+	project, err := pf.FetchProjectByName(projectName)
 	if err != nil {
 		panic("unable to fetch project " + projectName + "; " + err.Error())
 	}
@@ -93,13 +93,13 @@ func exampleHubAPI() {
 	err = client.Login(username, password)
 	if err == nil {
 		log.Info("success logging in!")
-		projects, _ := client.ListProjects()
+		projects, _ := client.ListProjects(nil)
 		log.Info("projects: %v", projects)
 	} else {
 		log.Errorf("unable to log in, %v", err)
 	}
 
-	projs, err := client.ListProjects()
+	projs, err := client.ListProjects(nil)
 	if err != nil {
 		panic(fmt.Sprintf("error fetching project list: %v", err))
 	}
@@ -110,7 +110,7 @@ func exampleHubAPI() {
 		if err != nil {
 			panic(fmt.Sprintf("error getting project versions link: %v", err))
 		}
-		versions, err := client.ListProjectVersions(*link)
+		versions, err := client.ListProjectVersions(*link, nil)
 		if err != nil {
 			panic(fmt.Sprintf("error fetching project version: %v", err))
 		}
