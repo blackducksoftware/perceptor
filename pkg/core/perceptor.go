@@ -80,7 +80,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	httpResponder := NewHTTPResponder(model, metricsHandler)
 	api.SetupHTTPServer(httpResponder)
 
-	concurrentScanLimit := 1
+	concurrentScanLimit := 2
 
 	// 2. combine actions
 	go func() {
