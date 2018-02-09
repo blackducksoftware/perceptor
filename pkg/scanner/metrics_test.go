@@ -33,7 +33,7 @@ import (
 func TestMetrics(t *testing.T) {
 	scanResults := make(chan ScanClientJobResults)
 	httpResults := make(chan HttpResult)
-	m := ScannerMetricsHandler(scanResults, httpResults)
+	m := ScannerMetricsHandler("hostName", scanResults, httpResults)
 	if m == nil {
 		t.Error("expected m to be non-nil")
 	}
