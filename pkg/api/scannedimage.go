@@ -26,6 +26,7 @@ type ScannedImage struct {
 	Sha               string
 	PolicyViolations  int
 	Vulnerabilities   int
+	OverallStatus     string
 	ProjectVersionURL string
 	ScanID            string
 }
