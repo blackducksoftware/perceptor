@@ -44,8 +44,8 @@ paths:
         schema:
           $ref: "#/definitions/Pod"
       responses:
-        405:
-          description: "Invalid input"
+        200:
+          description: "success"
     put:
       tags:
       - "perceiver"
@@ -88,8 +88,6 @@ paths:
       responses:
         200:
           description: "successful"
-        400:
-          description: "request problem"
   /scanresults:
     get:
       tags:
@@ -176,11 +174,16 @@ paths:
 definitions:
   NextImage:
     type: "object"
+    required:
+    - "Image"
     properties:
       Image:
         $ref: "#/definitions/Image"
   FinishedScanClientJob:
     type: "object"
+    required:
+    - "Image"
+    - "Err"
     properties:
       Image:
         $ref: "#/definitions/Image"
@@ -189,6 +192,9 @@ definitions:
         description: "empty string means no error"
   ScanResults:
     type: "object"
+    required:
+    - "Pods"
+    - "Images"
     properties:
       Pods:
         type: "array"
@@ -200,6 +206,12 @@ definitions:
           $ref: "#/definitions/ScannedImage"
   ScannedPod:
     type: "object"
+    required:
+    - "Name"
+    - "Namespace"
+    - "PolicyViolations"
+    - "Vulnerabilities"
+    - "OverallStatus"
     properties:
       Namespace:
         type: "string"
@@ -213,12 +225,20 @@ definitions:
         type: "string"
   ScannedImage:
     type: "object"
+    required:
+    - "Name"
+    - "Sha"
+    - "PolicyViolations"
+    - "Vulnerabilities"
+    - "OverallStatus"
+    - "ProjectVersionURL"
+    - "ScanID"
     properties:
       Name:
         type: "string"
       Sha:
         type: "string"
-      PolicyViolations: 
+      PolicyViolations:
         type: "integer"
       Vulnerabilities:
         type: "integer"
@@ -230,6 +250,8 @@ definitions:
         type: "string"
   AllPods:
     type: "object"
+    required:
+    - "Pods"
     properties:
       Pods:
         type: "array"
@@ -237,6 +259,10 @@ definitions:
           $ref: "#/definitions/Pod"
   Image:
     type: "object"
+    required:
+    - "Name"
+    - "Sha"
+    - "DockerImage"
     properties:
       Name:
         type: "string"
@@ -266,6 +292,9 @@ definitions:
       name: "Pet"
   Container:
     type: "object"
+    required:
+    - "Name"
+    - "Image"
     properties:
       Name:
         type: "string"
