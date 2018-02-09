@@ -21,11 +21,7 @@ under the License.
 
 package api
 
-import (
-	"github.com/blackducksoftware/perceptor/pkg/common"
-)
-
 type FinishedScanClientJob struct {
-	Image common.Image
+	Image Image
 	Err   string
 }
