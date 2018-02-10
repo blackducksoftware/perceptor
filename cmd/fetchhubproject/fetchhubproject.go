@@ -71,7 +71,7 @@ func listProjects() {
 }
 
 func HitHubAPI(projectName string) {
-	pf, err := hub.NewFetcher(username, password, baseURL)
+	pf, err := hub.NewHubFetcher(username, password, baseURL)
 	if err != nil {
 		panic("unable to instantiate ProjectFetcher: " + err.Error())
 	}
