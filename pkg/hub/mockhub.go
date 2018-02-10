@@ -27,11 +27,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
+// implements a Fetcher.
 // need: mock hub, ?mock apiserver?
-
 // MockHub is a mock implementation of ScanClientInterface .
 type MockHub struct {
 	inProgressImages []string
@@ -45,6 +46,27 @@ func NewMockHub() *MockHub {
 	return hub
 }
 
+// interface implementation for Fetcher
+
+func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
+	return nil, nil
+}
+
+func (hub *MockHub) FetchScanFromImage(image common.Image) (*ImageScan, error) {
+	return nil, nil
+}
+
+func (hub *MockHub) login() error {
+	return nil
+}
+
+func (hub *MockHub) fetchProject(p hubapi.Project) (*Project, error) {
+	return nil, nil
+}
+
+// Mock functionality
+
+// startRandomScanFinishing simulates a hub which is in the progress of scanning some number of images.
 func (hub *MockHub) startRandomScanFinishing() {
 	fmt.Println("starting!")
 	for {
@@ -61,12 +83,4 @@ func (hub *MockHub) startRandomScanFinishing() {
 		hub.inProgressImages = append(hub.inProgressImages[:index], hub.inProgressImages[index+1:]...)
 		hub.finishedImages[image] = 1
 	}
-}
-
-func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
-	return nil, nil
-}
-
-func (hub *MockHub) FetchScanFromImage(image common.Image) (*ImageScan, error) {
-	return nil, nil
 }

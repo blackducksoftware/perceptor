@@ -29,7 +29,6 @@ import (
 // Fetcher is a mockable interface for HUB API calls.
 type Fetcher interface {
 	login() error
-	NewHubFetcher(username string, password string, baseURL string) (*Fetcher, error)
 	fetchProject(p hubapi.Project) (*Project, error)
 	FetchProjectByName(projectName string) (*Project, error)
 	FetchScanFromImage(image common.Image) (*ImageScan, error)

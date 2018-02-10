@@ -43,7 +43,8 @@ func NewHubFetcher(username string, password string, baseURL string) (*HubFetche
 		username:   username,
 		password:   password,
 		baseURL:    baseURL,
-		isLoggedIn: false}
+		isLoggedIn: false,
+	}
 	err = hf.login()
 	if err != nil {
 		return nil, err

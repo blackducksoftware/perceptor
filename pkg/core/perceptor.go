@@ -57,7 +57,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(cfg *PerceptorConfig) (*Perceptor, error) {
 	baseURL := "https://" + cfg.HubHost
-	hubClient, err := hub.NewFetcher(cfg.HubUser, cfg.HubUserPassword, baseURL)
+	hubClient, err := hub.NewHubFetcher(cfg.HubUser, cfg.HubUserPassword, baseURL)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
