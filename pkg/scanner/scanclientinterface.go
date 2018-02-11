@@ -32,9 +32,9 @@ type ScanClientInterface interface {
 }
 
 type ScanJob struct {
-	Image common.Image
+	Image *common.Image
 }
 
-func NewScanJob(image common.Image) *ScanJob {
+func NewScanJob(image *common.Image) *ScanJob {
 	return &ScanJob{Image: image}
 }

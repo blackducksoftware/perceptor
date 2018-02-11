@@ -28,7 +28,7 @@ import (
 )
 
 type ScanClientJobResults struct {
-	DockerStats        docker.ImagePullStats
+	DockerStats        *docker.ImagePullStats
 	ScanClientDuration *time.Duration
 	TotalDuration      *time.Duration
 	Err                *ScanError

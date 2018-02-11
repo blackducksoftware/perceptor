@@ -22,6 +22,7 @@ under the License.
 package docker
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -31,4 +32,10 @@ type ImagePullStats struct {
 	TotalDuration  *time.Duration
 	TarFileSizeMBs *int
 	Err            *ImagePullError
+}
+
+func (img *ImagePullStats) Summary() string {
+	return fmt.Sprintf("[image pull stats : create %v save %v total_duration %v sizeMB %v (Error %v) ]",
+		img.CreateDuration, img.SaveDuration, img.TotalDuration, img.TarFileSizeMBs, img.Err)
+
 }

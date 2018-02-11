@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -118,7 +119,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var image Image
+			var image *common.Image
 			err = json.Unmarshal(body, &image)
 			if err != nil {
 				responder.Error(w, r, err, 400)

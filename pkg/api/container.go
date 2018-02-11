@@ -21,11 +21,16 @@ under the License.
 
 package api
 
+import "github.com/blackducksoftware/perceptor/pkg/common"
+
 type Container struct {
-	Image Image
+	Image *common.Image
 	Name  string
 }
 
-func NewContainer(image Image, name string) *Container {
-	return &Container{Image: image, Name: name}
+func NewContainer(image *common.Image, name string) *Container {
+	return &Container{
+		image,
+		name,
+	}
 }

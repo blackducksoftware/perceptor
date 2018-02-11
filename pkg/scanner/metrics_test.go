@@ -31,8 +31,8 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	scanResults := make(chan ScanClientJobResults)
-	httpResults := make(chan HttpResult)
+	scanResults := make(chan *ScanClientJobResults)
+	httpResults := make(chan *HttpResult)
 	m := ScannerMetricsHandler("hostName", scanResults, httpResults)
 	if m == nil {
 		t.Error("expected m to be non-nil")
@@ -43,8 +43,8 @@ func TestMetrics(t *testing.T) {
 	saveDuration := time.Duration(32768 * time.Millisecond)
 	totalDuration := time.Duration(createDuration.Nanoseconds() + saveDuration.Nanoseconds())
 	fileSize := 123423
-	scanResults <- ScanClientJobResults{
-		DockerStats: docker.ImagePullStats{
+	scanResults <- &ScanClientJobResults{
+		DockerStats: &docker.ImagePullStats{
 			CreateDuration: &createDuration,
 			Err:            nil,
 			SaveDuration:   &saveDuration,
@@ -55,7 +55,7 @@ func TestMetrics(t *testing.T) {
 		ScanClientDuration: &duration,
 	}
 
-	httpResults <- HttpResult{
+	httpResults <- &HttpResult{
 		Path:       PathGetNextImage,
 		StatusCode: 200,
 	}

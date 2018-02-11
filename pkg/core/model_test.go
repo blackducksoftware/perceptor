@@ -31,8 +31,8 @@ import (
 
 func TestMarshalModel(t *testing.T) {
 	model := Model{ConcurrentScanLimit: 1,
-		ImageHubCheckQueue: []common.Image{common.Image{}},
-		ImageScanQueue:     []common.Image{},
+		ImageHubCheckQueue: []*common.Image{&common.Image{}},
+		ImageScanQueue:     []*common.Image{},
 		Images:             map[common.Image]*ImageScanResults{},
 		Pods:               map[string]common.Pod{}}
 	jsonBytes, err := json.Marshal(model)
