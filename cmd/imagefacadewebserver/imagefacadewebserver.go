@@ -39,7 +39,7 @@ func main() {
 
 func setupHTTPServer() {
 	imagePuller := pdocker.NewImagePuller()
-	results := []pdocker.ImagePullStats{}
+	results := []*pdocker.ImagePullStats{}
 	http.HandleFunc("/pull", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -49,7 +49,7 @@ func setupHTTPServer() {
 				http.Error(w, err.Error(), 400)
 				return
 			}
-			var image common.Image
+			var image *common.Image
 			err = json.Unmarshal(body, &image)
 			if err != nil {
 				log.Infof("unable to ummarshal JSON for pod POST: %s", err.Error())
@@ -57,7 +57,12 @@ func setupHTTPServer() {
 				return
 			}
 			go func() {
-				results = append(results, imagePuller.PullImage(image))
+				pullStats, err := imagePuller.PullImage(image)
+				if err != nil {
+					results = append(results, pullStats)
+				} else {
+					log.Errorf("Something terrible happened when pulling the image %v", image.Sha)
+				}
 			}()
 		}
 	})
@@ -73,8 +78,9 @@ func setupHTTPServer() {
 		fmt.Fprint(w, "start pretty stats:\n")
 		for _, result := range results {
 			fmt.Fprint(w, "stats: ")
-			if result.Duration != nil {
-				fmt.Fprintf(w, "seconds: %d", int(result.Duration.Seconds()))
+
+			if result.TotalDuration != nil {
+				fmt.Fprintf(w, "seconds: %d", int(result.TotalDuration.Seconds()))
 			}
 			if result.TarFileSizeMBs != nil {
 				fmt.Fprintf(w, "  file size: %d", result.TarFileSizeMBs)
