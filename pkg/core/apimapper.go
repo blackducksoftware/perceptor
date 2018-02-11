@@ -26,7 +26,7 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
-func newImage(apiImage api.Image) *common.Image {
+func newImage(apiImage *common.Image) *common.Image {
 	return common.NewImage(apiImage.Name, apiImage.Sha, apiImage.DockerImage)
 }
 

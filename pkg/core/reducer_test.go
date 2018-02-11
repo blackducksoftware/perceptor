@@ -139,7 +139,7 @@ func TestReducer(t *testing.T) {
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: nextImage}}
 	}()
 
 	newModel = <-reducer.model
@@ -273,7 +273,7 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: *nextImage}}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: nextImage}}
 	}()
 
 	newModel = <-reducer.model
@@ -321,7 +321,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: nextImage}}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -359,7 +359,7 @@ func TestScanClientFails(t *testing.T) {
 	image := *common.NewImage("abc", "23bcf2dae3", "bds/abc")
 	model.AddImage(image)
 	model.Images[image].ScanStatus = ScanStatusRunningScanClient
-	model.errorRunningScanClient(image)
+	model.errorRunningScanClient(&image)
 
 	if model.Images[image].ScanStatus != ScanStatusInQueue {
 		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image].ScanStatus)

@@ -88,14 +88,14 @@ func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
 
 	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
 	if scan.Scan == nil {
-		model.addImageToScanQueue(image)
+		model.addImageToScanQueue(&image)
 	} else if scan.Scan.IsDone() {
 		scanResults.ScanStatus = ScanStatusComplete
 	} else {
 		// it could be in the scan client stage, in the hub stage ...
 		// maybe perceptor crashed and just came back up
 		// since we don't know, we have to put it into the scan queue
-		model.addImageToScanQueue(image)
+		model.addImageToScanQueue(&image)
 	}
 
 	return model

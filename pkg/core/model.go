@@ -35,8 +35,8 @@ type Model struct {
 	// Pods is a map of "<namespace>/<name>" to pod
 	Pods                map[string]common.Pod
 	Images              map[common.Image]*ImageScanResults
-	ImageScanQueue      []common.Image
-	ImageHubCheckQueue  []common.Image
+	ImageScanQueue      []*common.Image
+	ImageHubCheckQueue  []*common.Image
 	ConcurrentScanLimit int
 }
 
@@ -105,8 +105,8 @@ func NewModel(concurrentScanLimit int) *Model {
 	return &Model{
 		Pods:                make(map[string]common.Pod),
 		Images:              make(map[common.Image]*ImageScanResults),
-		ImageScanQueue:      []common.Image{},
-		ImageHubCheckQueue:  []common.Image{},
+		ImageScanQueue:      []*common.Image{},
+		ImageHubCheckQueue:  []*common.Image{},
 		ConcurrentScanLimit: concurrentScanLimit}
 }
 
@@ -138,7 +138,7 @@ func (model *Model) AddImage(image common.Image) {
 		addedImage := NewImageScanResults()
 		model.Images[image] = addedImage
 		log.Debugf("added image %s to model", image.HumanReadableName())
-		model.addImageToHubCheckQueue(image)
+		model.addImageToHubCheckQueue(&image)
 	} else {
 		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
 	}
@@ -146,8 +146,8 @@ func (model *Model) AddImage(image common.Image) {
 
 // image state transitions
 
-func (model *Model) safeGet(image common.Image) *ImageScanResults {
-	results, ok := model.Images[image]
+func (model *Model) safeGet(image *common.Image) *ImageScanResults {
+	results, ok := model.Images[*image]
 	if !ok {
 		message := fmt.Sprintf("expected to already have image %s, but did not", image.HumanReadableName())
 		log.Error(message)
@@ -156,7 +156,7 @@ func (model *Model) safeGet(image common.Image) *ImageScanResults {
 	return results
 }
 
-func (model *Model) addImageToHubCheckQueue(image common.Image) {
+func (model *Model) addImageToHubCheckQueue(image *common.Image) {
 	results := model.safeGet(image)
 	switch results.ScanStatus {
 	case ScanStatusUnknown, ScanStatusError:
@@ -170,7 +170,7 @@ func (model *Model) addImageToHubCheckQueue(image common.Image) {
 	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, image)
 }
 
-func (model *Model) addImageToScanQueue(image common.Image) {
+func (model *Model) addImageToScanQueue(image *common.Image) {
 	results := model.safeGet(image)
 	switch results.ScanStatus {
 	case ScanStatusCheckingHub, ScanStatusError:
@@ -200,7 +200,7 @@ func (model *Model) getNextImageFromHubCheckQueue() *common.Image {
 
 	results.ScanStatus = ScanStatusCheckingHub
 	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
-	return &first
+	return first
 }
 
 func (model *Model) getNextImageFromScanQueue() *common.Image {
@@ -224,10 +224,10 @@ func (model *Model) getNextImageFromScanQueue() *common.Image {
 
 	results.ScanStatus = ScanStatusRunningScanClient
 	model.ImageScanQueue = model.ImageScanQueue[1:]
-	return &first
+	return first
 }
 
-func (model *Model) errorRunningScanClient(image common.Image) {
+func (model *Model) errorRunningScanClient(image *common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
@@ -240,7 +240,7 @@ func (model *Model) errorRunningScanClient(image common.Image) {
 	model.addImageToScanQueue(image)
 }
 
-func (model *Model) finishRunningScanClient(image common.Image) {
+func (model *Model) finishRunningScanClient(image *common.Image) {
 	results := model.safeGet(image)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)

@@ -53,11 +53,11 @@ func main() {
 	}
 
 	image := common.NewImage("", in.fromImage, "")
-	err := pdocker.NewImagePuller().PullImage(image)
+	imgstats, err := pdocker.NewImagePuller().PullImage(image)
 
 	if err != nil {
 		log.Errorf("Error while making tar file: %s", err)
 	} else {
-		log.Infof("Ready to scan !!!!! %s %s", in.fromImage, in.tag)
+		log.Infof("Ready to scan !!!!! %s %s : stats: %v", in.fromImage, in.tag, imgstats.TotalDuration)
 	}
 }

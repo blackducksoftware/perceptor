@@ -21,12 +21,13 @@ under the License.
 
 package api
 
-type Image struct {
-	Name        string
-	Sha         string
-	DockerImage string
-}
+// Get rid of me !
+//type Image struct {
+//	Name        string
+//	Sha         string
+//	DockerImage string
+//}
 
-func NewImage(name string, sha string, dockerImage string) *Image {
-	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
-}
+//func NewImage(name string, sha string, dockerImage string) *Image {
+//	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
+//}

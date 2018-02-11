@@ -97,7 +97,7 @@ func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
-func (hr *HTTPResponder) AddImage(apiImage api.Image) {
+func (hr *HTTPResponder) AddImage(apiImage *common.Image) {
 	image := *newImage(apiImage)
 	hr.metricsHandler.addImage(image)
 	hr.addImage <- image

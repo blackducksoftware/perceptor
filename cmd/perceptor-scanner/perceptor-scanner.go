@@ -64,8 +64,8 @@ func main() {
 		panic(err)
 	}
 
-	imageScanStats := make(chan scanner.ScanClientJobResults)
-	httpStats := make(chan scanner.HttpResult)
+	imageScanStats := make(chan *scanner.ScanClientJobResults)
+	httpStats := make(chan *scanner.HttpResult)
 
 	go func() {
 		for {
@@ -90,31 +90,35 @@ func main() {
 	log.Info("Http server started!")
 }
 
-func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan<- scanner.ScanClientJobResults, httpStats chan<- scanner.HttpResult) error {
+func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan<- *scanner.ScanClientJobResults, httpStats chan<- *scanner.HttpResult) error {
 	image := requestScanJob(httpStats)
 	if image == nil {
 		return nil
 	}
-	job := scanner.NewScanJob(*image)
-	scanResults := scanClient.Scan(*job)
-	imageScanStats <- scanResults
-	errorString := ""
-	if scanResults.Err != nil {
-		errorString = scanResults.Err.Error()
+	job := scanner.NewScanJob(image)
+	scanResults, error := scanClient.Scan(job)
+	if error != nil {
+		return error
+	} else {
+		imageScanStats <- scanResults
+		errorString := ""
+		if scanResults.Err != nil {
+			errorString = scanResults.Err.Error()
+		}
+		finishedJob := api.FinishedScanClientJob{Err: errorString, Image: &common.Image{}}
+		log.Infof("about to finish job, going to send over %v", finishedJob)
+		return finishScan(finishedJob, httpStats)
 	}
-	finishedJob := api.FinishedScanClientJob{Err: errorString, Image: job.Image}
-	log.Infof("about to finish job, going to send over %v", finishedJob)
-	return finishScan(finishedJob, httpStats)
 }
 
-func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
+func requestScanJob(httpStats chan<- *scanner.HttpResult) *common.Image {
 	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
 	if resp != nil {
-		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
+		httpStats <- &scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
 	} else {
 		// let's just assume this is due to something we did wrong
-		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: 400}
+		httpStats <- &scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: 400}
 	}
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
@@ -145,7 +149,7 @@ func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
 	return nextImage.Image
 }
 
-func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.HttpResult) error {
+func finishScan(results api.FinishedScanClientJob, httpStats chan<- *scanner.HttpResult) error {
 	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
 	jsonBytes, err := json.Marshal(results)
 	if err != nil {
@@ -157,10 +161,10 @@ func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.Http
 	for {
 		resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
 		if resp != nil {
-			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
+			httpStats <- &scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
 		} else {
 			// TODO so this 400 is actually a lie ... need to change it
-			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: 400}
+			httpStats <- &scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: 400}
 		}
 		if err != nil {
 			log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())

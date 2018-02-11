@@ -23,6 +23,8 @@ package api
 
 import (
 	"net/http"
+
+	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 type Responder interface {
@@ -36,7 +38,7 @@ type Responder interface {
 	UpdatePod(pod Pod)
 	DeletePod(qualifiedName string)
 	GetScanResults() ScanResults
-	AddImage(image Image)
+	AddImage(image *common.Image)
 	UpdateAllPods(allPods AllPods)
 
 	// scanner
