@@ -33,7 +33,7 @@ import (
 
 // ScannerMetricsHandler handles http requests to get prometheus metrics
 // for image scanning
-func ScannerMetricsHandler(hostName string, imageScanStats <-chan ScanClientJobResults, httpStats <-chan HttpResult) http.Handler {
+func ScannerMetricsHandler(hostName string, imageScanStats <-chan *ScanClientJobResults, httpStats <-chan *HttpResult) http.Handler {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 

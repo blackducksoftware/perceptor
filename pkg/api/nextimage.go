@@ -21,10 +21,14 @@ under the License.
 
 package api
 
+import "github.com/blackducksoftware/perceptor/pkg/common"
+
 type NextImage struct {
-	Image *Image
+	Image *common.Image
 }
 
-func NewNextImage(image *Image) *NextImage {
-	return &NextImage{Image: image}
+func NewNextImage(image *common.Image) *NextImage {
+	return &NextImage{
+		image,
+	}
 }

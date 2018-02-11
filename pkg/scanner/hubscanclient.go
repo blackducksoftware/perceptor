@@ -62,16 +62,19 @@ func mapKeys(m map[string]ScanJob) []string {
 	return keys
 }
 
-func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
+func (hsc *HubScanClient) Scan(job *ScanJob) (*ScanClientJobResults, error) {
 	startTotal := time.Now()
-	results := ScanClientJobResults{}
-	pullStats := hsc.imagePuller.PullImage(job.Image)
+	results := &ScanClientJobResults{}
+	pullStats, err := hsc.imagePuller.PullImage(job.Image)
+	if err != nil {
+		return nil, err
+	}
 	results.DockerStats = pullStats
 	defer cleanUpTarFile(job.Image)
 	if pullStats.Err != nil {
 		results.Err = &ScanError{Code: ErrorTypeUnableToPullDockerImage, RootCause: pullStats.Err}
 		log.Errorf("unable to pull docker image %s: %s", job.Image.HumanReadableName(), pullStats.Err.Error())
-		return results
+		return results, nil
 	}
 	// TODO coupla problems here:
 	//   1. hardcoded path
@@ -108,10 +111,11 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	if err != nil {
 		results.Err = &ScanError{Code: ErrorTypeFailedToRunJavaScanner, RootCause: err}
 		log.Errorf("java scanner failed with output:\n%s\n", string(stdoutStderr))
-		return results
+		// TODO, this probably should be nil, err
+		return results, err
 	}
 	log.Infof("successfully completed java scanner: %s", stdoutStderr)
-	return results
+	return results, nil
 }
 
 func (hsc *HubScanClient) ScanCliSh(job ScanJob) error {
@@ -156,7 +160,7 @@ func (hsc *HubScanClient) ScanDockerSh(job ScanJob) error {
 	return nil
 }
 
-func cleanUpTarFile(image common.Image) {
+func cleanUpTarFile(image *common.Image) {
 	err := os.Remove(image.TarFilePath())
 	if err != nil {
 		log.Errorf("unable to remove file %s: %s", image.TarFilePath(), err.Error())

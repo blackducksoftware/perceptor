@@ -58,17 +58,19 @@ func NewImagePuller() *ImagePuller {
 //   2. pulling down the newly created image and saving as a tarball
 // It does this by accessing the host's docker daemon, locally, over the docker
 // socket.  This gives us a window into any images that are local.
-func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
-	stats := ImagePullStats{}
+func (ip *ImagePuller) PullImage(image *common.Image) (*ImagePullStats, error) {
+	stats := &ImagePullStats{}
 	start := time.Now()
 
 	createDuration, err := ip.createImageInLocalDocker(image)
-	if createDuration != nil {
+	if createDuration != nil && err != nil {
 		stats.CreateDuration = createDuration
+	} else {
+		return nil, err
 	}
 	if err != nil {
 		stats.Err = &ImagePullError{Code: ErrorTypeUnableToCreateImage, RootCause: err}
-		return stats
+		return stats, nil
 	}
 	log.Infof("Processing image: %s", image.HumanReadableName())
 
@@ -79,7 +81,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 	if pullError != nil {
 		log.Errorf("save image %+v to tar failed: %s", image, pullError.Error())
 		stats.Err = pullError
-		return stats
+		return stats, pullError
 	}
 
 	stop := time.Now()
@@ -88,7 +90,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 	duration := stop.Sub(start)
 	stats.TotalDuration = &duration
 	stats.TarFileSizeMBs = fileSize
-	return stats
+	return stats, nil
 }
 
 // createImageInLocalDocker could also be implemented using curl:
@@ -97,7 +99,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 //
-func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (*time.Duration, error) {
+func (ip *ImagePuller) createImageInLocalDocker(image *common.Image) (*time.Duration, error) {
 	start := time.Now()
 	imageURL := image.CreateURL()
 	log.Infof("Attempting to create %s ......", imageURL)
@@ -121,7 +123,7 @@ func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (*time.Durat
 
 // saveImageToTar: part of what it does is to issue an http request similar to the following:
 //   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
-func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, *ImagePullError) {
+func (ip *ImagePuller) saveImageToTar(image *common.Image) (*int, *ImagePullError) {
 	log.Infof("Making http request: [%s]", image.GetURL())
 	resp, err := ip.client.Get(image.GetURL())
 	if err != nil {
