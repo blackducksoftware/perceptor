@@ -52,8 +52,8 @@ func main() {
 		panic("Need -fromImage <image>")
 	}
 
-	image := common.Image(in.fromImage)
-	err := pdocker.PullImage(image)
+	image := common.NewImage("", in.fromImage, "")
+	err := pdocker.NewImagePuller().PullImage(image)
 
 	if err != nil {
 		log.Errorf("Error while making tar file: %s", err)
