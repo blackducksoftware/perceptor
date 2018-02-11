@@ -163,23 +163,23 @@ func (model *Model) getNextImageFromScanQueue() *Image {
 	return &first
 }
 
-func (model *Model) errorRunningScanClient(image Image) {
-	results := model.safeGet(image.Sha)
+func (model *Model) errorRunningScanClient(sha DockerImageSha) {
+	results := model.safeGet(sha)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
+		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
 		log.Errorf(message)
 		panic(message)
 	}
 	results.ScanStatus = ScanStatusError
 	// TODO get rid of these
 	// for now, just readd the image to the queue upon error
-	model.addImageToScanQueue(image.Sha)
+	model.addImageToScanQueue(sha)
 }
 
-func (model *Model) finishRunningScanClient(image Image) {
-	results := model.safeGet(image.Sha)
+func (model *Model) finishRunningScanClient(sha DockerImageSha) {
+	results := model.safeGet(sha)
 	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
+		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
 		log.Errorf(message)
 		panic(message) // TODO get rid of panic
 	}

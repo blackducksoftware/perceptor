@@ -96,7 +96,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 			case pods := <-httpResponder.allPods:
 				actions <- allPods{pods}
 			case job := <-httpResponder.postFinishScanJob:
-				actions <- finishScanClient{job}
+				actions <- finishScanClient{DockerImageSha(job.Sha), job.Err}
 			case continuation := <-httpResponder.postNextImage:
 				actions <- getNextImage{continuation}
 			}

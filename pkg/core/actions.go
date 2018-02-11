@@ -22,7 +22,6 @@ under the License.
 package core
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -95,16 +94,17 @@ func (g getNextImage) apply(model Model) Model {
 }
 
 type finishScanClient struct {
-	job api.FinishedScanClientJob
+	sha DockerImageSha
+	err string
 }
 
 func (f finishScanClient) apply(model Model) Model {
 	newModel := model
-	log.Infof("finished scan client job action: error was empty? %t, %+v", f.job.Err == "", f.job.Image)
-	if f.job.Err == "" {
-		newModel.finishRunningScanClient(*newImage(f.job.Image))
+	log.Infof("finished scan client job action: error was empty? %t, %+v", f.err == "", f.sha)
+	if f.err == "" {
+		newModel.finishRunningScanClient(f.sha)
 	} else {
-		newModel.errorRunningScanClient(*newImage(f.job.Image))
+		newModel.errorRunningScanClient(f.sha)
 	}
 	return newModel
 }

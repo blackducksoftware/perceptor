@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/blackducksoftware/perceptor/pkg/scanner"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -95,19 +94,19 @@ func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan
 	if image == nil {
 		return nil
 	}
-	job := scanner.NewScanJob(*image)
+	job := scanner.NewScanJob(image.PullSpec, image.Sha, image.HubProjectName, image.HubProjectVersionName, image.HubScanName)
 	scanResults := scanClient.Scan(*job)
 	imageScanStats <- scanResults
 	errorString := ""
 	if scanResults.Err != nil {
 		errorString = scanResults.Err.Error()
 	}
-	finishedJob := api.FinishedScanClientJob{Err: errorString, Image: job.Image}
+	finishedJob := api.FinishedScanClientJob{Err: errorString, Sha: job.Sha}
 	log.Infof("about to finish job, going to send over %v", finishedJob)
 	return finishScan(finishedJob, httpStats)
 }
 
-func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
+func requestScanJob(httpStats chan<- scanner.HttpResult) *api.ImageSpec {
 	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
 	if resp != nil {
@@ -137,12 +136,12 @@ func requestScanJob(httpStats chan<- scanner.HttpResult) *common.Image {
 		return nil
 	}
 
-	imageName := "null"
-	if nextImage.Image != nil {
-		imageName = nextImage.Image.ShaName()
+	imageSha := "null"
+	if nextImage.ImageSpec != nil {
+		imageSha = nextImage.ImageSpec.Sha
 	}
-	log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageName)
-	return nextImage.Image
+	log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageSha)
+	return nextImage.ImageSpec
 }
 
 func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.HttpResult) error {

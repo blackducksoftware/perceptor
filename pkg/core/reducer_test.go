@@ -26,7 +26,6 @@ import (
 
 	"reflect"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
@@ -138,8 +137,7 @@ func TestReducer(t *testing.T) {
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
-		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "abc/123")
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *apiNextImage}}
+		actions <- finishScanClient{(*nextImage).Sha, ""}
 	}()
 
 	newModel = <-reducer.model
@@ -273,8 +271,7 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "def/456")
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: *apiNextImage}}
+		actions <- finishScanClient{(*nextImage).Sha, "oops"}
 	}()
 
 	newModel = <-reducer.model
@@ -322,8 +319,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "ghi/789")
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *apiNextImage}}
+		actions <- finishScanClient{(*nextImage).Sha, ""}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -361,7 +357,7 @@ func TestScanClientFails(t *testing.T) {
 	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
 	model.Images[image.Sha].ScanStatus = ScanStatusRunningScanClient
-	model.errorRunningScanClient(image)
+	model.errorRunningScanClient(image.Sha)
 
 	if model.Images[image.Sha].ScanStatus != ScanStatusInQueue {
 		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
