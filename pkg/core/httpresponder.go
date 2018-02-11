@@ -155,10 +155,10 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
 	hr.metricsHandler.getNextImage()
 	hr.postNextImage <- func(image *Image) {
-		sha := string(image.Sha)
 		imageString := "null"
 		var imageSpec *api.ImageSpec
 		if image != nil {
+			sha := string(image.Sha)
 			imageString = image.HumanReadableName()
 			imageSpec = api.NewImageSpec(image.PullSpec(), sha, sha, sha, sha)
 		}
