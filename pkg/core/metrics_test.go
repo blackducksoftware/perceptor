@@ -24,7 +24,6 @@ package core
 import (
 	"testing"
 
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,9 +33,9 @@ func TestMetrics(t *testing.T) {
 		t.Error("expected m to be non-nil")
 	}
 
-	m.addImage(common.Image{})
-	m.addPod(common.Pod{})
-	m.allPods([]common.Pod{})
+	m.addImage(Image{})
+	m.addPod(Pod{})
+	m.allPods([]Pod{})
 	m.deletePod("abcd")
 	m.getNextImage()
 	m.getScanResults()
@@ -44,10 +43,10 @@ func TestMetrics(t *testing.T) {
 	// m.httpError(request, err)
 	// m.httpNotFound(request)
 	m.postFinishedScan()
-	m.updateModel(Model{Images: map[common.Image]*ImageScanResults{
-		common.Image{}: &ImageScanResults{ScanStatus: ScanStatusInQueue, ScanResults: nil},
+	m.updateModel(Model{Images: map[DockerImageSha]*ImageInfo{
+		DockerImageSha("abc"): &ImageInfo{ScanStatus: ScanStatusInQueue, ScanResults: nil},
 	}})
-	m.updatePod(common.Pod{})
+	m.updatePod(Pod{})
 
 	message := "finished test case"
 	t.Log(message)

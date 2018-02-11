@@ -31,7 +31,6 @@ import (
 	"os"
 	"time"
 
-	common "github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,7 +57,7 @@ func NewImagePuller() *ImagePuller {
 //   2. pulling down the newly created image and saving as a tarball
 // It does this by accessing the host's docker daemon, locally, over the docker
 // socket.  This gives us a window into any images that are local.
-func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
+func (ip *ImagePuller) PullImage(image Image) ImagePullStats {
 	stats := ImagePullStats{}
 	start := time.Now()
 
@@ -70,7 +69,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 		stats.Err = &ImagePullError{Code: ErrorTypeUnableToCreateImage, RootCause: err}
 		return stats
 	}
-	log.Infof("Processing image: %s", image.HumanReadableName())
+	log.Infof("Processing image: %s", image.DockerPullSpec())
 
 	startSave := time.Now()
 	fileSize, pullError := ip.saveImageToTar(image)
@@ -84,7 +83,7 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 
 	stop := time.Now()
 
-	log.Infof("Ready to scan image %s at path %s", image.HumanReadableName(), image.TarFilePath())
+	log.Infof("Ready to scan image %s at path %s", image.DockerPullSpec(), image.DockerTarFilePath())
 	duration := stop.Sub(start)
 	stats.TotalDuration = &duration
 	stats.TarFileSizeMBs = fileSize
@@ -97,9 +96,9 @@ func (ip *ImagePuller) PullImage(image common.Image) ImagePullStats {
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 //
-func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (*time.Duration, error) {
+func (ip *ImagePuller) createImageInLocalDocker(image Image) (*time.Duration, error) {
 	start := time.Now()
-	imageURL := image.CreateURL()
+	imageURL := createURL(image)
 	log.Infof("Attempting to create %s ......", imageURL)
 	resp, err := ip.client.Post(imageURL, "", nil)
 	if err != nil {
@@ -121,26 +120,26 @@ func (ip *ImagePuller) createImageInLocalDocker(image common.Image) (*time.Durat
 
 // saveImageToTar: part of what it does is to issue an http request similar to the following:
 //   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
-func (ip *ImagePuller) saveImageToTar(image common.Image) (*int, *ImagePullError) {
-	log.Infof("Making http request: [%s]", image.GetURL())
-	resp, err := ip.client.Get(image.GetURL())
+func (ip *ImagePuller) saveImageToTar(image Image) (*int, *ImagePullError) {
+	url := getURL(image)
+	log.Infof("Making http request: [%s]", url)
+	resp, err := ip.client.Get(url)
 	if err != nil {
 		return nil, &ImagePullError{Code: ErrorTypeUnableToGetImage, RootCause: err}
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, &ImagePullError{
 			Code:      ErrorTypeBadStatusCodeFromGetImage,
-			RootCause: fmt.Errorf("HTTP ERROR: received status != 200 from %s: %s", image.GetURL(), resp.Status)}
+			RootCause: fmt.Errorf("HTTP ERROR: received status != 200 from %s: %s", url, resp.Status)}
 	}
 
-	log.Infof("GET request for %s successful", image.GetURL())
+	log.Infof("GET request for %s successful", url)
 
 	body := resp.Body
 	defer func() {
 		body.Close()
 	}()
-	log.Info("Starting to write file contents to a tar file.")
-	tarFilePath := image.TarFilePath()
-	log.Infof("Tar File Path: %s", tarFilePath)
+	tarFilePath := image.DockerTarFilePath()
+	log.Infof("Starting to write file contents to tar file %s", tarFilePath)
 
 	// just need to create `./tmp` if it doesn't already exist
 	os.Mkdir(ip.rootTarballDir, 0755)

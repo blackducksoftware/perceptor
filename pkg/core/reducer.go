@@ -22,7 +22,6 @@ under the License.
 package core
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +33,7 @@ type reducer struct {
 
 func newReducer(initialModel Model,
 	actions <-chan action,
-	getNextImageForHubPolling <-chan func(image *common.Image),
+	getNextImageForHubPolling <-chan func(image *Image),
 	hubCheckResults <-chan HubImageScan,
 	hubScanResults <-chan HubImageScan) *reducer {
 	model := initialModel
@@ -68,7 +67,7 @@ func newReducer(initialModel Model,
 	return &reducer{model: modelStream}
 }
 
-func updateModelGetNextImageForHubPolling(continuation func(image *common.Image), model Model) Model {
+func updateModelGetNextImageForHubPolling(continuation func(image *Image), model Model) Model {
 	log.Infof("looking for next image to search for in hub")
 	image := model.getNextImageFromHubCheckQueue()
 	continuation(image)
@@ -78,24 +77,24 @@ func updateModelGetNextImageForHubPolling(continuation func(image *common.Image)
 func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
 	image := scan.Image
 
-	scanResults, ok := model.Images[image]
+	imageInfo, ok := model.Images[image.Sha]
 	if !ok {
 		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
 		return model
 	}
 
-	scanResults.ScanResults = scan.Scan
+	imageInfo.ScanResults = scan.Scan
 
 	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
 	if scan.Scan == nil {
-		model.addImageToScanQueue(image)
+		model.addImageToScanQueue(image.Sha)
 	} else if scan.Scan.IsDone() {
-		scanResults.ScanStatus = ScanStatusComplete
+		imageInfo.ScanStatus = ScanStatusComplete
 	} else {
 		// it could be in the scan client stage, in the hub stage ...
 		// maybe perceptor crashed and just came back up
 		// since we don't know, we have to put it into the scan queue
-		model.addImageToScanQueue(image)
+		model.addImageToScanQueue(image.Sha)
 	}
 
 	return model
@@ -104,17 +103,17 @@ func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
 func updateModelAddHubScanResults(scan HubImageScan, model Model) Model {
 	image := scan.Image
 
-	scanResults, ok := model.Images[image]
+	imageInfo, ok := model.Images[image.Sha]
 	if !ok {
 		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
 		return model
 	}
 
-	scanResults.ScanResults = scan.Scan
+	imageInfo.ScanResults = scan.Scan
 
 	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
 	if scan.Scan != nil && scan.Scan.IsDone() {
-		scanResults.ScanStatus = ScanStatusComplete
+		imageInfo.ScanStatus = ScanStatusComplete
 	}
 
 	return model

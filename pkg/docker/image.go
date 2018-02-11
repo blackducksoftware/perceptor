@@ -19,13 +19,30 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package docker
 
-type ScannedImage struct {
-	Name              string
-	Sha               string
-	PolicyViolations  int
-	Vulnerabilities   int
-	OverallStatus     string
-	ProjectVersionURL string
+import (
+	"fmt"
+	"net/url"
+)
+
+type Image interface {
+	DockerPullSpec() string
+	DockerTarFilePath() string
+}
+
+func urlEncodedName(image Image) string {
+	return url.QueryEscape(image.DockerPullSpec())
+}
+
+// createURL returns the URL used for hitting the docker daemon's create endpoint
+func createURL(image Image) string {
+	// TODO v1.24 refers to the docker version.  figure out how to avoid hard-coding this
+	// TODO can probably use the docker api code for this
+	return fmt.Sprintf("http://localhost/v1.24/images/create?fromImage=%s", urlEncodedName(image))
+}
+
+// getURL returns the URL used for hitting the docker daemon's get endpoint
+func getURL(image Image) string {
+	return fmt.Sprintf("http://localhost/v1.24/images/%s/get", urlEncodedName(image))
 }

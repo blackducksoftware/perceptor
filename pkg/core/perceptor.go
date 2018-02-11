@@ -26,7 +26,6 @@ import (
 	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,10 +42,10 @@ type Perceptor struct {
 	// reducer
 	reducer *reducer
 	// channels
-	checkNextImageInHub chan func(image *common.Image)
+	checkNextImageInHub chan func(image *Image)
 	hubCheckResults     chan HubImageScan
 	hubScanResults      chan HubImageScan
-	inProgressHubScans  []common.Image
+	inProgressHubScans  []Image
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock scanclient
@@ -73,7 +72,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 
 	hubScanResults := make(chan HubImageScan)
 	hubCheckResults := make(chan HubImageScan)
-	checkNextImageInHub := make(chan func(image *common.Image))
+	checkNextImageInHub := make(chan func(image *Image))
 	metricsHandler := newMetrics()
 
 	// 1. here's the responder
@@ -119,7 +118,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		checkNextImageInHub: checkNextImageInHub,
 		hubCheckResults:     hubCheckResults,
 		hubScanResults:      hubScanResults,
-		inProgressHubScans:  []common.Image{},
+		inProgressHubScans:  []Image{},
 	}
 
 	// 4. close the circle
@@ -167,8 +166,8 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 	for {
 		var wg sync.WaitGroup
 		wg.Add(1)
-		var image *common.Image
-		perceptor.checkNextImageInHub <- func(i *common.Image) {
+		var image *Image
+		perceptor.checkNextImageInHub <- func(i *Image) {
 			image = i
 			wg.Done()
 		}

@@ -27,16 +27,15 @@ import (
 	"reflect"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	common "github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestReducer(t *testing.T) {
 	concurrentScanLimit := 1
 	initialModel := NewModel(concurrentScanLimit)
 	actions := make(chan action)
-	nextHubCheckImage := make(chan func(image *common.Image))
+	nextHubCheckImage := make(chan func(image *Image))
 	hubCheckResults := make(chan HubImageScan)
 	hubScanResults := make(chan HubImageScan)
 	reducer := newReducer(*initialModel,
@@ -45,16 +44,16 @@ func TestReducer(t *testing.T) {
 		hubCheckResults,
 		hubScanResults)
 
-	image1 := *common.NewImage("image1", "fe67acf", "mfbd/image1")
-	image2 := *common.NewImage("image2", "89ca3ec", "bds/image2")
+	image1 := *NewImage("image1", DockerImageSha("fe67acf"))
+	image2 := *NewImage("image2", DockerImageSha("89ca3ec"))
 
 	// 1. add a pod
 	//   this should add all the images in the pod to the hub check queue (if they haven't already been added),
 	//   add them to the image dictionary, and set their status to HubCheck
 	go func() {
-		actions <- addPod{*common.NewPod("pod1", "uid1", "namespace1", []common.Container{
-			*common.NewContainer(image1, "container1"),
-			*common.NewContainer(image2, "container2"),
+		actions <- addPod{*NewPod("pod1", "uid1", "namespace1", []Container{
+			*NewContainer(image1, "container1"),
+			*NewContainer(image2, "container2"),
 		})}
 	}()
 	newModel := <-reducer.model
@@ -66,7 +65,7 @@ func TestReducer(t *testing.T) {
 		t.Logf("expected there to be 0 images in queue, found %d", len(newModel.ImageScanQueue))
 		t.Fail()
 	}
-	imageResults1, ok1 := newModel.Images[image1]
+	imageResults1, ok1 := newModel.Images[image1.Sha]
 	if !ok1 {
 		t.Logf("couldn't find image1 in image map")
 		t.Fail()
@@ -77,9 +76,9 @@ func TestReducer(t *testing.T) {
 	}
 
 	// 1a. move image1 from unknown into the hub check queue
-	var nextCheckImage *common.Image
+	var nextCheckImage *Image
 	go func() {
-		nextHubCheckImage <- func(image *common.Image) {
+		nextHubCheckImage <- func(image *Image) {
 			nextCheckImage = image
 		}
 	}()
@@ -104,9 +103,9 @@ func TestReducer(t *testing.T) {
 	// 2. ask for the next image from the queue. this should:
 	//   remove the first item from the queue
 	//   change its status to InProgress
-	var nextImage *common.Image
+	var nextImage *Image
 	go func() {
-		actions <- getNextImage{func(image *common.Image) {
+		actions <- getNextImage{func(image *Image) {
 			nextImage = image
 		}}
 	}()
@@ -123,7 +122,7 @@ func TestReducer(t *testing.T) {
 		t.Logf("expected there to be 0 images left in queue, found %d", len(newModel.ImageScanQueue))
 		t.Fail()
 	}
-	imageResults2, ok2 := newModel.Images[image1]
+	imageResults2, ok2 := newModel.Images[image1.Sha]
 	if !ok2 {
 		t.Logf("couldn't find image1 in image map")
 		t.Fail()
@@ -139,11 +138,12 @@ func TestReducer(t *testing.T) {
 	log.Infof("is nil 1? %t", nextImage == nil)
 	go func() {
 		log.Infof("is nil 2? %t", nextImage == nil)
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
+		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "abc/123")
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *apiNextImage}}
 	}()
 
 	newModel = <-reducer.model
-	imageResults3, ok3 := newModel.Images[image1]
+	imageResults3, ok3 := newModel.Images[image1.Sha]
 	if !ok3 {
 		t.Logf("couldn't find image1 in image map")
 		t.Fail()
@@ -156,7 +156,7 @@ func TestReducer(t *testing.T) {
 	// 4. ask for the next image from the queue. this hits the concurrency limit,
 	//    so it should not do anything
 	go func() {
-		actions <- getNextImage{func(image *common.Image) {
+		actions <- getNextImage{func(image *Image) {
 			nextImage = image
 		}}
 	}()
@@ -178,7 +178,7 @@ func TestReducer(t *testing.T) {
 		}
 	}()
 	newModel = <-reducer.model
-	imageResults5, ok5 := newModel.Images[image1]
+	imageResults5, ok5 := newModel.Images[image1.Sha]
 	if !ok5 {
 		t.Logf("couldn't find image1 in image map")
 		t.Fail()
@@ -199,7 +199,7 @@ func TestReducer(t *testing.T) {
 
 	// 6a. move image2 from unknown into the hub check queue
 	go func() {
-		nextHubCheckImage <- func(image *common.Image) {
+		nextHubCheckImage <- func(image *Image) {
 			nextCheckImage = image
 		}
 	}()
@@ -211,7 +211,7 @@ func TestReducer(t *testing.T) {
 		t.Logf("expected to get image2, got %s", nextCheckImage.HumanReadableName())
 		t.Fail()
 	}
-	imageResults6a, ok6a := newModel.Images[image2]
+	imageResults6a, ok6a := newModel.Images[image2.Sha]
 	if !ok6a {
 		t.Logf("couldn't find image2 in image map")
 		t.Fail()
@@ -229,7 +229,7 @@ func TestReducer(t *testing.T) {
 		}
 	}()
 	newModel = <-reducer.model
-	imageResults6b, ok6b := newModel.Images[image2]
+	imageResults6b, ok6b := newModel.Images[image2.Sha]
 	if !ok6b {
 		t.Logf("couldn't find image2 in image map")
 		t.Fail()
@@ -243,7 +243,7 @@ func TestReducer(t *testing.T) {
 	//   remove the first item from the queue
 	//   change its status to InProgress
 	go func() {
-		actions <- getNextImage{func(image *common.Image) {
+		actions <- getNextImage{func(image *Image) {
 			nextImage = image
 		}}
 	}()
@@ -259,7 +259,7 @@ func TestReducer(t *testing.T) {
 		t.Logf("expected the queue to be empty, found %d", len(newModel.ImageScanQueue))
 		t.Fail()
 	}
-	imageResults6, ok6 := newModel.Images[image2]
+	imageResults6, ok6 := newModel.Images[image2.Sha]
 	if !ok6 {
 		t.Logf("couldn't find image2 in image map")
 		t.Fail()
@@ -273,11 +273,12 @@ func TestReducer(t *testing.T) {
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
 	go func() {
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: *nextImage}}
+		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "def/456")
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "oops", Image: *apiNextImage}}
 	}()
 
 	newModel = <-reducer.model
-	imageResults7, ok7 := newModel.Images[image2]
+	imageResults7, ok7 := newModel.Images[image2.Sha]
 	if !ok7 {
 		t.Logf("couldn't find image2 in image map")
 		t.Fail()
@@ -291,7 +292,7 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 8")
 	go func() {
 		log.Info("send message 8")
-		actions <- getNextImage{func(image *common.Image) {
+		actions <- getNextImage{func(image *Image) {
 			nextImage = image
 		}}
 		log.Info("finished sending message 8")
@@ -306,7 +307,7 @@ func TestReducer(t *testing.T) {
 	if *nextImage != image2 {
 		t.Logf("expected image name to be image2, got %s", nextImage.HumanReadableName())
 	}
-	imageResults8, ok8 := newModel.Images[image2]
+	imageResults8, ok8 := newModel.Images[image2.Sha]
 	log.Info("check results 8")
 	if !ok8 {
 		t.Logf("couldn't find image2 in image map")
@@ -321,7 +322,8 @@ func TestReducer(t *testing.T) {
 	log.Info("about to run gofunc for message 9")
 	go func() {
 		log.Info("send message 9")
-		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *nextImage}}
+		apiNextImage := api.NewImage((*nextImage).Name, string((*nextImage).Sha), "ghi/789")
+		actions <- finishScanClient{api.FinishedScanClientJob{Err: "", Image: *apiNextImage}}
 		log.Info("finished sending message 9")
 	}()
 	newModel = <-reducer.model
@@ -339,7 +341,7 @@ func TestReducer(t *testing.T) {
 
 	// 11. ask for next image, get nil because queue is empty
 	go func() {
-		actions <- getNextImage{func(image *common.Image) {
+		actions <- getNextImage{func(image *Image) {
 			log.Infof("image: %v, %t", image, image == nil)
 			nextImage = image
 		}}
@@ -356,13 +358,13 @@ func TestReducer(t *testing.T) {
 func TestScanClientFails(t *testing.T) {
 	concurrentScanLimit := 1
 	model := NewModel(concurrentScanLimit)
-	image := *common.NewImage("abc", "23bcf2dae3", "bds/abc")
+	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
-	model.Images[image].ScanStatus = ScanStatusRunningScanClient
+	model.Images[image.Sha].ScanStatus = ScanStatusRunningScanClient
 	model.errorRunningScanClient(image)
 
-	if model.Images[image].ScanStatus != ScanStatusInQueue {
-		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image].ScanStatus)
+	if model.Images[image.Sha].ScanStatus != ScanStatusInQueue {
+		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
 		t.Fail()
 	}
 

@@ -27,32 +27,31 @@ import (
 	"net/http"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
-	common "github.com/blackducksoftware/perceptor/pkg/common"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // HTTPResponder ...
 type HTTPResponder struct {
 	model             Model
 	metricsHandler    *metrics
-	addPod            chan common.Pod
-	updatePod         chan common.Pod
+	addPod            chan Pod
+	updatePod         chan Pod
 	deletePod         chan string
-	addImage          chan common.Image
-	allPods           chan []common.Pod
-	postNextImage     chan func(*common.Image)
+	addImage          chan Image
+	allPods           chan []Pod
+	postNextImage     chan func(*Image)
 	postFinishScanJob chan api.FinishedScanClientJob
 }
 
 func NewHTTPResponder(model <-chan Model, metricsHandler *metrics) *HTTPResponder {
 	hr := HTTPResponder{
 		metricsHandler:    metricsHandler,
-		addPod:            make(chan common.Pod),
-		updatePod:         make(chan common.Pod),
+		addPod:            make(chan Pod),
+		updatePod:         make(chan Pod),
 		deletePod:         make(chan string),
-		addImage:          make(chan common.Image),
-		allPods:           make(chan []common.Pod),
-		postNextImage:     make(chan func(*common.Image)),
+		addImage:          make(chan Image),
+		allPods:           make(chan []Pod),
+		postNextImage:     make(chan func(*Image)),
 		postFinishScanJob: make(chan api.FinishedScanClientJob)}
 	go func() {
 		for {
@@ -105,7 +104,7 @@ func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
-	pods := []common.Pod{}
+	pods := []Pod{}
 	for _, apiPod := range allPods.Pods {
 		pods = append(pods, *newPod(apiPod))
 	}
@@ -133,19 +132,18 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 			Vulnerabilities:  vulnerabilityCount,
 			OverallStatus:    overallStatus})
 	}
-	for image, imageResults := range hr.model.Images {
-		scanID := image.HubScanName()
+	for _, imageInfo := range hr.model.Images {
 		projectVersionURL := "TODO"
 		policyViolations := 0
 		vulnerabilities := 0
-		if imageResults.ScanResults != nil {
-			policyViolations = imageResults.ScanResults.PolicyViolationCount()
-			vulnerabilities = imageResults.ScanResults.VulnerabilityCount()
+		if imageInfo.ScanResults != nil {
+			policyViolations = imageInfo.ScanResults.PolicyViolationCount()
+			vulnerabilities = imageInfo.ScanResults.VulnerabilityCount()
 		}
+		image := imageInfo.image()
 		apiImage := api.ScannedImage{
 			Name:              image.HumanReadableName(),
-			Sha:               image.Sha,
-			ScanID:            scanID,
+			Sha:               string(image.Sha),
 			PolicyViolations:  policyViolations,
 			Vulnerabilities:   vulnerabilities,
 			ProjectVersionURL: projectVersionURL}
@@ -156,12 +154,16 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
 	hr.metricsHandler.getNextImage()
-	hr.postNextImage <- func(image *common.Image) {
-		continuation(*api.NewNextImage(image))
+	hr.postNextImage <- func(image *Image) {
+		sha := string(image.Sha)
 		imageString := "null"
+		var imageSpec *api.ImageSpec
 		if image != nil {
 			imageString = image.HumanReadableName()
+			imageSpec = api.NewImageSpec(image.PullSpec(), sha, sha, sha, sha)
 		}
+		nextImage := *api.NewNextImage(imageSpec)
+		continuation(nextImage)
 		log.Infof("handled GET next image -- %s", imageString)
 	}
 }

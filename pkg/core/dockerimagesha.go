@@ -19,13 +19,6 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package common
+package core
 
-type Container struct {
-	Image Image
-	Name  string
-}
-
-func NewContainer(image Image, name string) *Container {
-	return &Container{Image: image, Name: name}
-}
+type DockerImageSha string

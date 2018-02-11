@@ -24,27 +24,19 @@ package core
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/blackducksoftware/perceptor/pkg/common"
-	"github.com/prometheus/common/log"
 )
 
-func TestMarshalModel(t *testing.T) {
-	model := Model{ConcurrentScanLimit: 1,
-		ImageHubCheckQueue: []common.Image{common.Image{}},
-		ImageScanQueue:     []common.Image{},
-		Images:             map[common.Image]*ImageScanResults{},
-		Pods:               map[string]common.Pod{}}
-	jsonBytes, err := json.Marshal(model)
-	jb, e := model.MarshalJSON()
-	log.Infof("JSON: %s\n%v", string(jb), e)
+func TestImageJSON(t *testing.T) {
+	jsonString := `{"Name":"docker.io/mfenwickbd/perceptor","Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5","DockerImage":"docker.io/mfenwickbd/perceptor:latest"}`
+	var image Image
+	err := json.Unmarshal([]byte(jsonString), &image)
 	if err != nil {
-		t.Errorf("unable to marshal %v as JSON: %v", model, err)
+		t.Errorf("unable to parse %s as JSON: %v", jsonString, err)
 		t.Fail()
-		return
+		panic("a")
 	}
-	expectedString := `{"Pods":{},"Images":{},"ImageScanQueue":[],"ImageHubCheckQueue":[{"Name":"","Sha":"","DockerImage":""}],"ConcurrentScanLimit":1}`
-	if string(jsonBytes) != expectedString {
-		t.Errorf("expected %s, got %s", expectedString, string(jsonBytes))
+	expectedName := "docker.io/mfenwickbd/perceptor"
+	if image.Name != expectedName {
+		t.Errorf("expected name of %s, got %s", expectedName, image.Name)
 	}
 }

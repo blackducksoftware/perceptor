@@ -22,9 +22,26 @@ under the License.
 package api
 
 type NextImage struct {
-	Image *Image
+	ImageSpec *ImageSpec
 }
 
-func NewNextImage(image *Image) *NextImage {
-	return &NextImage{Image: image}
+func NewNextImage(imageSpec *ImageSpec) *NextImage {
+	return &NextImage{ImageSpec: imageSpec}
+}
+
+type ImageSpec struct {
+	PullSpec              string
+	Sha                   string
+	HubProjectName        string
+	HubProjectVersionName string
+	HubScanName           string
+}
+
+func NewImageSpec(pullSpec string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
+	return &ImageSpec{
+		PullSpec:              pullSpec,
+		Sha:                   sha,
+		HubProjectName:        hubProjectName,
+		HubProjectVersionName: hubProjectVersionName,
+		HubScanName:           hubScanName}
 }

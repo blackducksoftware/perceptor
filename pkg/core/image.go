@@ -19,13 +19,40 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package core
 
-type ScannedImage struct {
-	Name              string
-	Sha               string
-	PolicyViolations  int
-	Vulnerabilities   int
-	OverallStatus     string
-	ProjectVersionURL string
+import (
+	"fmt"
+)
+
+type Image struct {
+	// Name combines Host, User, and Project
+	Name string
+	Sha  DockerImageSha
+}
+
+func NewImage(name string, sha DockerImageSha) *Image {
+	return &Image{Name: name, Sha: sha}
+}
+
+func (image Image) HubProjectName() string {
+	return image.Name
+}
+
+func (image Image) HubProjectVersionName() string {
+	return string(image.Sha)
+}
+
+func (image Image) HubScanName() string {
+	return string(image.Sha)
+}
+
+// HumanReadableName returns a nice, easy to read string
+func (image *Image) HumanReadableName() string {
+	return image.Name
+}
+
+// PullSpec combines Name with the image sha and should be pullable by Docker
+func (image *Image) PullSpec() string {
+	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
 }

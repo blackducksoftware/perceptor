@@ -23,21 +23,20 @@ package core
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
-func newImage(apiImage api.Image) *common.Image {
-	return common.NewImage(apiImage.Name, apiImage.Sha, apiImage.DockerImage)
+func newImage(apiImage api.Image) *Image {
+	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
 }
 
-func newContainer(apiContainer api.Container) *common.Container {
-	return common.NewContainer(*newImage(apiContainer.Image), apiContainer.Name)
+func newContainer(apiContainer api.Container) *Container {
+	return NewContainer(*newImage(apiContainer.Image), apiContainer.Name)
 }
 
-func newPod(apiPod api.Pod) *common.Pod {
-	containers := []common.Container{}
+func newPod(apiPod api.Pod) *Pod {
+	containers := []Container{}
 	for _, apiContainer := range apiPod.Containers {
 		containers = append(containers, *newContainer(apiContainer))
 	}
-	return common.NewPod(apiPod.Name, apiPod.UID, apiPod.Namespace, containers)
+	return NewPod(apiPod.Name, apiPod.UID, apiPod.Namespace, containers)
 }

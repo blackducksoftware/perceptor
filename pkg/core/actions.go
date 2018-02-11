@@ -23,7 +23,6 @@ package core
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +31,7 @@ type action interface {
 }
 
 type addPod struct {
-	pod common.Pod
+	pod Pod
 }
 
 func (a addPod) apply(model Model) Model {
@@ -41,7 +40,7 @@ func (a addPod) apply(model Model) Model {
 }
 
 type updatePod struct {
-	pod common.Pod
+	pod Pod
 }
 
 func (u updatePod) apply(model Model) Model {
@@ -64,7 +63,7 @@ func (d deletePod) apply(model Model) Model {
 }
 
 type addImage struct {
-	image common.Image
+	image Image
 }
 
 func (a addImage) apply(model Model) Model {
@@ -73,11 +72,11 @@ func (a addImage) apply(model Model) Model {
 }
 
 type allPods struct {
-	pods []common.Pod
+	pods []Pod
 }
 
 func (a allPods) apply(model Model) Model {
-	model.Pods = map[string]common.Pod{}
+	model.Pods = map[string]Pod{}
 	for _, pod := range a.pods {
 		model.AddPod(pod)
 	}
@@ -85,7 +84,7 @@ func (a allPods) apply(model Model) Model {
 }
 
 type getNextImage struct {
-	continuation func(image *common.Image)
+	continuation func(image *Image)
 }
 
 func (g getNextImage) apply(model Model) Model {
@@ -103,9 +102,9 @@ func (f finishScanClient) apply(model Model) Model {
 	newModel := model
 	log.Infof("finished scan client job action: error was empty? %t, %+v", f.job.Err == "", f.job.Image)
 	if f.job.Err == "" {
-		newModel.finishRunningScanClient(f.job.Image)
+		newModel.finishRunningScanClient(*newImage(f.job.Image))
 	} else {
-		newModel.errorRunningScanClient(f.job.Image)
+		newModel.errorRunningScanClient(*newImage(f.job.Image))
 	}
 	return newModel
 }

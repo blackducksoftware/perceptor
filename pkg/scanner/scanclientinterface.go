@@ -21,20 +21,8 @@ under the License.
 
 package scanner
 
-import (
-	common "github.com/blackducksoftware/perceptor/pkg/common"
-)
-
 type ScanClientInterface interface {
 	Scan(job ScanJob) (*ScanClientJobResults, error)
-	ScanCliSh(job ScanJob) error
-	ScanDockerSh(job ScanJob) error
-}
-
-type ScanJob struct {
-	Image common.Image
-}
-
-func NewScanJob(image common.Image) *ScanJob {
-	return &ScanJob{Image: image}
+	//ScanCliSh(job ScanJob) error
+	//ScanDockerSh(job ScanJob) error
 }

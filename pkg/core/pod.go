@@ -19,13 +19,35 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package core
 
-type ScannedImage struct {
-	Name              string
-	Sha               string
-	PolicyViolations  int
-	Vulnerabilities   int
-	OverallStatus     string
-	ProjectVersionURL string
+import "fmt"
+
+type Pod struct {
+	Name       string
+	UID        string
+	Namespace  string
+	Containers []Container
+}
+
+func (pod *Pod) QualifiedName() string {
+	return fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+}
+
+func (pod *Pod) hasImage(image Image) bool {
+	for _, cont := range pod.Containers {
+		if cont.Image == image {
+			return true
+		}
+	}
+	return false
+}
+
+func NewPod(name string, uid string, namespace string, containers []Container) *Pod {
+	return &Pod{
+		Name:       name,
+		UID:        uid,
+		Namespace:  namespace,
+		Containers: containers,
+	}
 }

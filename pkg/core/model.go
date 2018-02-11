@@ -22,91 +22,27 @@ under the License.
 package core
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
-	common "github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
 // Model is the root of the core model
 type Model struct {
 	// Pods is a map of "<namespace>/<name>" to pod
-	Pods                map[string]common.Pod
-	Images              map[common.Image]*ImageScanResults
-	ImageScanQueue      []common.Image
-	ImageHubCheckQueue  []common.Image
+	Pods                map[string]Pod
+	Images              map[DockerImageSha]*ImageInfo
+	ImageScanQueue      []Image
+	ImageHubCheckQueue  []Image
 	ConcurrentScanLimit int
-}
-
-func (model Model) MarshalJSON() ([]byte, error) {
-	strs := []string{"{"}
-	// pods
-	strs = append(strs, "\"Pods\":")
-	podBytes, err := json.Marshal(model.Pods)
-	if err != nil {
-		return []byte{}, err
-	}
-	strs = append(strs, string(podBytes))
-	strs = append(strs, ",")
-	// images
-	strs = append(strs, "\"Images\":{")
-	images := []string{}
-	for key, val := range model.Images {
-		resultsBytes, err := json.Marshal(val.ScanResults)
-		if err != nil {
-			return []byte{}, err
-		}
-		myMap := map[string]string{
-			"ScanStatus":  val.ScanStatus.String(),
-			"ScanResults": string(resultsBytes),
-			"Name":        key.Name,
-			"DockerImage": key.DockerImage,
-		}
-		mapBytes, err := json.Marshal(myMap)
-		if err != nil {
-			return []byte{}, err
-		}
-		images = append(images, fmt.Sprintf("\"%s\":%s", key.Sha, string(mapBytes)))
-	}
-	strs = append(strs, strings.Join(images, ","))
-	strs = append(strs, "},")
-	// ImageScanQueue
-	strs = append(strs, "\"ImageScanQueue\":")
-	scanQueueBytes, err := json.Marshal(model.ImageScanQueue)
-	if err != nil {
-		return []byte{}, err
-	}
-	strs = append(strs, string(scanQueueBytes))
-	strs = append(strs, ",")
-	// ImageHubCheckQueue
-	strs = append(strs, "\"ImageHubCheckQueue\":")
-	checkQueueBytes, err := json.Marshal(model.ImageHubCheckQueue)
-	if err != nil {
-		return []byte{}, err
-	}
-	strs = append(strs, string(checkQueueBytes))
-	strs = append(strs, ",")
-	// ConcurrentScanLimit
-	strs = append(strs, "\"ConcurrentScanLimit\":")
-	concurrentLimitBytes, err := json.Marshal(model.ConcurrentScanLimit)
-	if err != nil {
-		return []byte{}, err
-	}
-	strs = append(strs, string(concurrentLimitBytes))
-	// closing bracket
-	strs = append(strs, "}")
-	// done
-	return []byte(strings.Join(strs, "")), nil
 }
 
 func NewModel(concurrentScanLimit int) *Model {
 	return &Model{
-		Pods:                make(map[string]common.Pod),
-		Images:              make(map[common.Image]*ImageScanResults),
-		ImageScanQueue:      []common.Image{},
-		ImageHubCheckQueue:  []common.Image{},
+		Pods:                make(map[string]Pod),
+		Images:              make(map[DockerImageSha]*ImageInfo),
+		ImageScanQueue:      []Image{},
+		ImageHubCheckQueue:  []Image{},
 		ConcurrentScanLimit: concurrentScanLimit}
 }
 
@@ -121,7 +57,7 @@ func (model *Model) DeletePod(podName string) {
 // The key is the combination of the pod's namespace and name.
 // It extract the containers and images from the pod,
 // adding them into the cache.
-func (model *Model) AddPod(newPod common.Pod) {
+func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
@@ -132,13 +68,13 @@ func (model *Model) AddPod(newPod common.Pod) {
 
 // AddImage adds an image to the model, sets its status to NotScanned,
 // and adds it to the queue for hub checking.
-func (model *Model) AddImage(image common.Image) {
-	_, hasImage := model.Images[image]
+func (model *Model) AddImage(image Image) {
+	_, hasImage := model.Images[image.Sha]
 	if !hasImage {
-		addedImage := NewImageScanResults()
-		model.Images[image] = addedImage
+		newInfo := NewImageInfo(image.Sha, image.Name)
+		model.Images[image.Sha] = newInfo
 		log.Debugf("added image %s to model", image.HumanReadableName())
-		model.addImageToHubCheckQueue(image)
+		model.addImageToHubCheckQueue(image.Sha)
 	} else {
 		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
 	}
@@ -146,64 +82,64 @@ func (model *Model) AddImage(image common.Image) {
 
 // image state transitions
 
-func (model *Model) safeGet(image common.Image) *ImageScanResults {
-	results, ok := model.Images[image]
+func (model *Model) safeGet(sha DockerImageSha) *ImageInfo {
+	results, ok := model.Images[sha]
 	if !ok {
-		message := fmt.Sprintf("expected to already have image %s, but did not", image.HumanReadableName())
+		message := fmt.Sprintf("expected to already have image %s, but did not", string(sha))
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
 	return results
 }
 
-func (model *Model) addImageToHubCheckQueue(image common.Image) {
-	results := model.safeGet(image)
-	switch results.ScanStatus {
+func (model *Model) addImageToHubCheckQueue(sha DockerImageSha) {
+	imageInfo := model.safeGet(sha)
+	switch imageInfo.ScanStatus {
 	case ScanStatusUnknown, ScanStatusError:
 		break
 	default:
-		message := fmt.Sprintf("cannot add image %s to hub check queue, status is neither Unknown nor Error (%s)", image.HumanReadableName(), results.ScanStatus)
+		message := fmt.Sprintf("cannot add image %s to hub check queue, status is neither Unknown nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	results.ScanStatus = ScanStatusInHubCheckQueue
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, image)
+	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
+	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, imageInfo.image())
 }
 
-func (model *Model) addImageToScanQueue(image common.Image) {
-	results := model.safeGet(image)
-	switch results.ScanStatus {
+func (model *Model) addImageToScanQueue(sha DockerImageSha) {
+	imageInfo := model.safeGet(sha)
+	switch imageInfo.ScanStatus {
 	case ScanStatusCheckingHub, ScanStatusError:
 		break
 	default:
-		message := fmt.Sprintf("cannot add image %s to scan queue, status is neither CheckingHub nor Error (%s)", image.HumanReadableName(), results.ScanStatus)
+		message := fmt.Sprintf("cannot add image %s to scan queue, status is neither CheckingHub nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	results.ScanStatus = ScanStatusInQueue
-	model.ImageScanQueue = append(model.ImageScanQueue, image)
+	imageInfo.ScanStatus = ScanStatusInQueue
+	model.ImageScanQueue = append(model.ImageScanQueue, imageInfo.image())
 }
 
-func (model *Model) getNextImageFromHubCheckQueue() *common.Image {
+func (model *Model) getNextImageFromHubCheckQueue() *Image {
 	if len(model.ImageHubCheckQueue) == 0 {
 		log.Info("hub check queue empty")
 		return nil
 	}
 
 	first := model.ImageHubCheckQueue[0]
-	results := model.safeGet(first)
-	if results.ScanStatus != ScanStatusInHubCheckQueue {
-		message := fmt.Sprintf("can't start checking hub for image %s, status is not ScanStatusInHubCheckQueue (%s)", first.HumanReadableName(), results.ScanStatus)
+	imageInfo := model.safeGet(first.Sha)
+	if imageInfo.ScanStatus != ScanStatusInHubCheckQueue {
+		message := fmt.Sprintf("can't start checking hub for image %s, status is not ScanStatusInHubCheckQueue (%s)", string(first.Sha), imageInfo.ScanStatus)
 		log.Errorf(message)
 		panic(message) // TODO get rid of this panic
 	}
 
-	results.ScanStatus = ScanStatusCheckingHub
+	imageInfo.ScanStatus = ScanStatusCheckingHub
 	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
 	return &first
 }
 
-func (model *Model) getNextImageFromScanQueue() *common.Image {
+func (model *Model) getNextImageFromScanQueue() *Image {
 	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
 		log.Infof("max concurrent scan count reached, can't start a new scan -- %v", model.inProgressScanJobs())
 		return nil
@@ -215,20 +151,20 @@ func (model *Model) getNextImageFromScanQueue() *common.Image {
 	}
 
 	first := model.ImageScanQueue[0]
-	results := model.safeGet(first)
-	if results.ScanStatus != ScanStatusInQueue {
-		message := fmt.Sprintf("can't start scanning image %s, status is not InQueue (%s)", first.HumanReadableName(), results.ScanStatus)
+	imageInfo := model.safeGet(first.Sha)
+	if imageInfo.ScanStatus != ScanStatusInQueue {
+		message := fmt.Sprintf("can't start scanning image %s, status is not InQueue (%s)", string(first.Sha), imageInfo.ScanStatus)
 		log.Errorf(message)
 		panic(message) // TODO get rid of this panic
 	}
 
-	results.ScanStatus = ScanStatusRunningScanClient
+	imageInfo.ScanStatus = ScanStatusRunningScanClient
 	model.ImageScanQueue = model.ImageScanQueue[1:]
 	return &first
 }
 
-func (model *Model) errorRunningScanClient(image common.Image) {
-	results := model.safeGet(image)
+func (model *Model) errorRunningScanClient(image Image) {
+	results := model.safeGet(image.Sha)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
 		log.Errorf(message)
@@ -237,11 +173,11 @@ func (model *Model) errorRunningScanClient(image common.Image) {
 	results.ScanStatus = ScanStatusError
 	// TODO get rid of these
 	// for now, just readd the image to the queue upon error
-	model.addImageToScanQueue(image)
+	model.addImageToScanQueue(image.Sha)
 }
 
-func (model *Model) finishRunningScanClient(image common.Image) {
-	results := model.safeGet(image)
+func (model *Model) finishRunningScanClient(image Image) {
+	results := model.safeGet(image.Sha)
 	if results.ScanStatus != ScanStatusRunningScanClient {
 		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
 		log.Errorf(message)
@@ -250,7 +186,7 @@ func (model *Model) finishRunningScanClient(image common.Image) {
 	results.ScanStatus = ScanStatusRunningHubScan
 }
 
-// func (model *Model) finishRunningHubScan(image common.Image) {
+// func (model *Model) finishRunningHubScan(image Image) {
 // 	results := model.safeGet(image)
 // 	if results.ScanStatus != ScanStatusRunningHubScan {
 // 		message := fmt.Sprintf("cannot finish running hub scan for image %s, scan not in progress (%s)", image.HumanReadableName(), results.ScanStatus)
@@ -262,29 +198,29 @@ func (model *Model) finishRunningScanClient(image common.Image) {
 
 // additional methods
 
-func (model *Model) inProgressScanJobs() []common.Image {
-	inProgressImages := []common.Image{}
-	for image, results := range model.Images {
+func (model *Model) inProgressScanJobs() []DockerImageSha {
+	inProgressShas := []DockerImageSha{}
+	for sha, results := range model.Images {
 		switch results.ScanStatus {
 		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			inProgressImages = append(inProgressImages, image)
+			inProgressShas = append(inProgressShas, sha)
 		default:
 			break
 		}
 	}
-	return inProgressImages
+	return inProgressShas
 }
 
 func (model *Model) inProgressScanCount() int {
 	return len(model.inProgressScanJobs())
 }
 
-func (model *Model) inProgressHubScans() []common.Image {
-	inProgressHubScans := []common.Image{}
-	for image, results := range model.Images {
-		switch results.ScanStatus {
+func (model *Model) inProgressHubScans() []Image {
+	inProgressHubScans := []Image{}
+	for _, imageInfo := range model.Images {
+		switch imageInfo.ScanStatus {
 		case ScanStatusRunningHubScan:
-			inProgressHubScans = append(inProgressHubScans, image)
+			inProgressHubScans = append(inProgressHubScans, imageInfo.image())
 		}
 	}
 	return inProgressHubScans
@@ -300,22 +236,22 @@ func (model *Model) scanResults(podName string) (int, int, string, error) {
 	policyViolationCount := 0
 	vulnerabilityCount := 0
 	for _, container := range pod.Containers {
-		imageScanResults, ok := model.Images[container.Image]
+		imageInfo, ok := model.Images[container.Image.Sha]
 		if !ok {
 			continue
 		}
-		if imageScanResults.ScanStatus != ScanStatusComplete {
+		if imageInfo.ScanStatus != ScanStatusComplete {
 			continue
 		}
-		if imageScanResults.ScanResults == nil {
+		if imageInfo.ScanResults == nil {
 			continue
 		}
-		policyViolationCount += imageScanResults.ScanResults.PolicyViolationCount()
-		vulnerabilityCount += imageScanResults.ScanResults.VulnerabilityCount()
+		policyViolationCount += imageInfo.ScanResults.PolicyViolationCount()
+		vulnerabilityCount += imageInfo.ScanResults.VulnerabilityCount()
 		// TODO what's the right way to combine all the 'OverallStatus' values
 		//   from the individual image scans?
-		if imageScanResults.ScanResults.OverallStatus() != "NOT_IN_VIOLATION" {
-			overallStatus = imageScanResults.ScanResults.OverallStatus()
+		if imageInfo.ScanResults.OverallStatus() != "NOT_IN_VIOLATION" {
+			overallStatus = imageInfo.ScanResults.OverallStatus()
 		}
 	}
 	return policyViolationCount, vulnerabilityCount, overallStatus, nil

@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -51,11 +50,11 @@ func newMetrics() *metrics {
 
 // successful http requests received
 
-func (m *metrics) addPod(pod common.Pod) {
+func (m *metrics) addPod(pod Pod) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "POST", "code": "200"}).Inc()
 }
 
-func (m *metrics) updatePod(pod common.Pod) {
+func (m *metrics) updatePod(pod Pod) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "PUT", "code": "200"}).Inc()
 }
 
@@ -63,11 +62,11 @@ func (m *metrics) deletePod(podName string) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "pod", "method": "DELETE", "code": "200"}).Inc()
 }
 
-func (m *metrics) addImage(image common.Image) {
+func (m *metrics) addImage(image Image) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "image", "method": "POST", "code": "200"}).Inc()
 }
 
-func (m *metrics) allPods(pods []common.Pod) {
+func (m *metrics) allPods(pods []Pod) {
 	m.handledHTTPRequest.With(prometheus.Labels{"path": "allpods", "method": "POST", "code": "200"}).Inc()
 }
 
@@ -146,7 +145,7 @@ func (m *metrics) generateStatusMetrics() {
 	}
 
 	// number of times each image is referenced from a pod's container
-	imageCounts := make(map[common.Image]int)
+	imageCounts := make(map[Image]int)
 	for _, pod := range model.Pods {
 		for _, cont := range pod.Containers {
 			imageCounts[cont.Image]++

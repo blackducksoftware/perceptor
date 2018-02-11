@@ -26,7 +26,6 @@ import (
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/hub-client-go/hubclient"
-	"github.com/blackducksoftware/perceptor/pkg/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -197,7 +196,7 @@ func (hf *Fetcher) FetchProjectByName(projectName string) (*Project, error) {
 	return nil, nil
 }
 
-func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image common.Image) (*ImageScan, error) {
+func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image ImageInterface) (*ImageScan, error) {
 	client := hf.client
 
 	link, err := project.GetProjectVersionsLink()
@@ -205,7 +204,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	q := fmt.Sprintf("versionName:%s", image.HubVersionName())
+	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionName())
 	options := hubapi.GetListOptions{Q: &q}
 	versionList, err := client.ListProjectVersions(*link, &options)
 	if err != nil {
@@ -215,7 +214,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 
 	versions := []hubapi.ProjectVersion{}
 	for _, v := range versionList.Items {
-		if v.VersionName == image.Sha {
+		if v.VersionName == image.HubProjectVersionName() {
 			versions = append(versions, v)
 		}
 	}
@@ -226,7 +225,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 	case 1:
 		break // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one project version of name %s, found %d", image.ShaName(), len(versions))
+		return nil, fmt.Errorf("expected to find one project version of name %s, found %d", image.HubProjectVersionName(), len(versions))
 	}
 
 	version := versions[0]
@@ -347,7 +346,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image comm
 // - one code location, with
 // - one scan summary, with
 // - a completed status
-func (hf *Fetcher) FetchScanFromImage(image common.Image) (*ImageScan, error) {
+func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectName())
 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
 	if err != nil {

@@ -22,11 +22,10 @@ under the License.
 package core
 
 import (
-	common "github.com/blackducksoftware/perceptor/pkg/common"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 type HubImageScan struct {
-	Image common.Image
+	Image Image
 	Scan  *hub.ImageScan
 }

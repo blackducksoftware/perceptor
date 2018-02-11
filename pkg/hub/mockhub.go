@@ -26,8 +26,6 @@ import (
 	"math/rand"
 	"strings"
 	"time"
-
-	"github.com/blackducksoftware/perceptor/pkg/common"
 )
 
 // need: mock hub, ?mock apiserver?
@@ -67,6 +65,6 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
 }
 
-func (hub *MockHub) FetchScanFromImage(image common.Image) (*ImageScan, error) {
+func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	return nil, nil
 }

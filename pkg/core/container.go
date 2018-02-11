@@ -21,16 +21,11 @@ under the License.
 
 package core
 
-import "github.com/blackducksoftware/perceptor/pkg/hub"
-
-type ImageScanResults struct {
-	ScanStatus  ScanStatus
-	ScanResults *hub.ImageScan
+type Container struct {
+	Image Image
+	Name  string
 }
 
-func NewImageScanResults() *ImageScanResults {
-	return &ImageScanResults{
-		ScanStatus:  ScanStatusUnknown,
-		ScanResults: nil,
-	}
+func NewContainer(image Image, name string) *Container {
+	return &Container{Image: image, Name: name}
 }
