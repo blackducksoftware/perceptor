@@ -171,18 +171,38 @@ definitions:
   NextImage:
     type: "object"
     required:
-    - "Sha"
+    - "ImageSpec"
     properties:
+      ImageSpec:
+        $ref: "#/definitions/ImageSpec"
+  ImageSpec:
+    type: "object"
+    required:
+    - "PullSpec"
+    - "Sha"
+    - "HubProjectName"
+    - "HubProjectVersionName"
+    - "HubScanName"
+    properties:
+      PullSpec:
+        type: "string"
+        description: "example: docker.io/username/reponame@sha256:2ceb41adef51949cc64c8147fbddd2ea462b80c1d991830bc4a72ecbeb7cfd49"
       Sha:
+        type: "string"
+      HubProjectName:
+        type: "string"
+      HubProjectVersionName:
+        type: "string"
+      HubScanName:
         type: "string"
   FinishedScanClientJob:
     type: "object"
     required:
-    - "Image"
+    - "Sha"
     - "Err"
     properties:
-      Image:
-        $ref: "#/definitions/Image"
+      Sha:
+        type: "string"
       Err:
         type: "string"
         description: "empty string means no error"
