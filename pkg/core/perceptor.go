@@ -114,7 +114,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	// 3. now for the reducer
 	reducer := newReducer(*NewModel(concurrentScanLimit), actions)
 
-	// 5. instantiate perceptor
+	// 4. instantiate perceptor
 	perceptor := Perceptor{
 		hubClient:                 hubClient,
 		httpResponder:             httpResponder,
@@ -124,7 +124,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		inProgressHubScans:        []Image{},
 	}
 
-	// 4. close the circle
+	// 5. close the circle
 	go func() {
 		for {
 			select {
@@ -137,11 +137,13 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 		}
 	}()
 
-	// 7. hit the hub for results
+	// 6. start regular tasks -- hitting the hub for results, checking for
+	//    stalled scans
 	go perceptor.startCheckingForImagesInHub()
 	go perceptor.startPollingHubForCompletedScans()
+	go perceptor.startCheckingForStalledScans()
 
-	// 8. done
+	// 7. done
 	return &perceptor
 }
 
