@@ -30,6 +30,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	checkHubForCompletedScansPause = 20 * time.Second
+	checkHubThrottle               = 1 * time.Second
+
+	checkForStalledScansPause = 1 * time.Minute
+	stalledScanTimeout        = 30 * time.Minute
+)
+
 // Perceptor ties together: a cluster, scan clients, and a hub.
 // It listens to the cluster to learn about new pods.
 // It keeps track of pods, containers, images, and scan results in a model.
@@ -42,13 +50,12 @@ type Perceptor struct {
 	// reducer
 	reducer *reducer
 	// channels
-	checkNextImageInHub chan func(image *Image)
-	hubCheckResults     chan HubImageScan
-	hubScanResults      chan HubImageScan
-	inProgressHubScans  []Image
+	actions                   chan action
+	inProgressScanClientScans []*ImageInfo
+	inProgressHubScans        []Image
 }
 
-// NewMockedPerceptor creates a Perceptor which uses a mock scanclient
+// NewMockedPerceptor creates a Perceptor which uses a mock hub
 func NewMockedPerceptor() (*Perceptor, error) {
 	return newPerceptorHelper(hub.NewMockHub()), nil
 }
@@ -70,9 +77,6 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	model := make(chan Model)
 	actions := make(chan action)
 
-	hubScanResults := make(chan HubImageScan)
-	hubCheckResults := make(chan HubImageScan)
-	checkNextImageInHub := make(chan func(image *Image))
 	metricsHandler := newMetrics()
 
 	// 1. here's the responder
@@ -104,21 +108,16 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	}()
 
 	// 3. now for the reducer
-	reducer := newReducer(*NewModel(concurrentScanLimit),
-		actions,
-		checkNextImageInHub,
-		hubCheckResults,
-		hubScanResults)
+	reducer := newReducer(*NewModel(concurrentScanLimit), actions)
 
 	// 5. instantiate perceptor
 	perceptor := Perceptor{
-		hubClient:           hubClient,
-		httpResponder:       httpResponder,
-		reducer:             reducer,
-		checkNextImageInHub: checkNextImageInHub,
-		hubCheckResults:     hubCheckResults,
-		hubScanResults:      hubScanResults,
-		inProgressHubScans:  []Image{},
+		hubClient:                 hubClient,
+		httpResponder:             httpResponder,
+		reducer:                   reducer,
+		actions:                   actions,
+		inProgressScanClientScans: []*ImageInfo{},
+		inProgressHubScans:        []Image{},
 	}
 
 	// 4. close the circle
@@ -127,6 +126,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 			select {
 			case nextModel := <-reducer.model:
 				perceptor.inProgressHubScans = nextModel.inProgressHubScans()
+				perceptor.inProgressScanClientScans = nextModel.inProgressScanClientScans()
 				metricsHandler.updateModel(nextModel)
 				model <- nextModel
 			}
@@ -141,9 +141,20 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	return &perceptor
 }
 
+func (perceptor *Perceptor) startCheckingForStalledScans() {
+	for {
+		time.Sleep(checkForStalledScansPause)
+		for _, imageInfo := range perceptor.inProgressScanClientScans {
+			if imageInfo.timeInCurrentScanStatus() > stalledScanTimeout {
+				perceptor.actions <- requeueStalledScan{imageInfo.ImageSha}
+			}
+		}
+	}
+}
+
 func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 	for {
-		time.Sleep(20 * time.Second)
+		time.Sleep(checkHubForCompletedScansPause)
 
 		for _, image := range perceptor.inProgressHubScans {
 			scan, err := perceptor.hubClient.FetchScanFromImage(image)
@@ -155,10 +166,10 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 				} else {
 					log.Infof("check hub for completed scans -- found image scan for image %s: %%v", image.HubProjectName(), *scan)
 				}
-				perceptor.hubScanResults <- HubImageScan{Sha: image.Sha, Scan: scan}
+				perceptor.actions <- hubScanResults{HubImageScan{Sha: image.Sha, Scan: scan}}
 			}
+			time.Sleep(checkHubThrottle)
 		}
-		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -167,10 +178,10 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		var image *Image
-		perceptor.checkNextImageInHub <- func(i *Image) {
+		perceptor.actions <- getNextImageForHubPolling{func(i *Image) {
 			image = i
 			wg.Done()
-		}
+		}}
 		wg.Wait()
 
 		if image != nil {
@@ -183,12 +194,12 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 				} else {
 					log.Infof("check images in hub -- found image scan for image %s: %+v", image.HubProjectName(), *scan)
 				}
-				perceptor.hubCheckResults <- HubImageScan{Sha: (*image).Sha, Scan: scan}
+				perceptor.actions <- hubCheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(checkHubThrottle)
 		} else {
 			// slow down the chatter if we didn't find something
-			time.Sleep(20 * time.Second)
+			time.Sleep(checkHubForCompletedScansPause)
 		}
 	}
 }

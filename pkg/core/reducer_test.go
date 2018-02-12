@@ -34,14 +34,7 @@ func TestReducer(t *testing.T) {
 	concurrentScanLimit := 1
 	initialModel := NewModel(concurrentScanLimit)
 	actions := make(chan action)
-	nextHubCheckImage := make(chan func(image *Image))
-	hubCheckResults := make(chan HubImageScan)
-	hubScanResults := make(chan HubImageScan)
-	reducer := newReducer(*initialModel,
-		actions,
-		nextHubCheckImage,
-		hubCheckResults,
-		hubScanResults)
+	reducer := newReducer(*initialModel, actions)
 
 	image1 := *NewImage("image1", DockerImageSha("fe67acf"))
 	image2 := *NewImage("image2", DockerImageSha("89ca3ec"))
@@ -77,9 +70,9 @@ func TestReducer(t *testing.T) {
 	// 1a. move image1 from unknown into the hub check queue
 	var nextCheckImage *Image
 	go func() {
-		nextHubCheckImage <- func(image *Image) {
+		actions <- getNextImageForHubPolling{func(image *Image) {
 			nextCheckImage = image
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	if nextCheckImage == nil {
@@ -92,10 +85,10 @@ func TestReducer(t *testing.T) {
 
 	// 1b. move image1 from hub check queue into scan queue
 	go func() {
-		hubCheckResults <- HubImageScan{
+		actions <- hubCheckResults{HubImageScan{
 			Sha:  image1.Sha,
 			Scan: nil,
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 
@@ -168,12 +161,12 @@ func TestReducer(t *testing.T) {
 	//    change the ScanStatus to complete
 	//    add scan results
 	go func() {
-		hubScanResults <- HubImageScan{
+		actions <- hubScanResults{HubImageScan{
 			Sha: image1.Sha,
 			Scan: &hub.ImageScan{
 				ScanSummary: hub.ScanSummary{Status: "COMPLETE"},
 			},
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	imageResults5, ok5 := newModel.Images[image1.Sha]
@@ -197,9 +190,9 @@ func TestReducer(t *testing.T) {
 
 	// 6a. move image2 from unknown into the hub check queue
 	go func() {
-		nextHubCheckImage <- func(image *Image) {
+		actions <- getNextImageForHubPolling{func(image *Image) {
 			nextCheckImage = image
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	if nextCheckImage == nil {
@@ -221,10 +214,10 @@ func TestReducer(t *testing.T) {
 
 	// 6b. move image2 from hub check queue into scan queue
 	go func() {
-		hubCheckResults <- HubImageScan{
+		actions <- hubCheckResults{HubImageScan{
 			Sha:  image2.Sha,
 			Scan: nil,
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 	imageResults6b, ok6b := newModel.Images[image2.Sha]
@@ -326,12 +319,12 @@ func TestReducer(t *testing.T) {
 
 	// 10. finish hub scan with success
 	go func() {
-		hubScanResults <- HubImageScan{
+		actions <- hubScanResults{HubImageScan{
 			Sha: image2.Sha,
 			Scan: &hub.ImageScan{
 				ScanSummary: hub.ScanSummary{Status: "Complete"},
 			},
-		}
+		}}
 	}()
 	newModel = <-reducer.model
 
@@ -356,7 +349,7 @@ func TestScanClientFails(t *testing.T) {
 	model := NewModel(concurrentScanLimit)
 	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
-	model.Images[image.Sha].ScanStatus = ScanStatusRunningScanClient
+	model.Images[image.Sha].setScanStatus(ScanStatusRunningScanClient)
 	model.errorRunningScanClient(image.Sha)
 
 	if model.Images[image.Sha].ScanStatus != ScanStatusInQueue {

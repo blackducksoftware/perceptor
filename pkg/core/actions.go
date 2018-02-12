@@ -108,3 +108,82 @@ func (f finishScanClient) apply(model Model) Model {
 	}
 	return newModel
 }
+
+type getNextImageForHubPolling struct {
+	continuation func(image *Image)
+}
+
+func (g getNextImageForHubPolling) apply(model Model) Model {
+	log.Infof("looking for next image to search for in hub")
+	image := model.getNextImageFromHubCheckQueue()
+	g.continuation(image)
+	return model
+}
+
+type hubCheckResults struct {
+	scan HubImageScan
+}
+
+func (h hubCheckResults) apply(model Model) Model {
+	scan := h.scan
+	imageInfo, ok := model.Images[scan.Sha]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		return model
+	}
+
+	imageInfo.ScanResults = scan.Scan
+
+	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
+	if scan.Scan == nil {
+		model.addImageToScanQueue(scan.Sha)
+	} else if scan.Scan.IsDone() {
+		imageInfo.setScanStatus(ScanStatusComplete)
+	} else {
+		// it could be in the scan client stage, in the hub stage ...
+		// maybe perceptor crashed and just came back up
+		// since we don't know, we have to put it into the scan queue
+		model.addImageToScanQueue(scan.Sha)
+	}
+
+	return model
+}
+
+type hubScanResults struct {
+	scan HubImageScan
+}
+
+func (h hubScanResults) apply(model Model) Model {
+	scan := h.scan
+	imageInfo, ok := model.Images[scan.Sha]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		return model
+	}
+
+	imageInfo.ScanResults = scan.Scan
+
+	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
+	if scan.Scan != nil && scan.Scan.IsDone() {
+		imageInfo.setScanStatus(ScanStatusComplete)
+	}
+
+	return model
+}
+
+type requeueStalledScan struct {
+	sha DockerImageSha
+}
+
+func (r requeueStalledScan) apply(model Model) Model {
+	imageInfo, ok := model.Images[r.sha]
+	if !ok {
+		return model
+	}
+	if imageInfo.ScanStatus != ScanStatusRunningScanClient {
+		return model
+	}
+	imageInfo.setScanStatus(ScanStatusError)
+	model.addImageToScanQueue(r.sha)
+	return model
+}

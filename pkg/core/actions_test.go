@@ -21,25 +21,26 @@ under the License.
 
 package core
 
-type reducer struct {
-	model <-chan Model
+import (
+	"testing"
+
+	log "github.com/sirupsen/logrus"
+)
+
+func TestActions(t *testing.T) {
+	processAction(addPod{Pod{}})
+	processAction(updatePod{Pod{}})
+	processAction(deletePod{})
+	processAction(addImage{})
+	processAction(allPods{})
+	processAction(getNextImage{})
+	processAction(finishScanClient{})
+	processAction(getNextImageForHubPolling{})
+	processAction(hubCheckResults{})
+	processAction(hubScanResults{})
+	processAction(requeueStalledScan{})
 }
 
-// logic
-
-func newReducer(initialModel Model, actions <-chan action) *reducer {
-	model := initialModel
-	modelStream := make(chan Model)
-	go func() {
-		for {
-			select {
-			case nextAction := <-actions:
-				model = nextAction.apply(model)
-				go func() {
-					modelStream <- model
-				}()
-			}
-		}
-	}()
-	return &reducer{model: modelStream}
+func processAction(nextAction action) {
+	log.Infof("received actions: %+v", nextAction)
 }
