@@ -24,11 +24,6 @@ package main
 
 import (
 	"flag"
-
-	common "github.com/blackducksoftware/perceptor/pkg/common"
-	log "github.com/sirupsen/logrus"
-
-	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
 )
 
 type input struct {
@@ -46,18 +41,20 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
+	/*
+		flag.Parse()
 
-	if in.fromImage == "" {
-		panic("Need -fromImage <image>")
-	}
+		if in.fromImage == "" {
+			panic("Need -fromImage <image>")
+		}
 
-	image := common.Image(in.fromImage)
-	err := pdocker.PullImage(image)
+		image := common.Image(in.fromImage)
+		err := pdocker.PullImage(image)
 
-	if err != nil {
-		log.Errorf("Error while making tar file: %s", err)
-	} else {
-		log.Infof("Ready to scan !!!!! %s %s", in.fromImage, in.tag)
-	}
+		if err != nil {
+			log.Errorf("Error while making tar file: %s", err)
+		} else {
+			log.Infof("Ready to scan !!!!! %s %s", in.fromImage, in.tag)
+		}
+	*/
 }
