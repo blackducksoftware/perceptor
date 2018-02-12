@@ -103,6 +103,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 				actions <- finishScanClient{DockerImageSha(job.Sha), job.Err}
 			case continuation := <-httpResponder.postNextImage:
 				actions <- getNextImage{continuation}
+			case limit := <-httpResponder.setConcurrentScanLimit:
+				actions <- setConcurrentScanLimit{limit}
 			}
 		}
 	}()

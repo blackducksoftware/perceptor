@@ -32,27 +32,29 @@ import (
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	model             Model
-	metricsHandler    *metrics
-	addPod            chan Pod
-	updatePod         chan Pod
-	deletePod         chan string
-	addImage          chan Image
-	allPods           chan []Pod
-	postNextImage     chan func(*Image)
-	postFinishScanJob chan api.FinishedScanClientJob
+	model                  Model
+	metricsHandler         *metrics
+	addPod                 chan Pod
+	updatePod              chan Pod
+	deletePod              chan string
+	addImage               chan Image
+	allPods                chan []Pod
+	postNextImage          chan func(*Image)
+	postFinishScanJob      chan api.FinishedScanClientJob
+	setConcurrentScanLimit chan int
 }
 
 func NewHTTPResponder(model <-chan Model, metricsHandler *metrics) *HTTPResponder {
 	hr := HTTPResponder{
-		metricsHandler:    metricsHandler,
-		addPod:            make(chan Pod),
-		updatePod:         make(chan Pod),
-		deletePod:         make(chan string),
-		addImage:          make(chan Image),
-		allPods:           make(chan []Pod),
-		postNextImage:     make(chan func(*Image)),
-		postFinishScanJob: make(chan api.FinishedScanClientJob)}
+		metricsHandler:         metricsHandler,
+		addPod:                 make(chan Pod),
+		updatePod:              make(chan Pod),
+		deletePod:              make(chan string),
+		addImage:               make(chan Image),
+		allPods:                make(chan []Pod),
+		postNextImage:          make(chan func(*Image)),
+		postFinishScanJob:      make(chan api.FinishedScanClientJob),
+		setConcurrentScanLimit: make(chan int)}
 	go func() {
 		for {
 			select {
@@ -174,6 +176,13 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 	hr.metricsHandler.postFinishedScan()
 	hr.postFinishScanJob <- job
 	log.Infof("handled finished scan job -- %v", job)
+}
+
+// internal use
+
+func (hr *HTTPResponder) SetConcurrentScanLimit(limit api.SetConcurrentScanLimit) {
+	hr.setConcurrentScanLimit <- limit.Limit
+	log.Infof("handled set concurrent scan limit -- %d", limit)
 }
 
 // errors

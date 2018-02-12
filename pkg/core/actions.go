@@ -187,3 +187,17 @@ func (r requeueStalledScan) apply(model Model) Model {
 	model.addImageToScanQueue(r.sha)
 	return model
 }
+
+type setConcurrentScanLimit struct {
+	limit int
+}
+
+func (s setConcurrentScanLimit) apply(model Model) Model {
+	limit := s.limit
+	if limit < 0 {
+		log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
+		return model
+	}
+	model.ConcurrentScanLimit = limit
+	return model
+}

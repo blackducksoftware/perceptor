@@ -21,32 +21,6 @@ under the License.
 
 package api
 
-import (
-	"net/http"
-)
-
-type Responder interface {
-	// state of the program
-	// this is a funky return type because it's so tightly coupled to prometheus
-	GetMetrics(w http.ResponseWriter, r *http.Request)
-	GetModel() string
-
-	// perceiver
-	AddPod(pod Pod)
-	UpdatePod(pod Pod)
-	DeletePod(qualifiedName string)
-	GetScanResults() ScanResults
-	AddImage(image Image)
-	UpdateAllPods(allPods AllPods)
-
-	// scanner
-	GetNextImage(func(nextImage NextImage))
-	PostFinishScan(job FinishedScanClientJob)
-
-	// internal use
-	SetConcurrentScanLimit(limit SetConcurrentScanLimit)
-
-	// errors
-	NotFound(w http.ResponseWriter, r *http.Request)
-	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
+type SetConcurrentScanLimit struct {
+	Limit int
 }
