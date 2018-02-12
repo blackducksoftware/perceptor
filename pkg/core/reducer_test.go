@@ -93,8 +93,8 @@ func TestReducer(t *testing.T) {
 	// 1b. move image1 from hub check queue into scan queue
 	go func() {
 		hubCheckResults <- HubImageScan{
-			Image: image1,
-			Scan:  nil,
+			Sha:  image1.Sha,
+			Scan: nil,
 		}
 	}()
 	newModel = <-reducer.model
@@ -169,7 +169,7 @@ func TestReducer(t *testing.T) {
 	//    add scan results
 	go func() {
 		hubScanResults <- HubImageScan{
-			Image: image1,
+			Sha: image1.Sha,
 			Scan: &hub.ImageScan{
 				ScanSummary: hub.ScanSummary{Status: "COMPLETE"},
 			},
@@ -222,8 +222,8 @@ func TestReducer(t *testing.T) {
 	// 6b. move image2 from hub check queue into scan queue
 	go func() {
 		hubCheckResults <- HubImageScan{
-			Image: image2,
-			Scan:  nil,
+			Sha:  image2.Sha,
+			Scan: nil,
 		}
 	}()
 	newModel = <-reducer.model
@@ -327,7 +327,7 @@ func TestReducer(t *testing.T) {
 	// 10. finish hub scan with success
 	go func() {
 		hubScanResults <- HubImageScan{
-			Image: image2,
+			Sha: image2.Sha,
 			Scan: &hub.ImageScan{
 				ScanSummary: hub.ScanSummary{Status: "Complete"},
 			},

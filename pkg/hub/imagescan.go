@@ -27,6 +27,7 @@ type ImageScan struct {
 	RiskProfile                      RiskProfile
 	PolicyStatus                     PolicyStatus
 	ScanSummary                      ScanSummary
+	ComponentsHref                   string
 	CodeLocationCreatedAt            string
 	CodeLocationMappedProjectVersion string
 	CodeLocationName                 string

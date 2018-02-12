@@ -26,6 +26,6 @@ import (
 )
 
 type HubImageScan struct {
-	Image Image
-	Scan  *hub.ImageScan
+	Sha  DockerImageSha
+	Scan *hub.ImageScan
 }

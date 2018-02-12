@@ -256,6 +256,12 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		policyStatusComponentVersionStatusCounts[item.Name] = item.Value
 	}
 
+	componentsLink, err := version.GetComponentsLink()
+	if err != nil {
+		log.Errorf("error getting components link: %v", err)
+		return nil, err
+	}
+
 	codeLocationsLink, err := version.GetCodeLocationsLink()
 	if err != nil {
 		log.Errorf("error getting code locations link: %v", err)
@@ -324,6 +330,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 			OverallStatus:                policyStatus.OverallStatus,
 			UpdatedAt:                    policyStatus.UpdatedAt,
 		},
+		ComponentsHref: componentsLink.Href,
 		ScanSummary: ScanSummary{
 			CreatedAt: scanSummary.CreatedAt,
 			Status:    scanSummary.Status,

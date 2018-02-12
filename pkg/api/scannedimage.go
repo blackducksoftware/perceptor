@@ -22,10 +22,10 @@ under the License.
 package api
 
 type ScannedImage struct {
-	Name              string
-	Sha               string
-	PolicyViolations  int
-	Vulnerabilities   int
-	OverallStatus     string
-	ProjectVersionURL string
+	Name             string
+	Sha              string
+	PolicyViolations int
+	Vulnerabilities  int
+	OverallStatus    string
+	ComponentsURL    string
 }

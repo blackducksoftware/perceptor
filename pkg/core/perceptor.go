@@ -155,7 +155,7 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 				} else {
 					log.Infof("check hub for completed scans -- found image scan for image %s: %%v", image.HubProjectName(), *scan)
 				}
-				perceptor.hubScanResults <- HubImageScan{Image: image, Scan: scan}
+				perceptor.hubScanResults <- HubImageScan{Sha: image.Sha, Scan: scan}
 			}
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -183,7 +183,7 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 				} else {
 					log.Infof("check images in hub -- found image scan for image %s: %+v", image.HubProjectName(), *scan)
 				}
-				perceptor.hubCheckResults <- HubImageScan{Image: *image, Scan: scan}
+				perceptor.hubCheckResults <- HubImageScan{Sha: (*image).Sha, Scan: scan}
 			}
 			time.Sleep(1 * time.Second)
 		} else {

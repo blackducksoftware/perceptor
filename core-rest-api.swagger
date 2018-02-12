@@ -68,23 +68,19 @@ paths:
           description: "successful"
         400:
           description: "request problem"
+  /pod/{podName}:
     delete:
       tags:
       - "perceiver"
       summary: "Delete a pod"
       description: ""
       operationId: "deletePod"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
       parameters:
-      - in: "body"
-        name: "body"
-        description: "Pod object"
+      - name: "podName"
+        in: "path"
+        description: "Qualified name of the pod, in the format namespace/name"
         required: true
-        schema:
-          $ref: "#/definitions/Pod"
+        type: "string"
       responses:
         200:
           description: "successful"
@@ -175,10 +171,10 @@ definitions:
   NextImage:
     type: "object"
     required:
-    - "Image"
+    - "Sha"
     properties:
-      Image:
-        $ref: "#/definitions/Image"
+      Sha:
+        type: "string"
   FinishedScanClientJob:
     type: "object"
     required:
@@ -231,8 +227,7 @@ definitions:
     - "PolicyViolations"
     - "Vulnerabilities"
     - "OverallStatus"
-    - "ProjectVersionURL"
-    - "ScanID"
+    - "ComponentsURL"
     properties:
       Name:
         type: "string"
@@ -244,9 +239,7 @@ definitions:
         type: "integer"
       OverallStatus:
         type: "string"
-      ProjectVersionURL:
-        type: "string"
-      ScanID:
+      ComponentsURL:
         type: "string"
   AllPods:
     type: "object"

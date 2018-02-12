@@ -115,8 +115,6 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	hr.metricsHandler.getScanResults()
-	scannerVersion := "TODO"
-	hubServer := "TODO"
 	pods := []api.ScannedPod{}
 	images := []api.ScannedImage{}
 	for podName, pod := range hr.model.Pods {
@@ -133,23 +131,27 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 			OverallStatus:    overallStatus})
 	}
 	for _, imageInfo := range hr.model.Images {
-		projectVersionURL := "TODO"
+		componentsURL := ""
+		overallStatus := ""
 		policyViolations := 0
 		vulnerabilities := 0
 		if imageInfo.ScanResults != nil {
 			policyViolations = imageInfo.ScanResults.PolicyViolationCount()
 			vulnerabilities = imageInfo.ScanResults.VulnerabilityCount()
+			componentsURL = imageInfo.ScanResults.ComponentsHref
+			overallStatus = imageInfo.ScanResults.OverallStatus()
 		}
 		image := imageInfo.image()
 		apiImage := api.ScannedImage{
-			Name:              image.HumanReadableName(),
-			Sha:               string(image.Sha),
-			PolicyViolations:  policyViolations,
-			Vulnerabilities:   vulnerabilities,
-			ProjectVersionURL: projectVersionURL}
+			Name:             image.HumanReadableName(),
+			Sha:              string(image.Sha),
+			PolicyViolations: policyViolations,
+			Vulnerabilities:  vulnerabilities,
+			OverallStatus:    overallStatus,
+			ComponentsURL:    componentsURL}
 		images = append(images, apiImage)
 	}
-	return *api.NewScanResults(scannerVersion, hubServer, pods, images)
+	return *api.NewScanResults(pods, images)
 }
 
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {

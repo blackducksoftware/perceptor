@@ -75,11 +75,9 @@ func updateModelGetNextImageForHubPolling(continuation func(image *Image), model
 }
 
 func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
-	image := scan.Image
-
-	imageInfo, ok := model.Images[image.Sha]
+	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
 		return model
 	}
 
@@ -87,25 +85,23 @@ func updateModelAddHubCheckResults(scan HubImageScan, model Model) Model {
 
 	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
 	if scan.Scan == nil {
-		model.addImageToScanQueue(image.Sha)
+		model.addImageToScanQueue(scan.Sha)
 	} else if scan.Scan.IsDone() {
 		imageInfo.ScanStatus = ScanStatusComplete
 	} else {
 		// it could be in the scan client stage, in the hub stage ...
 		// maybe perceptor crashed and just came back up
 		// since we don't know, we have to put it into the scan queue
-		model.addImageToScanQueue(image.Sha)
+		model.addImageToScanQueue(scan.Sha)
 	}
 
 	return model
 }
 
 func updateModelAddHubScanResults(scan HubImageScan, model Model) Model {
-	image := scan.Image
-
-	imageInfo, ok := model.Images[image.Sha]
+	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", image.HumanReadableName())
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
 		return model
 	}
 
