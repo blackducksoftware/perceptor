@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/blackducksoftware/perceptor.svg?token=NkZXsasksSgnVeY347YQ&branch=master)](https://travis-ci.com/blackducksoftware/perceptor)
+
 # Perceptor
 
 Perceptor is a cloud-native program which detects the pods and images running in a cluster,
