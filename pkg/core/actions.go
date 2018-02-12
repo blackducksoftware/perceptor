@@ -201,3 +201,14 @@ func (s setConcurrentScanLimit) apply(model Model) Model {
 	model.ConcurrentScanLimit = limit
 	return model
 }
+
+type allImages struct {
+	images []Image
+}
+
+func (a allImages) apply(model Model) Model {
+	for _, image := range a.images {
+		model.AddImage(image)
+	}
+	return model
+}

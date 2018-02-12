@@ -39,6 +39,7 @@ type HTTPResponder struct {
 	deletePod              chan string
 	addImage               chan Image
 	allPods                chan []Pod
+	allImages              chan []Image
 	postNextImage          chan func(*Image)
 	postFinishScanJob      chan api.FinishedScanClientJob
 	setConcurrentScanLimit chan int
@@ -52,6 +53,7 @@ func NewHTTPResponder(model <-chan Model, metricsHandler *metrics) *HTTPResponde
 		deletePod:              make(chan string),
 		addImage:               make(chan Image),
 		allPods:                make(chan []Pod),
+		allImages:              make(chan []Image),
 		postNextImage:          make(chan func(*Image)),
 		postFinishScanJob:      make(chan api.FinishedScanClientJob),
 		setConcurrentScanLimit: make(chan int)}
@@ -113,6 +115,16 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 	hr.metricsHandler.allPods(pods)
 	hr.allPods <- pods
 	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
+}
+
+func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
+	images := []Image{}
+	for _, apiImage := range allImages.Images {
+		images = append(images, *newImage(apiImage))
+	}
+	hr.metricsHandler.allImages(images)
+	hr.allImages <- images
+	log.Infof("handled update all images -- %d images", len(allImages.Images))
 }
 
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {

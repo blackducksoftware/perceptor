@@ -111,6 +111,24 @@ func SetupHTTPServer(responder Responder) {
 			responder.NotFound(w, r)
 		}
 	})
+	http.HandleFunc("/allimages", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			var allImages AllImages
+			err = json.Unmarshal(body, &allImages)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			responder.UpdateAllImages(allImages)
+		} else {
+			responder.NotFound(w, r)
+		}
+	})
 	http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)

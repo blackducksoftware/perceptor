@@ -38,6 +38,7 @@ type Responder interface {
 	GetScanResults() ScanResults
 	AddImage(image Image)
 	UpdateAllPods(allPods AllPods)
+	UpdateAllImages(allImages AllImages)
 
 	// scanner
 	GetNextImage(func(nextImage NextImage))

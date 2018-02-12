@@ -67,7 +67,11 @@ func (m *metrics) addImage(image Image) {
 }
 
 func (m *metrics) allPods(pods []Pod) {
-	m.handledHTTPRequest.With(prometheus.Labels{"path": "allpods", "method": "POST", "code": "200"}).Inc()
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "allpods", "method": "PUT", "code": "200"}).Inc()
+}
+
+func (m *metrics) allImages(images []Image) {
+	m.handledHTTPRequest.With(prometheus.Labels{"path": "allimages", "method": "PUT", "code": "200"}).Inc()
 }
 
 func (m *metrics) getNextImage() {

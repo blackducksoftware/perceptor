@@ -39,6 +39,8 @@ func TestActions(t *testing.T) {
 	processAction(hubCheckResults{})
 	processAction(hubScanResults{})
 	processAction(requeueStalledScan{})
+	processAction(setConcurrentScanLimit{})
+	processAction(allImages{})
 }
 
 func processAction(nextAction action) {
