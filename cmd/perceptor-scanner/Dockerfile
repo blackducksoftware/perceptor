@@ -7,11 +7,6 @@ RUN yum update -y && yum install -y -q java-1.8.0-openjdk && yum clean all
 ENV BDS_JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.151-5.b12.el7_4.x86_64/jre/
 
 
-# Set up environment
-# TODO where should this password come from?
-ENV BD_HUB_PASSWORD=blackduck
-
-
 # Set up non-root user
 # TODO not really sure what exactly this all does, nor whether it should be done
 # RUN useradd --create-home --shell /bin/bash --gid root mynewuser
