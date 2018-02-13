@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -52,6 +53,8 @@ type Scanner struct {
 }
 
 func NewScanner(hubHost string, hubUser string, hubPassword string) (*Scanner, error) {
+	os.Setenv("BD_HUB_PASSWORD", hubPassword)
+
 	scanClient, err := NewHubScanClient(hubHost, hubUser, hubPassword)
 	if err != nil {
 		log.Errorf("unable to instantiate hub scan client: %s", err.Error())

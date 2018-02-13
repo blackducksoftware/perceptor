@@ -1,11 +1,6 @@
 FROM centos:centos7
 
 
-# Set up environment
-# TODO where should this password come from?
-ENV BD_HUB_PASSWORD=blackduck
-
-
 # Set up non-root user
 # TODO not really sure what exactly this all does, nor whether it should be done
 # RUN useradd --create-home --shell /bin/bash --gid root mynewuser
