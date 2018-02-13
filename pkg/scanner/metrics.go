@@ -80,7 +80,7 @@ func ScannerMetricsHandler(hostName string, imageScanStats <-chan ScanClientJobR
 		for {
 			select {
 			case stats := <-imageScanStats:
-				log.Infof("got new image scan stats: %v", stats)
+				log.Infof("got new image scan stats: %+v", stats)
 				// durations
 				if stats.ScanClientDuration != nil {
 					durations.With(prometheus.Labels{"stage": "scan client"}).Observe(stats.ScanClientDuration.Seconds())
