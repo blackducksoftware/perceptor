@@ -35,6 +35,8 @@ func NewImage(name string, sha DockerImageSha) *Image {
 	return &Image{Name: name, Sha: sha}
 }
 
+// These strings are for the scanner
+
 func (image Image) HubProjectName() string {
 	return fmt.Sprintf("%s-%s", image.Name, string(image.Sha))
 }
@@ -44,6 +46,28 @@ func (image Image) HubProjectVersionName() string {
 }
 
 func (image Image) HubScanName() string {
+	return string(image.Sha)
+}
+
+// These strings are for the hub fetcher
+// For the hub project name, we want to include a meaningful, human-readable
+//   string -- so we add the docker image name of the first image to have this
+//   sha.
+// But when we search for the project, we *only* want to search by sha --
+//   in case the docker image name is different.
+// This is weird, but allows to both:
+//  - have our hub projects be searchable by sha, regardless of docker image name
+//  - have a meaningful, human-readable hub project name
+
+func (image Image) HubProjectNameSearchString() string {
+	return string(image.Sha)
+}
+
+func (image Image) HubProjectVersionNameSearchString() string {
+	return string(image.Sha)
+}
+
+func (image Image) HubScanNameSearchString() string {
 	return string(image.Sha)
 }
 

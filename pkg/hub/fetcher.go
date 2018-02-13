@@ -204,7 +204,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionName())
+	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionNameSearchString())
 	options := hubapi.GetListOptions{Q: &q}
 	versionList, err := client.ListProjectVersions(*link, &options)
 	if err != nil {
@@ -214,7 +214,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	versions := []hubapi.ProjectVersion{}
 	for _, v := range versionList.Items {
-		if v.VersionName == image.HubProjectVersionName() {
+		if v.VersionName == image.HubProjectVersionNameSearchString() {
 			versions = append(versions, v)
 		}
 	}
@@ -225,7 +225,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	case 1:
 		break // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one project version of name %s, found %d", image.HubProjectVersionName(), len(versions))
+		return nil, fmt.Errorf("expected to find one project version of name %s, found %d", image.HubProjectVersionNameSearchString(), len(versions))
 	}
 
 	version := versions[0]
@@ -275,7 +275,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	codeLocations := []hubapi.CodeLocation{}
 	for _, cl := range codeLocationsList.Items {
-		if cl.Name == image.HubScanName() {
+		if cl.Name == image.HubScanNameSearchString() {
 			codeLocations = append(codeLocations, cl)
 		}
 	}
@@ -286,7 +286,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	case 1:
 		break // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one code location of name %s, found %d", image.HubScanName(), len(codeLocations))
+		return nil, fmt.Errorf("expected to find one code location of name %s, found %d", image.HubScanNameSearchString(), len(codeLocations))
 	}
 
 	codeLocation := codeLocations[0]
@@ -315,7 +315,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	case 1:
 		break // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one scan summary for code location %s, found %d", image.HubScanName(), len(scanSummariesList.Items))
+		return nil, fmt.Errorf("expected to find one scan summary for code location %s, found %d", image.HubScanNameSearchString(), len(scanSummariesList.Items))
 	}
 
 	scanSummary := scanSummaries[0]
@@ -354,7 +354,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 // - one scan summary, with
 // - a completed status
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	queryString := fmt.Sprintf("name:%s", image.HubProjectName())
+	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
@@ -362,7 +362,7 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 	}
 	projects := []hubapi.Project{}
 	for _, proj := range projectList.Items {
-		if proj.Name == image.HubProjectName() {
+		if proj.Name == image.HubProjectNameSearchString() {
 			projects = append(projects, proj)
 		}
 	}
@@ -370,7 +370,7 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 		return nil, nil
 	}
 	if len(projects) > 1 {
-		return nil, fmt.Errorf("expected 1 project of name %s, found %d", image.HubProjectName(), len(projects))
+		return nil, fmt.Errorf("expected 1 project of name %s, found %d", image.HubProjectNameSearchString(), len(projects))
 	}
 	project := projects[0]
 	return hf.fetchImageScanUsingProject(project, image)

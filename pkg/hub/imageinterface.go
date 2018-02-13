@@ -22,7 +22,7 @@ under the License.
 package hub
 
 type ImageInterface interface {
-	HubProjectName() string
-	HubProjectVersionName() string
-	HubScanName() string
+	HubProjectNameSearchString() string
+	HubProjectVersionNameSearchString() string
+	HubScanNameSearchString() string
 }
