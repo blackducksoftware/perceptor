@@ -79,6 +79,6 @@ func ZLogInfo(base MetricType, message string) {
 }
 
 func ZLogInfof(base MetricType, message string, args interface{}) {
-	cv.WithLabelValues("log_type").Inc()
+	cv.WithLabelValues(string(base)).Inc()
 	log.Infof(concat(string(base), message), args)
 }
