@@ -53,6 +53,46 @@ Split off the portion of code responsible for grabbing a docker image from the n
 This code requires special permissions in openshift.  By implementing this as a sidecar container,
 we minimize the amount of code which requires special permissions.
 
+# Development Environment Setup
+
+ - install gimme, run it to compile perceptor
+ - curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme ; \nchmod +x ~/bin/gimme
+ - export PATH=$PATH:~/bin/
+ - gimme 1.9
+
+Getting work done:
+
+Create a GO Project for Perceptor
+ - mkdir go/
+ - mkdir go/src/
+ - mkdir go/src/github.com/blackducksoftware/perceptor
+ - mkdir -p go/src/github.com/blackducksoftware/perceptor
+ - cd go/src/github.com/blackducksoftware/perceptor
+ - install go-plus Atom package
+
+Clone Perceptor:
+ - git clone https://github.com/blackducksoftware/perceptor.git
+
+Add a your own remote
+ - git remote add <foo>  https://github.com/sheppduck/perceptor.git
+ - cd go/src/github.com/blackducksoftware/perceptor/
+ - echo $GOPATH
+
+Export GOPATH properly
+ -  E.G. export GOPATH=/Users/jsmith/workspace-perceptor/go/
+
+Git to work:
+ - git fetch --all
+ - git checkout https://github.com/blackducksoftware/perceptor.git
+ - git checkout origin/master
+ - git pull
+ - make
+
+If master is broken:
+
+ - cd to one of the subdirs, that you wanted to work on :), and try to build that.
+ - file an issue in github
+
 # Building
 
 Check out the makefiles -- from the root directory, run:
