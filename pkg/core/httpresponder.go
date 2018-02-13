@@ -174,9 +174,13 @@ func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)
 		imageString := "null"
 		var imageSpec *api.ImageSpec
 		if image != nil {
-			sha := string(image.Sha)
 			imageString = image.HumanReadableName()
-			imageSpec = api.NewImageSpec(image.PullSpec(), sha, sha, sha, sha)
+			imageSpec = api.NewImageSpec(
+				image.PullSpec(),
+				string(image.Sha),
+				image.HubProjectName(),
+				image.HubProjectVersionName(),
+				image.HubScanName())
 		}
 		nextImage := *api.NewNextImage(imageSpec)
 		continuation(nextImage)

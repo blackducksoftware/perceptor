@@ -36,7 +36,7 @@ func NewImage(name string, sha DockerImageSha) *Image {
 }
 
 func (image Image) HubProjectName() string {
-	return string(image.Sha)
+	return fmt.Sprintf("%s-%s", image.Name, string(image.Sha))
 }
 
 func (image Image) HubProjectVersionName() string {
