@@ -22,14 +22,10 @@ under the License.
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/scanner"
@@ -57,24 +53,11 @@ func main() {
 		panic(err)
 	}
 
-	scanClient, err := scanner.NewHubScanClient(config.HubHost, config.HubUser, config.HubUserPassword)
+	scannerManager, err := scanner.NewScanner(config.HubHost, config.HubUser, config.HubUserPassword)
 	if err != nil {
-		log.Errorf("unable to instantiate hub scan client: %s", err.Error())
+		log.Errorf("unable to instantiate scanner: %s", err.Error())
 		panic(err)
 	}
-
-	imageScanStats := make(chan scanner.ScanClientJobResults)
-	httpStats := make(chan scanner.HttpResult)
-
-	go func() {
-		for {
-			time.Sleep(20 * time.Second)
-			err := requestAndRunScanJob(scanClient, imageScanStats, httpStats)
-			if err != nil {
-				log.Errorf("error requesting or running scan job: %v", err)
-			}
-		}
-	}()
 
 	hostName, err := os.Hostname()
 	if err != nil {
@@ -82,98 +65,11 @@ func main() {
 		hostName = fmt.Sprintf("%d", rand.Int())
 	}
 	log.Infof("using hostName %s", hostName)
-	http.Handle("/metrics", scanner.ScannerMetricsHandler(hostName, imageScanStats, httpStats))
+	http.Handle("/metrics", scanner.ScannerMetricsHandler(hostName, scannerManager.ImageScanStats(), scannerManager.HttpStats()))
 
 	addr := fmt.Sprintf(":%s", api.PerceptorScannerPort)
 	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
-}
-
-func requestAndRunScanJob(scanClient *scanner.HubScanClient, imageScanStats chan<- scanner.ScanClientJobResults, httpStats chan<- scanner.HttpResult) error {
-	image := requestScanJob(httpStats)
-	if image == nil {
-		return nil
-	}
-	job := scanner.NewScanJob(image.PullSpec, image.Sha, image.HubProjectName, image.HubProjectVersionName, image.HubScanName)
-	scanResults := scanClient.Scan(*job)
-	imageScanStats <- scanResults
-	errorString := ""
-	if scanResults.Err != nil {
-		errorString = scanResults.Err.Error()
-	}
-	finishedJob := api.FinishedScanClientJob{Err: errorString, Sha: job.Sha}
-	log.Infof("about to finish job, going to send over %v", finishedJob)
-	return finishScan(finishedJob, httpStats)
-}
-
-func requestScanJob(httpStats chan<- scanner.HttpResult) *api.ImageSpec {
-	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
-	resp, err := http.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
-	if resp != nil {
-		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: resp.StatusCode}
-	} else {
-		// let's just assume this is due to something we did wrong
-		httpStats <- scanner.HttpResult{Path: scanner.PathGetNextImage, StatusCode: 400}
-	}
-	if err != nil {
-		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
-		return nil
-	} else if resp.StatusCode != 200 {
-		log.Errorf("http POST request to %s failed with status code %d", nextImageURL, resp.StatusCode)
-		return nil
-	}
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Errorf("unable to read response body from %s: %s", nextImageURL, err.Error())
-		return nil
-	}
-
-	var nextImage api.NextImage
-	err = json.Unmarshal(bodyBytes, &nextImage)
-	if err != nil {
-		log.Errorf("unmarshaling JSON body bytes %s failed for URL %s: %s", string(bodyBytes), nextImageURL, err.Error())
-		return nil
-	}
-
-	imageSha := "null"
-	if nextImage.ImageSpec != nil {
-		imageSha = nextImage.ImageSpec.Sha
-	}
-	log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageSha)
-	return nextImage.ImageSpec
-}
-
-func finishScan(results api.FinishedScanClientJob, httpStats chan<- scanner.HttpResult) error {
-	finishedScanURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.FinishedScanPath)
-	jsonBytes, err := json.Marshal(results)
-	if err != nil {
-		log.Errorf("unable to marshal json for finished job: %s", err.Error())
-		return err
-	}
-	log.Infof("about to send over json text for finishing a job: %s", string(jsonBytes))
-	// TODO change to exponential backoff or something ... but don't loop indefinitely in production
-	for {
-		resp, err := http.Post(finishedScanURL, "application/json", bytes.NewBuffer(jsonBytes))
-		if resp != nil {
-			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: resp.StatusCode}
-		} else {
-			// TODO so this 400 is actually a lie ... need to change it
-			httpStats <- scanner.HttpResult{Path: scanner.PathPostScanResults, StatusCode: 400}
-		}
-		if err != nil {
-			log.Errorf("unable to POST to %s: %s", finishedScanURL, err.Error())
-			continue
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			log.Errorf("POST to %s failed with status code %d", finishedScanURL, resp.StatusCode)
-			continue
-		}
-
-		log.Infof("POST to %s succeeded", finishedScanURL)
-		return nil
-	}
 }
 
 // ScannerConfig contains all configuration for Perceptor
