@@ -34,7 +34,10 @@ const (
 	PodPath         = "pod"
 	ImagePath       = "image"
 	ScanResultsPath = "scanresults"
+	AllImagesPath   = "allimages"
 	AllPodsPath     = "allpods"
+	// Internal
+	ConcurrentScanLimitPath = "concurrentscanlimit"
 	// ports (basically so that you can run these locally without them stomping on each other -- for testing)
 	PerceptorPort        = "3001"
 	PerceiverPort        = "3002"
