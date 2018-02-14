@@ -14,7 +14,7 @@ kubectl run busybox --image=busybox --env="POD_NAMESPACE=$PERCEPTOR_POD_NAMESPAC
 # Check POD has been annotated with Black Duck
 tstAnnotate() {
   WAIT_TIME=$((30))
-  echo "Checking for presense Blackduck POD annotations..."
+  echo "Checking for Blackduck POD annotations..."
   sleep $WAIT_TIME
   a_state = $(kubectl describe pod $PERCEPTOR_POD_NAMESPACE | grep "blackduck")
   if [[ -z $a_state ]]; then
@@ -24,3 +24,5 @@ tstAnnotate() {
     echo "Annoations found!"
   fi
 }
+
+tstAnnotate
