@@ -43,7 +43,7 @@ COPY ./dependencies/ ./dependencies/
 
 
 # Ports
-EXPOSE 3000
+EXPOSE 3001
 
 
 # Run perceptor_local
