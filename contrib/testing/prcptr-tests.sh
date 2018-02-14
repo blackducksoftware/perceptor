@@ -1,13 +1,17 @@
 # Copyright (C) 2018 Synopsys, Inc.
 #!/bin/sh
 
-export PERCEPTOR_POD_NAMESPACE="perceptorTestPod"
+export PERCEPTOR_POD_NAMESPACE="perceptorTestNS"
 
 # TODO Put in a check here if kubectl cli is present
 
+# Create the Namespace
+kubectl create ns -f ./perceptorTestNS.yml
 # Spin up a Kube POD using busybox
 echo "Creating POD..."
-kubectl run busybox --image=busybox --env="POD_NAMESPACE=$PERCEPTOR_POD_NAMESPACE"
+kubectl run busybox --image=busybox --namespace=$perceptorTestNS
+echo "getting POD information"
+kubectl get pods | grep $perceptorTestNS
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
 
