@@ -37,7 +37,15 @@ const (
 	LZ_PERCEIVER_IN            = MetricType("log_perceiver_provided_input")
 	LZ_HUB_OUT                 = MetricType("log_hub_finished_something")
 	LZ_HUB_POLLING             = MetricType("log_hub_waiting_on_hub")
+	LZ_SCAN_PULL_IMG_F         = MetricType("log_scanclient_imgpull_FAIL")
 	LZ_PERCEPTOR_SCAN_PROGRESS = MetricType("log_perceptor_scan_progress")
+	// Java Scan Client Done Success
+	LZ_JSCAN_CLIENT_S = MetricType("log_java_scanclient_done_success")
+	LZ_JSCAN_CLIENT_F = MetricType("log_java_scanclient_done_FAIL")
+	// Java Scan Client Cleanup Success
+	LZ_JSCAN_CLIENT_CLEANUP_S = MetricType("log_java_scanclient_cleanup_success")
+	LZ_JSCAN_CLIENT_CLEANUP_F = MetricType("log_java_scanclient_cleanup_FAILED")
+
 	// should be none of these.
 	LZ_CATCH_ALL = MetricType("log_perceptor_uncategorized")
 
@@ -73,12 +81,38 @@ func concat(a string, b string) string {
 	return buffer.String()
 }
 
+// ZLogInfo Logging
 func ZLogInfo(base MetricType, message string) {
 	cv.WithLabelValues(string(base)).Inc()
 	log.Infof(concat(string(base), message))
 }
 
+// ZLogInfof Logging
 func ZLogInfof(base MetricType, message string, args interface{}) {
+	cv.WithLabelValues(string(base)).Inc()
+	log.Infof(concat(string(base), message), args)
+}
+
+// ZLogError Logging
+func ZLogError(base MetricType, message string) {
+	cv.WithLabelValues(string(base)).Inc()
+	log.Infof(concat(string(base), message))
+}
+
+// ZLogErrorf Logging
+func ZLogErrorf(base MetricType, message string, args interface{}) {
+	cv.WithLabelValues(string(base)).Inc()
+	log.Infof(concat(string(base), message), args)
+}
+
+// ZLogWarn Warning Logging
+func ZLogWarn(base MetricType, message string) {
+	cv.WithLabelValues(string(base)).Inc()
+	log.Infof(concat(string(base), message))
+}
+
+// ZLogWarnf Warning Logging
+func ZLogWarnf(base MetricType, message string, args interface{}) {
 	cv.WithLabelValues(string(base)).Inc()
 	log.Infof(concat(string(base), message), args)
 }

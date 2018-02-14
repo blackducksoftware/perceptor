@@ -27,6 +27,7 @@ import (
 	"time"
 
 	pdocker "github.com/blackducksoftware/perceptor/pkg/docker"
+	lz "github.com/blackducksoftware/perceptor/pkg/laserbeak"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -68,7 +69,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	defer cleanUpTarFile(job.DockerTarFilePath())
 	if pullStats.Err != nil {
 		results.Err = &ScanError{Code: ErrorTypeUnableToPullDockerImage, RootCause: pullStats.Err}
-		log.Errorf("unable to pull docker image %s: %s", job.Sha, pullStats.Err.Error())
+		lz.ZLogErrorf("unable to pull docker image %s: %s", job.Sha, pullStats.Err.Error())
 		return results
 	}
 	// TODO coupla problems here:
@@ -105,10 +106,10 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	results.TotalDuration = &totalDuration
 	if err != nil {
 		results.Err = &ScanError{Code: ErrorTypeFailedToRunJavaScanner, RootCause: err}
-		log.Errorf("java scanner failed with output:\n%s\n", string(stdoutStderr))
+		lz.ZLogErrorf("java scanner failed with output:\n%s\n", string(stdoutStderr))
 		return results
 	}
-	log.Infof("successfully completed java scanner: %s", stdoutStderr)
+	lz.ZLogInfof("successfully completed java scanner: %s", stdoutStderr)
 	return results
 }
 
@@ -159,6 +160,6 @@ func cleanUpTarFile(path string) {
 	if err != nil {
 		log.Errorf("unable to remove file %s: %s", path, err.Error())
 	} else {
-		log.Infof("successfully cleaned up file %s", path)
+		lz.ZLogInfof("successfully cleaned up file %s", path)
 	}
 }
