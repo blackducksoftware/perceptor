@@ -9,9 +9,9 @@ export PERCEPTOR_POD_NAMESPACE="perceptorTestNS"
 kubectl create ns -f ./perceptorTestNS.yml
 # Spin up a Kube POD using busybox
 echo "Creating POD..."
-kubectl run busybox --image=busybox --namespace=$perceptorTestNS
+kubectl run busybox --image=busybox --namespace=$PERCEPTOR_POD_NAMESPACE
 echo "getting POD information"
-kubectl get pods | grep $perceptorTestNS
+kubectl get pods | grep $PERCEPTOR_POD_NAMESPACE
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
 
