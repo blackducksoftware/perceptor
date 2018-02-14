@@ -7,8 +7,8 @@ docker build -t mfenwickbd/perceptor_local .
 
 # if running locally, can hit this from
 #   http://localhost:3060/model
-# docker run -p 3060:3000 mfenwickbd/perceptor_local
-docker run -v /var/run/docker.sock:/var/run/docker.sock -p3060:3000 mfenwickbd/perceptor_local
+# docker run -p 3060:3001 mfenwickbd/perceptor_local
+docker run -v /var/run/docker.sock:/var/run/docker.sock -p3060:3001 mfenwickbd/perceptor_local
 
 # use one of these to just get a running container to play around in:
 # docker run -ti mfenwickbd/perceptor_local sh

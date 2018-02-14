@@ -360,17 +360,12 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err
 	}
-	projects := []hubapi.Project{}
-	for _, proj := range projectList.Items {
-		if proj.Name == image.HubProjectNameSearchString() {
-			projects = append(projects, proj)
-		}
-	}
+	projects := projectList.Items
 	if len(projects) == 0 {
 		return nil, nil
 	}
 	if len(projects) > 1 {
-		return nil, fmt.Errorf("expected 1 project of name %s, found %d", image.HubProjectNameSearchString(), len(projects))
+		return nil, fmt.Errorf("expected 1 project matching name search string %s, found %d", image.HubProjectNameSearchString(), len(projects))
 	}
 	project := projects[0]
 	return hf.fetchImageScanUsingProject(project, image)
