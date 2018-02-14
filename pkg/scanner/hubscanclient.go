@@ -95,7 +95,7 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 		"--insecure", // TODO not sure about this
 		"-v",
 		path)
-	log.Infof("running command %v for image %s\n", cmd, job.Sha)
+	log.Infof("running command %+v for image %s\n", cmd, job.Sha)
 	startScanClient := time.Now()
 	stdoutStderr, err := cmd.CombinedOutput()
 	stopScanClient := time.Now()
@@ -105,10 +105,10 @@ func (hsc *HubScanClient) Scan(job ScanJob) ScanClientJobResults {
 	results.TotalDuration = &totalDuration
 	if err != nil {
 		results.Err = &ScanError{Code: ErrorTypeFailedToRunJavaScanner, RootCause: err}
-		log.Errorf("java scanner failed with output:\n%s\n", string(stdoutStderr))
+		log.Errorf("java scanner failed for image %s with output:\n%s\n", job.Sha, string(stdoutStderr))
 		return results
 	}
-	log.Infof("successfully completed java scanner: %s", stdoutStderr)
+	log.Infof("successfully completed java scanner for image %s: %s", job.Sha, stdoutStderr)
 	return results
 }
 

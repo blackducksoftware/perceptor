@@ -55,6 +55,8 @@ type Scanner struct {
 func NewScanner(hubHost string, hubUser string, hubPassword string) (*Scanner, error) {
 	os.Setenv("BD_HUB_PASSWORD", hubPassword)
 
+	log.Infof("instantiating scanner with hub %s, user %s", hubHost, hubUser)
+
 	scanClient, err := NewHubScanClient(hubHost, hubUser, hubPassword)
 	if err != nil {
 		log.Errorf("unable to instantiate hub scan client: %s", err.Error())
@@ -83,21 +85,25 @@ func (scanner *Scanner) HttpStats() <-chan HttpResult {
 }
 
 func (scanner *Scanner) startRequestingScanJobs() {
+	log.Infof("starting to request scan jobs")
 	go func() {
 		for {
 			time.Sleep(20 * time.Second)
-			err := scanner.requestAndRunScanJob()
-			if err != nil {
-				log.Errorf("error requesting or running scan job: %v", err)
-			}
+			scanner.requestAndRunScanJob()
 		}
 	}()
 }
 
-func (scanner *Scanner) requestAndRunScanJob() error {
-	image := scanner.requestScanJob()
+func (scanner *Scanner) requestAndRunScanJob() {
+	log.Info("requesting scan job")
+	image, err := scanner.requestScanJob()
+	if err != nil {
+		log.Errorf("unable to request scan job: %s", err.Error())
+		return
+	}
 	if image == nil {
-		return nil
+		log.Info("requested scan job, got nil")
+		return
 	}
 	job := NewScanJob(image.PullSpec, image.Sha, image.HubProjectName, image.HubProjectVersionName, image.HubScanName)
 	scanResults := scanner.scanClient.Scan(*job)
@@ -108,10 +114,13 @@ func (scanner *Scanner) requestAndRunScanJob() error {
 	}
 	finishedJob := api.FinishedScanClientJob{Err: errorString, Sha: job.Sha}
 	log.Infof("about to finish job, going to send over %v", finishedJob)
-	return scanner.finishScan(finishedJob)
+	err = scanner.finishScan(finishedJob)
+	if err != nil {
+		log.Errorf("unable to finish scan job: %s", err.Error())
+	}
 }
 
-func (scanner *Scanner) requestScanJob() *api.ImageSpec {
+func (scanner *Scanner) requestScanJob() (*api.ImageSpec, error) {
 	nextImageURL := fmt.Sprintf("%s:%s/%s", api.PerceptorBaseURL, api.PerceptorPort, api.NextImagePath)
 	resp, err := scanner.httpClient.Post(nextImageURL, "", bytes.NewBuffer([]byte{}))
 	if resp != nil {
@@ -122,23 +131,25 @@ func (scanner *Scanner) requestScanJob() *api.ImageSpec {
 	}
 	if err != nil {
 		log.Errorf("unable to POST to %s: %s", nextImageURL, err.Error())
-		return nil
-	} else if resp.StatusCode != 200 {
-		log.Errorf("http POST request to %s failed with status code %d", nextImageURL, resp.StatusCode)
-		return nil
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		err = fmt.Errorf("http POST request to %s failed with status code %d", nextImageURL, resp.StatusCode)
+		log.Error(err.Error())
+		return nil, err
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("unable to read response body from %s: %s", nextImageURL, err.Error())
-		return nil
+		return nil, err
 	}
 
 	var nextImage api.NextImage
 	err = json.Unmarshal(bodyBytes, &nextImage)
 	if err != nil {
 		log.Errorf("unmarshaling JSON body bytes %s failed for URL %s: %s", string(bodyBytes), nextImageURL, err.Error())
-		return nil
+		return nil, err
 	}
 
 	imageSha := "null"
@@ -146,7 +157,7 @@ func (scanner *Scanner) requestScanJob() *api.ImageSpec {
 		imageSha = nextImage.ImageSpec.Sha
 	}
 	log.Infof("http POST request to %s succeeded, got image %s", nextImageURL, imageSha)
-	return nextImage.ImageSpec
+	return nextImage.ImageSpec, nil
 }
 
 func (scanner *Scanner) finishScan(results api.FinishedScanClientJob) error {
