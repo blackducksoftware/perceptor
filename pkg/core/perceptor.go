@@ -62,6 +62,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(cfg *PerceptorConfig) (*Perceptor, error) {
+	log.Infof("instantiating perceptor with host %s, user %s", cfg.HubHost, cfg.HubUser)
 	baseURL := "https://" + cfg.HubHost
 	hubClient, err := hub.NewFetcher(cfg.HubUser, cfg.HubUserPassword, baseURL)
 	if err != nil {
@@ -148,10 +149,13 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 }
 
 func (perceptor *Perceptor) startCheckingForStalledScans() {
+	log.Info("starting checking for stalled scans")
 	for {
 		time.Sleep(checkForStalledScansPause)
+		log.Info("checking for stalled scans")
 		for _, imageInfo := range perceptor.inProgressScanClientScans {
 			if imageInfo.timeInCurrentScanStatus() > stalledScanTimeout {
+				log.Infof("found stalled scan with sha %s", string(imageInfo.ImageSha))
 				perceptor.actions <- requeueStalledScan{imageInfo.ImageSha}
 			}
 		}
@@ -159,18 +163,19 @@ func (perceptor *Perceptor) startCheckingForStalledScans() {
 }
 
 func (perceptor *Perceptor) startPollingHubForCompletedScans() {
+	log.Info("starting to poll hub for completed scans")
 	for {
 		time.Sleep(checkHubForCompletedScansPause)
-
+		log.Info("checking hub for completed scans")
 		for _, image := range perceptor.inProgressHubScans {
 			scan, err := perceptor.hubClient.FetchScanFromImage(image)
 			if err != nil {
-				log.Errorf("check hub for completed scans -- unable to fetch image scan for image %s: %s", image.HubProjectName(), err.Error())
+				log.Errorf("error checking hub for completed scan for image %s: %s", string(image.Sha), err.Error())
 			} else {
 				if scan == nil {
-					log.Infof("check hub for completed scans -- unable to find image scan for image %s, found nil", image.HubProjectName())
+					log.Infof("found nil checking hub for completed scan for image %s", string(image.Sha))
 				} else {
-					log.Infof("check hub for completed scans -- found image scan for image %s: %%v", image.HubProjectName(), *scan)
+					log.Infof("found completed scan for image %s: %+v", string(image.Sha), *scan)
 				}
 				perceptor.actions <- hubScanResults{HubImageScan{Sha: image.Sha, Scan: scan}}
 			}
