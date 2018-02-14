@@ -57,7 +57,7 @@ func RunLocally(kubeconfigPath string) {
 		panic(err)
 	}
 
-	log.Info("instantiated perceptor: %v", perceptor)
+	log.Info("instantiated perceptor: %+v", perceptor)
 
 	http.ListenAndServe(":3000", nil)
 	log.Info("Http server started!")
@@ -82,7 +82,7 @@ func RunFromInsideCluster() {
 		panic(err)
 	}
 
-	log.Info("instantiated perceptor: %v", perceptor)
+	log.Info("instantiated perceptor: %+v", perceptor)
 
 	// TODO make this configurable - maybe even viperize it.
 	http.ListenAndServe(":3000", nil)
