@@ -127,45 +127,12 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 	log.Infof("handled update all images -- %d images", len(allImages.Images))
 }
 
+// GetScanResults returns results for:
+//  - all images that have a scan status of complete
+//  - all pods for which all their images have a scan status of complete
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	hr.metricsHandler.getScanResults()
-	pods := []api.ScannedPod{}
-	images := []api.ScannedImage{}
-	for podName, pod := range hr.model.Pods {
-		policyViolationCount, vulnerabilityCount, overallStatus, err := hr.model.scanResults(podName)
-		if err != nil {
-			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
-			continue
-		}
-		pods = append(pods, api.ScannedPod{
-			Namespace:        pod.Namespace,
-			Name:             pod.Name,
-			PolicyViolations: policyViolationCount,
-			Vulnerabilities:  vulnerabilityCount,
-			OverallStatus:    overallStatus})
-	}
-	for _, imageInfo := range hr.model.Images {
-		componentsURL := ""
-		overallStatus := ""
-		policyViolations := 0
-		vulnerabilities := 0
-		if imageInfo.ScanResults != nil {
-			policyViolations = imageInfo.ScanResults.PolicyViolationCount()
-			vulnerabilities = imageInfo.ScanResults.VulnerabilityCount()
-			componentsURL = imageInfo.ScanResults.ComponentsHref
-			overallStatus = imageInfo.ScanResults.OverallStatus()
-		}
-		image := imageInfo.image()
-		apiImage := api.ScannedImage{
-			Name:             image.HumanReadableName(),
-			Sha:              string(image.Sha),
-			PolicyViolations: policyViolations,
-			Vulnerabilities:  vulnerabilities,
-			OverallStatus:    overallStatus,
-			ComponentsURL:    componentsURL}
-		images = append(images, apiImage)
-	}
-	return *api.NewScanResults(pods, images)
+	return hr.model.scanResults()
 }
 
 func (hr *HTTPResponder) GetNextImage(continuation func(nextImage api.NextImage)) {
