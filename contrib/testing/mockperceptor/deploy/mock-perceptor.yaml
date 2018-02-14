@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "bds-perceptor components"
+  resourceVersion: "0.0.1"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: perceptor
+    labels:
+      app: perceptor-app
+  spec:
+    replicas: 1
+    selector:
+      name: bds-perceptor
+    template:
+      metadata:
+        labels:
+          name: bds-perceptor
+        name: perceptor
+      spec:
+        containers:
+          - name: perceptor
+            image: mfenwickbd/mockperceptor:latest
+            imagePullPolicy: Always
+            command:
+              - ./mockperceptor
+            ports:
+              - containerPort: 3001
+            resources:
+              requests:
+                memory: 1Gi
+                cpu: 50m
+              limits:
+                cpu: 500m
+            terminationMessagePath: /dev/termination-log
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: perceptor
+  spec:
+    selector:
+      name: bds-perceptor
+    ports:
+    - nodePort: 0
+      port: 3001
+      protocol: TCP
+      targetPort: 3001
