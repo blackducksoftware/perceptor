@@ -69,7 +69,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(config PerceptorConfig) (*Perceptor, error) {
-	log.Infof("instantiating perceptor with config %+v", config)
+	log.Infof("instantiating perceptor with config: host %s, user %s, scan client version %s, hub version %s", config.HubHost, config.HubUser, config.HubScanClientVersion, config.HubVersion)
 	baseURL := "https://" + config.HubHost
 	hubClient, err := hub.NewFetcher(config.HubUser, config.HubUserPassword, baseURL)
 	if err != nil {
