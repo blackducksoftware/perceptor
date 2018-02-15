@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetFullScanResults(t *testing.T) {
-	model := NewModel(3)
+	model := NewModel(3, PerceptorConfig{})
 	sha1 := DockerImageSha("sha1")
 	image1 := *NewImage("image1", sha1)
 	sha2 := DockerImageSha("sha2")

@@ -32,7 +32,7 @@ import (
 
 func TestReducer(t *testing.T) {
 	concurrentScanLimit := 1
-	initialModel := NewModel(concurrentScanLimit)
+	initialModel := NewModel(concurrentScanLimit, PerceptorConfig{})
 	actions := make(chan action)
 	reducer := newReducer(*initialModel, actions)
 
@@ -346,7 +346,7 @@ func TestReducer(t *testing.T) {
 
 func TestScanClientFails(t *testing.T) {
 	concurrentScanLimit := 1
-	model := NewModel(concurrentScanLimit)
+	model := NewModel(concurrentScanLimit, PerceptorConfig{})
 	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
 	model.Images[image.Sha].setScanStatus(ScanStatusRunningScanClient)
