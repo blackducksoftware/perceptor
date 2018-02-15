@@ -17,7 +17,7 @@ COPY ./perceptor ./perceptor
 
 
 # Ports
-EXPOSE 3000
+EXPOSE 3001
 
 
 # Run perceptor

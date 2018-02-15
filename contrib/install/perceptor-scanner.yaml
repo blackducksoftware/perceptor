@@ -36,7 +36,7 @@ items:
             command:
               - ./dependencies/perceptor-scanner
             ports:
-              - containerPort: 3000
+              - containerPort: 3003
             resources:
               requests:
                 memory: 2Gi
