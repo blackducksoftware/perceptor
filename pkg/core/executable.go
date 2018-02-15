@@ -26,6 +26,9 @@ import (
 	"net/http"
 	"os/exec"
 
+	// import just for the side-effect of changing how logrus works
+	_ "github.com/blackducksoftware/perceptor/pkg/logging"
+
 	log "github.com/sirupsen/logrus"
 )
 
