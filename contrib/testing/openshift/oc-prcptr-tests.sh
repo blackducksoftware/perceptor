@@ -9,7 +9,7 @@ export PERCEPTOR_POD_NS="perceptortestns"
 createNs() {
   WAIT_TIME=$((30))
   # Clean up NS JIC it's still here...
-  oc get ns | grep $PERCEPTOR_POD_NS | xargs oc delete ns
+  oc get ns | grep $PERCEPTOR_POD_NS | cut -d ' ' -f 1 | xargs oc delete ns
   sleep $WAIT_TIME
   oc create -f ./perceptorTestNS.yml
   sleep $WAIT_TIME
@@ -26,6 +26,9 @@ createNs() {
 createPod() {
 echo "Creating POD..."
 oc run busybox --image=busybox --namespace=$PERCEPTOR_POD_NS
+oc project perceptortestns
+my_pod=$(oc get pods | grep -i busybox | cut -d ' ' -f 1)
+echo "$my_pod"
 }
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
@@ -33,10 +36,10 @@ oc run busybox --image=busybox --namespace=$PERCEPTOR_POD_NS
 # Check POD has been annotated with Black Duck
 tstAnnotate() {
   WAIT_TIME=$((30))
-  echo "Checking for Blackduck POD annotations..."
+  echo "Checking for BlackDuck POD annotations..."
   sleep $WAIT_TIME
-  a_state=$(oc describe pod $PERCEPTOR_POD_NS | grep "blackduck")
-  if [[ -z $a_state ]]; then
+  a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
+  if [[ $a_state == "" ]]; then
     echo "There appears to be no POD Annoations present."
     exit 1;
   else
