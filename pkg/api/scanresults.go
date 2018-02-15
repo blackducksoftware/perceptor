@@ -22,10 +22,16 @@ under the License.
 package api
 
 type ScanResults struct {
-	Pods   []ScannedPod
-	Images []ScannedImage
+	HubScanClientVersion string
+	HubVersion           string
+	Pods                 []ScannedPod
+	Images               []ScannedImage
 }
 
-func NewScanResults(pods []ScannedPod, images []ScannedImage) *ScanResults {
-	return &ScanResults{Pods: pods, Images: images}
+func NewScanResults(hubScanClientVersion string, hubVersion string, pods []ScannedPod, images []ScannedImage) *ScanResults {
+	return &ScanResults{
+		HubScanClientVersion: hubScanClientVersion,
+		HubVersion:           hubVersion,
+		Pods:                 pods,
+		Images:               images}
 }

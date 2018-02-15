@@ -30,14 +30,16 @@ import (
 
 // PerceptorConfig contains all configuration for Perceptor
 type PerceptorConfig struct {
-	HubHost         string
-	HubUser         string
-	HubUserPassword string
+	HubHost              string
+	HubUser              string
+	HubUserPassword      string
+	HubScanClientVersion string
+	HubVersion           string
 }
 
 // GetPerceptorConfig returns a configuration object to configure Perceptor
 func GetPerceptorConfig() (*PerceptorConfig, error) {
-	var pcfg *PerceptorConfig
+	var config *PerceptorConfig
 
 	viper.SetConfigName("perceptor_conf")
 	viper.AddConfigPath("/etc/perceptor")
@@ -47,11 +49,12 @@ func GetPerceptorConfig() (*PerceptorConfig, error) {
 		return nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 
-	err = viper.Unmarshal(&pcfg)
+	err = viper.Unmarshal(&config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
-	return pcfg, nil
+
+	return config, nil
 }
 
 // StartWatch will start watching the Perceptor configuration file and

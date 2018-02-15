@@ -57,23 +57,30 @@ type Perceptor struct {
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
 func NewMockedPerceptor() (*Perceptor, error) {
-	return newPerceptorHelper(hub.NewMockHub()), nil
+	mockConfig := PerceptorConfig{
+		HubHost:              "mock host",
+		HubUser:              "mock user",
+		HubUserPassword:      "mock password",
+		HubScanClientVersion: "mock hub scan client version",
+		HubVersion:           "mock hub version",
+	}
+	return newPerceptorHelper(hub.NewMockHub(), mockConfig), nil
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-func NewPerceptor(cfg *PerceptorConfig) (*Perceptor, error) {
-	log.Infof("instantiating perceptor with host %s, user %s", cfg.HubHost, cfg.HubUser)
-	baseURL := "https://" + cfg.HubHost
-	hubClient, err := hub.NewFetcher(cfg.HubUser, cfg.HubUserPassword, baseURL)
+func NewPerceptor(config PerceptorConfig) (*Perceptor, error) {
+	log.Infof("instantiating perceptor with config %+v", config)
+	baseURL := "https://" + config.HubHost
+	hubClient, err := hub.NewFetcher(config.HubUser, config.HubUserPassword, baseURL)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
 	}
 
-	return newPerceptorHelper(hubClient), nil
+	return newPerceptorHelper(hubClient, config), nil
 }
 
-func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
+func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) *Perceptor {
 	// 0. prepare for circular communication
 	model := make(chan Model)
 	actions := make(chan action)
@@ -113,7 +120,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface) *Perceptor {
 	}()
 
 	// 3. now for the reducer
-	reducer := newReducer(*NewModel(concurrentScanLimit), actions)
+	reducer := newReducer(*NewModel(concurrentScanLimit, config), actions)
 
 	// 4. instantiate perceptor
 	perceptor := Perceptor{

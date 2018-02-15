@@ -51,11 +51,11 @@ func (hook *MetricsHook) Fire(entry *logrus.Entry) error {
 
 func init() {
 	logrus.Infof("INITIALIZING LOGRUS WITH METRICS HOOK [metrics subsystem = %v]", "laserbeak")
-	formatter := &logrus.TextFormatter{
-		FullTimestamp:   false,
-		TimestampFormat: "15:04",
-	}
-	logrus.SetFormatter(formatter)
+	// formatter := &logrus.TextFormatter{
+	// 	FullTimestamp:   false,
+	// 	TimestampFormat: "15:04",
+	// }
+	// logrus.SetFormatter(formatter)
 
 	cv := prometheus.NewCounterVec(
 		prometheus.CounterOpts{

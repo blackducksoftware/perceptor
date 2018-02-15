@@ -26,13 +26,16 @@ import (
 	"net/http"
 	"os/exec"
 
+	// import just for the side-effect of changing how logrus works
+	_ "github.com/blackducksoftware/perceptor/pkg/logging"
+
 	log "github.com/sirupsen/logrus"
 )
 
 func RunLocally(kubeconfigPath string) {
 	log.Info("start")
 
-	config := &PerceptorConfig{
+	config := PerceptorConfig{
 		HubHost:         "34.227.56.110.xip.io",
 		HubUser:         "sysadmin",
 		HubUserPassword: "blackduck",
@@ -71,12 +74,13 @@ func RunFromInsideCluster() {
 		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
 	}
+	if config == nil {
+		err = fmt.Errorf("expected non-nil config, but got nil")
+		log.Errorf(err.Error())
+		panic(err)
+	}
 
-	// TODO: Start watching the config file.  Will need to refactor to allow hub client to be
-	// recreated, possibly other things
-
-	perceptor, err := NewPerceptor(config)
-
+	perceptor, err := NewPerceptor(*config)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
