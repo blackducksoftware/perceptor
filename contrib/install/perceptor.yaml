@@ -22,7 +22,7 @@ items:
       spec:
         containers:
           - name: perceptor
-            image: gcr.io/gke-verification/perceptor:latest
+            image: gcr.io/gke-verification/blackducksoftware/perceptor:latest
             imagePullPolicy: Always
             command:
               - ./perceptor
