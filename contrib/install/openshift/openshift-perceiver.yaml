@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "Openshift Perceiver"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: openshift-perceiver
+    labels:
+      app: openshift-perceiver
+  spec:
+    replicas: 1
+    selector:
+      name: openshift-perceiver
+    template:
+      metadata:
+        labels:
+          name: openshift-perceiver
+        name: openshift-perceiver
+      spec:
+        containers:
+          - name: pod-perceiver
+            image: msenmurugan/pod-perceiver:latest
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: 1Gi # TODO may not even need this much since it's stateless
+                cpu: 50m # TODO same here -- maybe reduce this number
+              limits:
+                cpu: 500m
+            volumeMounts:
+              - name: openshift-perceiver-config
+                mountPath: /etc/perceiver
+            terminationMessagePath: /dev/termination-log
+          - name: image-perceiver
+            image: msenmurugan/image-perceiver:latest
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: 1Gi # TODO may not even need this much since it's stateless
+                cpu: 50m # TODO same here -- maybe reduce this number
+              limits:
+                cpu: 500m
+            volumeMounts:
+              - name: openshift-perceiver-config
+                mountPath: /etc/perceiver
+            terminationMessagePath: /dev/termination-log
+        volumes:
+          - name: openshift-perceiver-config
+            configMap:
+              name: openshift-perceiver-config
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        serviceAccountName: openshift-perceiver
+        serviceAccount: openshift-perceiver
+#- apiVersion: v1
+#  kind: Service
+#  metadata:
+#    name: openshift-perceiver
+#  spec:
+#    selector:
+#      name: bds-openshift-perceiver
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: openshift-perceiver-config
+  data:
+    pod_perceiver_conf.yaml: |
+      PerceptorHost: "perceptor"
+      PerceptorPort: 3001
+      AnnotationIntervalSeconds: 30
+      DumpIntervalMinutes: 30
+    image_perceiver_conf.yaml: |
+      PerceptorHost: "perceptor"
+      PerceptorPort: 3001
+      AnnotationIntervalSeconds: 30
+      DumpIntervalMinutes: 30
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: openshift-perceiver
