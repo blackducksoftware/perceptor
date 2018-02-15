@@ -63,6 +63,6 @@ items:
     name: perceptor-config
   data:
     perceptor_conf.yaml: |
-      HubHost: "nginx-webapp-logstash"
+      HubHost: "18.219.123.21"
       HubUser: "sysadmin"
       HubUserPassword: "blackduck"
