@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018 Synopsys, Inc.
+Copyright (C) 2018 Synopys, Inc.
 
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements. See the NOTICE file
@@ -19,10 +19,14 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package laserbeak
+package logging
 
-import "testing"
+import (
+	"testing"
+
+	log "github.com/prometheus/common/log"
+)
 
 func TestLogging(t *testing.T) {
-	ZLogInfo(LZ_CATCH_ALL, "This is a log message")
+	log.Info("test log")
 }
