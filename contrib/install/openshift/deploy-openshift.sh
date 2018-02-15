@@ -15,4 +15,7 @@ oc create -f perceptor.yaml --namespace=bds-perceptor
 # Create the perceptor-scanner container
 oc create -f perceptor-scanner.yaml --namespace=bds-perceptor
 
+# Create the perceptor-scanner container
+oc create -f openshift-perceiver.yaml --namespace=bds-perceptor
+
 #oc create -f routes.yaml --namespace=bds-perceptor
