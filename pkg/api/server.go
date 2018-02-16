@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -166,18 +165,13 @@ func SetupHTTPServer(responder Responder) {
 	// for providing data to scanners
 	http.HandleFunc("/nextimage", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			responder.GetNextImage(func(nextImage NextImage) {
-				jsonBytes, err := json.Marshal(nextImage)
-				if err != nil {
-					responder.Error(w, r, err, 500)
-				} else {
-					fmt.Fprint(w, string(jsonBytes))
-				}
-				wg.Done()
-			})
-			wg.Wait()
+			nextImage := responder.GetNextImage()
+			jsonBytes, err := json.Marshal(nextImage)
+			if err != nil {
+				responder.Error(w, r, err, 500)
+			} else {
+				fmt.Fprint(w, string(jsonBytes))
+			}
 		} else {
 			responder.NotFound(w, r)
 		}
