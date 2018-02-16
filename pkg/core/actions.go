@@ -268,6 +268,16 @@ func (g getInProgressScanClientScans) apply(model Model) Model {
 	return model
 }
 
+type getMetrics struct {
+	continuation func(metrics *ModelMetrics)
+}
+
+func (g getMetrics) apply(model Model) Model {
+	modelMetrics := model.metrics()
+	go g.continuation(modelMetrics)
+	return model
+}
+
 type debugGetModel struct {
 	continuation func(model Model)
 }

@@ -70,6 +70,11 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(requeueStalledScan{})
 	processAction(setConcurrentScanLimit{})
 	processAction(allImages{})
+	processAction(getModel{})
+	processAction(getMetrics{})
+	processAction(getScanResults{})
+	processAction(getInProgressHubScans{})
+	processAction(getInProgressScanClientScans{})
 }
 
 func processAction(nextAction action) {

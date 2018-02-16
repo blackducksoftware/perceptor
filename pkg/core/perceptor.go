@@ -36,6 +36,8 @@ const (
 
 	checkForStalledScansPause = 1 * time.Minute
 	stalledScanTimeout        = 30 * time.Minute
+
+	modelMetricsPause = 15 * time.Second
 )
 
 // Perceptor ties together: a cluster, scan clients, and a hub.
@@ -128,10 +130,11 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	}
 
 	// 5. start regular tasks -- hitting the hub for results, checking for
-	//    stalled scans
+	//    stalled scans, model metrics
 	go perceptor.startCheckingForImagesInHub()
 	go perceptor.startPollingHubForCompletedScans()
 	go perceptor.startCheckingForStalledScans()
+	go perceptor.startGeneratingModelMetrics()
 
 	// 6. done
 	return &perceptor
@@ -205,5 +208,15 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 			// slow down the chatter if we didn't find something
 			time.Sleep(checkHubForCompletedScansPause)
 		}
+	}
+}
+
+func (perceptor *Perceptor) startGeneratingModelMetrics() {
+	for {
+		time.Sleep(modelMetricsPause)
+
+		perceptor.actions <- getMetrics{func(modelMetrics *ModelMetrics) {
+			metricsHandler.modelMetrics(modelMetrics)
+		}}
 	}
 }
