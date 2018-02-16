@@ -119,7 +119,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	}()
 
 	// 3. now for the reducer
-	reducer := newReducer(*NewModel(concurrentScanLimit, config), actions)
+	reducer := newReducer(NewModel(concurrentScanLimit, config), actions)
 
 	// 4. instantiate perceptor
 	perceptor := Perceptor{

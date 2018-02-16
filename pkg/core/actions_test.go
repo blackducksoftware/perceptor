@@ -88,7 +88,7 @@ var testPod = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Conta
 
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := addPod{pod: testPod}.apply(*NewModel(3, PerceptorConfig{}))
+	actual := addPod{pod: testPod}.apply(NewModel(3, PerceptorConfig{}))
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
@@ -106,7 +106,7 @@ func TestAddPodAction(t *testing.T) {
 
 func TestAddImageAction(t *testing.T) {
 	// actual
-	actual := addImage{image: testImage}.apply(*NewModel(3, PerceptorConfig{}))
+	actual := addImage{image: testImage}.apply(NewModel(3, PerceptorConfig{}))
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
@@ -129,7 +129,7 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	var nextImage *Image
 	actual := getNextImage{continuation: func(image *Image) {
 		nextImage = image
-	}}.apply(*NewModel(3, PerceptorConfig{}))
+	}}.apply(NewModel(3, PerceptorConfig{}))
 	// expected: front image removed from scan queue, status and time of image changed
 	expected := *NewModel(3, PerceptorConfig{})
 

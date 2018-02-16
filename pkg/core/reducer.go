@@ -25,7 +25,7 @@ type reducer struct{}
 
 // logic
 
-func newReducer(initialModel Model, actions <-chan action) *reducer {
+func newReducer(initialModel *Model, actions <-chan action) *reducer {
 	model := initialModel
 	go func() {
 		for {

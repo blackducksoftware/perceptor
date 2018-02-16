@@ -30,11 +30,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func getNextModel(actions chan<- action) Model {
+func getNextModel(actions chan<- action) *Model {
 	var wg sync.WaitGroup
-	var newModel Model
+	var newModel *Model
 	wg.Add(1)
-	actions <- debugGetModel{func(model Model) {
+	actions <- debugGetModel{func(model *Model) {
 		log.Info("in continuation for model get")
 		newModel = model
 		wg.Done()
@@ -47,13 +47,13 @@ func TestReducer(t *testing.T) {
 	concurrentScanLimit := 1
 	initialModel := NewModel(concurrentScanLimit, PerceptorConfig{})
 	actions := make(chan action)
-	reducer := newReducer(*initialModel, actions)
+	reducer := newReducer(initialModel, actions)
 	log.Infof("print reducer just to keep go compiler from complaining: %+v", reducer)
 
 	image1 := *NewImage("image1", DockerImageSha("fe67acf"))
 	image2 := *NewImage("image2", DockerImageSha("89ca3ec"))
 
-	var newModel Model
+	var newModel *Model
 
 	// 1. add a pod
 	//   this should add all the images in the pod to the hub check queue (if they haven't already been added),
