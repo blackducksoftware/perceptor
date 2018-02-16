@@ -41,7 +41,7 @@ type Responder interface {
 	UpdateAllImages(allImages AllImages)
 
 	// scanner
-	GetNextImage(func(nextImage NextImage))
+	GetNextImage() NextImage
 	PostFinishScan(job FinishedScanClientJob)
 
 	// internal use

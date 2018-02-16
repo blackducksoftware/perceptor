@@ -73,7 +73,7 @@ func TestActionsImplementInterface(t *testing.T) {
 }
 
 func processAction(nextAction action) {
-	log.Infof("received actions: %+v", nextAction)
+	log.Infof("received actions: %+v, %s", nextAction, reflect.TypeOf(nextAction))
 }
 
 var testSha = DockerImageSha("sha1")

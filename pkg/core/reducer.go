@@ -21,25 +21,19 @@ under the License.
 
 package core
 
-type reducer struct {
-	model <-chan Model
-}
+type reducer struct{}
 
 // logic
 
 func newReducer(initialModel Model, actions <-chan action) *reducer {
 	model := initialModel
-	modelStream := make(chan Model)
 	go func() {
 		for {
 			select {
 			case nextAction := <-actions:
 				model = nextAction.apply(model)
-				go func() {
-					modelStream <- model
-				}()
 			}
 		}
 	}()
-	return &reducer{model: modelStream}
+	return &reducer{}
 }

@@ -22,6 +22,9 @@ under the License.
 package core
 
 import (
+	"encoding/json"
+
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -89,7 +92,7 @@ type getNextImage struct {
 func (g getNextImage) apply(model Model) Model {
 	log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.inProgressScanCount())
 	image := model.getNextImageFromScanQueue()
-	g.continuation(image)
+	go g.continuation(image)
 	return model
 }
 
@@ -116,7 +119,7 @@ type getNextImageForHubPolling struct {
 func (g getNextImageForHubPolling) apply(model Model) Model {
 	log.Infof("looking for next image to search for in hub")
 	image := model.getNextImageFromHubCheckQueue()
-	g.continuation(image)
+	go g.continuation(image)
 	return model
 }
 
@@ -210,5 +213,66 @@ func (a allImages) apply(model Model) Model {
 	for _, image := range a.images {
 		model.AddImage(image)
 	}
+	return model
+}
+
+type getModel struct {
+	continuation func(json string)
+}
+
+func (g getModel) apply(model Model) Model {
+	jsonBytes, err := json.Marshal(model)
+	if err != nil {
+		jsonBytes = []byte{}
+		log.Errorf("unable to serialize model: %s", err.Error())
+	}
+	go g.continuation(string(jsonBytes))
+	return model
+}
+
+type getScanResults struct {
+	continuation func(results api.ScanResults)
+}
+
+func (g getScanResults) apply(model Model) Model {
+	scanResults := model.scanResults()
+	go g.continuation(scanResults)
+	return model
+}
+
+type getInProgressHubScans struct {
+	continuation func(images []Image)
+}
+
+func (g getInProgressHubScans) apply(model Model) Model {
+	scans := []Image{}
+	for _, image := range model.inProgressHubScans() {
+		scans = append(scans, image)
+	}
+	go g.continuation(scans)
+	return model
+}
+
+type getInProgressScanClientScans struct {
+	continuation func(imageInfos []*ImageInfo)
+}
+
+func (g getInProgressScanClientScans) apply(model Model) Model {
+	imageInfos := []*ImageInfo{}
+	for _, imageInfo := range model.inProgressScanClientScans() {
+		// TODO could make a deep copy of imageInfo in case it is being
+		// changed while we're looking at it
+		imageInfos = append(imageInfos, imageInfo)
+	}
+	go g.continuation(imageInfos)
+	return model
+}
+
+type debugGetModel struct {
+	continuation func(model Model)
+}
+
+func (d debugGetModel) apply(model Model) Model {
+	go d.continuation(model)
 	return model
 }
