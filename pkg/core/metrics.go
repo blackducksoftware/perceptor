@@ -105,7 +105,7 @@ func (m *Metrics) httpError(request *http.Request, err error) {
 
 // model
 
-// generateStatusMetrics is called periodically -- but NOT every time the model
+// modelMetrics is called periodically -- but NOT every time the model
 // is updated -- in case generating the metrics is computationally expensive.
 // And the metrics don't need to be updated all that often, since they'll only
 // get scraped every now and then by prometheus.
