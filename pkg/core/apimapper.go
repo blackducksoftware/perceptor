@@ -54,7 +54,7 @@ func (model *Model) scanResultsForPod(podName string) (int, int, string, error) 
 		return 0, 0, "", fmt.Errorf("could not find pod of name %s in cache", podName)
 	}
 
-	overallStatus := ""
+	overallStatus := "NOT_IN_VIOLATION"
 	policyViolationCount := 0
 	vulnerabilityCount := 0
 	for _, container := range pod.Containers {
@@ -70,10 +70,9 @@ func (model *Model) scanResultsForPod(podName string) (int, int, string, error) 
 		}
 		policyViolationCount += imageInfo.ScanResults.PolicyViolationCount()
 		vulnerabilityCount += imageInfo.ScanResults.VulnerabilityCount()
-		// TODO what's the right way to combine all the 'OverallStatus' values
-		//   from the individual image scans?
-		if imageInfo.ScanResults.OverallStatus() != "NOT_IN_VIOLATION" {
-			overallStatus = imageInfo.ScanResults.OverallStatus()
+		imageScanOverallStatus := imageInfo.ScanResults.OverallStatus()
+		if imageScanOverallStatus != "NOT_IN_VIOLATION" && imageScanOverallStatus != "" {
+			overallStatus = imageScanOverallStatus
 		}
 	}
 	return policyViolationCount, vulnerabilityCount, overallStatus, nil
