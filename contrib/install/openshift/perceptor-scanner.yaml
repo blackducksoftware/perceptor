@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "bds-perceptor components"
+  resourceVersion: "0.0.1"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: perceptor-scanner
+    labels:
+      app: perceptor-app
+  spec:
+    replicas: 2
+    selector:
+      name: bds-perceptor
+    template:
+      metadata:
+        labels:
+          name: bds-perceptor
+        name: perceptor-scanner
+      spec:
+        volumes:
+          - emptyDir: {}
+            name: "var-images"
+          - name: dir-docker-socket
+            hostPath:
+              path: /var/run/docker.sock
+          - name: perceptor-scanner-config
+            configMap:
+              name: perceptor-scanner-config
+        containers:
+          - name: perceptor
+            image: gcr.io/gke-verification/blackducksoftware/perceptor-scanner:latest
+            imagePullPolicy: Always
+            command:
+              - ./dependencies/perceptor-scanner
+            ports:
+              - containerPort: 3003
+            resources:
+              requests:
+                memory: 2Gi
+                cpu: 50m
+              limits:
+                cpu: 500m
+            volumeMounts:
+#              - mountPath: /opt/blackduck/perceptor/logs
+#                name: dir-perceptor-log
+#              - mountPath: /var/images
+#                name: dir-image
+              - mountPath: /var/run/docker.sock
+                name: dir-docker-socket
+              - name: perceptor-scanner-config
+                mountPath: /etc/perceptor_scanner
+            terminationMessagePath: /dev/termination-log
+            securityContext:
+              privileged: true
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        serviceAccountName: perceptor-scanner-sa
+        serviceAccount: perceptor-scanner-sa
+# not sure if this is actually necessary
+#      securityContext:
+#        privileged: true
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: perceptor-scanner
+  spec:
+    selector:
+      name: bds-perceptor
+    ports:
+    - nodePort: 0
+      port: 3003
+      protocol: TCP
+      targetPort: 3003
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: perceptor-scanner-config
+  data:
+    perceptor_scanner_conf.yaml: |
+      HubHost: "nginx-webapp-logstash"
+      HubUser: "sysadmin"
+      HubUserPassword: "blackduck"

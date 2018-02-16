@@ -228,3 +228,39 @@ func (model *Model) inProgressHubScans() []Image {
 	}
 	return inProgressHubScans
 }
+
+func (model *Model) metrics() *ModelMetrics {
+	// number of images in each status
+	statusCounts := make(map[ScanStatus]int)
+	for _, imageResults := range model.Images {
+		statusCounts[imageResults.ScanStatus]++
+	}
+
+	// number of containers per pod (as a histgram, but not a prometheus histogram ???)
+	containerCounts := make(map[int]int)
+	for _, pod := range model.Pods {
+		containerCounts[len(pod.Containers)]++
+	}
+
+	// number of times each image is referenced from a pod's container
+	imageCounts := make(map[Image]int)
+	for _, pod := range model.Pods {
+		for _, cont := range pod.Containers {
+			imageCounts[cont.Image]++
+		}
+	}
+	imageCountHistogram := make(map[int]int)
+	for _, count := range imageCounts {
+		imageCountHistogram[count]++
+	}
+
+	// TODO
+	// number of images without a pod pointing to them
+	return &ModelMetrics{
+		ScanStatusCounts:    statusCounts,
+		NumberOfImages:      len(model.Images),
+		NumberOfPods:        len(model.Pods),
+		ContainerCounts:     containerCounts,
+		ImageCountHistogram: imageCountHistogram,
+	}
+}
