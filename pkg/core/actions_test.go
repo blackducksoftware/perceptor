@@ -76,24 +76,24 @@ func processAction(nextAction action) {
 	log.Infof("received actions: %+v", nextAction)
 }
 
-var sha1 = DockerImageSha("sha1")
-var image1 = Image{Name: "image1", Sha: sha1}
-var cont1 = Container{Image: image1}
-var pod1 = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Container{cont1}}
+var testSha = DockerImageSha("sha1")
+var testImage = Image{Name: "image1", Sha: testSha}
+var testCont = Container{Image: testImage}
+var testPod = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Container{testCont}}
 
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := addPod{pod: pod1}.apply(*NewModel(3, PerceptorConfig{}))
+	actual := addPod{pod: testPod}.apply(*NewModel(3, PerceptorConfig{}))
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
 	//  - all new images get added to hub check queue
 	expected := *NewModel(3, PerceptorConfig{})
-	expected.Pods[pod1.QualifiedName()] = pod1
-	imageInfo := NewImageInfo(sha1, "image1")
+	expected.Pods[testPod.QualifiedName()] = testPod
+	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
-	imageInfo.TimeOfLastStatusChange = actual.Images[sha1].TimeOfLastStatusChange
-	expected.Images[sha1] = imageInfo
+	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
+	expected.Images[testSha] = imageInfo
 	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.image())
 	//
 	assertEqual(t, actual, expected)
@@ -101,15 +101,15 @@ func TestAddPodAction(t *testing.T) {
 
 func TestAddImageAction(t *testing.T) {
 	// actual
-	actual := addImage{image: image1}.apply(*NewModel(3, PerceptorConfig{}))
+	actual := addImage{image: testImage}.apply(*NewModel(3, PerceptorConfig{}))
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
 	expected := *NewModel(3, PerceptorConfig{})
-	imageInfo := NewImageInfo(sha1, "image1")
+	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
-	imageInfo.TimeOfLastStatusChange = actual.Images[sha1].TimeOfLastStatusChange
-	expected.Images[sha1] = imageInfo
+	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
+	expected.Images[testSha] = imageInfo
 	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.image())
 	//
 	assertEqual(t, actual, expected)
