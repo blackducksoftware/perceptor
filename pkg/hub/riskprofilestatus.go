@@ -21,15 +21,12 @@ under the License.
 
 package hub
 
-type RiskProfile struct {
-	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
-	BomLastUpdatedAt string
-}
+type RiskProfileStatus int
 
-func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
-	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
-	if !ok {
-		return 0
-	}
-	return vulnerabilities.HighRiskVulnerabilityCount()
-}
+const (
+	RiskProfileStatusHigh    RiskProfileStatus = iota
+	RiskProfileStatusMedium  RiskProfileStatus = iota
+	RiskProfileStatusLow     RiskProfileStatus = iota
+	RiskProfileStatusOK      RiskProfileStatus = iota
+	RiskProfileStatusUnknown RiskProfileStatus = iota
+)

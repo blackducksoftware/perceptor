@@ -19,17 +19,20 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package core
 
-type RiskProfile struct {
-	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
-	BomLastUpdatedAt string
-}
+import (
+	"encoding/json"
+	"testing"
 
-func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
-	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
-	if !ok {
-		return 0
+	"github.com/prometheus/common/log"
+)
+
+func TestModelJSONSerialization(t *testing.T) {
+	m := NewModel(3, PerceptorConfig{})
+	jsonBytes, err := json.Marshal(m)
+	if err != nil {
+		t.Errorf("unabled to serialize model to json: %s", err.Error())
 	}
-	return vulnerabilities.HighRiskVulnerabilityCount()
+	log.Infof("json bytes: %s", string(jsonBytes))
 }

@@ -328,11 +328,14 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	scanSummary := scanSummaries[0]
 
+	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
+
+	if err != nil {
+		return nil, err
+	}
+
 	scan := ImageScan{
-		RiskProfile: RiskProfile{
-			BomLastUpdatedAt: riskProfile.BomLastUpdatedAt,
-			Categories:       riskProfile.Categories,
-		},
+		RiskProfile: *mappedRiskProfile,
 		PolicyStatus: PolicyStatus{
 			ComponentVersionStatusCounts: policyStatusComponentVersionStatusCounts,
 			OverallStatus:                policyStatus.OverallStatus,
