@@ -22,10 +22,12 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
@@ -334,6 +336,24 @@ func TestReducer(t *testing.T) {
 	newModel = getNextModel(actions)
 	if nextImage != nil {
 		t.Logf("expected to get nothing, got %v", nextImage)
+		t.Fail()
+	}
+
+	// 12. get scan results
+	var scanResults api.ScanResults
+	wg.Add(1)
+	actions <- getScanResults{func(results api.ScanResults) {
+		scanResults = results
+		wg.Done()
+	}}
+	wg.Wait()
+	if len(scanResults.Images) != 1 {
+		t.Logf("expected 1 image, found %d", len(scanResults.Images))
+		jsonBytes, err := json.Marshal(scanResults)
+		if err != nil {
+			panic(err)
+		}
+		t.Logf("json dump: \n%s", string(jsonBytes))
 		t.Fail()
 	}
 

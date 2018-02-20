@@ -55,7 +55,8 @@ func NewHTTPResponder() *HTTPResponder {
 		postNextImage:          make(chan func(*Image)),
 		postFinishScanJob:      make(chan api.FinishedScanClientJob),
 		setConcurrentScanLimit: make(chan int),
-		getModel:               make(chan func(json string))}
+		getModel:               make(chan func(json string)),
+		getScanResults:         make(chan func(api.ScanResults))}
 }
 
 func (hr *HTTPResponder) GetModel() string {
