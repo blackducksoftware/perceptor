@@ -58,10 +58,6 @@ func NewHTTPResponder() *HTTPResponder {
 		getModel:               make(chan func(json string))}
 }
 
-func (hr *HTTPResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	metricsHandler.httpHandler.ServeHTTP(w, r)
-}
-
 func (hr *HTTPResponder) GetModel() string {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -75,48 +71,48 @@ func (hr *HTTPResponder) GetModel() string {
 }
 
 func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
+	recordAddPod()
 	pod := *newPod(apiPod)
-	metricsHandler.addPod(pod)
 	hr.addPod <- pod
 	log.Infof("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) DeletePod(qualifiedName string) {
-	metricsHandler.deletePod(qualifiedName)
+	recordDeletePod()
 	hr.deletePod <- qualifiedName
 	log.Infof("handled delete pod %s", qualifiedName)
 }
 
 func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
+	recordUpdatePod()
 	pod := *newPod(apiPod)
-	metricsHandler.updatePod(pod)
 	hr.updatePod <- pod
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) AddImage(apiImage api.Image) {
+	recordAddImage()
 	image := *newImage(apiImage)
-	metricsHandler.addImage(image)
 	hr.addImage <- image
 	log.Infof("handled add image %s", image.HumanReadableName())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
+	recordAllPods()
 	pods := []Pod{}
 	for _, apiPod := range allPods.Pods {
 		pods = append(pods, *newPod(apiPod))
 	}
-	metricsHandler.allPods(pods)
 	hr.allPods <- pods
 	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
 }
 
 func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
+	recordAllImages()
 	images := []Image{}
 	for _, apiImage := range allImages.Images {
 		images = append(images, *newImage(apiImage))
 	}
-	metricsHandler.allImages(images)
 	hr.allImages <- images
 	log.Infof("handled update all images -- %d images", len(allImages.Images))
 }
@@ -125,7 +121,7 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 //  - all images that have a scan status of complete
 //  - all pods for which all their images have a scan status of complete
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
-	metricsHandler.getScanResults()
+	recordGetScanResults()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var scanResults api.ScanResults
@@ -138,7 +134,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 }
 
 func (hr *HTTPResponder) GetNextImage() api.NextImage {
-	metricsHandler.getNextImage()
+	recordGetNextImage()
 	var wg sync.WaitGroup
 	var nextImage api.NextImage
 	wg.Add(1)
@@ -163,7 +159,7 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 }
 
 func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
-	metricsHandler.postFinishedScan()
+	recordPostFinishedScan()
 	hr.postFinishScanJob <- job
 	log.Infof("handled finished scan job -- %v", job)
 }
@@ -178,11 +174,11 @@ func (hr *HTTPResponder) SetConcurrentScanLimit(limit api.SetConcurrentScanLimit
 // errors
 
 func (hr *HTTPResponder) NotFound(w http.ResponseWriter, r *http.Request) {
-	metricsHandler.httpNotFound(r)
+	recordHttpNotFound(r)
 	http.NotFound(w, r)
 }
 
 func (hr *HTTPResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
-	metricsHandler.httpError(r, err)
+	recordHttpError(r, err, statusCode)
 	http.Error(w, err.Error(), statusCode)
 }

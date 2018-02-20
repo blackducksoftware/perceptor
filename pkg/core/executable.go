@@ -24,10 +24,12 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
+	"github.com/prometheus/client_golang/prometheus"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -60,6 +62,9 @@ func RunLocally(kubeconfigPath string) {
 		panic(err)
 	}
 
+	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
+	prometheus.Unregister(prometheus.NewGoCollector())
+
 	log.Info("instantiated perceptor: %+v", perceptor)
 
 	http.ListenAndServe(":3001", nil)
@@ -85,6 +90,9 @@ func RunFromInsideCluster() {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
 	}
+
+	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
+	prometheus.Unregister(prometheus.NewGoCollector())
 
 	log.Info("instantiated perceptor: %+v", perceptor)
 

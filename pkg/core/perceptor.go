@@ -216,7 +216,7 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 		time.Sleep(modelMetricsPause)
 
 		perceptor.actions <- getMetrics{func(modelMetrics *ModelMetrics) {
-			metricsHandler.modelMetrics(modelMetrics)
+			recordModelMetrics(modelMetrics)
 		}}
 	}
 }

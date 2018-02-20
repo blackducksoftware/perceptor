@@ -62,7 +62,7 @@ func init() {
 			Namespace: "perceptor",
 			Subsystem: "laserbeak",
 			Name:      "log",
-			Help:      "Counter",
+			Help:      "counts logrus calls by warning level",
 		},
 		[]string{"log_type"})
 

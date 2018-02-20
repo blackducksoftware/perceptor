@@ -28,25 +28,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	m := metricsHandler
-	if m == nil {
-		t.Error("expected m to be non-nil")
-	}
-
-	m.addImage(Image{})
-	m.addPod(Pod{})
-	m.allPods([]Pod{})
-	m.deletePod("abcd")
-	m.getNextImage()
-	m.getScanResults()
-	// TODO not good for testing
-	// m.httpError(request, err)
-	// m.httpNotFound(request)
-	m.postFinishedScan()
-	//m.updateModel(Model{Images: map[DockerImageSha]*ImageInfo{
-	//		DockerImageSha("abc"): &ImageInfo{ScanStatus: ScanStatusInQueue, ScanResults: nil},
-	//	}})
-	m.updatePod(Pod{})
+	recordModelMetrics(&ModelMetrics{})
 
 	message := "finished test case"
 	t.Log(message)
