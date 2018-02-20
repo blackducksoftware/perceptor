@@ -48,3 +48,7 @@ func (p PolicyStatusType) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, p.String())
 	return []byte(jsonString), nil
 }
+
+func (p PolicyStatusType) MarshalText() (text []byte, err error) {
+	return []byte(p.String()), nil
+}

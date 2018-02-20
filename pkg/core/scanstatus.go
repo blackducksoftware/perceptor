@@ -75,3 +75,7 @@ func (s ScanStatus) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, s.String())
 	return []byte(jsonString), nil
 }
+
+func (s ScanStatus) MarshalText() (text []byte, err error) {
+	return []byte(s.String()), nil
+}

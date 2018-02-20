@@ -54,3 +54,7 @@ func (r RiskProfileStatus) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, r.String())
 	return []byte(jsonString), nil
 }
+
+func (r RiskProfileStatus) MarshalText() (text []byte, err error) {
+	return []byte(r.String()), nil
+}

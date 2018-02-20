@@ -52,7 +52,11 @@ func (r RiskProfileCategory) String() string {
 	}
 }
 
-func (r RiskProfileCategory) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, r.String())
-	return []byte(jsonString), nil
+// func (r RiskProfileCategory) MarshalJSON() ([]byte, error) {
+// 	jsonString := fmt.Sprintf(`"%s"`, r.String())
+// 	return []byte(jsonString), nil
+// }
+
+func (r RiskProfileCategory) MarshalText() (text []byte, err error) {
+	return []byte(r.String()), nil
 }

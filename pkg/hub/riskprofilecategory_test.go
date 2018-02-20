@@ -37,3 +37,19 @@ func TestRiskProfileCategoryJSON(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected, actual)
 	}
 }
+
+func TestRiskProfileCategoryJSONWithinDictionary(t *testing.T) {
+	dict := map[RiskProfileCategory]RiskProfileCategory{
+		RiskProfileCategoryActivity:    RiskProfileCategoryVersion,
+		RiskProfileCategoryOperational: RiskProfileCategoryLicense,
+	}
+	jsonBytes, err := json.Marshal(dict)
+	if err != nil {
+		panic(err)
+	}
+	actual := string(jsonBytes)
+	expected := `{"ACTIVITY":"VERSION","OPERATIONAL":"LICENSE"}`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
+}
