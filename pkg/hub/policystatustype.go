@@ -43,3 +43,8 @@ func (p PolicyStatusType) String() string {
 		panic(fmt.Errorf("invalid PolicyStatusType value: %d", p))
 	}
 }
+
+func (p PolicyStatusType) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, p.String())
+	return []byte(jsonString), nil
+}

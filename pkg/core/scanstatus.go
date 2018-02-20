@@ -70,3 +70,8 @@ func (status ScanStatus) String() string {
 	}
 	panic(fmt.Errorf("invalid ScanStatus value: %d", status))
 }
+
+func (s ScanStatus) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, s.String())
+	return []byte(jsonString), nil
+}

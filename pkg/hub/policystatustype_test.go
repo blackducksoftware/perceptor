@@ -21,36 +21,19 @@ under the License.
 
 package hub
 
-import "fmt"
-
-type RiskProfileStatus int
-
-const (
-	RiskProfileStatusHigh    RiskProfileStatus = iota
-	RiskProfileStatusMedium  RiskProfileStatus = iota
-	RiskProfileStatusLow     RiskProfileStatus = iota
-	RiskProfileStatusOK      RiskProfileStatus = iota
-	RiskProfileStatusUnknown RiskProfileStatus = iota
+import (
+	"encoding/json"
+	"testing"
 )
 
-func (r RiskProfileStatus) String() string {
-	switch r {
-	case RiskProfileStatusHigh:
-		return "HIGH"
-	case RiskProfileStatusMedium:
-		return "MEDIUM"
-	case RiskProfileStatusLow:
-		return "LOW"
-	case RiskProfileStatusOK:
-		return "OK"
-	case RiskProfileStatusUnknown:
-		return "UNKNOWN"
-	default:
-		panic(fmt.Errorf("invalid RiskProfileStatus value: %d", r))
+func TestPolicyStatusTypeJSON(t *testing.T) {
+	jsonBytes, err := json.Marshal(PolicyStatusTypeInViolation)
+	if err != nil {
+		panic(err)
 	}
-}
-
-func (r RiskProfileStatus) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, r.String())
-	return []byte(jsonString), nil
+	actual := string(jsonBytes)
+	expected := `"IN_VIOLATION"`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
 }

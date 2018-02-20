@@ -21,6 +21,10 @@ under the License.
 
 package hub
 
+import (
+	"fmt"
+)
+
 type RiskProfileCategory int
 
 const (
@@ -30,3 +34,25 @@ const (
 	RiskProfileCategoryVersion       RiskProfileCategory = iota
 	RiskProfileCategoryVulnerability RiskProfileCategory = iota
 )
+
+func (r RiskProfileCategory) String() string {
+	switch r {
+	case RiskProfileCategoryActivity:
+		return "ACTIVITY"
+	case RiskProfileCategoryLicense:
+		return "LICENSE"
+	case RiskProfileCategoryOperational:
+		return "OPERATIONAL"
+	case RiskProfileCategoryVersion:
+		return "VERSION"
+	case RiskProfileCategoryVulnerability:
+		return "VULNERABILITY"
+	default:
+		panic(fmt.Errorf("invalid RiskProfileCategory value: %d", r))
+	}
+}
+
+func (r RiskProfileCategory) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, r.String())
+	return []byte(jsonString), nil
+}
