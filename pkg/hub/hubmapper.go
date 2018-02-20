@@ -21,7 +21,11 @@ under the License.
 
 package hub
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/blackducksoftware/hub-client-go/hubapi"
+)
 
 func parseHubRiskProfileStatus(hubName string) (RiskProfileStatus, error) {
 	switch hubName {
@@ -83,4 +87,33 @@ func newRiskProfile(bomLastUpdatedAt string, hubCategories map[string]map[string
 		categories[category] = *counts
 	}
 	return &RiskProfile{BomLastUpdatedAt: bomLastUpdatedAt, Categories: categories}, nil
+}
+
+func parseHubPolicyStatusType(hubName string) (PolicyStatusType, error) {
+	switch hubName {
+	case "NOT_IN_VIOLATION":
+		return PolicyStatusTypeNotInViolation, nil
+	case "IN_VIOLATION":
+		return PolicyStatusTypeInViolation, nil
+	case "IN_VIOLATION_OVERRIDDEN":
+		return PolicyStatusTypeInViolationOverridden, nil
+	default:
+		return PolicyStatusTypeInViolation, fmt.Errorf("invalid hub name for policy status type: %s", hubName)
+	}
+}
+
+func newPolicyStatus(hubOverallStatus string, hubUpdatedAt string, hubComponentVersionStatusCounts []hubapi.ComponentVersionStatusCount) (*PolicyStatus, error) {
+	overallStatus, err := parseHubPolicyStatusType(hubOverallStatus)
+	if err != nil {
+		return nil, err
+	}
+	statusCounts := map[PolicyStatusType]int{}
+	for _, hubStatusCount := range hubComponentVersionStatusCounts {
+		status, err := parseHubPolicyStatusType(hubStatusCount.Name)
+		if err != nil {
+			return nil, err
+		}
+		statusCounts[status] = hubStatusCount.Value
+	}
+	return &PolicyStatus{OverallStatus: overallStatus, UpdatedAt: hubUpdatedAt, ComponentVersionStatusCounts: statusCounts}, nil
 }

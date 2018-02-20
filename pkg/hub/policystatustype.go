@@ -21,16 +21,25 @@ under the License.
 
 package hub
 
-type PolicyStatus struct {
-	OverallStatus                PolicyStatusType
-	UpdatedAt                    string
-	ComponentVersionStatusCounts map[PolicyStatusType]int
-}
+import "fmt"
 
-func (ps *PolicyStatus) ViolationCount() int {
-	violationCount, ok := ps.ComponentVersionStatusCounts[PolicyStatusTypeInViolation]
-	if !ok {
-		return 0
+type PolicyStatusType int
+
+const (
+	PolicyStatusTypeNotInViolation        PolicyStatusType = iota
+	PolicyStatusTypeInViolation           PolicyStatusType = iota
+	PolicyStatusTypeInViolationOverridden PolicyStatusType = iota
+)
+
+func (p PolicyStatusType) String() string {
+	switch p {
+	case PolicyStatusTypeNotInViolation:
+		return "NOT_IN_VIOLATION"
+	case PolicyStatusTypeInViolation:
+		return "IN_VIOLATION"
+	case PolicyStatusTypeInViolationOverridden:
+		return "IN_VIOLATION_OVERRIDDEN"
+	default:
+		panic(fmt.Errorf("invalid PolicyStatusType value: %d", p))
 	}
-	return violationCount
 }

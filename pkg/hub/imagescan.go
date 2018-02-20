@@ -50,6 +50,6 @@ func (scan *ImageScan) PolicyViolationCount() int {
 	return scan.PolicyStatus.ViolationCount()
 }
 
-func (scan *ImageScan) OverallStatus() string {
+func (scan *ImageScan) OverallStatus() PolicyStatusType {
 	return scan.PolicyStatus.OverallStatus
 }

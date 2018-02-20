@@ -30,12 +30,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var getModelCount = 1
+
 func getNextModel(actions chan<- action) *Model {
 	var wg sync.WaitGroup
 	var newModel *Model
 	wg.Add(1)
 	actions <- debugGetModel{func(model *Model) {
-		log.Info("in continuation for model get")
+		log.Infof("in continuation for model get %d", getModelCount)
+		getModelCount++
 		newModel = model
 		wg.Done()
 	}}
@@ -320,10 +323,14 @@ func TestReducer(t *testing.T) {
 	newModel = getNextModel(actions)
 
 	// 11. ask for next image, get nil because queue is empty
+	var wg sync.WaitGroup
+	wg.Add(1)
 	actions <- getNextImage{func(image *Image) {
 		log.Infof("image: %v, %t", image, image == nil)
 		nextImage = image
+		wg.Done()
 	}}
+	wg.Wait()
 	newModel = getNextModel(actions)
 	if nextImage != nil {
 		t.Logf("expected to get nothing, got %v", nextImage)

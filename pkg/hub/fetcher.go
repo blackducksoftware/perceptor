@@ -257,10 +257,6 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error fetching project version policy status: %v", err)
 		return nil, err
 	}
-	policyStatusComponentVersionStatusCounts := make(map[string]int)
-	for _, item := range policyStatus.ComponentVersionStatusCounts {
-		policyStatusComponentVersionStatusCounts[item.Name] = item.Value
-	}
 
 	componentsLink, err := version.GetComponentsLink()
 	if err != nil {
@@ -334,13 +330,15 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 
+	mappedPolicyStatus, err := newPolicyStatus(policyStatus.OverallStatus, policyStatus.UpdatedAt, policyStatus.ComponentVersionStatusCounts)
+
+	if err != nil {
+		return nil, err
+	}
+
 	scan := ImageScan{
-		RiskProfile: *mappedRiskProfile,
-		PolicyStatus: PolicyStatus{
-			ComponentVersionStatusCounts: policyStatusComponentVersionStatusCounts,
-			OverallStatus:                policyStatus.OverallStatus,
-			UpdatedAt:                    policyStatus.UpdatedAt,
-		},
+		RiskProfile:    *mappedRiskProfile,
+		PolicyStatus:   *mappedPolicyStatus,
 		ComponentsHref: componentsLink.Href,
 		ScanSummary: ScanSummary{
 			CreatedAt: scanSummary.CreatedAt,
