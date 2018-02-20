@@ -67,17 +67,8 @@ items:
   metadata:
     name: openshift-perceiver-config
   data:
-    pod_perceiver_conf.yaml: |
+    perceiver.yaml: |
       PerceptorHost: "perceptor"
       PerceptorPort: 3001
       AnnotationIntervalSeconds: 30
       DumpIntervalMinutes: 30
-    image_perceiver_conf.yaml: |
-      PerceptorHost: "perceptor"
-      PerceptorPort: 3001
-      AnnotationIntervalSeconds: 30
-      DumpIntervalMinutes: 30
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    name: openshift-perceiver
