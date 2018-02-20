@@ -64,8 +64,8 @@ func createNewModel1() *Model {
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus:                "IN_VIOLATION",
-			ComponentVersionStatusCounts: map[string]int{"IN_VIOLATION": 3}}}
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
 	return model
 }
 
@@ -77,12 +77,12 @@ func createNewModel2() *Model {
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus:                "IN_VIOLATION",
-			ComponentVersionStatusCounts: map[string]int{"IN_VIOLATION": 3}}}
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
 	model.Images[sha3].ScanStatus = ScanStatusComplete
 	model.Images[sha3].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus: "NOT_IN_VIOLATION",
+			OverallStatus: hub.PolicyStatusTypeNotInViolation,
 		},
 	}
 	return model

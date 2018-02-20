@@ -21,15 +21,19 @@ under the License.
 
 package hub
 
-type RiskProfile struct {
-	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
-	BomLastUpdatedAt string
-}
+import (
+	"encoding/json"
+	"testing"
+)
 
-func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
-	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
-	if !ok {
-		return 0
+func TestPolicyStatusTypeJSON(t *testing.T) {
+	jsonBytes, err := json.Marshal(PolicyStatusTypeInViolation)
+	if err != nil {
+		panic(err)
 	}
-	return vulnerabilities.HighRiskVulnerabilityCount()
+	actual := string(jsonBytes)
+	expected := `"IN_VIOLATION"`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
 }

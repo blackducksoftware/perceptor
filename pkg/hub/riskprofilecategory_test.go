@@ -21,15 +21,35 @@ under the License.
 
 package hub
 
-type RiskProfile struct {
-	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
-	BomLastUpdatedAt string
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestRiskProfileCategoryJSON(t *testing.T) {
+	jsonBytes, err := json.Marshal(RiskProfileCategoryActivity)
+	if err != nil {
+		panic(err)
+	}
+	actual := string(jsonBytes)
+	expected := `"ACTIVITY"`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
 }
 
-func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
-	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
-	if !ok {
-		return 0
+func TestRiskProfileCategoryJSONWithinDictionary(t *testing.T) {
+	dict := map[RiskProfileCategory]RiskProfileCategory{
+		RiskProfileCategoryActivity:    RiskProfileCategoryVersion,
+		RiskProfileCategoryOperational: RiskProfileCategoryLicense,
 	}
-	return vulnerabilities.HighRiskVulnerabilityCount()
+	jsonBytes, err := json.Marshal(dict)
+	if err != nil {
+		panic(err)
+	}
+	actual := string(jsonBytes)
+	expected := `{"ACTIVITY":"VERSION","OPERATIONAL":"LICENSE"}`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
 }
