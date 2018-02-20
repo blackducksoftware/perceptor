@@ -21,17 +21,32 @@ under the License.
 
 package core
 
+import "time"
+
 type reducer struct{}
 
 // logic
 
 func newReducer(initialModel *Model, actions <-chan action) *reducer {
 	model := initialModel
+	stop := time.Now()
 	go func() {
 		for {
 			select {
 			case nextAction := <-actions:
+				// metrics: how many messages are waiting?
+				recordNumberOfMessagesInQueue(len(actions))
+
+				// metrics: how long idling since the last action finished processing?
+				start := time.Now()
+				recordReducerActivity(false, start.Sub(stop))
+
+				// actually do the work
 				model = nextAction.apply(model)
+
+				// metrics: how long did the work take?
+				stop = time.Now()
+				recordReducerActivity(true, stop.Sub(start))
 			}
 		}
 	}()

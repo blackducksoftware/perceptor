@@ -38,6 +38,8 @@ const (
 	stalledScanTimeout        = 30 * time.Minute
 
 	modelMetricsPause = 15 * time.Second
+
+	actionChannelSize = 100
 )
 
 // Perceptor ties together: a cluster, scan clients, and a hub.
@@ -88,7 +90,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	concurrentScanLimit := 2
 
 	// 2. combine actions
-	actions := make(chan action)
+	actions := make(chan action, actionChannelSize)
 	go func() {
 		for {
 			select {

@@ -24,12 +24,14 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 var statusGauge *prometheus.GaugeVec
 var handledHTTPRequest *prometheus.CounterVec
+var reducerActivityCounter *prometheus.CounterVec
 
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
@@ -128,6 +130,20 @@ func recordHTTPError(request *http.Request, err error, statusCode int) {
 	handledHTTPRequest.With(prometheus.Labels{"path": path, "method": method, "code": statusCodeString}).Inc()
 }
 
+// reducer loop
+
+func recordReducerActivity(isActive bool, duration time.Duration) {
+	state := "idle"
+	if isActive {
+		state = "active"
+	}
+	reducerActivityCounter.With(prometheus.Labels{"state": state}).Add(duration.Seconds())
+}
+
+func recordNumberOfMessagesInQueue(messageCount int) {
+	statusGauge.With(prometheus.Labels{"name": "number_of_messages_in_reducer_queue"}).Set(float64(messageCount))
+}
+
 // http requests issued
 
 // results from checking hub for completed projects (errors, unexpected things, etc.)
@@ -157,7 +173,15 @@ func init() {
 		ConstLabels: map[string]string{},
 	}, []string{"path", "method", "code"})
 
+	reducerActivityCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "reducer_activity",
+		Help:      "activity of the reducer -- how much time it's been idle and active, in seconds",
+	}, []string{"state"})
+
 	prometheus.MustRegister(handledHTTPRequest)
 	prometheus.MustRegister(statusGauge)
 	prometheus.MustRegister(statusHistogram)
+	prometheus.MustRegister(reducerActivityCounter)
 }
