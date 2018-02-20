@@ -174,11 +174,11 @@ func (hr *HTTPResponder) SetConcurrentScanLimit(limit api.SetConcurrentScanLimit
 // errors
 
 func (hr *HTTPResponder) NotFound(w http.ResponseWriter, r *http.Request) {
-	recordHttpNotFound(r)
+	recordHTTPNotFound(r)
 	http.NotFound(w, r)
 }
 
 func (hr *HTTPResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
-	recordHttpError(r, err, statusCode)
+	recordHTTPError(r, err, statusCode)
 	http.Error(w, err.Error(), statusCode)
 }

@@ -115,13 +115,13 @@ func recordGetScanResults() {
 
 // unsuccessful http requests received
 
-func recordHttpNotFound(request *http.Request) {
+func recordHTTPNotFound(request *http.Request) {
 	path := request.URL.Path
 	method := request.Method
 	handledHTTPRequest.With(prometheus.Labels{"path": path, "method": method, "code": "404"}).Inc()
 }
 
-func recordHttpError(request *http.Request, err error, statusCode int) {
+func recordHTTPError(request *http.Request, err error, statusCode int) {
 	path := request.URL.Path
 	method := request.Method
 	statusCodeString := fmt.Sprintf("%d", statusCode)
