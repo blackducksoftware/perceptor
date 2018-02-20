@@ -19,32 +19,29 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package hub
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+var hubResponse *prometheus.CounterVec
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func recordHubResponse(name string, isSuccessful bool) {
+	isSuccessString := fmt.Sprintf("%t", isSuccessful)
+	hubResponse.With(prometheus.Labels{"name": name, "isSuccess": isSuccessString}).Inc()
+}
+
+func init() {
+	hubResponse = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Subsystem:   "core",
+		Name:        "http_hub_requests",
+		Help:        "names and status codes for HTTP requests issued by perceptor to the hub",
+		ConstLabels: map[string]string{},
+	}, []string{"name", "isSuccess"})
+
+	prometheus.MustRegister(hubResponse)
 }

@@ -71,130 +71,130 @@ func NewFetcher(username string, password string, baseURL string) (*Fetcher, err
 	return &hf, nil
 }
 
-func (hf *Fetcher) fetchProject(p hubapi.Project) (*Project, error) {
-	client := hf.client
-	project := Project{Name: p.Name, Source: p.Source, Versions: []Version{}}
-
-	link, err := p.GetProjectVersionsLink()
-	if err != nil {
-		log.Errorf("error getting project versions link: %v", err)
-		return nil, err
-	}
-	versions, err := client.ListProjectVersions(*link, nil)
-	if err != nil {
-		log.Errorf("error fetching project version: %v", err)
-		return nil, err
-	}
-
-	for _, v := range versions.Items {
-		version := Version{
-			Distribution:    v.Distribution,
-			Nickname:        v.Nickname,
-			Phase:           v.Phase,
-			ReleaseComments: v.ReleaseComments,
-			ReleasedOn:      v.ReleasedOn,
-			VersionName:     v.VersionName,
-			CodeLocations:   []CodeLocation{},
-		}
-
-		codeLocationsLink, err := v.GetCodeLocationsLink()
-		if err != nil {
-			log.Errorf("error getting code locations link: %v", err)
-			return nil, err
-		}
-		codeLocations, err := client.ListCodeLocations(*codeLocationsLink)
-		if err != nil {
-			log.Errorf("error fetching code locations: %v", err)
-			return nil, err
-		}
-		for _, cl := range codeLocations.Items {
-			var codeLocation = CodeLocation{}
-			codeLocation.CodeLocationType = cl.Type
-			codeLocation.CreatedAt = cl.CreatedAt
-			codeLocation.MappedProjectVersion = cl.MappedProjectVersion
-			codeLocation.Name = cl.Name
-			codeLocation.UpdatedAt = cl.UpdatedAt
-			codeLocation.Url = cl.URL
-			codeLocation.ScanSummaries = []ScanSummary{}
-
-			scanSummariesLink, err := cl.GetScanSummariesLink()
-			if err != nil {
-				log.Errorf("error getting scan summaries link: %v", err)
-				return nil, err
-			}
-			scanSummaries, err := client.ListScanSummaries(*scanSummariesLink)
-			if err != nil {
-				log.Errorf("error fetching scan summaries: %v", err)
-				return nil, err
-			}
-			for _, scanSumy := range scanSummaries.Items {
-				var scanSummary = ScanSummary{}
-				scanSummary.CreatedAt = scanSumy.CreatedAt
-				scanSummary.Status = scanSumy.Status
-				scanSummary.UpdatedAt = scanSumy.UpdatedAt
-				codeLocation.ScanSummaries = append(codeLocation.ScanSummaries, scanSummary)
-			}
-
-			version.CodeLocations = append(version.CodeLocations, codeLocation)
-		}
-
-		var riskProfile = RiskProfile{}
-		riskProfileLink, err := v.GetProjectVersionRiskProfileLink()
-		if err != nil {
-			log.Errorf("error getting risk profile link: %v", err)
-			return nil, err
-		}
-		rp, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
-		if err != nil {
-			log.Errorf("error fetching project version risk profile: %v", err)
-			return nil, err
-		}
-		riskProfile.BomLastUpdatedAt = rp.BomLastUpdatedAt
-		riskProfile.Categories = rp.Categories
-		version.RiskProfile = riskProfile
-
-		policyStatusLink, err := v.GetProjectVersionPolicyStatusLink()
-		if err != nil {
-			log.Errorf("error getting policy status link: %v", err)
-			return nil, err
-		}
-		ps, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
-		if err != nil {
-			log.Errorf("error fetching project version policy status: %v", err)
-			return nil, err
-		}
-		statusCounts := make(map[string]int)
-		for _, item := range ps.ComponentVersionStatusCounts {
-			statusCounts[item.Name] = item.Value
-		}
-		version.PolicyStatus = PolicyStatus{
-			OverallStatus:                ps.OverallStatus,
-			ComponentVersionStatusCounts: statusCounts,
-			UpdatedAt:                    ps.UpdatedAt,
-		}
-
-		project.Versions = append(project.Versions, version)
-	}
-
-	return &project, nil
-}
-
-// FetchProjectByName searches for a project with the matching name,
-//   returning a populated Project model
-func (hf *Fetcher) FetchProjectByName(projectName string) (*Project, error) {
-	queryString := fmt.Sprintf("name:%s", projectName)
-	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
-	if err != nil {
-		log.Errorf("error fetching project list: %v", err)
-		return nil, err
-	}
-	for _, p := range projectList.Items {
-		if p.Name == projectName {
-			return hf.fetchProject(p)
-		}
-	}
-	return nil, nil
-}
+// func (hf *Fetcher) fetchProject(p hubapi.Project) (*Project, error) {
+// 	client := hf.client
+// 	project := Project{Name: p.Name, Source: p.Source, Versions: []Version{}}
+//
+// 	link, err := p.GetProjectVersionsLink()
+// 	if err != nil {
+// 		log.Errorf("error getting project versions link: %v", err)
+// 		return nil, err
+// 	}
+// 	versions, err := client.ListProjectVersions(*link, nil)
+// 	if err != nil {
+// 		log.Errorf("error fetching project version: %v", err)
+// 		return nil, err
+// 	}
+//
+// 	for _, v := range versions.Items {
+// 		version := Version{
+// 			Distribution:    v.Distribution,
+// 			Nickname:        v.Nickname,
+// 			Phase:           v.Phase,
+// 			ReleaseComments: v.ReleaseComments,
+// 			ReleasedOn:      v.ReleasedOn,
+// 			VersionName:     v.VersionName,
+// 			CodeLocations:   []CodeLocation{},
+// 		}
+//
+// 		codeLocationsLink, err := v.GetCodeLocationsLink()
+// 		if err != nil {
+// 			log.Errorf("error getting code locations link: %v", err)
+// 			return nil, err
+// 		}
+// 		codeLocations, err := client.ListCodeLocations(*codeLocationsLink)
+// 		if err != nil {
+// 			log.Errorf("error fetching code locations: %v", err)
+// 			return nil, err
+// 		}
+// 		for _, cl := range codeLocations.Items {
+// 			var codeLocation = CodeLocation{}
+// 			codeLocation.CodeLocationType = cl.Type
+// 			codeLocation.CreatedAt = cl.CreatedAt
+// 			codeLocation.MappedProjectVersion = cl.MappedProjectVersion
+// 			codeLocation.Name = cl.Name
+// 			codeLocation.UpdatedAt = cl.UpdatedAt
+// 			codeLocation.Url = cl.URL
+// 			codeLocation.ScanSummaries = []ScanSummary{}
+//
+// 			scanSummariesLink, err := cl.GetScanSummariesLink()
+// 			if err != nil {
+// 				log.Errorf("error getting scan summaries link: %v", err)
+// 				return nil, err
+// 			}
+// 			scanSummaries, err := client.ListScanSummaries(*scanSummariesLink)
+// 			if err != nil {
+// 				log.Errorf("error fetching scan summaries: %v", err)
+// 				return nil, err
+// 			}
+// 			for _, scanSumy := range scanSummaries.Items {
+// 				var scanSummary = ScanSummary{}
+// 				scanSummary.CreatedAt = scanSumy.CreatedAt
+// 				scanSummary.Status = scanSumy.Status
+// 				scanSummary.UpdatedAt = scanSumy.UpdatedAt
+// 				codeLocation.ScanSummaries = append(codeLocation.ScanSummaries, scanSummary)
+// 			}
+//
+// 			version.CodeLocations = append(version.CodeLocations, codeLocation)
+// 		}
+//
+// 		var riskProfile = RiskProfile{}
+// 		riskProfileLink, err := v.GetProjectVersionRiskProfileLink()
+// 		if err != nil {
+// 			log.Errorf("error getting risk profile link: %v", err)
+// 			return nil, err
+// 		}
+// 		rp, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
+// 		if err != nil {
+// 			log.Errorf("error fetching project version risk profile: %v", err)
+// 			return nil, err
+// 		}
+// 		riskProfile.BomLastUpdatedAt = rp.BomLastUpdatedAt
+// 		riskProfile.Categories = rp.Categories
+// 		version.RiskProfile = riskProfile
+//
+// 		policyStatusLink, err := v.GetProjectVersionPolicyStatusLink()
+// 		if err != nil {
+// 			log.Errorf("error getting policy status link: %v", err)
+// 			return nil, err
+// 		}
+// 		ps, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+// 		if err != nil {
+// 			log.Errorf("error fetching project version policy status: %v", err)
+// 			return nil, err
+// 		}
+// 		statusCounts := make(map[string]int)
+// 		for _, item := range ps.ComponentVersionStatusCounts {
+// 			statusCounts[item.Name] = item.Value
+// 		}
+// 		version.PolicyStatus = PolicyStatus{
+// 			OverallStatus:                ps.OverallStatus,
+// 			ComponentVersionStatusCounts: statusCounts,
+// 			UpdatedAt:                    ps.UpdatedAt,
+// 		}
+//
+// 		project.Versions = append(project.Versions, version)
+// 	}
+//
+// 	return &project, nil
+// }
+//
+// // FetchProjectByName searches for a project with the matching name,
+// //   returning a populated Project model
+// func (hf *Fetcher) FetchProjectByName(projectName string) (*Project, error) {
+// 	queryString := fmt.Sprintf("name:%s", projectName)
+// 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
+// 	if err != nil {
+// 		log.Errorf("error fetching project list: %v", err)
+// 		return nil, err
+// 	}
+// 	for _, p := range projectList.Items {
+// 		if p.Name == projectName {
+// 			return hf.fetchProject(p)
+// 		}
+// 	}
+// 	return nil, nil
+// }
 
 func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image ImageInterface) (*ImageScan, error) {
 	client := hf.client
@@ -207,6 +207,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionNameSearchString())
 	options := hubapi.GetListOptions{Q: &q}
 	versionList, err := client.ListProjectVersions(*link, &options)
+
+	recordHubResponse("projectVersions", err == nil)
+
 	if err != nil {
 		log.Errorf("error fetching project versions: %v", err)
 		return nil, err
@@ -235,7 +238,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting risk profile link: %v", err)
 		return nil, err
 	}
+
 	riskProfile, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
+	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version risk profile: %v", err)
 		return nil, err
@@ -247,6 +252,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	policyStatus, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version policy status: %v", err)
 		return nil, err
@@ -268,6 +274,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink)
+	recordHubResponse("codeLocations", err == nil)
 	if err != nil {
 		log.Errorf("error fetching code locations: %v", err)
 		return nil, err
@@ -297,6 +304,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	scanSummariesList, err := client.ListScanSummaries(*scanSummariesLink)
+	recordHubResponse("scanSummaries", err == nil)
 	if err != nil {
 		log.Errorf("error fetching scan summaries: %v", err)
 		return nil, err
@@ -356,6 +364,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
+
+	recordHubResponse("projects", err == nil)
+
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
 		return nil, err
