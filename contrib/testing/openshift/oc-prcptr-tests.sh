@@ -3,6 +3,7 @@
 
 export PERCEPTOR_POD_NS="perceptortestns"
 export REGISTRY_PORT=":5000"
+export BUILD_POD="-build"
 
 # TODO Put in a check here if oc cli is present
 
@@ -25,6 +26,7 @@ createNs() {
 }
 # Spin up a POD using oc run busybox
 # TestRail Test Case C7556
+# Deploy an image using OC RUN
 createPod() {
   echo "Test: Creating POD using 'oc run'..."
   oc run busybox --image=busybox --namespace=$PERCEPTOR_POD_NS
@@ -40,16 +42,32 @@ createPod() {
 }
 
 # TestRail Test Case C7440
+# Creates a new app using Source to Image (S2i), a Builder and Applicatiob
+# POD are created in this deployment.
 createDockerHub() {
+  set -x
+  WAIT_TIME=$((10))
   echo "Test: Deploying directly via DockerHUB"
   oc new-project tst-deploy-dockerhub
   oc new-app centos/python-35-centos7~https://github.com/openshift/django-ex.git
-  my_pod=$(oc get pods | grep -i django | cut -d ' ' -f 1)
+  sleep $WAIT_TIME
+  # Am I overcomplicating my life?  Would a simple 'oc get pods' and
+  # Store the output (in an array perhaps?) and figure out how to pass the pods
+  # (array?) to the tstAnnotate function??
+  my_bld_pod=$(oc get pods | grep -i build | cut -d' ' -f 1)
+  my_pod=$(oc get pods | grep -i django  | grep -v build | cut -d' ' -f 1)
+    if [ -z $my_bld_pod ] ; then
+      echo "ERROR: No POD found matching $my_bld_pod! - Exiting!"
+      exit 7440
+    else
+      echo "1 POD name $my_bld_pod found, w00t! Moving on..."
+    fi
+
     if [ -z $my_pod ] ; then
-      echo "ERROR: No POD found matching $my_pod!"
+      echo "ERROR: No POD found matching $my_pod! - Exiting!"
       exit 7440;
     else
-      echo "POD name $my_pod found, , w00t! Moving on..."
+      echo "2 POD name $my_pod found, w00t! Moving on..."
     fi
 }
 
@@ -64,7 +82,7 @@ createDockerPull() {
     echo "ERROR: No POD found matching $my_pod!"
     exit 7441;
   else
-    echo "POD name $my_pod found, , w00t! Moving on..."
+    echo "POD name $my_pod found, w00t! Moving on..."
   fi
 }
 
@@ -139,13 +157,20 @@ tstAnnotate() {
   WAIT_TIME=$((30))
   echo "Checking for BlackDuck POD annotations..."
   sleep $WAIT_TIME
+  b_state=$(oc describe pod $my_bld_pod | grep -i BlackDuck)
   a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
   if [[ $a_state == "" ]]; then
-    echo "ERROR: There appears to be no POD Annoations present!"
-    exit $?;
+    echo "ERROR: There appears to be no POD Annoations present on $my_pod!"
+    exit 666;
   else
     echo "BlackDuck OpsSight Annoations found! TEST PASS"
   fi
+  # if [ $b_state == "" ] ; then
+  #  echo "ERROR: [BUILDER POD] There appears to be no POD Annoations present on $my_bld_pod!"
+  #  exit 667;
+  # else
+  #  echo "[BUILDER POD] BlackDuck OpsSight Annoations found! TEST PASS"
+  # fi
 }
 
 x=0
