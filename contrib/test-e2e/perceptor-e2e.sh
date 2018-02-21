@@ -1,14 +1,16 @@
 #!/bin/bash
 set -x
 
-command=kubectl
+echo "Argument::$@"
+
+command=oc
 project=perceptor-test-`date "+%Y-%m-%d-%H-%M-%s"`
 #project=perceptor-test
 
 executeTestFiles () {
   #oc project $project
   exitCode=100
-  for filename in $(find . -type f -follow -print | grep -v perceptor-e2e.sh | xargs ls);
+  for filename in $(find /tmp/test -type f -follow -print | grep -v perceptor-e2e.sh | xargs ls);
   do
     extension="${filename##*.}"
     echo "$filename : processing..."
@@ -32,6 +34,8 @@ executeTestFiles () {
   done
 }
 
+oc login -u $1 -p $2 $3 --insecure-skip-tls-verify
+
 if [[ $command -eq 'oc' ]]; then
   $command adm new-project $project
 else
@@ -45,3 +49,4 @@ if [[ $command -eq 'oc' ]]; then
 else
   $command delete ns $project
 fi
+

@@ -6,7 +6,7 @@ command=$1
 project=$2
 
 # Skip the test if it is not OpenShift
-if [[ $command != "oc" ]]; then
+if [[ $command -ne 'oc' ]]; then
   exit 0
 fi
 
@@ -101,7 +101,7 @@ pollAndVerifyNewAppScan() {
       scanStatus=null
       return_scan_status $i
       # Continue until the scan status is ScanStatusCompleted
-      until [ $scanStatus == "ScanStatusComplete" ] ; do
+      until [ "$scanStatus" == "ScanStatusComplete" ] ; do
         echo "waiting for scan $i container to complete!"
         ((polls+=1))
         # Scan Exhausted. Check the hub
