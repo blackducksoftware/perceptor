@@ -12,7 +12,7 @@ initialVerification() {
   do
     found=$($command get pod $i -n $project | grep $i | wc -l)
     if [[ $found -eq 1 ]]; then
-      echo "Pod $i already exists! Please delete the ImageStream to proceed!"
+      echo "Pod $i already exists! Please delete the Pod to proceed!"
       exit 1
     fi
   done
@@ -98,7 +98,7 @@ pollAndVerifyPodScan() {
       scanStatus=null
       return_scan_status $i
       # Continue until the scan status is ScanStatusCompleted
-      until [ $scanStatus == "ScanStatusComplete" ] ; do
+      until [ "$scanStatus" == "ScanStatusComplete" ] ; do
         echo "waiting for scan $i container to complete!"
         ((polls+=1))
         # Scan Exhausted. Check the hub
