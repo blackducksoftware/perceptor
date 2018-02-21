@@ -1,3 +1,4 @@
+#!/bin/bash 
 set -e
 
 # Create the namespace to install all containers
