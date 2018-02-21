@@ -81,6 +81,6 @@ items:
     name: perceptor-scanner-config
   data:
     perceptor_scanner_conf.yaml: |
-      HubHost: "nginx-webapp-logstash"
+      HubHost: "34.227.106.252.xip.io"
       HubUser: "sysadmin"
       HubUserPassword: "blackduck"

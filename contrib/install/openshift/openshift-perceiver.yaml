@@ -21,7 +21,7 @@ items:
       spec:
         containers:
           - name: pod-perceiver
-            image: msenmurugan/pod-perceiver:latest
+            image: gcr.io/gke-verification/blackducksoftware/pod-perceiver:latest
             imagePullPolicy: Always
             resources:
               requests:
@@ -34,7 +34,7 @@ items:
                 mountPath: /etc/perceiver
             terminationMessagePath: /dev/termination-log
           - name: image-perceiver
-            image: msenmurugan/image-perceiver:latest
+            image: gcr.io/gke-verification/blackducksoftware/image-perceiver:latest
             imagePullPolicy: Always
             resources:
               requests:
