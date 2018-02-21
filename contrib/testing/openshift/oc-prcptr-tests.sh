@@ -17,7 +17,7 @@ createNs() {
   oc get ns | grep $PERCEPTOR_POD_NS
   ns_state=$(oc get ns | grep $PERCEPTOR_POD_NS)
   if [ -z $ns_state ] ; then
-    echo "Error: Namespace $PERCEPTOR_POD_NS not found!"
+    echo "ERROR: Namespace $PERCEPTOR_POD_NS not found!"
     exit 1;
   else
     echo "Namespace $PERCEPTOR_POD_NS found, w00t! Moving on..."
@@ -30,7 +30,13 @@ createPod() {
   oc run busybox --image=busybox --namespace=$PERCEPTOR_POD_NS
   oc project perceptortestns
   my_pod=$(oc get pods | grep -i busybox | cut -d ' ' -f 1)
-  echo "$my_pod"
+    if [ -z $my_pod ] ; then
+      echo "ERROR: No POD found matching $my_pod!"
+      exit 7556;
+    else
+      echo "POD name $my_pod found, w00t! Moving on..."
+    echo "$my_pod"
+    fi
 }
 
 # TestRail Test Case C7440
@@ -39,7 +45,12 @@ createDockerHub() {
   oc new-project tst-deploy-dockerhub
   oc new-app centos/python-35-centos7~https://github.com/openshift/django-ex.git
   my_pod=$(oc get pods | grep -i django | cut -d ' ' -f 1)
-  echo "$my_pod"
+    if [ -z $my_pod ] ; then
+      echo "ERROR: No POD found matching $my_pod!"
+      exit 7440;
+    else
+      echo "POD name $my_pod found, , w00t! Moving on..."
+    fi
 }
 
 # TestRail Test Case C7441
@@ -49,7 +60,12 @@ createDockerPull() {
   oc new-project tst-docker-pull
   oc new-app docker.io/alpine:latest
   my_pod=$(oc get pods | grep -i alpine | cut -d ' ' -f 1)
-  echo $my_pod
+  if [ -z $my_pod ] ; then
+    echo "ERROR: No POD found matching $my_pod!"
+    exit 7441;
+  else
+    echo "POD name $my_pod found, , w00t! Moving on..."
+  fi
 }
 
 # Test Rail Test Case C7439
@@ -77,7 +93,14 @@ createDockerLoad() {
   docker tag docker.io/hello-world:pushtest $regIpPort$REGISTRY_PORT/pushtest/pushtest
   # Now push this puppy to the Registry
   docker push $regIpPort$REGISTRY_PORT/pushtest/pushtest
+  # Let's see if the pushtest POD is created...
   my_pod=$(oc get pods | grep -i pushtest | cut -d ' ' -f 1)
+  if [ -z $my_pod ] ; then
+    echo "ERROR: No POD found matching $my_pod!"
+    exit 7439;
+  else
+    echo "POD name $my_pod found, w00t! Moving on..."
+  fi
 }
 
 # Test rail Test Case C7445
@@ -87,6 +110,12 @@ createS2i() {
   oc new-app https://github.com/openshift/sti-ruby.git \
   --context-dir=2.0/test/puma-test-app
   my_pod=$(oc get pods | grep -i sti-ruby | cut -d ' ' -f 1)
+  if [ -z $my_pod ] ; then
+    echo "No POD found matching $my_pod"
+    exit 7445;
+  else
+    echo "POD name $my_pod found, w00t! Moving on...!"
+  fi
 }
 
 # Test Rail Test Case C7448
@@ -95,6 +124,12 @@ createTemplate() {
   oc new-project php
   oc new-app -f /usr/share/openshift/examples/quickstart-templates/rails-postgresql.json
   my_pod=$(oc get pods | grep -i rails | cut -d ' ' -f 1)
+  if [ -z $my_pod ] ; then
+    echo "No POD found matching $my_pod"
+    exit 7448;
+  else
+    echo "POD name $my_pod found, w00t! Moving on...!"
+  fi
 }
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
@@ -106,23 +141,54 @@ tstAnnotate() {
   sleep $WAIT_TIME
   a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
   if [[ $a_state == "" ]]; then
-    echo "There appears to be no POD Annoations present."
-    exit 1;
+    echo "ERROR: There appears to be no POD Annoations present!"
+    exit $?;
   else
-    echo "BlackDuck OpsSight Annoations found!"
+    echo "BlackDuck OpsSight Annoations found! TEST PASS"
   fi
 }
+
+x=0
 
 createNs
 createPod
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createPod"
+  exit $?
+fi
+
 createDockerHub
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createDockerHub"
+  exit $?
+fi
+
 createDockerPull
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createDockerPull"
+  exit $?
+fi
+
 createDockerLoad
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createDockerLoad"
+  exit $?
+fi
+
 createS2i
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createS2i"
+  exit $?
+fi
+
 createTemplate
 tstAnnotate
+if [[ $? -gt 0 ]]; then
+  echo "failed @ $createTemplate"
+  exit $?
+fi

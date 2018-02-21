@@ -1,5 +1,5 @@
-# Copyright (C) 2018 Synopsys, Inc.
 #!/bin/sh
+# Copyright (C) 2018 Synopsys, Inc.
 
 export PERCEPTOR_POD_NS="perceptortestns"
 
@@ -27,6 +27,7 @@ createPod() {
 echo "Creating POD..."
 kubectl run busybox --image=busybox --namespace=$PERCEPTOR_POD_NS
 }
+
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
 
