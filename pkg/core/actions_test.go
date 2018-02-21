@@ -120,9 +120,23 @@ func TestAddImageAction(t *testing.T) {
 	assertEqual(t, actual, expected)
 }
 
-// TODO allPods
+// AllPods does remove pre-existing pods
+func TestAllPods(t *testing.T) {
+	model := createNewModel1()
+	actual := allPods{}.apply(model)
+	if len(actual.Pods) != 0 {
+		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
+	}
+}
 
-// TODO allImages
+// AllImages doesn't remove pre-existing images
+func TestAllImages(t *testing.T) {
+	model := createNewModel1()
+	actual := allImages{}.apply(model)
+	if len(actual.Images) != 2 {
+		t.Errorf("expected 2 images, found %d", len(actual.Images))
+	}
+}
 
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
