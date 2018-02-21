@@ -3,7 +3,6 @@
 
 export PERCEPTOR_POD_NS="perceptortestns"
 export REGISTRY_PORT=":5000"
-export BUILD_POD="-build"
 
 # TODO Put in a check here if oc cli is present
 
