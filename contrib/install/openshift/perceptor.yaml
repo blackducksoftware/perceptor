@@ -65,4 +65,4 @@ items:
     perceptor_conf.yaml: |
       HubHost: "34.227.106.252.xip.io"
       HubUser: "sysadmin"
-      HubUserPassword: "blackduck"
+      HubUserPassword: "blackducks"
