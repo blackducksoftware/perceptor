@@ -67,6 +67,8 @@ items:
   kind: Service
   metadata:
     name: perceptor-scanner
+    annotations:
+      prometheus.io/scrape: 'true'
   spec:
     selector:
       name: bds-perceptor
