@@ -35,7 +35,7 @@ install() {
 	if ! $(exit $?); then
 	    echo "assuming kube"
 	    $KUBECTL create sa perceptor-scanner-sa
-	    $KUBECTL create ns $NS
+	    $KUBECT create ns $NS
 	else
 	    set -e
 	    KUBECTL="oc"
@@ -46,7 +46,8 @@ install() {
 	    pushd openshift/ 
 			# Create the openshift-perceiver service account
 			oc create serviceaccount openshift-perceiver
-
+			# Create the openshift-perceiver service account
+			oc create serviceaccount kube-perceiver-generic
 			# following allows us to write cluster level metadata for imagestreams
 			oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:bds-perceptor:openshift-perceiver
 
