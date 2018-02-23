@@ -1,10 +1,10 @@
-#!/bin/bash 
+#!/bin/bash
 
 NS=bds-perceptor
 KUBECTL="kubectl"
 
 function is_openshift {
-	oc version	
+	oc version
 	return
 }
 
@@ -14,8 +14,8 @@ cleanup() {
 		echo "assuming kube"
 		KUBECTL="kubectl"
 		$KUBECTL delete ns $NS
-                $KUBECTL delete sa perceptor-sanner-sa
-	else 
+                $KUBECTL delete sa perceptor-scanner-sa
+	else
 		KUBECTL="oc"
 		if oc get ns | grep -q bds-perceptor ; then
 			echo "deleting pereptor project!!!"
@@ -42,8 +42,8 @@ install() {
 	    echo "Detected openshift... setting up "
 	    # Create the namespace to install all containers
 	    oc new-project $NS
-		
-	    pushd openshift/ 
+
+	    pushd openshift/
 			# Create the openshift-perceiver service account
 			oc create serviceaccount openshift-perceiver
 			# Create the openshift-perceiver service account
@@ -57,12 +57,18 @@ install() {
 			# allows launching of privileged containers for Docker machine access
 			oc adm policy add-scc-to-user privileged system:serviceaccount:bds-perceptor:perceptor-scanner-sa
 
+			# following allows us to write cluster level metadata for imagestreams
+			oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:bds-perceptor:perceptor-scanner-sa
+
+			# To pull or view all images
+			oc policy add-role-to-user view system:serviceaccount::perceptor-scanner-sa
+
 			# Create the perciever for images
 			oc create -f openshift-perceiver.yaml
 	    popd
 	fi
-	#### 
-	#### The perceptor core functionality 
+	####
+	#### The perceptor core functionality
 	####
 	pushd kube/
 		$KUBECTL create -f kube-perceiver.yaml --namespace=$NS
@@ -77,7 +83,7 @@ install-contrib() {
 	# Deploy a small, local prometheus.  It is only used for scraping perceptor.  Doesnt need fancy ACLs for
 	# cluster discovery etc.
 	pushd prometheus/
-		$KUBECTL create -f prom.cfg.yml  
+		$KUBECTL create -f prom.cfg.yml
 		$KUBECTL create -f prometheus-deployment.yaml
 	popd
 }
@@ -89,4 +95,3 @@ install
 set +e
 echo "optional install components starting now..."
 install-contrib
-
