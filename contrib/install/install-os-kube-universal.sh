@@ -56,23 +56,22 @@ install() {
 			# allows launching of privileged containers for Docker machine access
 			oc adm policy add-scc-to-user privileged system:serviceaccount:bds-perceptor:perceptor-scanner-sa
 
-			# Create the perceptor container
+			# Create the perciever for images
 			oc create -f openshift-perceiver.yaml
 	    popd
 	fi
-}
-
-install-contrib() {
-	set -e
 	#### 
 	#### The perceptor core functionality 
 	####
-
 	pushd kube/
 		$KUBECTL create -f kube-perceiver.yaml --namespace=$NS
 		$KUBECTL create -f perceptor-scanner.yaml --namespace=$NS
 		$KUBECTL create -f perceptor.yaml --namespace=$NS
 	popd
+}
+
+install-contrib() {
+	set -e
 
 	# Deploy a small, local prometheus.  It is only used for scraping perceptor.  Doesnt need fancy ACLs for
 	# cluster discovery etc.
