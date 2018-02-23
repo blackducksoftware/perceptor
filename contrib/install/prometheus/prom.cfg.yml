@@ -3,16 +3,6 @@ kind: ConfigMap
 metadata:
   name: prometheus
 data:
-  alerts.rules: |-
-    # Alert for any instance that is unreachable for >5 minutes.
-    ALERT InstanceDown
-      IF up == 0
-      FOR 5m
-      LABELS { severity = "page" }
-      ANNOTATIONS {
-        summary = "Instance {{ $labels.instance }} down",
-        description = "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes.",
-      }
   prometheus.yml: |-
     global:
       scrape_interval: 15s
@@ -26,7 +16,11 @@ data:
     - job_name: 'prometheus'
       scrape_interval: 5s
       static_configs:
-        - targets: ['localhost:9090']
+      - targets: ['localhost:9090']
+    - job_name: 'perceptor'
+      scrape_interval: 5s
+      static_configs:
+      - targets: ['perceptor:3001', 'perceptor-scanner:3003', 'perciever:9090']
     # etcd is living outside of our cluster and we configure
     # it directly.
     - job_name: 'etcd'
@@ -47,23 +41,6 @@ data:
         # need this for the controller
         insecure_skip_verify: true
       bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-      kubernetes_sd_configs:
-      -
-        in_cluster: true
-        api_servers: ['https://kubernetes']
-        role: node
-      -
-        in_cluster: true
-        api_servers: ['https://kubernetes']
-        role: apiserver
-      -
-        in_cluster: true
-        api_servers: ['https://kubernetes']
-        role: service
-      -
-        in_cluster: true
-        api_servers: ['https://kubernetes']
-        role: pod
       relabel_configs:
       # Only scrape apiserver and kubelets.
       - source_labels: [__meta_kubernetes_role]

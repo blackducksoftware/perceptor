@@ -73,8 +73,7 @@ items:
     selector:
       name: bds-perceptor
     ports:
-    - nodePort: 0
-      port: 3003
+    - port: 3003
       protocol: TCP
       targetPort: 3003
 - apiVersion: v1

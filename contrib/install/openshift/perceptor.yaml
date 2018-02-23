@@ -28,12 +28,13 @@ items:
               - ./perceptor
             ports:
               - containerPort: 3001
+                protocol: TCP
             resources:
               requests:
                 memory: 2Gi
-                cpu: 50m
+                cpu: 100m
               limits:
-                cpu: 500m
+                cpu: 1000m
             volumeMounts:
             - name: perceptor-config
               mountPath: /etc/perceptor
@@ -49,14 +50,14 @@ items:
   kind: Service
   metadata:
     name: perceptor
+    # tODO make the prometheus yamls use this rather then hardcoding it as we do now
     annotations:
       prometheus.io/scrape: 'true'
   spec:
     selector:
       name: bds-perceptor
     ports:
-    - nodePort: 0
-      port: 3001
+    - port: 3001
       protocol: TCP
       targetPort: 3001
 - apiVersion: v1
@@ -67,4 +68,4 @@ items:
     perceptor_conf.yaml: |
       HubHost: "34.227.106.252.xip.io"
       HubUser: "sysadmin"
-      HubUserPassword: "blackducks"
+      HubUserPassword: "blackduck"
