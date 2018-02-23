@@ -35,7 +35,7 @@ install() {
 	if ! $(exit $?); then
 	    echo "assuming kube"
 	    $KUBECTL create sa perceptor-scanner-sa
-	    $KUBECT create ns $NS
+	    $KUBECTL create ns $NS
 	else
 	    set -e
 	    KUBECTL="oc"
