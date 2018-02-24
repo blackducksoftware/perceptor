@@ -51,15 +51,4 @@ items:
       name: bds-openshift-perceiver
     ports:
     - port: 4000
-      targetPort: 4000   
-
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: openshift-perceiver-config
-  data:
-    perceiver.yaml: |
-      PerceptorHost: "perceptor"
-      PerceptorPort: 3001
-      AnnotationIntervalSeconds: 30
-      DumpIntervalMinutes: 30
+      targetPort: 4000
