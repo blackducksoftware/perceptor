@@ -1,11 +1,17 @@
 #!/bin/bash
 
+set +x
 NS=bds-perceptor
 KUBECTL="kubectl"
 
 function is_openshift {
-	oc version
-	return
+	if `which oc` ; then 
+		oc version
+		return 0
+	else
+		return 1
+	fi
+	return 1
 }
 
 cleanup() {
@@ -13,8 +19,8 @@ cleanup() {
 	if ! $(exit $?); then
 		echo "assuming kube"
 		KUBECTL="kubectl"
-		$KUBECTL delete ns $NS
-                $KUBECTL delete sa perceptor-scanner-sa
+		kubectl delete ns $NS
+                kubectl delete sa perceptor-scanner-sa -n $NS
 	else
 		KUBECTL="oc"
 		if oc get ns | grep -q bds-perceptor ; then
@@ -24,8 +30,8 @@ cleanup() {
 		fi
 		oc delete sa perceptor-scanner-sa
 	fi
-	while oc get ns | grep -q $NS ; do
-	    echo "Waiting for deletion...`$KUBECTL get ns | grep perc` "
+	while $KUBECTL get ns | grep -q $NS ; do
+	    echo "Waiting for deletion...`$KUBECTL get ns | grep $NS` "
 	    sleep 1
         done
 }
@@ -33,10 +39,11 @@ cleanup() {
 install() {
 	is_openshift
 	if ! $(exit $?); then
-	    echo "assuming kube"
-	    $KUBECTL create sa perceptor-scanner-sa
-	    $KUBECTL create ns $NS
-	else
+    	    echo "assuming kube"
+	    kubectl create ns $NS
+	    kubectl create sa perceptor-scanner-sa -n $NS
+	    kubectl create sa kube-generic-perceiver -n $NS
+        else
 	    set -e
 	    KUBECTL="oc"
 	    echo "Detected openshift... setting up "
@@ -83,15 +90,12 @@ install-contrib() {
 	# Deploy a small, local prometheus.  It is only used for scraping perceptor.  Doesnt need fancy ACLs for
 	# cluster discovery etc.
 	pushd prometheus/
-		$KUBECTL create -f prom.cfg.yml
-		$KUBECTL create -f prometheus-deployment.yaml
+		$KUBECTL create -f prom.cfg.yml --namespace=$NS
+		$KUBECTL create -f prometheus-deployment.yaml --namespace=$NS
 	popd
 }
 
 cleanup
-set -x
-set -e
 install
-set +e
 echo "optional install components starting now..."
 install-contrib
