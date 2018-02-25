@@ -5,7 +5,7 @@ NS=bds-perceptor
 KUBECTL="kubectl"
 
 function is_openshift {
-	if `which oc` ; then 
+	if `which oc` ; then
 		oc version
 		return 0
 	else
@@ -20,7 +20,7 @@ cleanup() {
 		echo "assuming kube"
 		KUBECTL="kubectl"
 		kubectl delete ns $NS
-                kubectl delete sa perceptor-scanner-sa -n $NS
+    kubectl delete sa perceptor-scanner-sa -n $NS
 	else
 		KUBECTL="oc"
 		if oc get ns | grep -q bds-perceptor ; then
@@ -37,12 +37,27 @@ cleanup() {
 }
 
 install() {
+	SCC="add-scc-to-user"
+	ROLE="add-role-to-user"
+	CLUSTER="add-cluster-role-to-user"
+  SYSTEM_SA="system:serviceaccount"
+
+  PERCEPTOR_SC="perceptor-scanner"
+	NS_SA="${SYSTEM_SA}:${NS}"
+	SCANNER_SA="${NS_SA}:${PERCEPTOR_SCANNER}"
+
+  OS_PERCEIVER="openshift-perceiver"
+	OS_PERCEIVER_SA="${NS_SA}:${OS_PERCEIVER}"
+
+  KUBE_PERCEIVER="kube-generic-perceiver"
+	KUBE_PERCEIVER_SA="${NS_SA}:${KUBE_PERCEIVER}"
+
 	is_openshift
 	if ! $(exit $?); then
     	    echo "assuming kube"
 	    kubectl create ns $NS
-	    kubectl create sa perceptor-scanner-sa -n $NS
-	    kubectl create sa kube-generic-perceiver -n $NS
+	    kubectl create sa $PERCEPTOR_SCANNER -n $NS
+	    kubectl create sa $KUBE_PERCEIVER -n $NS
         else
 	    set -e
 	    KUBECTL="oc"
@@ -51,27 +66,21 @@ install() {
 	    oc new-project $NS
 
 	    pushd openshift/
-			# Create the openshift-perceiver service account
-			oc create serviceaccount openshift-perceiver
-			# Create the openshift-perceiver service account
-			oc create serviceaccount kube-perceiver-generic
-			# following allows us to write cluster level metadata for imagestreams
-			oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:bds-perceptor:openshift-perceiver
+				# Create the openshift-perceiver service account
+				oc create serviceaccount $OS_PERCEIVER
+					oc adm policy $CLUSTER cluster-admin $OS_PERCEIVER_SA
 
-			# Create the serviceaccount for perceptor-scanner to talk with Docker
-			oc create sa perceptor-scanner-sa
+				oc create serviceaccount $KUBE_PERCEIVER
+					oc adm policy $CLUSTER cluster-admin $K_PERCEIVER_SA
 
-			# allows launching of privileged containers for Docker machine access
-			oc adm policy add-scc-to-user privileged system:serviceaccount:bds-perceptor:perceptor-scanner-sa
+				oc create sa perceptor-scanner-sa
+					oc adm policy $SCC privileged $SCANNER_SA
+					oc adm policy $CLUSTER cluster-admin $SCANNER_SA
 
-			# following allows us to write cluster level metadata for imagestreams
-			oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:bds-perceptor:perceptor-scanner-sa
-
-			# To pull or view all images
-			oc policy add-role-to-user view system:serviceaccount::perceptor-scanner-sa
-
-			# Create the perciever for images
-			oc create -f openshift-perceiver.yaml
+				### To pull or view all images
+				### NOTE THAT WE HAVE ** NO ** Namespace defined here !
+				oc policy $ROLE view ${SYSTEM_SA}::$PERCEPTOR_SC
+				oc create -f openshift-perceiver.yaml
 	    popd
 	fi
 	####
@@ -94,6 +103,9 @@ install-contrib() {
 		$KUBECTL create -f prometheus-deployment.yaml --namespace=$NS
 	popd
 }
+
+# IMPORTANT: All the config for perceptor lives here !c
+$KUBECTL create -f perceptor.cfg.yml --namespace=$NS
 
 cleanup
 install
