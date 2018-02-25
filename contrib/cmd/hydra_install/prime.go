@@ -182,21 +182,33 @@ func main() {
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCP)
 	for _, svc := range svcPCP {
 		_, err = clientset.Core().Services(namespace).Create(svc)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCPScan)
 	for _, svc := range svcPCPScan {
 		_, err = clientset.Core().Services(namespace).Create(svc)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCVR)
 
 	for _, svc := range svcPCVR {
 		_, err = clientset.Core().Services(namespace).Create(svc)
+		if err != nil {
+			panic(err)
+		}
 	}
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCVRo)
 
 	for _, svc := range svcPCVRo {
 		_, err = clientset.Core().Services(namespace).Create(svc)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
