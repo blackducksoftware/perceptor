@@ -148,8 +148,8 @@ func main() {
 	rcPCPScan, svcPCPScan := newRcSvc([]PerceptorRC{
 		PerceptorRC{
 			configMap:          "perceptor-scanner-config",
-			configMapMountPath: "/etc/perceptor_scanner",
-			name:               "perceptor_scanner",
+			configMapMountPath: "/etc/perceptor-scanner",
+			name:               "perceptor-scanner",
 			image:              "gcr.io/gke-verification/blackducksoftware/perceptor-scanner:latest",
 			port:               3003,
 			cmd:                []string{"./dependencies/perceptor-scanner"},
@@ -188,6 +188,9 @@ func main() {
 	}
 
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCPScan)
+	if err!= nil {
+		panic(err)
+	}
 	for _, svc := range svcPCPScan {
 		_, err = clientset.Core().Services(namespace).Create(svc)
 		if err != nil {
@@ -196,7 +199,9 @@ func main() {
 	}
 
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCVR)
-
+	if err!= nil {
+		panic(err)
+	}
 	for _, svc := range svcPCVR {
 		_, err = clientset.Core().Services(namespace).Create(svc)
 		if err != nil {
@@ -204,7 +209,9 @@ func main() {
 		}
 	}
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCVRo)
-
+	if err!= nil {
+		panic(err)
+	}
 	for _, svc := range svcPCVRo {
 		_, err = clientset.Core().Services(namespace).Create(svc)
 		if err != nil {
