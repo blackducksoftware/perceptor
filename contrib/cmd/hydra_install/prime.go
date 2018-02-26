@@ -55,6 +55,7 @@ func main() {
 	defaultMem, err := resource.ParseQuantity("2Gi")
 	defaultCPU, err := resource.ParseQuantity("500m")
 
+	// this function creates an RC and services that forward to it.
 	newRcSvc := func(descriptions []PerceptorRC) (*v1.ReplicationController, []*v1.Service) {
 
 		TheVolumes := []v1.Volume{}
@@ -98,9 +99,15 @@ func main() {
 			})
 		}
 		rc := &v1.ReplicationController{
-			ObjectMeta: v1meta.ObjectMeta{},
+			ObjectMeta: v1meta.ObjectMeta{
+				Name: descriptions[0].name,
+			},
 			Spec: v1.ReplicationControllerSpec{
+				Selector: map[string]string{"name": descriptions[0].name},
 				Template: &v1.PodTemplateSpec{
+					ObjectMeta: v1meta.ObjectMeta{
+						Labels: map[string]string{"name": descriptions[0].name},
+					},
 					Spec: v1.PodSpec{
 						Volumes:    TheVolumes,
 						Containers: TheContainers,
@@ -180,6 +187,10 @@ func main() {
 	})
 
 	_, err = clientset.Core().ReplicationControllers(namespace).Create(rcPCP)
+	if err!= nil {
+		panic(err)
+	}
+
 	for _, svc := range svcPCP {
 		_, err = clientset.Core().Services(namespace).Create(svc)
 		if err != nil {
