@@ -2,12 +2,13 @@ apiVersion: v1
 kind: List
 metadata:
   name: perceptor-configs
+items:
 - apiVersion: v1
   kind: ConfigMap
   metadata:
     name: prometheus
   data:
-    prometheus.yml: |-
+    prometheus.yml: |
       global:
         scrape_interval: 5s
       scrape_configs:
