@@ -54,7 +54,7 @@ install() {
 			# Create the openshift-perceiver service account
 			oc create serviceaccount openshift-perceiver
 			# Create the openshift-perceiver service account
-			oc create serviceaccount kube-perceiver-generic
+			oc create serviceaccount kube-generic-perceiver
 			# following allows us to write cluster level metadata for imagestreams
 			oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:bds-perceptor:openshift-perceiver
 
