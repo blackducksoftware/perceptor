@@ -4,3 +4,4 @@ cmd/kube-perceiver/dependencies/
 cmd/kube-perceiver/kube-perceiver
 cmd/perceptor-scanner/dependencies/perceptor-scanner
 cmd/perceptor/dependencies/
+*.DS_STORE
