@@ -1,6 +1,6 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o', './cmd/perceptor/perceptor', './cmd/perceptor/perceptor.go']
+  args: ['build', '-o', './perceptor', './cmd/perceptor/perceptor.go']
   env:
   - 'PROJECT_ROOT=github.com/blackducksoftware/perceptor'
   - 'CGO_ENABLED=0'
