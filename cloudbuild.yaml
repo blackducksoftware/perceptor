@@ -1,0 +1,6 @@
+steps:
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o', './cmd/perceptor/perceptor', './cmd/perceptor/perceptor.go']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/perceptor:latest', './cmd/perceptor/.']
+images: ['gcr.io/$PROJECT_ID/perceptor:latest']
