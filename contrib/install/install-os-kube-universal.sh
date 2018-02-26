@@ -106,15 +106,14 @@ install-contrib() {
 	# Deploy a small, local prometheus.  It is only used for scraping perceptor.  Doesnt need fancy ACLs for
 	# cluster discovery etc.
 	pushd prometheus/
-		$KUBECTL create -f prom.cfg.yml --namespace=$NS
 		$KUBECTL create -f prometheus-deployment.yaml --namespace=$NS
 	popd
 }
-
-# IMPORTANT: All the config for perceptor lives here !c
-$KUBECTL create -f perceptor.cfg.yml --namespace=$NS
 
 cleanup
 install
 echo "optional install components starting now..."
 install-contrib
+
+# IMPORTANT: All the config for perceptor lives here !c
+$KUBECTL create -f perceptor.cfg.yml --namespace=$NS
