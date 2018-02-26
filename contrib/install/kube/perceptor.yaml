@@ -60,12 +60,3 @@ items:
     - port: 3001
       protocol: TCP
       targetPort: 3001
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: perceptor-config
-  data:
-    perceptor_conf.yaml: |
-      HubHost: "34.227.106.252.xip.io"
-      HubUser: "sysadmin"
-      HubUserPassword: "blackduck"

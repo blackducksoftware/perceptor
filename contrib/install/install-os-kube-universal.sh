@@ -37,6 +37,21 @@ cleanup() {
 }
 
 install() {
+	SCC="add-scc-to-user"
+	ROLE="add-role-to-user"
+	CLUSTER="add-cluster-role-to-user"
+  SYSTEM_SA="system:serviceaccount"
+
+  PERCEPTOR_SC="perceptor-scanner"
+	NS_SA="${SYSTEM_SA}:${NS}"
+	SCANNER_SA="${NS_SA}:${PERCEPTOR_SCANNER}"
+
+  OS_PERCEIVER="openshift-perceiver"
+	OS_PERCEIVER_SA="${NS_SA}:${OS_PERCEIVER}"
+
+  KUBE_PERCEIVER="kube-generic-perceiver"
+	KUBE_PERCEIVER_SA="${NS_SA}:${KUBE_PERCEIVER}"
+
 	is_openshift
 	if ! $(exit $?); then
     echo "assuming kube"
@@ -95,6 +110,9 @@ install-contrib() {
 		$KUBECTL create -f prometheus-deployment.yaml --namespace=$NS
 	popd
 }
+
+# IMPORTANT: All the config for perceptor lives here !c
+$KUBECTL create -f perceptor.cfg.yml --namespace=$NS
 
 cleanup
 install

@@ -22,12 +22,12 @@ under the License.
 package main
 
 import (
-	"encoding/json"
+//	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
+//	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -71,17 +71,19 @@ func listProjects() {
 }
 
 func HitHubAPI(projectName string) {
-	pf, err := hub.NewFetcher(username, password, baseURL)
-	if err != nil {
-		panic("unable to instantiate ProjectFetcher: " + err.Error())
-	}
-	project, err := pf.FetchProjectByName(projectName)
-	if err != nil {
-		panic("unable to fetch project " + projectName + "; " + err.Error())
-	}
-	bytes, _ := json.Marshal(project)
-	log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
-	log.Infof("bytes: %d", len(bytes))
+	// pf, err := hub.NewFetcher(username, password, baseURL)
+	// if err != nil {
+	//	panic("unable to instantiate ProjectFetcher: " + err.Error())
+	// }
+
+	panic ("unimplemented")
+	// project, err := pf.FetchProjectByName(projectName)
+	// if err != nil {
+	//	panic("unable to fetch project " + projectName + "; " + err.Error())
+	// }
+	// bytes, _ := json.Marshal(project)
+	// log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
+	// log.Infof("bytes: %d", len(bytes))
 }
 
 func exampleHubAPI() {
