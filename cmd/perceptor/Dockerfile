@@ -1,5 +1,7 @@
 FROM centos:centos7
 
+COPY ./perceptor ./perceptor
+
 # Ports
 EXPOSE 3001
 
