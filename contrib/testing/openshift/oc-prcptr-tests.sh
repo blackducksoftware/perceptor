@@ -44,31 +44,29 @@ createPod() {
 # Creates a new app using Source to Image (S2i), a Builder and Applicatiob
 # POD are created in this deployment.
 createDockerHub() {
-  # set -x
-  # WAIT_TIME=$((10))
-  echo "Test: Deploying directly via DockerHUB"
+  NS=tst-deploy-dockerhub
+  NEW_APP=$1
+  PODS=$2
+  my_pod=$1
+  echo "Test: Deploying directly via DockerHUB with $NEW_APP and we want to see $PODS"
   oc new-project tst-deploy-dockerhub
-  oc new-app centos/python-35-centos7~https://github.com/openshift/django-ex.git
-  i=0
-  sleep $WAIT_TIME
-  # Store the output in an array and pass the pods to the tstAnnotate function
-  output=$(oc get pods | grep -i django | cut -d' ' -f 1 | sed 's/:.*//')
-  if [ -z $output ] ; then
-    echo "ERROR: No POD(s) found matching $output! - Exiting!"
-    return 1;
-  else
-    echo "POD(s) $my_pod found, w00t! Moving on..."
-  fi
-  x=0
-  for my_pod in ${output[@]} ; do
-    echo $my_pod;
-    tstAnnotate $my_pod
-    echo "Function exit was $?"
-    if $? -gt 0 ; then
-      (( x++ ))
+  oc new-app $NEW_APP
+  until [[ `oc get pods | grep -v STATUS | wc -l` -ge "$PODS" ]] ; do
+    echo "CNA Waiing on PODs to come up, so far: `oc get pods | grep -v NAME`"
+    sleep 3
+  done
+  echo "Done waiting!"
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+    tstAnnotate $i
+    retVal=0
+    passed=0
+    if [[ $retVal -gt 5 ]] ; then
+      echo "Failed POD Annotations test on $i. Failing Fast!"
+      (( passed++ ))
+      exit $retVal
     fi
   done
-  echo "Test Ran : FAILURES = $x"
+  echo "Test Passed for all PODs in $NEW_APP."
 }
 
 # TestRail Test Case C7441
@@ -78,11 +76,11 @@ createDockerPull() {
   oc new-project tst-docker-pull
   oc new-app docker.io/alpine:latest
   i=0
-  until oc get pods | grep -i alpine | cut -d' ' -f 1 ; do
+  until oc get pods | grep -i alpine | cut -d ' ' -f 1 ; do
     sleep 2;
     (( i++ ))
   done
-  output=$(oc get pods | grep -i alpine | cut -d' ' -f 1 | sed 's/:.*//')
+  output=$(oc get pods | grep -i alpine | cut -d ' ' -f 1 | sed 's/:.*//')
   if [ -z $output ] ; then
     echo "ERROR: No POD(s) found matching $output! - Exiting!"
     return 1;
@@ -127,11 +125,11 @@ createDockerLoad() {
   docker push $regIpPort$REGISTRY_PORT/pushtest/pushtest
   # Let's see if the pushtest POD is created...
   i=0
-  until oc get pods | grep -i pushtest | cut -d' ' -f 1 ; do
+  until oc get pods | grep -i pushtest | cut -d ' ' -f 1 ; do
     sleep 2;
     (( i++ ))
   done
-  output=$(oc get pods | grep -i pushtest | cut -d' ' -f 1 | sed 's/:.*//')
+  output=$(oc get pods | grep -i pushtest | cut -d ' ' -f 1 | sed 's/:.*//')
   if [ -z $output ] ; then
     echo "ERROR: No POD(s) found matching $output! - Exiting!"
     return 1;
@@ -139,14 +137,6 @@ createDockerLoad() {
     echo "POD(s) $output found, w00t! Moving on..."
   fi
   x=0
-  for my_pod in ${output[@]} ; do
-    echo $my_pod;
-    tstAnnotate $my_pod
-    echo "Function exit was $?"
-    if $? -gt 0 ; then
-      (( x++ ))
-    fi
-  done
 }
 
 # Test rail Test Case C7445
@@ -156,11 +146,11 @@ createS2i() {
   oc new-app https://github.com/openshift/sti-ruby.git \
   --context-dir=2.0/test/puma-test-app
   i=0
-  until oc get pods | grep -i sti-ruby | cut -d' ' -f 1 ; do
+  until oc get pods | grep -i sti-ruby | cut -d ' ' -f 1 ; do
     sleep 2;
     (( i++ ))
   done
-  output=$(oc get pods | grep -i sti-ruby | cut -d' ' -f 1 | sed 's/:.*//')
+  output=$(oc get pods | grep -i sti-ruby | cut -d ' ' -f 1 | sed 's/:.*//')
   if [ -z $output ] ; then
     echo "ERROR: No POD(s) found matching $output! - Exiting!"
     return 1;
@@ -184,11 +174,11 @@ createTemplate() {
   oc new-project php
   oc new-app -f /usr/share/openshift/examples/quickstart-templates/rails-postgresql.json
   i=0
-  until oc get pods | grep -i rails | cut -d' ' -f 1 ; do
+  until oc get pods | grep -i rails | cut -d ' ' -f 1 ; do
     sleep 2;
     (( i++ ))
   done
-  output=$(oc get pods | grep -i rails | cut -d' ' -f 1 | sed 's/:.*//')
+  output=$(oc get pods | grep -i rails | cut -d ' ' -f 1 | sed 's/:.*//')
   if [ -z $output ] ; then
     echo "ERROR: No POD(s) found matching $output! - Exiting!"
     return 1;
@@ -210,25 +200,25 @@ createTemplate() {
 
 # Verify POD has been annotated with "BlackDuck"
 tstAnnotate() {
-  WAIT_TIME=$((30))
+  my_pod=$1
+  echo "Now testing POD Annoations on: $my_pod"
   echo "Checking for BlackDuck POD annotations..."
-  sleep $WAIT_TIME
   a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
+  echo "a_state"
   if [[ $a_state == "" ]]; then
     echo "ERROR: There appears to be no POD Annoations present on $my_pod!"
-    return 1;
+    exit 1;
   else
-    echo "BlackDuck OpsSight Annoations found! TEST PASS"
+    echo "BlackDuck OpsSight Annoations found on $my_pod! TEST PASS"
   fi
 }
 
 burnItDown() {
   #Burn all the deployments down
-  oc delete project tst-deploy-dockerhub
-  oc delete project tst-docker-pull
-  oc delete project pushtest
-  oc delete project puma-test-app
-  oc delete project php
+  while oc get project | grep -q $NS ; do
+    echo "`date` [[ burnItDown ]] still waiting `oc delete project $NS`"
+    sleep 3
+  done
 }
 createNs
 createPod
@@ -270,3 +260,4 @@ fi
 burnItDown
 # TODO Test Results:  Ran Pass Fail (from $x?)
 # TEST RAN
+createNewApp centos/python-35-centos7~https://github.com/openshift/django-ex.git
