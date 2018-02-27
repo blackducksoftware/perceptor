@@ -49,8 +49,7 @@ func getNextModel(actions chan<- action) *Model {
 }
 
 func TestReducer(t *testing.T) {
-	concurrentScanLimit := 1
-	initialModel := NewModel(concurrentScanLimit, PerceptorConfig{})
+	initialModel := NewModel(PerceptorConfig{ConcurrentScanLimit: 1})
 	actions := make(chan action)
 	reducer := newReducer(initialModel, actions)
 	log.Infof("print reducer just to keep go compiler from complaining: %+v", reducer)
@@ -361,8 +360,7 @@ func TestReducer(t *testing.T) {
 }
 
 func TestScanClientFails(t *testing.T) {
-	concurrentScanLimit := 1
-	model := NewModel(concurrentScanLimit, PerceptorConfig{})
+	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 1})
 	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
 	model.Images[image.Sha].setScanStatus(ScanStatusRunningScanClient)

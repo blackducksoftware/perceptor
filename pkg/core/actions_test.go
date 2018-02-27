@@ -88,12 +88,12 @@ var testPod = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Conta
 
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := addPod{pod: testPod}.apply(NewModel(3, PerceptorConfig{}))
+	actual := addPod{pod: testPod}.apply(NewModel(PerceptorConfig{}))
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
 	//  - all new images get added to hub check queue
-	expected := *NewModel(3, PerceptorConfig{})
+	expected := *NewModel(PerceptorConfig{})
 	expected.Pods[testPod.QualifiedName()] = testPod
 	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
@@ -106,11 +106,11 @@ func TestAddPodAction(t *testing.T) {
 
 func TestAddImageAction(t *testing.T) {
 	// actual
-	actual := addImage{image: testImage}.apply(NewModel(3, PerceptorConfig{}))
+	actual := addImage{image: testImage}.apply(NewModel(PerceptorConfig{ConcurrentScanLimit: 3}))
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
-	expected := *NewModel(3, PerceptorConfig{})
+	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
 	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
@@ -143,9 +143,9 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	var nextImage *Image
 	actual := getNextImage{continuation: func(image *Image) {
 		nextImage = image
-	}}.apply(NewModel(3, PerceptorConfig{}))
+	}}.apply(NewModel(PerceptorConfig{ConcurrentScanLimit: 3}))
 	// expected: front image removed from scan queue, status and time of image changed
-	expected := *NewModel(3, PerceptorConfig{})
+	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
 
 	assertEqual(t, nextImage, nil)
 	log.Infof("%+v, %+v", actual, expected)
