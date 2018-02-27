@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: perceptor-configs
+items:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus
+  data:
+    prometheus.yml: |
+      global:
+        scrape_interval: 5s
+      scrape_configs:
+      - job_name: 'perceptor-scrape'
+        scrape_interval: 5s
+        static_configs:
+        - targets: ['perceptor:3001', 'perceptor-scanner:3003'] # TODO Add perciever metrics here...
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: perceptor-scanner-config
+  data:
+    perceptor_scanner_conf.yaml: |
+      HubHost: "34.227.106.252.xip.io"
+      HubUser: "sysadmin"
+      HubUserPassword: "blackduck"
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: kube-generic-perceiver-config
+  data:
+    perceiver.yaml: |
+      PerceptorHost: "perceptor"
+      PerceptorPort: 3001
+      AnnotationIntervalSeconds: 30
+      DumpIntervalMinutes: 30
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: perceptor-config
+  data:
+    perceptor_conf.yaml: |
+      HubHost: "34.227.106.252.xip.io"
+      HubUser: "sysadmin"
+      HubUserPassword: "blackduck"
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: openshift-perceiver-config
+  data:
+    perceiver.yaml: |
+      PerceptorHost: "perceptor"
+      PerceptorPort: 3001
+      AnnotationIntervalSeconds: 30
+      DumpIntervalMinutes: 30

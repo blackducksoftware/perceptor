@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "bds-perceptor components"
+  resourceVersion: "0.0.1"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: perceptor
+    labels:
+      app: perceptor-app
+  spec:
+    replicas: 1
+    selector:
+      name: bds-perceptor
+    template:
+      metadata:
+        labels:
+          name: bds-perceptor
+        name: perceptor
+      spec:
+        containers:
+          - name: perceptor
+            image: gcr.io/gke-verification/blackducksoftware/perceptor:latest
+            imagePullPolicy: Always
+            command:
+              - ./perceptor
+            ports:
+              - containerPort: 3001
+                protocol: TCP
+            resources:
+              requests:
+                memory: 2Gi
+                cpu: 100m
+              limits:
+                cpu: 1000m
+            volumeMounts:
+            - name: perceptor-config
+              mountPath: /etc/perceptor
+            terminationMessagePath: /dev/termination-log
+        volumes:
+          - name: perceptor-config
+            configMap:
+              name: perceptor-config
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: perceptor
+    # tODO make the prometheus yamls use this rather then hardcoding it as we do now
+    annotations:
+      prometheus.io/scrape: 'true'
+  spec:
+    selector:
+      name: bds-perceptor
+    ports:
+    - port: 3001
+      protocol: TCP
+      targetPort: 3001

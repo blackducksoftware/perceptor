@@ -65,6 +65,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 		HubUserPassword:      "mock password",
 		HubScanClientVersion: "mock hub scan client version",
 		HubVersion:           "mock hub version",
+		ConcurrentScanLimit:  2,
 	}
 	return newPerceptorHelper(hub.NewMockHub(), mockConfig), nil
 }
@@ -86,8 +87,6 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
-
-	concurrentScanLimit := 2
 
 	// 2. combine actions
 	actions := make(chan action, actionChannelSize)
@@ -121,7 +120,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	}()
 
 	// 3. now for the reducer
-	reducer := newReducer(NewModel(concurrentScanLimit, config), actions)
+	reducer := newReducer(NewModel(config), actions)
 
 	// 4. instantiate perceptor
 	perceptor := Perceptor{

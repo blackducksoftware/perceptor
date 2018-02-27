@@ -58,31 +58,31 @@ func init() {
 }
 
 func createNewModel1() *Model {
-	model := NewModel(3, PerceptorConfig{})
+	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus:                "IN_VIOLATION",
-			ComponentVersionStatusCounts: map[string]int{"IN_VIOLATION": 3}}}
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
 	return model
 }
 
 func createNewModel2() *Model {
-	model := NewModel(3, PerceptorConfig{})
+	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.AddPod(pod3)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus:                "IN_VIOLATION",
-			ComponentVersionStatusCounts: map[string]int{"IN_VIOLATION": 3}}}
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
 	model.Images[sha3].ScanStatus = ScanStatusComplete
 	model.Images[sha3].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
-			OverallStatus: "NOT_IN_VIOLATION",
+			OverallStatus: hub.PolicyStatusTypeNotInViolation,
 		},
 	}
 	return model
