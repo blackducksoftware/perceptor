@@ -37,6 +37,9 @@ const (
 	checkForStalledScansPause = 1 * time.Minute
 	stalledScanTimeout        = 30 * time.Minute
 
+	recheckHubForUpdatesPause = 1 * time.Hour
+	recheckHubThrottle        = 5 * time.Second
+
 	modelMetricsPause = 15 * time.Second
 
 	actionChannelSize = 100
@@ -136,6 +139,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	go perceptor.startPollingHubForCompletedScans()
 	go perceptor.startCheckingForStalledScans()
 	go perceptor.startGeneratingModelMetrics()
+	go perceptor.startCheckingForUpdatesForCompletedScans()
 
 	// 6. done
 	return &perceptor
@@ -219,5 +223,32 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 		perceptor.actions <- getMetrics{func(modelMetrics *ModelMetrics) {
 			recordModelMetrics(modelMetrics)
 		}}
+	}
+}
+
+func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
+	for {
+		time.Sleep(recheckHubForUpdatesPause)
+
+		var completedImages []*Image
+		var wg sync.WaitGroup
+		wg.Add(1)
+		perceptor.actions <- getCompletedScans{func(images []*Image) {
+			completedImages = images
+			wg.Done()
+		}}
+		wg.Wait()
+		for _, image := range completedImages {
+			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
+			if err != nil {
+				log.Errorf("unable to fetch updated scan results for image %s: %s", image.PullSpec(), err.Error())
+				continue
+			}
+			if scan == nil {
+				log.Errorf("unable to fetch updated scan results for image %s: got nil", image.PullSpec())
+				continue
+			}
+			perceptor.actions <- hubRecheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
+		}
 	}
 }
