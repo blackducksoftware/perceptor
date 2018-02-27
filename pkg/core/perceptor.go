@@ -97,27 +97,27 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 		for {
 			select {
 			case pod := <-httpResponder.addPod:
-				actions <- addPod{pod}
+				actions <- &addPod{pod}
 			case pod := <-httpResponder.updatePod:
-				actions <- updatePod{pod}
+				actions <- &updatePod{pod}
 			case podName := <-httpResponder.deletePod:
-				actions <- deletePod{podName}
+				actions <- &deletePod{podName}
 			case image := <-httpResponder.addImage:
-				actions <- addImage{image}
+				actions <- &addImage{image}
 			case pods := <-httpResponder.allPods:
-				actions <- allPods{pods}
+				actions <- &allPods{pods}
 			case images := <-httpResponder.allImages:
-				actions <- allImages{images}
+				actions <- &allImages{images}
 			case job := <-httpResponder.postFinishScanJob:
-				actions <- finishScanClient{DockerImageSha(job.Sha), job.Err}
+				actions <- &finishScanClient{DockerImageSha(job.Sha), job.Err}
 			case continuation := <-httpResponder.postNextImage:
-				actions <- getNextImage{continuation}
+				actions <- &getNextImage{continuation}
 			case limit := <-httpResponder.setConcurrentScanLimit:
-				actions <- setConcurrentScanLimit{limit}
+				actions <- &setConcurrentScanLimit{limit}
 			case continuation := <-httpResponder.getModel:
-				actions <- getModel{continuation}
+				actions <- &getModel{continuation}
 			case continuation := <-httpResponder.getScanResults:
-				actions <- getScanResults{continuation}
+				actions <- &getScanResults{continuation}
 			}
 		}
 	}()
@@ -150,11 +150,11 @@ func (perceptor *Perceptor) startCheckingForStalledScans() {
 	for {
 		time.Sleep(checkForStalledScansPause)
 		log.Info("checking for stalled scans")
-		perceptor.actions <- getInProgressScanClientScans{func(imageInfos []*ImageInfo) {
+		perceptor.actions <- &getInProgressScanClientScans{func(imageInfos []*ImageInfo) {
 			for _, imageInfo := range imageInfos {
 				if imageInfo.timeInCurrentScanStatus() > stalledScanTimeout {
 					log.Infof("found stalled scan with sha %s", string(imageInfo.ImageSha))
-					perceptor.actions <- requeueStalledScan{imageInfo.ImageSha}
+					perceptor.actions <- &requeueStalledScan{imageInfo.ImageSha}
 				}
 			}
 		}}
@@ -166,7 +166,7 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 	for {
 		time.Sleep(checkHubForCompletedScansPause)
 		log.Info("checking hub for completed scans")
-		perceptor.actions <- getInProgressHubScans{func(images []Image) {
+		perceptor.actions <- &getInProgressHubScans{func(images []Image) {
 			for _, image := range images {
 				scan, err := perceptor.hubClient.FetchScanFromImage(image)
 				if err != nil {
@@ -177,7 +177,7 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 					} else {
 						log.Infof("found completed scan for image %s: %+v", string(image.Sha), *scan)
 					}
-					perceptor.actions <- hubScanResults{HubImageScan{Sha: image.Sha, Scan: scan}}
+					perceptor.actions <- &hubScanResults{HubImageScan{Sha: image.Sha, Scan: scan}}
 				}
 				time.Sleep(checkHubThrottle)
 			}
@@ -190,7 +190,7 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		var image *Image
-		perceptor.actions <- getNextImageForHubPolling{func(i *Image) {
+		perceptor.actions <- &getNextImageForHubPolling{func(i *Image) {
 			image = i
 			wg.Done()
 		}}
@@ -206,7 +206,7 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 				} else {
 					log.Infof("check images in hub -- found image scan for image %s: %+v", image.HubProjectName(), *scan)
 				}
-				perceptor.actions <- hubCheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
+				perceptor.actions <- &hubCheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
 			}
 			time.Sleep(checkHubThrottle)
 		} else {
@@ -220,7 +220,7 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 	for {
 		time.Sleep(modelMetricsPause)
 
-		perceptor.actions <- getMetrics{func(modelMetrics *ModelMetrics) {
+		perceptor.actions <- &getMetrics{func(modelMetrics *ModelMetrics) {
 			recordModelMetrics(modelMetrics)
 		}}
 	}
@@ -235,7 +235,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 		var completedImages []*Image
 		var wg sync.WaitGroup
 		wg.Add(1)
-		perceptor.actions <- getCompletedScans{func(images []*Image) {
+		perceptor.actions <- &getCompletedScans{func(images []*Image) {
 			completedImages = images
 			wg.Done()
 		}}
@@ -256,7 +256,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 				continue
 			}
 			log.Infof("received results for hub rechecking for image %s", image.PullSpec())
-			perceptor.actions <- hubRecheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
+			perceptor.actions <- &hubRecheckResults{HubImageScan{Sha: (*image).Sha, Scan: scan}}
 		}
 	}
 }

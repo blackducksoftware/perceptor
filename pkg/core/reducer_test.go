@@ -38,7 +38,7 @@ func getNextModel(actions chan<- action) *Model {
 	var wg sync.WaitGroup
 	var newModel *Model
 	wg.Add(1)
-	actions <- debugGetModel{func(model *Model) {
+	actions <- &debugGetModel{func(model *Model) {
 		log.Infof("in continuation for model get %d", getModelCount)
 		getModelCount++
 		newModel = model
@@ -62,7 +62,7 @@ func TestReducer(t *testing.T) {
 	// 1. add a pod
 	//   this should add all the images in the pod to the hub check queue (if they haven't already been added),
 	//   add them to the image dictionary, and set their status to HubCheck
-	actions <- addPod{*NewPod("pod1", "uid1", "namespace1", []Container{
+	actions <- &addPod{*NewPod("pod1", "uid1", "namespace1", []Container{
 		*NewContainer(image1, "container1"),
 		*NewContainer(image2, "container2"),
 	})}
@@ -91,7 +91,7 @@ func TestReducer(t *testing.T) {
 
 	// 1a. move image1 from unknown into the hub check queue
 	var nextCheckImage *Image
-	actions <- getNextImageForHubPolling{func(image *Image) {
+	actions <- &getNextImageForHubPolling{func(image *Image) {
 		nextCheckImage = image
 	}}
 
@@ -106,7 +106,7 @@ func TestReducer(t *testing.T) {
 	}
 
 	// 1b. move image1 from hub check queue into scan queue
-	actions <- hubCheckResults{HubImageScan{
+	actions <- &hubCheckResults{HubImageScan{
 		Sha:  image1.Sha,
 		Scan: nil,
 	}}
@@ -116,7 +116,7 @@ func TestReducer(t *testing.T) {
 	//   remove the first item from the queue
 	//   change its status to InProgress
 	var nextImage *Image
-	actions <- getNextImage{func(image *Image) {
+	actions <- &getNextImage{func(image *Image) {
 		nextImage = image
 	}}
 
@@ -147,7 +147,7 @@ func TestReducer(t *testing.T) {
 	//   and results to be added in the image dict
 	log.Infof("is nil 1? %t", nextImage == nil)
 	log.Infof("is nil 2? %t", nextImage == nil)
-	actions <- finishScanClient{(*nextImage).Sha, ""}
+	actions <- &finishScanClient{(*nextImage).Sha, ""}
 
 	newModel = getNextModel(actions)
 	imageResults3, ok3 := newModel.Images[image1.Sha]
@@ -162,7 +162,7 @@ func TestReducer(t *testing.T) {
 
 	// 4. ask for the next image from the queue. this hits the concurrency limit,
 	//    so it should not do anything
-	actions <- getNextImage{func(image *Image) {
+	actions <- &getNextImage{func(image *Image) {
 		nextImage = image
 	}}
 	newModel = getNextModel(actions)
@@ -174,7 +174,7 @@ func TestReducer(t *testing.T) {
 	// 5. finish the hub scan for image1. this should:
 	//    change the ScanStatus to complete
 	//    add scan results
-	actions <- hubScanResults{HubImageScan{
+	actions <- &hubScanResults{HubImageScan{
 		Sha: image1.Sha,
 		Scan: &hub.ImageScan{
 			ScanSummary: hub.ScanSummary{Status: "COMPLETE"},
@@ -201,7 +201,7 @@ func TestReducer(t *testing.T) {
 	}
 
 	// 6a. move image2 from unknown into the hub check queue
-	actions <- getNextImageForHubPolling{func(image *Image) {
+	actions <- &getNextImageForHubPolling{func(image *Image) {
 		nextCheckImage = image
 	}}
 	newModel = getNextModel(actions)
@@ -223,7 +223,7 @@ func TestReducer(t *testing.T) {
 	}
 
 	// 6b. move image2 from hub check queue into scan queue
-	actions <- hubCheckResults{HubImageScan{
+	actions <- &hubCheckResults{HubImageScan{
 		Sha:  image2.Sha,
 		Scan: nil,
 	}}
@@ -241,7 +241,7 @@ func TestReducer(t *testing.T) {
 	// 6c. ask for the next image from the queue. this should:
 	//   remove the first item from the queue
 	//   change its status to InProgress
-	actions <- getNextImage{func(image *Image) {
+	actions <- &getNextImage{func(image *Image) {
 		nextImage = image
 	}}
 	newModel = getNextModel(actions)
@@ -269,7 +269,7 @@ func TestReducer(t *testing.T) {
 	// 7. finish a scan with an error
 	//   this should cause the image to get put back in the queue,
 	//   and the status set back to InQueue
-	actions <- finishScanClient{(*nextImage).Sha, "oops"}
+	actions <- &finishScanClient{(*nextImage).Sha, "oops"}
 
 	newModel = getNextModel(actions)
 	imageResults7, ok7 := newModel.Images[image2.Sha]
@@ -284,7 +284,7 @@ func TestReducer(t *testing.T) {
 
 	// 8. ask for next image, get image2 again
 	log.Info("send message 8")
-	actions <- getNextImage{func(image *Image) {
+	actions <- &getNextImage{func(image *Image) {
 		nextImage = image
 	}}
 	log.Info("finished sending message 8")
@@ -310,12 +310,12 @@ func TestReducer(t *testing.T) {
 
 	// 9. finish scan client with success
 	log.Info("send message 9")
-	actions <- finishScanClient{(*nextImage).Sha, ""}
+	actions <- &finishScanClient{(*nextImage).Sha, ""}
 	log.Info("finished sending message 9")
 	newModel = getNextModel(actions)
 
 	// 10. finish hub scan with success
-	actions <- hubScanResults{HubImageScan{
+	actions <- &hubScanResults{HubImageScan{
 		Sha: image2.Sha,
 		Scan: &hub.ImageScan{
 			ScanSummary: hub.ScanSummary{Status: "Complete"},
@@ -326,7 +326,7 @@ func TestReducer(t *testing.T) {
 	// 11. ask for next image, get nil because queue is empty
 	var wg sync.WaitGroup
 	wg.Add(1)
-	actions <- getNextImage{func(image *Image) {
+	actions <- &getNextImage{func(image *Image) {
 		log.Infof("image: %v, %t", image, image == nil)
 		nextImage = image
 		wg.Done()
@@ -341,7 +341,7 @@ func TestReducer(t *testing.T) {
 	// 12. get scan results
 	var scanResults api.ScanResults
 	wg.Add(1)
-	actions <- getScanResults{func(results api.ScanResults) {
+	actions <- &getScanResults{func(results api.ScanResults) {
 		scanResults = results
 		wg.Done()
 	}}

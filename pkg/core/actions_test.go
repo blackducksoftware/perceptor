@@ -57,24 +57,26 @@ func assertEqual(t *testing.T, actual interface{}, expected interface{}) {
 }
 
 func TestActionsImplementInterface(t *testing.T) {
-	processAction(addPod{Pod{}})
-	processAction(updatePod{Pod{}})
-	processAction(deletePod{})
-	processAction(addImage{})
-	processAction(allPods{})
-	processAction(getNextImage{})
-	processAction(finishScanClient{})
-	processAction(getNextImageForHubPolling{})
-	processAction(hubCheckResults{})
-	processAction(hubScanResults{})
-	processAction(requeueStalledScan{})
-	processAction(setConcurrentScanLimit{})
-	processAction(allImages{})
-	processAction(getModel{})
-	processAction(getMetrics{})
-	processAction(getScanResults{})
-	processAction(getInProgressHubScans{})
-	processAction(getInProgressScanClientScans{})
+	processAction(&addPod{Pod{}})
+	processAction(&updatePod{Pod{}})
+	processAction(&deletePod{})
+	processAction(&addImage{})
+	processAction(&allPods{})
+	processAction(&getNextImage{})
+	processAction(&finishScanClient{})
+	processAction(&getNextImageForHubPolling{})
+	processAction(&hubCheckResults{})
+	processAction(&hubScanResults{})
+	processAction(&requeueStalledScan{})
+	processAction(&setConcurrentScanLimit{})
+	processAction(&allImages{})
+	processAction(&getModel{})
+	processAction(&getMetrics{})
+	processAction(&getScanResults{})
+	processAction(&getInProgressHubScans{})
+	processAction(&getInProgressScanClientScans{})
+	processAction(&hubRecheckResults{})
+	processAction(&getCompletedScans{})
 }
 
 func processAction(nextAction action) {
@@ -88,7 +90,8 @@ var testPod = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Conta
 
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := addPod{pod: testPod}.apply(NewModel(PerceptorConfig{}))
+	actual := NewModel(PerceptorConfig{})
+	(&addPod{pod: testPod}).apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
@@ -106,7 +109,8 @@ func TestAddPodAction(t *testing.T) {
 
 func TestAddImageAction(t *testing.T) {
 	// actual
-	actual := addImage{image: testImage}.apply(NewModel(PerceptorConfig{ConcurrentScanLimit: 3}))
+	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	(&addImage{image: testImage}).apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
@@ -122,8 +126,8 @@ func TestAddImageAction(t *testing.T) {
 
 // AllPods does remove pre-existing pods
 func TestAllPods(t *testing.T) {
-	model := createNewModel1()
-	actual := allPods{}.apply(model)
+	actual := createNewModel1()
+	(&allPods{}).apply(actual)
 	if len(actual.Pods) != 0 {
 		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
 	}
@@ -131,8 +135,8 @@ func TestAllPods(t *testing.T) {
 
 // AllImages doesn't remove pre-existing images
 func TestAllImages(t *testing.T) {
-	model := createNewModel1()
-	actual := allImages{}.apply(model)
+	actual := createNewModel1()
+	(&allImages{}).apply(actual)
 	if len(actual.Images) != 2 {
 		t.Errorf("expected 2 images, found %d", len(actual.Images))
 	}
@@ -141,9 +145,10 @@ func TestAllImages(t *testing.T) {
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
 	var nextImage *Image
-	actual := getNextImage{continuation: func(image *Image) {
+	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	(&getNextImage{continuation: func(image *Image) {
 		nextImage = image
-	}}.apply(NewModel(PerceptorConfig{ConcurrentScanLimit: 3}))
+	}}).apply(actual)
 	// expected: front image removed from scan queue, status and time of image changed
 	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
 

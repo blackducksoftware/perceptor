@@ -31,8 +31,7 @@ type reducer struct{}
 
 // logic
 
-func newReducer(initialModel *Model, actions <-chan action) *reducer {
-	model := initialModel
+func newReducer(model *Model, actions <-chan action) *reducer {
 	stop := time.Now()
 	go func() {
 		for {
@@ -49,7 +48,7 @@ func newReducer(initialModel *Model, actions <-chan action) *reducer {
 				recordReducerActivity(false, start.Sub(stop))
 
 				// actually do the work
-				model = nextAction.apply(model)
+				nextAction.apply(model)
 
 				// metrics: how long did the work take?
 				stop = time.Now()
