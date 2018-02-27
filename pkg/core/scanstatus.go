@@ -23,21 +23,9 @@ package core
 
 import "fmt"
 
-// ScanStatus describes the state of an image -- have we checked the hub for it?
-// Have we scanned it?  Are we scanning it?
+// ScanStatus describes the state of an image in perceptor
 type ScanStatus int
 
-// Allowed transitions:
-//  - Unknown -> InHubCheckQueue
-//  - InHubCheckQueue -> CheckingHub
-//  - CheckingHub -> InQueue
-//  - CheckingHub -> Complete
-//  - InQueue -> RunningScanClient
-//  - RunningScanClient -> Error
-//  - RunningScanClient -> RunningHubScan
-//  - RunningHubScan -> Error
-//  - RunningHubScan -> Complete
-//  - Error -> ??? throw it back into the queue?
 const (
 	ScanStatusUnknown           ScanStatus = iota
 	ScanStatusInHubCheckQueue   ScanStatus = iota

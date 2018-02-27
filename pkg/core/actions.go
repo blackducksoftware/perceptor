@@ -286,3 +286,38 @@ func (d debugGetModel) apply(model *Model) *Model {
 	go d.continuation(model)
 	return model
 }
+
+type getCompletedScans struct {
+	continuation func(images []*Image)
+}
+
+func (g getCompletedScans) apply(model *Model) *Model {
+	images := []*Image{}
+	for _, imageInfo := range model.Images {
+		if imageInfo.ScanStatus == ScanStatusComplete {
+			image := imageInfo.image()
+			images = append(images, &image)
+		}
+	}
+	go g.continuation(images)
+	return model
+}
+
+type hubRecheckResults struct {
+	scan HubImageScan
+}
+
+func (h hubRecheckResults) apply(model *Model) *Model {
+	scan := h.scan
+	imageInfo, ok := model.Images[scan.Sha]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		return model
+	}
+
+	if scan.Scan != nil {
+		imageInfo.ScanResults = scan.Scan
+	}
+
+	return model
+}
