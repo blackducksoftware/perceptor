@@ -155,7 +155,7 @@ func main() {
 	rcPCPScan, svcPCPScan := newRcSvc([]PerceptorRC{
 		PerceptorRC{
 			configMap:          "perceptor-scanner-config",
-			configMapMountPath: "/etc/perceptor-scanner",
+			configMapMountPath: "/etc/perceptor_scanner",
 			name:               "perceptor-scanner",
 			image:              "gcr.io/gke-verification/blackducksoftware/perceptor-scanner:latest",
 			port:               3003,
