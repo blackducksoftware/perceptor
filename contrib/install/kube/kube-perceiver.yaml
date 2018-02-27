@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: List
+metadata:
+  name: "Kube Generic Perceiver"
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: kube-generic-perceiver
+    labels:
+      app: kube-generic-perceiver
+  spec:
+    replicas: 1
+    selector:
+      name: kube-generic-perceiver
+    template:
+      metadata:
+        labels:
+          name: kube-generic-perceiver
+        name: kube-generic-perceiver
+      spec:
+        containers:
+          - name: pod-perceiver
+            image: gcr.io/gke-verification/blackducksoftware/pod-perceiver:latest
+            imagePullPolicy: Always
+            resources:
+              requests:
+                memory: 1Gi # TODO may not even need this much since it's stateless
+                cpu: 50m # TODO same here -- maybe reduce this number
+              limits:
+                cpu: 500m
+            volumeMounts:
+              - name: kube-generic-perceiver-config
+                mountPath: /etc/perceiver
+            terminationMessagePath: /dev/termination-log
+        volumes:
+          - name: kube-generic-perceiver-config
+            configMap:
+              name: kube-generic-perceiver-config
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        serviceAccountName: kube-generic-perceiver
+        serviceAccount: kube-generic-perceiver
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: kube-generic-perceiver
+  spec:
+    selector:
+      name: kube-generic-perceiver
+    ports:
+    - port: 4000
+      targetPort: 4000

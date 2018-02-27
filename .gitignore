@@ -1,8 +1,7 @@
-*.DS_Store
-+
-+.idea/
-+cmd/kube-perceiver/dependencies/
-+cmd/kube-perceiver/kube-perceiver
-+cmd/perceptor-scanner/dependencies/perceptor-scanner
-Add a comment to this line
-+cmd/perceptor/dependencies/
+.idea/
+build/*
+cmd/kube-perceiver/dependencies/
+cmd/kube-perceiver/kube-perceiver
+cmd/perceptor-scanner/dependencies/perceptor-scanner
+cmd/perceptor/dependencies/
+*.DS_STORE

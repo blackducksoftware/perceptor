@@ -38,13 +38,13 @@ type Model struct {
 	Config              PerceptorConfig
 }
 
-func NewModel(concurrentScanLimit int, config PerceptorConfig) *Model {
+func NewModel(config PerceptorConfig) *Model {
 	return &Model{
 		Pods:                make(map[string]Pod),
 		Images:              make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue:      []Image{},
 		ImageHubCheckQueue:  []Image{},
-		ConcurrentScanLimit: concurrentScanLimit,
+		ConcurrentScanLimit: config.ConcurrentScanLimit,
 		Config:              config}
 }
 

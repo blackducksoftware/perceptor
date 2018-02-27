@@ -22,20 +22,25 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
+
+var getModelCount = 1
 
 func getNextModel(actions chan<- action) *Model {
 	var wg sync.WaitGroup
 	var newModel *Model
 	wg.Add(1)
 	actions <- debugGetModel{func(model *Model) {
-		log.Info("in continuation for model get")
+		log.Infof("in continuation for model get %d", getModelCount)
+		getModelCount++
 		newModel = model
 		wg.Done()
 	}}
@@ -44,8 +49,7 @@ func getNextModel(actions chan<- action) *Model {
 }
 
 func TestReducer(t *testing.T) {
-	concurrentScanLimit := 1
-	initialModel := NewModel(concurrentScanLimit, PerceptorConfig{})
+	initialModel := NewModel(PerceptorConfig{ConcurrentScanLimit: 1})
 	actions := make(chan action)
 	reducer := newReducer(initialModel, actions)
 	log.Infof("print reducer just to keep go compiler from complaining: %+v", reducer)
@@ -320,13 +324,35 @@ func TestReducer(t *testing.T) {
 	newModel = getNextModel(actions)
 
 	// 11. ask for next image, get nil because queue is empty
+	var wg sync.WaitGroup
+	wg.Add(1)
 	actions <- getNextImage{func(image *Image) {
 		log.Infof("image: %v, %t", image, image == nil)
 		nextImage = image
+		wg.Done()
 	}}
+	wg.Wait()
 	newModel = getNextModel(actions)
 	if nextImage != nil {
 		t.Logf("expected to get nothing, got %v", nextImage)
+		t.Fail()
+	}
+
+	// 12. get scan results
+	var scanResults api.ScanResults
+	wg.Add(1)
+	actions <- getScanResults{func(results api.ScanResults) {
+		scanResults = results
+		wg.Done()
+	}}
+	wg.Wait()
+	if len(scanResults.Images) != 1 {
+		t.Logf("expected 1 image, found %d", len(scanResults.Images))
+		jsonBytes, err := json.Marshal(scanResults)
+		if err != nil {
+			panic(err)
+		}
+		t.Logf("json dump: \n%s", string(jsonBytes))
 		t.Fail()
 	}
 
@@ -334,8 +360,7 @@ func TestReducer(t *testing.T) {
 }
 
 func TestScanClientFails(t *testing.T) {
-	concurrentScanLimit := 1
-	model := NewModel(concurrentScanLimit, PerceptorConfig{})
+	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 1})
 	image := *NewImage("abc", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
 	model.Images[image.Sha].setScanStatus(ScanStatusRunningScanClient)

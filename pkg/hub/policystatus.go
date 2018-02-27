@@ -22,13 +22,13 @@ under the License.
 package hub
 
 type PolicyStatus struct {
-	OverallStatus                string
+	OverallStatus                PolicyStatusType
 	UpdatedAt                    string
-	ComponentVersionStatusCounts map[string]int
+	ComponentVersionStatusCounts map[PolicyStatusType]int
 }
 
 func (ps *PolicyStatus) ViolationCount() int {
-	violationCount, ok := ps.ComponentVersionStatusCounts["IN_VIOLATION"]
+	violationCount, ok := ps.ComponentVersionStatusCounts[PolicyStatusTypeInViolation]
 	if !ok {
 		return 0
 	}

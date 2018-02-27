@@ -21,7 +21,11 @@ under the License.
 
 package core
 
-import "time"
+import (
+	"fmt"
+	"reflect"
+	"time"
+)
 
 type reducer struct{}
 
@@ -36,6 +40,9 @@ func newReducer(initialModel *Model, actions <-chan action) *reducer {
 			case nextAction := <-actions:
 				// metrics: how many messages are waiting?
 				recordNumberOfMessagesInQueue(len(actions))
+
+				// metrics: log message type
+				recordMessageType(fmt.Sprintf("%s", reflect.TypeOf(nextAction)))
 
 				// metrics: how long idling since the last action finished processing?
 				start := time.Now()

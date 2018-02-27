@@ -64,7 +64,7 @@ we minimize the amount of code which requires special permissions.
 
 Getting work done:
 
-Create a GO Project for Perceptor
+Create a GO Project for Perceptor:
  - mkdir go/
  - mkdir go/src/
  - mkdir go/src/github.com/blackducksoftware/perceptor
