@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: perceptor
+    namespace: bds-perceptor
+  spec:
+    host: perceptor-bds-perceptor.34.227.56.110.xip.io
+    to:
+      kind: Service
+      name: perceptor
+      weight: 100
+    wildcardPolicy: None
