@@ -60,6 +60,7 @@ func NewWithSession(baseURL string, debugFlags HubClientDebug) (*Client, error) 
 	client := &http.Client{
 		Jar:       jar,
 		Transport: tr,
+		Timeout:   5 * time.Second,
 	}
 
 	return &Client{
@@ -78,6 +79,7 @@ func NewWithToken(baseURL string, authToken string, debugFlags HubClientDebug) (
 
 	client := &http.Client{
 		Transport: tr,
+		Timeout:   5 * time.Second,
 	}
 
 	return &Client{
