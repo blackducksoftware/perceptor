@@ -54,6 +54,7 @@ func RunPerceptor() {
 	if config.UseMockMode {
 		responder := api.NewMockResponder()
 		api.SetupHTTPServer(responder)
+		log.Info("instantiated responder in mock mode")
 	} else {
 		perceptor, err := NewPerceptor(*config)
 		if err != nil {
@@ -61,7 +62,7 @@ func RunPerceptor() {
 			panic(err)
 		}
 
-		log.Info("instantiated perceptor: %+v", perceptor)
+		log.Infof("instantiated perceptor in real mode: %+v", perceptor)
 	}
 
 	// TODO make this configurable - maybe even viperize it.
