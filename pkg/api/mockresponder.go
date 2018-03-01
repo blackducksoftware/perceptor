@@ -148,8 +148,9 @@ func (mr *MockResponder) UpdateAllImages(allImages AllImages) {
 
 // scanner
 
-func (mr *MockResponder) GetNextImage(func(nextImage NextImage)) {
+func (mr *MockResponder) GetNextImage() NextImage {
 	// TODO
+	return NextImage{}
 }
 
 func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
