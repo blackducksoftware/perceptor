@@ -26,8 +26,5 @@ import (
 )
 
 func main() {
-	core.RunFromInsideCluster()
-
-	// hack to prevent main from returning
-	select {}
+	core.RunPerceptor()
 }

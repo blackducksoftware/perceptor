@@ -34,6 +34,7 @@ type PerceptorConfig struct {
 	HubUser             string
 	HubUserPassword     string
 	ConcurrentScanLimit int
+	UseMockMode         bool
 }
 
 // GetPerceptorConfig returns a configuration object to configure Perceptor
