@@ -22,5 +22,6 @@ under the License.
 package hub
 
 type FetcherInterface interface {
+	HubVersion() string
 	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
 }

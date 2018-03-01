@@ -30,12 +30,10 @@ import (
 
 // PerceptorConfig contains all configuration for Perceptor
 type PerceptorConfig struct {
-	HubHost              string
-	HubUser              string
-	HubUserPassword      string
-	HubScanClientVersion string
-	HubVersion           string
-	ConcurrentScanLimit  int
+	HubHost             string
+	HubUser             string
+	HubUserPassword     string
+	ConcurrentScanLimit int
 }
 
 // GetPerceptorConfig returns a configuration object to configure Perceptor

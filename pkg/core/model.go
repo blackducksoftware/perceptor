@@ -36,16 +36,18 @@ type Model struct {
 	ImageHubCheckQueue  []Image
 	ConcurrentScanLimit int
 	Config              PerceptorConfig
+	HubVersion          string
 }
 
-func NewModel(config PerceptorConfig) *Model {
+func NewModel(config PerceptorConfig, hubVersion string) *Model {
 	return &Model{
 		Pods:                make(map[string]Pod),
 		Images:              make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue:      []Image{},
 		ImageHubCheckQueue:  []Image{},
 		ConcurrentScanLimit: config.ConcurrentScanLimit,
-		Config:              config}
+		Config:              config,
+		HubVersion:          hubVersion}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.

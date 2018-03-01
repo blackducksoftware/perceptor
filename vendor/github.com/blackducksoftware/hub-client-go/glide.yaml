@@ -1,0 +1,4 @@
+package: github.com/blackducksoftware/hub-client-go
+import:
+- package: github.com/sirupsen/logrus
+  version: v1.0.4
