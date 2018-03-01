@@ -29,7 +29,7 @@ import (
 )
 
 func TestModelJSONSerialization(t *testing.T) {
-	m := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	m := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
 	jsonBytes, err := json.Marshal(m)
 	if err != nil {
 		t.Errorf("unabled to serialize model to json: %s", err.Error())

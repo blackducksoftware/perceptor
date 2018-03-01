@@ -34,13 +34,15 @@ import (
 type MockHub struct {
 	inProgressImages []string
 	finishedImages   map[string]int
+	hubVersion       string
 }
 
-func NewMockHub() *MockHub {
-	hub := new(MockHub)
-	hub.inProgressImages = []string{}
-	hub.finishedImages = make(map[string]int)
-	return hub
+func NewMockHub(hubVersion string) *MockHub {
+	return &MockHub{
+		inProgressImages: []string{},
+		finishedImages:   map[string]int{},
+		hubVersion:       hubVersion,
+	}
 }
 
 func (hub *MockHub) startRandomScanFinishing() {
@@ -67,4 +69,8 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 
 func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	return nil, nil
+}
+
+func (hub *MockHub) HubVersion() string {
+	return hub.hubVersion
 }

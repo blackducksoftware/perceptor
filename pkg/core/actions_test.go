@@ -90,13 +90,13 @@ var testPod = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Conta
 
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := NewModel(PerceptorConfig{})
+	actual := NewModel(PerceptorConfig{}, "test version")
 	(&addPod{pod: testPod}).apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
 	//  - all new images get added to hub check queue
-	expected := *NewModel(PerceptorConfig{})
+	expected := *NewModel(PerceptorConfig{}, "test version")
 	expected.Pods[testPod.QualifiedName()] = testPod
 	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
@@ -109,12 +109,12 @@ func TestAddPodAction(t *testing.T) {
 
 func TestAddImageAction(t *testing.T) {
 	// actual
-	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
 	(&addImage{image: testImage}).apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
-	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
 	imageInfo := NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
@@ -145,12 +145,12 @@ func TestAllImages(t *testing.T) {
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
 	var nextImage *Image
-	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	actual := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
 	(&getNextImage{continuation: func(image *Image) {
 		nextImage = image
 	}}).apply(actual)
 	// expected: front image removed from scan queue, status and time of image changed
-	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3})
+	expected := *NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
 
 	assertEqual(t, nextImage, nil)
 	log.Infof("%+v, %+v", actual, expected)

@@ -137,5 +137,5 @@ func (model *Model) scanResults() api.ScanResults {
 			ComponentsURL:    componentsURL}
 		images = append(images, apiImage)
 	}
-	return *api.NewScanResults(model.Config.HubScanClientVersion, model.Config.HubVersion, pods, images)
+	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
 }

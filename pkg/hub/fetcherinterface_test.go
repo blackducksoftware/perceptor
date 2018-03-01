@@ -21,7 +21,15 @@ under the License.
 
 package hub
 
-type FetcherInterface interface {
-	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
+import (
+	"testing"
+)
+
+func TestFetcherInterfaceImplementations(t *testing.T) {
+	consumeFetcherInterface(&Fetcher{})
+	consumeFetcherInterface(NewMockHub("abc version"))
+}
+
+func consumeFetcherInterface(fi FetcherInterface) {
+	// nothing to do
 }
