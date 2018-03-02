@@ -49,12 +49,6 @@ and running the scan client against the tar file.
 Scanners can be scaled, however, the hub itself remains a bottleneck.  Therefore, care should be exercised
 when increasing the number of scanner pods, so that the hub is not overloaded.
 
-## TODO
-
-Split off the portion of code responsible for grabbing a docker image from the node's docker daemon.
-This code requires special permissions in openshift.  By implementing this as a sidecar container,
-we minimize the amount of code which requires special permissions.
-
 # Development Environment Setup
 
  - install gimme, run it to compile perceptor
@@ -103,7 +97,7 @@ Check out the makefiles -- from the root directory, run:
 
 # Running
 
-TODO
+Check out [Protoform](https://github.com/blackducksoftware/perceptor-protoform/)!
 
 # Development Policy
 
