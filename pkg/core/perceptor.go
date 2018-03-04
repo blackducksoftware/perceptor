@@ -94,27 +94,27 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config PerceptorConfig) 
 	go func() {
 		for {
 			select {
-			case pod := <-httpResponder.addPod:
+			case pod := <-httpResponder.AddPodChannel:
 				actions <- &addPod{pod}
-			case pod := <-httpResponder.updatePod:
+			case pod := <-httpResponder.UpdatePodChannel:
 				actions <- &updatePod{pod}
-			case podName := <-httpResponder.deletePod:
+			case podName := <-httpResponder.DeletePodChannel:
 				actions <- &deletePod{podName}
-			case image := <-httpResponder.addImage:
+			case image := <-httpResponder.AddImageChannel:
 				actions <- &addImage{image}
-			case pods := <-httpResponder.allPods:
+			case pods := <-httpResponder.AllPodsChannel:
 				actions <- &allPods{pods}
-			case images := <-httpResponder.allImages:
+			case images := <-httpResponder.AllImagesChannel:
 				actions <- &allImages{images}
-			case job := <-httpResponder.postFinishScanJob:
+			case job := <-httpResponder.PostFinishScanJobChannel:
 				actions <- &finishScanClient{DockerImageSha(job.Sha), job.Err}
-			case continuation := <-httpResponder.postNextImage:
+			case continuation := <-httpResponder.PostNextImageChannel:
 				actions <- &getNextImage{continuation}
-			case limit := <-httpResponder.setConcurrentScanLimit:
+			case limit := <-httpResponder.SetConcurrentScanLimitChannel:
 				actions <- &setConcurrentScanLimit{limit}
-			case continuation := <-httpResponder.getModel:
+			case continuation := <-httpResponder.GetModelChannel:
 				actions <- &getModel{continuation}
-			case continuation := <-httpResponder.getScanResults:
+			case continuation := <-httpResponder.GetScanResultsChannel:
 				actions <- &getScanResults{continuation}
 			}
 		}
