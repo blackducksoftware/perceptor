@@ -68,6 +68,11 @@ func (mr *MockResponder) GetModel() string {
 func (mr *MockResponder) AddPod(pod Pod) {
 	log.Infof("add pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+	_, ok := mr.Pods[qualifiedName]
+	if ok {
+		return
+	}
+
 	mr.Pods[qualifiedName] = pod
 	for _, cont := range pod.Containers {
 		mr.AddImage(cont.Image)
