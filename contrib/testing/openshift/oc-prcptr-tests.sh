@@ -1,6 +1,11 @@
 #!/bin/bash
 # Copyright (C) 2018 Synopsys, Inc.
+# Authors:  Joel Sheppard, Jay Vyas
 
+# Redirect output to a log and visible at the console
+exec > >(tee /var/tmp/pod-annotations-tests.log) 2>&1
+
+# Export the OpenShift internal Registry Port
 export REGISTRY_PORT=":5000"
 
 sanity_check() {
@@ -18,7 +23,6 @@ sanity_check() {
 # Create the Namespace for createPod test
 createNs() {
   export POD_NS="perceptortestns"
-  WAIT_TIME=$((30))
   # Clean up NS JIC it's still here...
   sudo oc get ns | grep $POD_NS | cut -d ' ' -f 1 | xargs oc delete ns
   while [[ `sudo oc get ns | grep $POD_NS | wc -l` -gt 0 ]] ; do
@@ -26,10 +30,11 @@ createNs() {
     sleep 3
   done
   echo "Done waiting!"
-  sleep $WAIT_TIME
   oc create -f ./perceptorTestNS.yml
-  sleep $WAIT_TIME
-  oc get ns | grep $POD_NS
+  while [[ `sudo oc get ns | grep $POD_NS | wc -l` -gt 0 ]] ; do
+    echo "[createNs]: Waiing on NS to come up: `oc get ns | grep $NS`"
+    sleep 3
+  done
   ns_state=$(oc get ns | grep $POD_NS)
   if [ -z $ns_state ] ; then
     echo "ERROR: Namespace $POD_NS not found!"
@@ -42,17 +47,37 @@ createNs() {
 # TestRail Test Case C7556
 # Deploy an image using OC RUN
 createPod() {
-  echo "Test: Creating POD using 'oc run'..."
+  PODS=1
+  echo "[Test]: Creating POD using 'oc run'..."
   oc run busybox --image=busybox --namespace=$POD_NS
   oc project perceptortestns
   my_pod=$(oc get pods | grep -i busybox | cut -d ' ' -f 1)
-    if [ -z $my_pod ] ; then
-      echo "ERROR: No POD found matching $my_pod!"
-      return 1;
+  if [ -z $my_pod ] ; then
+    echo "ERROR: No POD found matching $my_pod!"
+    return 1;
+  else
+    echo "POD name $my_pod found, w00t! Moving on..."
+    echo "$my_pod"
+  fi
+  until [[ `oc get pods | grep -v STATUS | wc -l` -ge "$PODS" ]] ; do
+    echo "[createPod]: Waiing on PODs to come up, so far: `oc get pods | grep -v NAME`"
+    sleep 3
+  done
+  echo "Done waiting!"
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
+    tstAnnotate $i
+    retVal=0
+    passed=0
+    failed=0
+    if [[ $retVal -gt 0 ]] ; then
+      echo "[ERROR]: [createPod] Failed POD Annotations test on $i. Failing Fast!"
+      (( failed++ ))
     else
-      echo "POD name $my_pod found, w00t! Moving on..."
-      echo "$my_pod"
+      echo "[createPod] Passed POD Annoations test on $i!"
+      (( passed++))
     fi
+  done
+  echo "[createPod] Test Passed for all PODs!"
 }
 
 # TestRail Test Case C7440
@@ -60,7 +85,7 @@ createPod() {
 # POD are created in this deployment.
 createDockerHub() {
   NS=tst-deploy-dockerhub
-  NEW_APP=$1
+  NEW_APP=centos/python-35-centos7~https://github.com/openshift/django-ex.git
   PODS=$2
   my_pod=$1
   if [[ -z $NS ]] ; then
@@ -70,14 +95,14 @@ createDockerHub() {
     burnItDown $NS
   fi
   echo "[Test]: Deploying directly via DockerHUB with $NEW_APP and we want to see $PODS"
-  oc new-project tst-deploy-dockerhub
+  oc new-project $NS
   oc new-app $NEW_APP
   until [[ `oc get pods | grep -v STATUS | wc -l` -ge "$PODS" ]] ; do
     echo "[createDockerHub]: Waiing on PODs to come up, so far: `oc get pods | grep -v NAME`"
     sleep 3
   done
   echo "Done waiting!"
-  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
     tstAnnotate $i
     retVal=0
     passed=0
@@ -96,7 +121,7 @@ createDockerHub() {
 # TestRail Test Case C7441
 createDockerPull() {
   NS=tst-docker-pull
-  PODS=$1
+  PODS=1
   if [[ -z $NS ]] ; then
     echo "Sweet, NS: $NS not found.  We can begin the test!"
   else
@@ -107,12 +132,14 @@ createDockerPull() {
   docker pull alpine
   oc new-project $NS
   oc new-app docker.io/alpine:latest
-  until [[ `oc get pods | grep -v STATUS | wc -l` -ge "$PODS" ]] ; do
+  until [[ `oc get pods | grep -v STATUS | grep -v build | grep -v deploy | grep Completed | wc -l` -ge "$PODS" ]] ; do
     echo "[createDockerPull]: Waiing on PODs to come up, so far: `oc get pods | grep -v NAME`"
     sleep 3
   done
   echo "Done waiting!"
-  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+  # Sleep 5s to let the POD finish coming up
+  sleep 5
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
     tstAnnotate $i
     retVal=0
     passed=0
@@ -122,10 +149,10 @@ createDockerPull() {
       (( failed++ ))
     else
       echo "[createDockerPull] Passed POD Annoations test on $i!"
-      (( passed++))
+      (( passed++ ))
     fi
   done
-  echo "[createDockerPull] Test Passed for all PODs in $NEW_APP."
+  echo "[createDockerPull] Test Passed for all PODs!"
 }
 
 # Test Rail Test Case C7439
@@ -149,7 +176,7 @@ createDockerLoad() {
     echo "[ERROR]: Docker Image NOT Loaded! Exiting, Fail Fast!"
     exit 27
   else
-    echo "Docker Load completed successfully!! `sudo docker images \ grep "hello-world"`"
+    echo "Docker Load completed successfully!! `sudo docker images | grep "hello-world"`"
   fi
   # Login to Openshift
   # TODO Do something better for the UN and PW???
@@ -222,7 +249,7 @@ createDockerLoad() {
     sleep 3
   done
   echo "Done waiting!"
-  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
     tstAnnotate $i
     retVal=0
     passed=0
@@ -235,13 +262,15 @@ createDockerLoad() {
       (( passed++))
     fi
   done
-  echo "[createDockerLoad] Test Passed for all PODs in $NEW_APP."
+  echo "[createDockerLoad] Test Passed for all PODs!"
 }
 
 # Test rail Test Case C7445
 createS2i() {
   NS=puma-test-app
-  PODS=$1
+  # This deployment reults in a net 2 PODs
+  PODS=2
+  # Check the namespace exists and Frenzy it if so...
   if [[ -z $NS ]] ; then
     echo "Sweet, NS: $NS not found.  We can begin the test!"
   else
@@ -253,12 +282,16 @@ createS2i() {
   echo "Deploying the S2i App..."
   oc new-app https://github.com/openshift/sti-ruby.git \
   --context-dir=2.0/test/puma-test-app
+  # Wait for PODs to come up
   until [[ `oc get pods | grep -v STATUS | wc -l` -ge $PODS ]] ; do
     echo "[createS2i]: Waiting on POD(s) to come up, so far: `oc get pods | grep -v NAME`"
     sleep 3
   done
   echo "Done waiting!"
-  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+  # Sleep just 5s while the actual Ruby App POD comes up...
+  sleep 5
+  # Start passing in one POD at a time to check for annoations
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
     tstAnnotate $i
     retVal=0
     passed=0
@@ -271,13 +304,12 @@ createS2i() {
       (( passed++))
     fi
   done
-  echo "[createS2i] Test Passed for all PODs in $NEW_APP."
+  echo "[createS2i] Test Passed for all PODs in!"
 }
 
 # Test Rail Test Case C7448
 createTemplate() {
   NS=php
-  PODS=$1
   if [[ -z $NS ]] ; then
     echo "Sweet, NS: $NS not found.  We can begin the test!"
   else
@@ -287,12 +319,14 @@ createTemplate() {
   echo "Test: Deploy an Image via OpenShift Template"
   oc new-project $NS
   oc new-app -f /usr/share/openshift/examples/quickstart-templates/rails-postgresql.json
-  until [[ `oc get pods | grep -v STATUS | wc -l` -ge $PODS ]] ; do
+  until [[ `oc get pods | grep "rails-postgresql-example-1-hook-pre"` ]] ; do
     echo "[createTemplate]: Waiting on POD(s) to come up, so far: `oc get pods | grep -v NAME`"
-    sleep 3
+    sleep 2
   done
   echo "Done waiting!"
-  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f NAME` ; do
+  # Now sleep 10s while the hook-pre finishes and brings up the final pod (rails-postgresql-example-1-<randomNum>)
+  sleep 10
+  for i in `oc get pods | grep -v build | grep -v deploy | grep -v NAME | cut -d ' ' -f 1` ; do
     tstAnnotate $i
     retVal=0
     passed=0
@@ -305,24 +339,30 @@ createTemplate() {
       (( passed++))
     fi
   done
-  echo "[createTemplate] Test Passed for all PODs in $NEW_APP."
+  echo "[createTemplate] Test Passed for all PODs!"
 }
 
 # TODO Verify perceptor is notified of new POD/Image - not sure how yet...
 
 # Verify POD has been annotated with "BlackDuck"
 tstAnnotate() {
-  my_pod=$1
-  echo "Now testing POD Annoations on: $my_pod"
-  echo "Checking for BlackDuck POD annotations..."
-  a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
-  echo "a_state"
+my_pod=$1
+retry=1
+echo "Now testing POD Annoations on: $my_pod"
+echo "Checking for BlackDuck POD annotations..."
+a_state=$(oc describe pod $my_pod | grep -i BlackDuck)
+until [[ $retry -gt 5 ]] ; do
   if [[ -z $a_state ]]; then
-    echo "ERROR: [tstAnnotate] There appears to be no POD Annoations present on $my_pod!"
-    exit 88;
+    echo "[ERROR]: [tstAnnotate] POD Annotations not found on $my_pod!"
+    echo "Retrying... $retry"
+    (( retry ++ ))
+    sleep 3
   else
     echo "BlackDuck OpsSight Annoations found on $my_pod! TEST PASS"
+    echo "Annoations: $a_state"
+    break
   fi
+done
 }
 
 burnItDown() {
@@ -332,6 +372,8 @@ burnItDown() {
     sleep 3
   done
 }
+
+sanity_check
 createNs
 createPod
 if [[ $? -gt 0 ]]; then
@@ -351,7 +393,7 @@ if [[ $? -gt 0 ]]; then
   exit $?
 fi
 
-createDockerLoad
+#createDockerLoad
 if [[ $? -gt 0 ]]; then
   echo "failed @ createDockerLoad"
   exit $?
