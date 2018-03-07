@@ -113,6 +113,11 @@ func (mr *MockResponder) GetScanResults() ScanResults {
 }
 
 func (mr *MockResponder) AddImage(image Image) {
+	_, ok := mr.Images[image.Sha]
+	if ok {
+		return
+	}
+
 	log.Infof("add image: %+v", image)
 	policyViolations := rand.Intn(3)
 	vulnerabilities := rand.Intn(3)
