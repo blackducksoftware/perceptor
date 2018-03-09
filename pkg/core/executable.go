@@ -65,7 +65,7 @@ func RunPerceptor() {
 		log.Infof("instantiated perceptor in real mode: %+v", perceptor)
 	}
 
-	// TODO make this configurable - maybe even viperize it.
-	http.ListenAndServe(":3001", nil)
+	addr := fmt.Sprintf(":%d", config.Port)
+	http.ListenAndServe(addr, nil)
 	log.Info("Http server started!")
 }
