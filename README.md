@@ -26,6 +26,8 @@ Perceivers:
  - GKE (TODO)
  - compose (TODO)
  - swarm (TODO)
+ 
+ The perceivers are a separate project.  IF you want to build one for your own platform, or customize the way cluster events are processed,  [ go here to learn more about them](https://github.com/blackducksoftware/perceivers).
 
 # Perceptor core
 
