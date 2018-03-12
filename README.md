@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/blackducksoftware/perceptor.svg?token=NkZXsasksSgnVeY347YQ&branch=master)](https://travis-ci.com/blackducksoftware/perceptor)
+[![Build Status](https://travis-ci.com/blackducksoftware/perceptor.svg?branch=master)](https://travis-ci.com/blackducksoftware/perceptor)
 
 # Perceptor
 
