@@ -8,6 +8,9 @@ based on what's currently running in their cluster.
 
 # Perceivers
 
+Perceivers are the canonical extension point to a perceptor based deployment.
+Perceivers are workers that notify perceptor of events, and respond to information that perceptor acquires about those events.  IF you want to build one for your own platform, or customize the way cluster events are processed,  [ go here to learn more about them](https://github.com/blackducksoftware/perceivers).  
+
 Perceivers are responsible for interacting with the cluster manager -- whether kubernetes, openshift,
 docker swarm, or docker compose.  Perceivers watch for pod and image events -- create, update, delete --
 and forward those on to perceptor core.
@@ -27,7 +30,6 @@ Perceivers:
  - compose (TODO)
  - swarm (TODO)
  
- The perceivers are a separate project.  IF you want to build one for your own platform, or customize the way cluster events are processed,  [ go here to learn more about them](https://github.com/blackducksoftware/perceivers).
 
 # Perceptor core
 
