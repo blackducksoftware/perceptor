@@ -16,12 +16,13 @@ package hubclient
 
 import (
 	"testing"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func TestDownloadScanClient(t *testing.T) {
-	client, err := NewWithSession("https://localhost", HubClientDebugTimings)
+	client, err := NewWithSession("https://localhost", HubClientDebugTimings, 5*time.Second)
 	if err != nil {
 		t.Error(err)
 		return

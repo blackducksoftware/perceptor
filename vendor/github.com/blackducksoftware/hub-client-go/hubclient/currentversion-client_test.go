@@ -16,12 +16,13 @@ package hubclient
 
 import (
 	"testing"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func TestFetchCurrentVersion(t *testing.T) {
-	client, err := NewWithSession("https://localhost", HubClientDebugTimings)
+	client, err := NewWithSession("https://localhost", HubClientDebugTimings, 5*time.Second)
 	client.Login("sysadmin", "blackduck")
 	if err != nil {
 		t.Errorf("unable to instantiate client: %s", err.Error())

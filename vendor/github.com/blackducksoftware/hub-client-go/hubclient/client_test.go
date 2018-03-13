@@ -17,6 +17,7 @@ package hubclient
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +30,7 @@ import (
 //   4. that there is at least one project, with a version, with a policy status
 // It's actually an integration test, not a unit test.
 func TestCreateAndDeleteProject(t *testing.T) {
-	client, err := NewWithSession("https://localhost", HubClientDebugTimings)
+	client, err := NewWithSession("https://localhost", HubClientDebugTimings, 5*time.Second)
 	if err != nil {
 		t.Error(err)
 	}

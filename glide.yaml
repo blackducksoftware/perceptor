@@ -3,6 +3,7 @@ import:
 - package: github.com/blackducksoftware/hub-client-go
   repo: git@github.com:blackducksoftware/hub-client-go.git
   vcs: git
+  version: v0.9.1
   subpackages:
   - hubapi
   - hubclient
