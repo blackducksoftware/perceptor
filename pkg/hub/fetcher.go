@@ -23,10 +23,15 @@ package hub
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/hub-client-go/hubclient"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	hubClientTimeout = 5 * time.Second
 )
 
 type Fetcher struct {
@@ -68,7 +73,7 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
 func NewFetcher(username string, password string, baseURL string) (*Fetcher, error) {
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
 		return nil, err
 	}
