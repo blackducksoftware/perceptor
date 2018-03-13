@@ -98,6 +98,10 @@ If master is broken:
 Check out the makefiles -- from the root directory, run:
 
     make
+    
+# Continous Integration
+
+We build images, per commit, using cloud build files.  We're open to changing our build artifacts over time, checkout the cloud-build.yaml.  Note that post build hooks are currently disabled due to internal infrastructure changes.
 
 # Running
 
