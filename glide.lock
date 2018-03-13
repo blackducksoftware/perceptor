@@ -1,5 +1,5 @@
-hash: 0d7c93e359fe1a6475dd74f5a0d1fbf973afe54f4632334f1b58fd3bb1b6d0f0
-updated: 2018-03-07T12:53:53.633322174-05:00
+hash: 18f641c531aeb7fcdf46e973a9a29ad1f7f1f88f1c1c989d5260f4ccaeb49f48
+updated: 2018-03-13T15:26:16.234878614-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -12,7 +12,7 @@ imports:
   subpackages:
   - quantile
 - name: github.com/blackducksoftware/hub-client-go
-  version: 39c39f12ffe9cb59b9194ace19f681b1120cc802
+  version: 0a45c9b235d6b5dfe73bcc1e17537eac2b302490
   repo: git@github.com:blackducksoftware/hub-client-go.git
   vcs: git
   subpackages:
@@ -23,7 +23,7 @@ imports:
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/protobuf
-  version: bbd03ef6da3a115852eaf24c8a1c46aeb39aa175
+  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
   - proto
 - name: github.com/hashicorp/hcl
@@ -63,7 +63,7 @@ imports:
   - log
   - model
 - name: github.com/prometheus/procfs
-  version: 1c7ff3de94ae006f58cba483a4c9c6d7c61e1d98
+  version: d274e363d5759d1c916232217be421f1cc89c5fe
   subpackages:
   - internal/util
   - nfs
@@ -79,27 +79,27 @@ imports:
 - name: github.com/spf13/jwalterweatherman
   version: 7c0cea34c8ece3fbeb2b27ab9b59511d360fb394
 - name: github.com/spf13/pflag
-  version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
+  version: 4c012f6dcd9546820e378d0bdda4d8fc772cdfea
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
 - name: golang.org/x/crypto
-  version: 85f98707c97e11569271e4d9b3d397e079c4f4d0
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
   - ssh/terminal
 - name: golang.org/x/sys
-  version: dd2ff4accc098aceecb86b36eaa7829b2a17b1c9
+  version: 95c6576299259db960f6c5b9b69ea52422860fce
   subpackages:
   - unix
   - windows
   - windows/registry
   - windows/svc/eventlog
 - name: golang.org/x/text
-  version: b7ef84aaf62aa3e70962625c80a571ae7c17cb40
+  version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
   - transform
   - unicode/norm
 - name: gopkg.in/alecthomas/kingpin.v2
   version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/yaml.v2
-  version: 7f97868eec74b32b0982dd158a51a446d1da7eb5
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []

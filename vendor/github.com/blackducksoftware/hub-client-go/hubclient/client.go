@@ -45,7 +45,7 @@ type Client struct {
 	debugFlags    HubClientDebug
 }
 
-func NewWithSession(baseURL string, debugFlags HubClientDebug) (*Client, error) {
+func NewWithSession(baseURL string, debugFlags HubClientDebug, timeout time.Duration) (*Client, error) {
 
 	jar, err := cookiejar.New(nil) // Look more at this function
 
@@ -60,7 +60,7 @@ func NewWithSession(baseURL string, debugFlags HubClientDebug) (*Client, error) 
 	client := &http.Client{
 		Jar:       jar,
 		Transport: tr,
-		Timeout:   5 * time.Second,
+		Timeout:   timeout,
 	}
 
 	return &Client{
@@ -71,7 +71,7 @@ func NewWithSession(baseURL string, debugFlags HubClientDebug) (*Client, error) 
 	}, nil
 }
 
-func NewWithToken(baseURL string, authToken string, debugFlags HubClientDebug) (*Client, error) {
+func NewWithToken(baseURL string, authToken string, debugFlags HubClientDebug, timeout time.Duration) (*Client, error) {
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -79,7 +79,7 @@ func NewWithToken(baseURL string, authToken string, debugFlags HubClientDebug) (
 
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   5 * time.Second,
+		Timeout:   timeout,
 	}
 
 	return &Client{
