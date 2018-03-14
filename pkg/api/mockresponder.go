@@ -31,14 +31,16 @@ import (
 )
 
 type MockResponder struct {
-	Pods   map[string]Pod
-	Images map[string]ImageInfo
+	Pods             map[string]Pod
+	Images           map[string]ImageInfo
+	NextImageCounter int
 }
 
 func NewMockResponder() *MockResponder {
 	return &MockResponder{
-		Pods:   map[string]Pod{},
-		Images: map[string]ImageInfo{},
+		Pods:             map[string]Pod{},
+		Images:           map[string]ImageInfo{},
+		NextImageCounter: 0,
 	}
 }
 
@@ -159,12 +161,18 @@ func (mr *MockResponder) UpdateAllImages(allImages AllImages) {
 // scanner
 
 func (mr *MockResponder) GetNextImage() NextImage {
-	// TODO
-	return NextImage{}
+	mr.NextImageCounter++
+	imageSpec := ImageSpec{
+		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
+		HubProjectVersionName: fmt.Sprintf("mock-perceptor-project-version-%d", mr.NextImageCounter),
+		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
+		PullSpec:              "abc/def/ghi",
+		Sha:                   "123abc456def"}
+	return NextImage{ImageSpec: &imageSpec}
 }
 
 func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
-	// TODO
+	log.Infof("finished scan job: %+v", job)
 }
 
 // internal use
