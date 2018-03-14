@@ -22,12 +22,13 @@ under the License.
 package main
 
 import (
-//	"encoding/json"
+	//	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
-//	"github.com/blackducksoftware/perceptor/pkg/hub"
+	//	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,7 +53,7 @@ func main() {
 }
 
 func listProjects() {
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, 5*time.Second)
 	if err != nil {
 		log.Fatalf("unable to create hub client %v", err)
 		panic("oops, unable to create hub client " + err.Error())
@@ -76,7 +77,7 @@ func HitHubAPI(projectName string) {
 	//	panic("unable to instantiate ProjectFetcher: " + err.Error())
 	// }
 
-	panic ("unimplemented")
+	panic("unimplemented")
 	// project, err := pf.FetchProjectByName(projectName)
 	// if err != nil {
 	//	panic("unable to fetch project " + projectName + "; " + err.Error())
@@ -87,7 +88,7 @@ func HitHubAPI(projectName string) {
 }
 
 func exampleHubAPI() {
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, 5*time.Second)
 	if err != nil {
 		log.Fatalf("unable to create hub client %v", err)
 		panic("oops, unable to create hub client " + err.Error())
