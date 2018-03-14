@@ -168,7 +168,7 @@ func (mr *MockResponder) GetNextImage() NextImage {
 		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
 		PullSpec:              "abc/def/ghi",
 		Sha:                   "123abc456def"}
-	return NextImage{ImageSpec: imageSpec}
+	return NextImage{ImageSpec: &imageSpec}
 }
 
 func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
