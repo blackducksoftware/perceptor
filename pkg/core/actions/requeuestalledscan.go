@@ -22,30 +22,21 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type RequeueStalledScan struct {
+	Sha m.DockerImageSha
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (r *RequeueStalledScan) Apply(model *m.Model) {
+	imageInfo, ok := model.Images[r.Sha]
+	if !ok {
+		return
+	}
+	if imageInfo.ScanStatus != m.ScanStatusRunningScanClient {
+		return
+	}
+	imageInfo.SetScanStatus(m.ScanStatusError)
+	model.AddImageToScanQueue(r.Sha)
 }

@@ -25,13 +25,16 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
 type reducer struct{}
 
 // logic
 
-func newReducer(model *Model, actions <-chan action) *reducer {
+func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 	stop := time.Now()
 	go func() {
 		for {
@@ -48,7 +51,7 @@ func newReducer(model *Model, actions <-chan action) *reducer {
 				recordReducerActivity(false, start.Sub(stop))
 
 				// actually do the work
-				nextAction.apply(model)
+				nextAction.Apply(model)
 
 				// metrics: how long did the work take?
 				stop = time.Now()

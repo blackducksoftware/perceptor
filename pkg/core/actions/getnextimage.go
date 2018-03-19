@@ -22,17 +22,16 @@ under the License.
 package core
 
 import (
-	"encoding/json"
-	"testing"
-
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/prometheus/common/log"
 )
 
-func TestModelJSONSerialization(t *testing.T) {
-	m := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
-	jsonBytes, err := json.Marshal(m)
-	if err != nil {
-		t.Errorf("unabled to serialize model to json: %s", err.Error())
-	}
-	log.Infof("json bytes: %s", string(jsonBytes))
+type GetNextImage struct {
+	Continuation func(image *m.Image)
+}
+
+func (g *GetNextImage) Apply(model *m.Model) {
+	log.Infof("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.InProgressScanCount())
+	image := model.GetNextImageFromScanQueue()
+	go g.Continuation(image)
 }

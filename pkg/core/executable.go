@@ -27,6 +27,7 @@ import (
 	"os"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
+	model "github.com/blackducksoftware/perceptor/pkg/core/model"
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +38,7 @@ import (
 func RunPerceptor() {
 	log.Info("start")
 
-	config, err := GetPerceptorConfig()
+	config, err := model.GetConfig()
 	if err != nil {
 		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
@@ -56,7 +57,7 @@ func RunPerceptor() {
 		api.SetupHTTPServer(responder)
 		log.Info("instantiated responder in mock mode")
 	} else {
-		perceptor, err := NewPerceptor(*config)
+		perceptor, err := NewPerceptor(config)
 		if err != nil {
 			log.Errorf("unable to instantiate percepter: %s", err.Error())
 			panic(err)

@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"time"
 
+	model "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -37,22 +38,18 @@ var reducerMessageCounter *prometheus.CounterVec
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
 
-// modelMetrics is called periodically -- but NOT every time the model
-// is updated -- in case generating the metrics is computationally expensive.
-// And the metrics don't need to be updated all that often, since they'll only
-// get scraped every now and then by prometheus.
-func recordModelMetrics(modelMetrics *ModelMetrics) {
+func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 	// log.Info("generating status metrics")
 
-	keys := []ScanStatus{
-		ScanStatusUnknown,
-		ScanStatusInHubCheckQueue,
-		ScanStatusCheckingHub,
-		ScanStatusInQueue,
-		ScanStatusRunningScanClient,
-		ScanStatusRunningHubScan,
-		ScanStatusComplete,
-		ScanStatusError}
+	keys := []model.ScanStatus{
+		model.ScanStatusUnknown,
+		model.ScanStatusInHubCheckQueue,
+		model.ScanStatusCheckingHub,
+		model.ScanStatusInQueue,
+		model.ScanStatusRunningScanClient,
+		model.ScanStatusRunningHubScan,
+		model.ScanStatusComplete,
+		model.ScanStatusError}
 	for _, key := range keys {
 		val := modelMetrics.ScanStatusCounts[key]
 		status := fmt.Sprintf("image_status_%s", key.String())

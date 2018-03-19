@@ -22,30 +22,19 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type SetConcurrentScanLimit struct {
+	Limit int
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (s *SetConcurrentScanLimit) Apply(model *m.Model) {
+	limit := s.Limit
+	if limit < 0 {
+		log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
+		return
+	}
+	model.ConcurrentScanLimit = limit
 }

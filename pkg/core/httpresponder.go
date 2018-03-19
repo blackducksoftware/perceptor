@@ -26,18 +26,19 @@ import (
 	"sync"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
+	model "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	AddPodChannel                 chan Pod
-	UpdatePodChannel              chan Pod
+	AddPodChannel                 chan model.Pod
+	UpdatePodChannel              chan model.Pod
 	DeletePodChannel              chan string
-	AddImageChannel               chan Image
-	AllPodsChannel                chan []Pod
-	AllImagesChannel              chan []Image
-	PostNextImageChannel          chan func(*Image)
+	AddImageChannel               chan model.Image
+	AllPodsChannel                chan []model.Pod
+	AllImagesChannel              chan []model.Image
+	PostNextImageChannel          chan func(*model.Image)
 	PostFinishScanJobChannel      chan api.FinishedScanClientJob
 	SetConcurrentScanLimitChannel chan int
 	GetModelChannel               chan func(json string)
@@ -46,13 +47,13 @@ type HTTPResponder struct {
 
 func NewHTTPResponder() *HTTPResponder {
 	return &HTTPResponder{
-		AddPodChannel:                 make(chan Pod),
-		UpdatePodChannel:              make(chan Pod),
+		AddPodChannel:                 make(chan model.Pod),
+		UpdatePodChannel:              make(chan model.Pod),
 		DeletePodChannel:              make(chan string),
-		AddImageChannel:               make(chan Image),
-		AllPodsChannel:                make(chan []Pod),
-		AllImagesChannel:              make(chan []Image),
-		PostNextImageChannel:          make(chan func(*Image)),
+		AddImageChannel:               make(chan model.Image),
+		AllPodsChannel:                make(chan []model.Pod),
+		AllImagesChannel:              make(chan []model.Image),
+		PostNextImageChannel:          make(chan func(*model.Image)),
 		PostFinishScanJobChannel:      make(chan api.FinishedScanClientJob),
 		SetConcurrentScanLimitChannel: make(chan int),
 		GetModelChannel:               make(chan func(json string)),
@@ -73,7 +74,7 @@ func (hr *HTTPResponder) GetModel() string {
 
 func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
 	recordAddPod()
-	pod := *newPod(apiPod)
+	pod := *model.ApiPodToCorePod(apiPod)
 	hr.AddPodChannel <- pod
 	log.Infof("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 }
@@ -86,23 +87,23 @@ func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 
 func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
 	recordUpdatePod()
-	pod := *newPod(apiPod)
+	pod := *model.ApiPodToCorePod(apiPod)
 	hr.UpdatePodChannel <- pod
 	log.Infof("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 	recordAddImage()
-	image := *newImage(apiImage)
+	image := *model.ApiImageToCoreImage(apiImage)
 	hr.AddImageChannel <- image
 	log.Infof("handled add image %s", image.HumanReadableName())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 	recordAllPods()
-	pods := []Pod{}
+	pods := []model.Pod{}
 	for _, apiPod := range allPods.Pods {
-		pods = append(pods, *newPod(apiPod))
+		pods = append(pods, *model.ApiPodToCorePod(apiPod))
 	}
 	hr.AllPodsChannel <- pods
 	log.Infof("handled update all pods -- %d pods", len(allPods.Pods))
@@ -110,9 +111,9 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 
 func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 	recordAllImages()
-	images := []Image{}
+	images := []model.Image{}
 	for _, apiImage := range allImages.Images {
-		images = append(images, *newImage(apiImage))
+		images = append(images, *model.ApiImageToCoreImage(apiImage))
 	}
 	hr.AllImagesChannel <- images
 	log.Infof("handled update all images -- %d images", len(allImages.Images))
@@ -139,7 +140,7 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	var wg sync.WaitGroup
 	var nextImage api.NextImage
 	wg.Add(1)
-	hr.PostNextImageChannel <- func(image *Image) {
+	hr.PostNextImageChannel <- func(image *model.Image) {
 		imageString := "null"
 		var imageSpec *api.ImageSpec
 		if image != nil {

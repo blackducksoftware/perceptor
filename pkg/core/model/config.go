@@ -28,8 +28,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// PerceptorConfig contains all configuration for Perceptor
-type PerceptorConfig struct {
+// Config contains all configuration for Perceptor
+type Config struct {
 	HubHost             string
 	HubUser             string
 	HubUserPassword     string
@@ -38,9 +38,9 @@ type PerceptorConfig struct {
 	Port                int
 }
 
-// GetPerceptorConfig returns a configuration object to configure Perceptor
-func GetPerceptorConfig() (*PerceptorConfig, error) {
-	var config *PerceptorConfig
+// GetConfig returns a configuration object to configure Perceptor
+func GetConfig() (*Config, error) {
+	var config *Config
 
 	viper.SetConfigName("perceptor_conf")
 	viper.AddConfigPath("/etc/perceptor")
@@ -60,7 +60,7 @@ func GetPerceptorConfig() (*PerceptorConfig, error) {
 
 // StartWatch will start watching the Perceptor configuration file and
 // call the passed handler function when the configuration file has changed
-func (p *PerceptorConfig) StartWatch(handler func(fsnotify.Event)) {
+func (p *Config) StartWatch(handler func(fsnotify.Event)) {
 	viper.WatchConfig()
 	viper.OnConfigChange(handler)
 }

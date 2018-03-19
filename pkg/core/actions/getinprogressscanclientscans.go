@@ -22,30 +22,19 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type GetInProgressScanClientScans struct {
+	Continuation func(imageInfos []*m.ImageInfo)
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (g *GetInProgressScanClientScans) Apply(model *m.Model) {
+	imageInfos := []*m.ImageInfo{}
+	for _, imageInfo := range model.InProgressScanClientScans() {
+		// TODO could make a deep copy of imageInfo in case it is being
+		// changed while we're looking at it
+		imageInfos = append(imageInfos, imageInfo)
+	}
+	go g.Continuation(imageInfos)
 }

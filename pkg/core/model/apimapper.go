@@ -31,25 +31,25 @@ import (
 
 // api -> model
 
-func newImage(apiImage api.Image) *Image {
+func ApiImageToCoreImage(apiImage api.Image) *Image {
 	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
 }
 
-func newContainer(apiContainer api.Container) *Container {
-	return NewContainer(*newImage(apiContainer.Image), apiContainer.Name)
+func ApiContainerToCoreContainer(apiContainer api.Container) *Container {
+	return NewContainer(*ApiImageToCoreImage(apiContainer.Image), apiContainer.Name)
 }
 
-func newPod(apiPod api.Pod) *Pod {
+func ApiPodToCorePod(apiPod api.Pod) *Pod {
 	containers := []Container{}
 	for _, apiContainer := range apiPod.Containers {
-		containers = append(containers, *newContainer(apiContainer))
+		containers = append(containers, *ApiContainerToCoreContainer(apiContainer))
 	}
 	return NewPod(apiPod.Name, apiPod.UID, apiPod.Namespace, containers)
 }
 
 // model -> api
 
-func (model *Model) scanResultsForPod(podName string) (int, int, string, error) {
+func (model *Model) ScanResultsForPod(podName string) (int, int, string, error) {
 	pod, ok := model.Pods[podName]
 	if !ok {
 		return 0, 0, "", fmt.Errorf("could not find pod of name %s in cache", podName)
@@ -79,7 +79,7 @@ func (model *Model) scanResultsForPod(podName string) (int, int, string, error) 
 	return policyViolationCount, vulnerabilityCount, overallStatus.String(), nil
 }
 
-func (model *Model) scanResults() api.ScanResults {
+func (model *Model) ScanResults() api.ScanResults {
 	pods := []api.ScannedPod{}
 	images := []api.ScannedImage{}
 	// pods
@@ -100,7 +100,7 @@ func (model *Model) scanResults() api.ScanResults {
 		if skipPod {
 			continue
 		}
-		policyViolationCount, vulnerabilityCount, overallStatus, err := model.scanResultsForPod(podName)
+		policyViolationCount, vulnerabilityCount, overallStatus, err := model.ScanResultsForPod(podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
 			continue
@@ -127,7 +127,7 @@ func (model *Model) scanResults() api.ScanResults {
 			componentsURL = imageInfo.ScanResults.ComponentsHref
 			overallStatus = imageInfo.ScanResults.OverallStatus().String()
 		}
-		image := imageInfo.image()
+		image := imageInfo.Image()
 		apiImage := api.ScannedImage{
 			Name:             image.HumanReadableName(),
 			Sha:              string(image.Sha),

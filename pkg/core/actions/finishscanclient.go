@@ -22,30 +22,21 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type FinishScanClient struct {
+	Sha m.DockerImageSha
+	Err string
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (f *FinishScanClient) Apply(model *m.Model) {
+	newModel := model
+	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == "", f.Sha)
+	if f.Err == "" {
+		newModel.FinishRunningScanClient(f.Sha)
+	} else {
+		newModel.ErrorRunningScanClient(f.Sha)
+	}
 }

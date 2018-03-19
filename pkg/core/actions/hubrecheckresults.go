@@ -22,30 +22,23 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type HubRecheckResults struct {
+	Scan *m.HubImageScan
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (h *HubRecheckResults) Apply(model *m.Model) {
+	scan := h.Scan
+	imageInfo, ok := model.Images[scan.Sha]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		return
+	}
+
+	if scan.Scan != nil {
+		imageInfo.ScanResults = scan.Scan
+	}
 }
