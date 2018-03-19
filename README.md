@@ -2,9 +2,9 @@
 
 # Perceptor
 
-Perceptor is a cloud-native program which detects the pods and images running in a cluster,
-scans those images using the hub, and informs the user of policy violations, risks, and vulnerabilities
-based on what's currently running in their cluster.
+Perceptor is an API server and event handler for managing and queueing reactive workloads for distributed systems.  Canonically it is used to manage inforamtion related to container 'events' that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README. 
+
+The Perceiver API is currently managed in a swagger document, and can (theoretically) be interacted with via any programming language.  Note that the golang API objects maintained in this directory are, however, manually curated, and are currently the only APIs that we support and test (contributions welcome!).
 
 # Perceivers
 
