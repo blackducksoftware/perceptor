@@ -2,7 +2,7 @@
 
 # Perceptor
 
-Perceptor is an API server and event handler for managing and queueing reactive workloads for distributed systems.  Canonically it is used to manage inforamtion related to container 'events' that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README. 
+Perceptor is an API server and event handler for consuming, storing, and queueing various workloads associated with responding to events that occur in distributed orchestration systems.  Canonically it is used to manage inforamtion related to container 'events' that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README. 
 
 The Perceiver API is currently managed in a swagger document, and can (theoretically) be interacted with via any programming language.  Note that the golang API objects maintained in this directory are, however, manually curated, and are currently the only APIs that we support and test (contributions welcome!).
 
