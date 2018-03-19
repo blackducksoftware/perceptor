@@ -45,6 +45,8 @@ const (
 	modelMetricsPause = 15 * time.Second
 
 	actionChannelSize = 100
+
+	hubReloginPause = 2 * time.Hour
 )
 
 // Perceptor ties together: a cluster, scan clients, and a hub.
@@ -140,6 +142,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 	go perceptor.startCheckingForStalledScans()
 	go perceptor.startGeneratingModelMetrics()
 	go perceptor.startCheckingForUpdatesForCompletedScans()
+	go perceptor.startReloggingInToHub()
 
 	// 6. done
 	return &perceptor
@@ -230,6 +233,17 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 			log.Infof("rechecking hub for image %s", image.PullSpec())
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
 			perceptor.actions <- &a.HubRecheckResults{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+		}
+	}
+}
+
+func (perceptor *Perceptor) startReloggingInToHub() {
+	for {
+		time.Sleep(hubReloginPause)
+
+		err := perceptor.hubClient.Login()
+		if err != nil {
+			log.Errorf("unable to re-login to hub: %s", err.Error())
 		}
 	}
 }
