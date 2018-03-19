@@ -26,22 +26,12 @@ import (
 	"github.com/prometheus/common/log"
 )
 
-type HubScanResults struct {
-	Scan *m.HubImageScan
+type GetInitialHubCheckImage struct {
+	Continuation func(image *m.Image)
 }
 
-func (h *HubScanResults) Apply(model *m.Model) {
-	scan := h.Scan
-	imageInfo, ok := model.Images[scan.Sha]
-	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
-		return
-	}
-
-	imageInfo.ScanResults = scan.Scan
-
-	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
-	if scan.Scan != nil && scan.Scan.IsDone() {
-		imageInfo.SetScanStatus(m.ScanStatusComplete)
-	}
+func (g *GetInitialHubCheckImage) Apply(model *m.Model) {
+	log.Infof("looking for next image to search for in hub")
+	image := model.GetNextImageFromHubCheckQueue()
+	go g.Continuation(image)
 }

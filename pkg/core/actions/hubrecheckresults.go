@@ -38,7 +38,22 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	if scan.Scan != nil {
-		imageInfo.ScanResults = scan.Scan
+	// case 1: unable to fetch scan results
+	if scan.Err != nil {
+		log.Errorf("unable to fetch updated scan results for sha %s: %s", scan.Sha, scan.Err.Error())
+		return
 	}
+
+	// 2. successfully hit hub, but didn't find project
+	//   not sure why this would happen -- we should ALWAYS find the hub project
+	//   unless something else deleted it
+	if scan.Scan == nil {
+		log.Errorf("unable to fetch updated scan results for sha %s: got nil", scan.Sha)
+		return
+	}
+
+	// 3. successfully found project: update the image results
+	//   TODO: what if the scan is not done?  (and how/why would that happen?)
+	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
+	imageInfo.ScanResults = scan.Scan
 }

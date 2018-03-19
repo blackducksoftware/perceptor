@@ -25,14 +25,16 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type GetInProgressHubScans struct {
-	Continuation func(images []m.Image)
+type GetRunningScanClientScans struct {
+	Continuation func(imageInfos []*m.ImageInfo)
 }
 
-func (g *GetInProgressHubScans) Apply(model *m.Model) {
-	scans := []m.Image{}
-	for _, image := range model.InProgressHubScans() {
-		scans = append(scans, image)
+func (g *GetRunningScanClientScans) Apply(model *m.Model) {
+	imageInfos := []*m.ImageInfo{}
+	for _, imageInfo := range model.InProgressScanClientScans() {
+		// TODO could make a deep copy of imageInfo in case it is being
+		// changed while we're looking at it
+		imageInfos = append(imageInfos, imageInfo)
 	}
-	go g.Continuation(scans)
+	go g.Continuation(imageInfos)
 }

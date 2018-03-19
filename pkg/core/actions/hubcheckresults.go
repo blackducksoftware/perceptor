@@ -32,6 +32,26 @@ type HubCheckResults struct {
 
 func (h *HubCheckResults) Apply(model *m.Model) {
 	scan := h.Scan
+
+	// case 1: error
+	if scan.Err != nil {
+		log.Errorf("error checking hub for completed scan for sha %s: %s", scan.Sha, scan.Err.Error())
+		return
+	}
+
+	// case 2: nil
+	if scan.Scan == nil {
+		log.Infof("found nil checking hub for completed scan for image %s", string(scan.Sha))
+		return
+	}
+
+	// case 3: not done
+	if !scan.Scan.IsDone() {
+		log.Infof("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		return
+	}
+
+	// case 4: found it, and it's done
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
 		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
@@ -39,17 +59,5 @@ func (h *HubCheckResults) Apply(model *m.Model) {
 	}
 
 	imageInfo.ScanResults = scan.Scan
-
-	//	log.Infof("completing image scan of image %s ? %t", image.ShaName(), scan.Scan.IsDone())
-	if scan.Scan == nil {
-		model.AddImageToScanQueue(scan.Sha)
-	} else if scan.Scan.IsDone() {
-		imageInfo.SetScanStatus(m.ScanStatusComplete)
-	} else {
-		// TODO move to RunningHubScan stage?  RunningScanClient stage?  Unknown stage?
-		// it could be in the scan client stage, in the hub stage ...
-		// maybe perceptor crashed and just came back up
-		// since we don't know, we have to put it into the scan queue
-		model.AddImageToScanQueue(scan.Sha)
-	}
+	imageInfo.SetScanStatus(m.ScanStatusComplete)
 }

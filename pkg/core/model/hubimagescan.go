@@ -28,4 +28,5 @@ import (
 type HubImageScan struct {
 	Sha  DockerImageSha
 	Scan *hub.ImageScan
+	Err  error
 }

@@ -23,15 +23,16 @@ package core
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/prometheus/common/log"
 )
 
-type GetNextImageForHubPolling struct {
-	Continuation func(image *m.Image)
+type GetRunningHubScans struct {
+	Continuation func(images []m.Image)
 }
 
-func (g *GetNextImageForHubPolling) Apply(model *m.Model) {
-	log.Infof("looking for next image to search for in hub")
-	image := model.GetNextImageFromHubCheckQueue()
-	go g.Continuation(image)
+func (g *GetRunningHubScans) Apply(model *m.Model) {
+	scans := []m.Image{}
+	for _, image := range model.InProgressHubScans() {
+		scans = append(scans, image)
+	}
+	go g.Continuation(scans)
 }
