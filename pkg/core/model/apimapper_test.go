@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 var sha1 DockerImageSha

@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type GetModel struct {

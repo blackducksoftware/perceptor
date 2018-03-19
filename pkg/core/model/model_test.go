@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestModelJSONSerialization(t *testing.T) {
