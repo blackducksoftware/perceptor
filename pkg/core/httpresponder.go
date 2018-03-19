@@ -22,10 +22,12 @@ under the License.
 package core
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
+	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
 	model "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +41,7 @@ type HTTPResponder struct {
 	AllPodsChannel                chan []model.Pod
 	AllImagesChannel              chan []model.Image
 	PostNextImageChannel          chan func(*model.Image)
-	PostFinishScanJobChannel      chan api.FinishedScanClientJob
+	PostFinishScanJobChannel      chan *a.FinishScanClient
 	SetConcurrentScanLimitChannel chan int
 	GetModelChannel               chan func(json string)
 	GetScanResultsChannel         chan func(scanResults api.ScanResults)
@@ -54,7 +56,7 @@ func NewHTTPResponder() *HTTPResponder {
 		AllPodsChannel:                make(chan []model.Pod),
 		AllImagesChannel:              make(chan []model.Image),
 		PostNextImageChannel:          make(chan func(*model.Image)),
-		PostFinishScanJobChannel:      make(chan api.FinishedScanClientJob),
+		PostFinishScanJobChannel:      make(chan *a.FinishScanClient),
 		SetConcurrentScanLimitChannel: make(chan int),
 		GetModelChannel:               make(chan func(json string)),
 		GetScanResultsChannel:         make(chan func(api.ScanResults))}
@@ -146,6 +148,7 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 		if image != nil {
 			imageString = image.HumanReadableName()
 			imageSpec = api.NewImageSpec(
+				image.Name,
 				image.PullSpec(),
 				string(image.Sha),
 				image.HubProjectName(),
@@ -162,7 +165,14 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 
 func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 	recordPostFinishedScan()
-	hr.PostFinishScanJobChannel <- job
+	var err error
+	if job.Err == "" {
+		err = nil
+	} else {
+		err = fmt.Errorf(job.Err)
+	}
+	image := model.NewImage(job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha))
+	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
 	log.Infof("handled finished scan job -- %v", job)
 }
 

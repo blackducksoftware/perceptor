@@ -27,16 +27,12 @@ import (
 )
 
 type FinishScanClient struct {
-	Sha m.DockerImageSha
-	Err string
+	Image *m.Image
+	Err   error
 }
 
 func (f *FinishScanClient) Apply(model *m.Model) {
 	newModel := model
-	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == "", f.Sha)
-	if f.Err == "" {
-		newModel.FinishRunningScanClient(f.Sha)
-	} else {
-		newModel.ErrorRunningScanClient(f.Sha)
-	}
+	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == nil, f.Image.Sha)
+	newModel.FinishRunningScanClient(f.Image, f.Err)
 }

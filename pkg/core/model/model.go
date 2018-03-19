@@ -181,27 +181,27 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 	return &first
 }
 
-func (model *Model) ErrorRunningScanClient(sha DockerImageSha) {
-	results := model.safeGet(sha)
-	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
-		log.Errorf(message)
-		panic(message)
-	}
-	results.SetScanStatus(ScanStatusError)
-	// TODO get rid of these
-	// for now, just readd the image to the queue upon error
-	model.AddImageToScanQueue(sha)
-}
+func (model *Model) FinishRunningScanClient(image *Image, err error) {
+	results, ok := model.Images[image.Sha]
 
-func (model *Model) FinishRunningScanClient(sha DockerImageSha) {
-	results := model.safeGet(sha)
-	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
-		log.Errorf(message)
-		panic(message) // TODO get rid of panic
+	// if we don't have this sha already, let's add it
+	if !ok {
+		log.Warnf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
+		model.AddImage(*image)
+		results = model.safeGet(image.Sha)
 	}
-	results.SetScanStatus(ScanStatusRunningHubScan)
+
+	if results.ScanStatus != ScanStatusRunningScanClient {
+		log.Warnf("expected to find image %s in state RunningScanClient, is actually in (%s)", string(image.Sha), results.ScanStatus)
+	}
+
+	if err == nil {
+		results.SetScanStatus(ScanStatusRunningHubScan)
+	} else {
+		log.Errorf("error running scan client -- %s", err.Error())
+		results.SetScanStatus(ScanStatusError)
+		model.AddImageToScanQueue(image.Sha)
+	}
 }
 
 // additional methods
