@@ -135,7 +135,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 
 	// 5. start regular tasks -- hitting the hub for results, checking for
 	//    stalled scans, model metrics
-	go perceptor.startCheckingForImagesInHub()
+	go perceptor.startInitialCheckingForImagesInHub()
 	go perceptor.startPollingHubForCompletedScans()
 	go perceptor.startCheckingForStalledScans()
 	go perceptor.startGeneratingModelMetrics()
@@ -145,38 +145,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 	return &perceptor
 }
 
-func (perceptor *Perceptor) startCheckingForStalledScans() {
-	log.Info("starting checking for stalled scans")
-	for {
-		time.Sleep(checkForStalledScansPause)
-		log.Info("checking for stalled scans")
-		perceptor.actions <- &a.GetRunningScanClientScans{func(imageInfos []*model.ImageInfo) {
-			for _, imageInfo := range imageInfos {
-				if imageInfo.TimeInCurrentScanStatus() > stalledScanTimeout {
-					log.Infof("found stalled scan with sha %s", string(imageInfo.ImageSha))
-					perceptor.actions <- &a.RequeueStalledScan{imageInfo.ImageSha}
-				}
-			}
-		}}
-	}
-}
-
-func (perceptor *Perceptor) startPollingHubForCompletedScans() {
-	log.Info("starting to poll hub for completed scans")
-	for {
-		time.Sleep(checkHubForCompletedScansPause)
-		log.Info("checking hub for completed scans")
-		perceptor.actions <- &a.GetRunningHubScans{func(images []model.Image) {
-			for _, image := range images {
-				scan, err := perceptor.hubClient.FetchScanFromImage(image)
-				perceptor.actions <- &a.HubCheckResults{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
-				time.Sleep(checkHubThrottle)
-			}
-		}}
-	}
-}
-
-func (perceptor *Perceptor) startCheckingForImagesInHub() {
+func (perceptor *Perceptor) startInitialCheckingForImagesInHub() {
 	for {
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -195,6 +164,37 @@ func (perceptor *Perceptor) startCheckingForImagesInHub() {
 			// slow down the chatter if we didn't find something
 			time.Sleep(checkHubForCompletedScansPause)
 		}
+	}
+}
+
+func (perceptor *Perceptor) startPollingHubForCompletedScans() {
+	log.Info("starting to poll hub for completed scans")
+	for {
+		time.Sleep(checkHubForCompletedScansPause)
+		log.Info("checking hub for completed scans")
+		perceptor.actions <- &a.GetRunningHubScans{func(images []model.Image) {
+			for _, image := range images {
+				scan, err := perceptor.hubClient.FetchScanFromImage(image)
+				perceptor.actions <- &a.HubCheckResults{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
+				time.Sleep(checkHubThrottle)
+			}
+		}}
+	}
+}
+
+func (perceptor *Perceptor) startCheckingForStalledScans() {
+	log.Info("starting checking for stalled scans")
+	for {
+		time.Sleep(checkForStalledScansPause)
+		log.Info("checking for stalled scans")
+		perceptor.actions <- &a.GetRunningScanClientScans{func(imageInfos []*model.ImageInfo) {
+			for _, imageInfo := range imageInfos {
+				if imageInfo.TimeInCurrentScanStatus() > stalledScanTimeout {
+					log.Infof("found stalled scan with sha %s", string(imageInfo.ImageSha))
+					perceptor.actions <- &a.RequeueStalledScan{imageInfo.ImageSha}
+				}
+			}
+		}}
 	}
 }
 

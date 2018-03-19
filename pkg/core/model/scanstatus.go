@@ -29,7 +29,6 @@ type ScanStatus int
 const (
 	ScanStatusUnknown           ScanStatus = iota
 	ScanStatusInHubCheckQueue   ScanStatus = iota
-	ScanStatusCheckingHub       ScanStatus = iota
 	ScanStatusInQueue           ScanStatus = iota
 	ScanStatusRunningScanClient ScanStatus = iota
 	ScanStatusRunningHubScan    ScanStatus = iota
@@ -43,8 +42,6 @@ func (status ScanStatus) String() string {
 		return "ScanStatusUnknown"
 	case ScanStatusInHubCheckQueue:
 		return "ScanStatusInHubCheckQueue"
-	case ScanStatusCheckingHub:
-		return "ScanStatusCheckingHub"
 	case ScanStatusInQueue:
 		return "ScanStatusInQueue"
 	case ScanStatusRunningScanClient:

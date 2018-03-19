@@ -44,7 +44,6 @@ func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
 		model.ScanStatusInHubCheckQueue,
-		model.ScanStatusCheckingHub,
 		model.ScanStatusInQueue,
 		model.ScanStatusRunningScanClient,
 		model.ScanStatusRunningHubScan,

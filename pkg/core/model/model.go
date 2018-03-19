@@ -100,28 +100,44 @@ func (model *Model) AddImageToHubCheckQueue(sha DockerImageSha) {
 	imageInfo := model.safeGet(sha)
 	switch imageInfo.ScanStatus {
 	case ScanStatusUnknown, ScanStatusError:
-		break
+		imageInfo.SetScanStatus(ScanStatusInHubCheckQueue)
+		model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, imageInfo.Image())
 	default:
 		message := fmt.Sprintf("cannot add image %s to hub check queue, status is neither Unknown nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	imageInfo.SetScanStatus(ScanStatusInHubCheckQueue)
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, imageInfo.Image())
+}
+
+func (model *Model) RemoveImageFromHubCheckQueue(sha DockerImageSha) error {
+	if len(model.ImageHubCheckQueue) == 0 {
+		err := fmt.Errorf("unable to remove sha %s from hub check queue, queue is empty", string(sha))
+		log.Error(err.Error())
+		return err
+	}
+
+	first := model.ImageHubCheckQueue[0]
+	if first.Sha != sha {
+		err := fmt.Errorf("expected sha %s to be at front of hub check queue, found %s", string(sha), string(first.Sha))
+		log.Error(err.Error())
+		return err
+	}
+
+	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
+	return nil
 }
 
 func (model *Model) AddImageToScanQueue(sha DockerImageSha) {
 	imageInfo := model.safeGet(sha)
 	switch imageInfo.ScanStatus {
-	case ScanStatusCheckingHub, ScanStatusError:
-		break
+	case ScanStatusInHubCheckQueue, ScanStatusError:
+		imageInfo.SetScanStatus(ScanStatusInQueue)
+		model.ImageScanQueue = append(model.ImageScanQueue, imageInfo.Image())
 	default:
 		message := fmt.Sprintf("cannot add image %s to scan queue, status is neither CheckingHub nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	imageInfo.SetScanStatus(ScanStatusInQueue)
-	model.ImageScanQueue = append(model.ImageScanQueue, imageInfo.Image())
 }
 
 func (model *Model) GetNextImageFromHubCheckQueue() *Image {
@@ -138,8 +154,6 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 		panic(message) // TODO get rid of this panic
 	}
 
-	imageInfo.SetScanStatus(ScanStatusCheckingHub)
-	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
 	return &first
 }
 
