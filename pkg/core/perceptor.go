@@ -37,7 +37,8 @@ const (
 	checkHubThrottle               = 1 * time.Second
 
 	checkForStalledScansPause = 1 * time.Minute
-	stalledScanTimeout        = 30 * time.Minute
+	stalledScanClientTimeout  = 30 * time.Minute
+	stalledHubScanTimeout     = 1 * time.Hour
 
 	recheckHubForUpdatesPause = 1 * time.Hour
 	recheckHubThrottle        = 5 * time.Second
@@ -139,7 +140,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 	//    stalled scans, model metrics
 	go perceptor.startInitialCheckingForImagesInHub()
 	go perceptor.startPollingHubForCompletedScans()
-	go perceptor.startCheckingForStalledScans()
+	go perceptor.startCheckingForStalledScanClientScans()
 	go perceptor.startGeneratingModelMetrics()
 	go perceptor.startCheckingForUpdatesForCompletedScans()
 	go perceptor.startReloggingInToHub()
@@ -185,19 +186,14 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 	}
 }
 
-func (perceptor *Perceptor) startCheckingForStalledScans() {
+func (perceptor *Perceptor) startCheckingForStalledScanClientScans() {
 	log.Info("starting checking for stalled scans")
 	for {
 		time.Sleep(checkForStalledScansPause)
 		log.Info("checking for stalled scans")
-		perceptor.actions <- &a.GetRunningScanClientScans{func(imageInfos []*model.ImageInfo) {
-			for _, imageInfo := range imageInfos {
-				if imageInfo.TimeInCurrentScanStatus() > stalledScanTimeout {
-					log.Infof("found stalled scan with sha %s", string(imageInfo.ImageSha))
-					perceptor.actions <- &a.RequeueStalledScan{imageInfo.ImageSha}
-				}
-			}
-		}}
+		perceptor.actions <- &a.RequeueStalledScans{
+			StalledHubScanTimeout:    stalledHubScanTimeout,
+			StalledScanClientTimeout: stalledScanClientTimeout}
 	}
 }
 

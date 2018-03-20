@@ -22,19 +22,31 @@ under the License.
 package core
 
 import (
+	"time"
+
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type GetRunningScanClientScans struct {
-	Continuation func(imageInfos []*m.ImageInfo)
+type RequeueStalledScans struct {
+	StalledScanClientTimeout time.Duration
+	StalledHubScanTimeout    time.Duration
 }
 
-func (g *GetRunningScanClientScans) Apply(model *m.Model) {
-	imageInfos := []*m.ImageInfo{}
-	for _, imageInfo := range model.InProgressScanClientScans() {
-		// TODO could make a deep copy of imageInfo in case it is being
-		// changed while we're looking at it
-		imageInfos = append(imageInfos, imageInfo)
+func (r *RequeueStalledScans) Apply(model *m.Model) {
+	for _, imageInfo := range model.Images {
+		switch imageInfo.ScanStatus {
+		case m.ScanStatusRunningScanClient:
+			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
+				imageInfo.SetScanStatus(m.ScanStatusError)
+				model.AddImageToScanQueue(imageInfo.ImageSha)
+			}
+		case m.ScanStatusRunningHubScan:
+			if imageInfo.TimeInCurrentScanStatus() > r.StalledHubScanTimeout {
+				imageInfo.SetScanStatus(m.ScanStatusError)
+				model.AddImageToScanQueue(imageInfo.ImageSha)
+			}
+		default:
+			// nothing to do
+		}
 	}
-	go g.Continuation(imageInfos)
 }

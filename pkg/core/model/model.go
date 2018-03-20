@@ -223,17 +223,6 @@ func (model *Model) InProgressScanCount() int {
 	return len(model.InProgressScans())
 }
 
-func (model *Model) InProgressScanClientScans() []*ImageInfo {
-	inProgressScans := []*ImageInfo{}
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case ScanStatusRunningScanClient:
-			inProgressScans = append(inProgressScans, imageInfo)
-		}
-	}
-	return inProgressScans
-}
-
 func (model *Model) InProgressHubScans() []Image {
 	inProgressHubScans := []Image{}
 	for _, imageInfo := range model.Images {
