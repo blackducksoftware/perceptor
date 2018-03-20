@@ -22,30 +22,31 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
+	"time"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type RequeueStalledScans struct {
+	StalledScanClientTimeout time.Duration
+	StalledHubScanTimeout    time.Duration
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (r *RequeueStalledScans) Apply(model *m.Model) {
+	for _, imageInfo := range model.Images {
+		switch imageInfo.ScanStatus {
+		case m.ScanStatusRunningScanClient:
+			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
+				imageInfo.SetScanStatus(m.ScanStatusError)
+				model.AddImageToScanQueue(imageInfo.ImageSha)
+			}
+		case m.ScanStatusRunningHubScan:
+			if imageInfo.TimeInCurrentScanStatus() > r.StalledHubScanTimeout {
+				imageInfo.SetScanStatus(m.ScanStatusError)
+				model.AddImageToScanQueue(imageInfo.ImageSha)
+			}
+		default:
+			// nothing to do
+		}
+	}
 }

@@ -22,6 +22,6 @@ under the License.
 package api
 
 type FinishedScanClientJob struct {
-	Sha string
-	Err string
+	ImageSpec ImageSpec
+	Err       string
 }

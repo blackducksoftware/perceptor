@@ -22,30 +22,42 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type HubCheckResults struct {
+	Scan *m.HubImageScan
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (h *HubCheckResults) Apply(model *m.Model) {
+	scan := h.Scan
+
+	// case 1: error
+	if scan.Err != nil {
+		log.Errorf("error checking hub for completed scan for sha %s: %s", scan.Sha, scan.Err.Error())
+		return
+	}
+
+	// case 2: nil
+	if scan.Scan == nil {
+		log.Debugf("found nil checking hub for completed scan for image %s", string(scan.Sha))
+		return
+	}
+
+	// case 3: not done
+	if !scan.Scan.IsDone() {
+		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		return
+	}
+
+	// case 4: found it, and it's done
+	imageInfo, ok := model.Images[scan.Sha]
+	if !ok {
+		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		return
+	}
+
+	imageInfo.ScanResults = scan.Scan
+	imageInfo.SetScanStatus(m.ScanStatusComplete)
 }

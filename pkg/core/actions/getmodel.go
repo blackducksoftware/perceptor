@@ -22,30 +22,21 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
+	"encoding/json"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type GetModel struct {
+	Continuation func(json string)
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (g *GetModel) Apply(model *m.Model) {
+	jsonBytes, err := json.Marshal(model)
+	if err != nil {
+		jsonBytes = []byte{}
+		log.Errorf("unable to serialize model: %s", err.Error())
+	}
+	go g.Continuation(string(jsonBytes))
 }

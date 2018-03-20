@@ -22,30 +22,17 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type GetRunningHubScans struct {
+	Continuation func(images []m.Image)
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (g *GetRunningHubScans) Apply(model *m.Model) {
+	scans := []m.Image{}
+	for _, image := range model.InProgressHubScans() {
+		scans = append(scans, image)
+	}
+	go g.Continuation(scans)
 }

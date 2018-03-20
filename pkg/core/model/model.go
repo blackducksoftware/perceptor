@@ -35,11 +35,11 @@ type Model struct {
 	ImageScanQueue      []Image
 	ImageHubCheckQueue  []Image
 	ConcurrentScanLimit int
-	Config              PerceptorConfig
+	Config              *Config
 	HubVersion          string
 }
 
-func NewModel(config PerceptorConfig, hubVersion string) *Model {
+func NewModel(config *Config, hubVersion string) *Model {
 	return &Model{
 		Pods:                make(map[string]Pod),
 		Images:              make(map[DockerImageSha]*ImageInfo),
@@ -78,7 +78,7 @@ func (model *Model) AddImage(image Image) {
 		newInfo := NewImageInfo(image.Sha, image.Name)
 		model.Images[image.Sha] = newInfo
 		log.Debugf("added image %s to model", image.HumanReadableName())
-		model.addImageToHubCheckQueue(image.Sha)
+		model.AddImageToHubCheckQueue(image.Sha)
 	} else {
 		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
 	}
@@ -96,37 +96,53 @@ func (model *Model) safeGet(sha DockerImageSha) *ImageInfo {
 	return results
 }
 
-func (model *Model) addImageToHubCheckQueue(sha DockerImageSha) {
+func (model *Model) AddImageToHubCheckQueue(sha DockerImageSha) {
 	imageInfo := model.safeGet(sha)
 	switch imageInfo.ScanStatus {
 	case ScanStatusUnknown, ScanStatusError:
-		break
+		imageInfo.SetScanStatus(ScanStatusInHubCheckQueue)
+		model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, imageInfo.Image())
 	default:
 		message := fmt.Sprintf("cannot add image %s to hub check queue, status is neither Unknown nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	imageInfo.setScanStatus(ScanStatusInHubCheckQueue)
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, imageInfo.image())
 }
 
-func (model *Model) addImageToScanQueue(sha DockerImageSha) {
+func (model *Model) RemoveImageFromHubCheckQueue(sha DockerImageSha) error {
+	if len(model.ImageHubCheckQueue) == 0 {
+		err := fmt.Errorf("unable to remove sha %s from hub check queue, queue is empty", string(sha))
+		log.Error(err.Error())
+		return err
+	}
+
+	first := model.ImageHubCheckQueue[0]
+	if first.Sha != sha {
+		err := fmt.Errorf("expected sha %s to be at front of hub check queue, found %s", string(sha), string(first.Sha))
+		log.Error(err.Error())
+		return err
+	}
+
+	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
+	return nil
+}
+
+func (model *Model) AddImageToScanQueue(sha DockerImageSha) {
 	imageInfo := model.safeGet(sha)
 	switch imageInfo.ScanStatus {
-	case ScanStatusCheckingHub, ScanStatusError:
-		break
+	case ScanStatusInHubCheckQueue, ScanStatusError:
+		imageInfo.SetScanStatus(ScanStatusInQueue)
+		model.ImageScanQueue = append(model.ImageScanQueue, imageInfo.Image())
 	default:
 		message := fmt.Sprintf("cannot add image %s to scan queue, status is neither CheckingHub nor Error (%s)", sha, imageInfo.ScanStatus)
 		log.Error(message)
 		panic(message) // TODO get rid of panic
 	}
-	imageInfo.setScanStatus(ScanStatusInQueue)
-	model.ImageScanQueue = append(model.ImageScanQueue, imageInfo.image())
 }
 
-func (model *Model) getNextImageFromHubCheckQueue() *Image {
+func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 	if len(model.ImageHubCheckQueue) == 0 {
-		log.Info("hub check queue empty")
+		log.Debug("hub check queue empty")
 		return nil
 	}
 
@@ -138,19 +154,17 @@ func (model *Model) getNextImageFromHubCheckQueue() *Image {
 		panic(message) // TODO get rid of this panic
 	}
 
-	imageInfo.setScanStatus(ScanStatusCheckingHub)
-	model.ImageHubCheckQueue = model.ImageHubCheckQueue[1:]
 	return &first
 }
 
-func (model *Model) getNextImageFromScanQueue() *Image {
-	if model.inProgressScanCount() >= model.ConcurrentScanLimit {
-		log.Infof("max concurrent scan count reached, can't start a new scan -- %v", model.inProgressScans())
+func (model *Model) GetNextImageFromScanQueue() *Image {
+	if model.InProgressScanCount() >= model.ConcurrentScanLimit {
+		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
 		return nil
 	}
 
 	if len(model.ImageScanQueue) == 0 {
-		log.Info("scan queue empty, can't start a new scan")
+		log.Debug("scan queue empty, can't start a new scan")
 		return nil
 	}
 
@@ -162,37 +176,37 @@ func (model *Model) getNextImageFromScanQueue() *Image {
 		panic(message) // TODO get rid of this panic
 	}
 
-	imageInfo.setScanStatus(ScanStatusRunningScanClient)
+	imageInfo.SetScanStatus(ScanStatusRunningScanClient)
 	model.ImageScanQueue = model.ImageScanQueue[1:]
 	return &first
 }
 
-func (model *Model) errorRunningScanClient(sha DockerImageSha) {
-	results := model.safeGet(sha)
-	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot error out scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
-		log.Errorf(message)
-		panic(message)
-	}
-	results.setScanStatus(ScanStatusError)
-	// TODO get rid of these
-	// for now, just readd the image to the queue upon error
-	model.addImageToScanQueue(sha)
-}
+func (model *Model) FinishRunningScanClient(image *Image, err error) {
+	results, ok := model.Images[image.Sha]
 
-func (model *Model) finishRunningScanClient(sha DockerImageSha) {
-	results := model.safeGet(sha)
-	if results.ScanStatus != ScanStatusRunningScanClient {
-		message := fmt.Sprintf("cannot finish running scan client for image %s, scan client not in progress (%s)", string(sha), results.ScanStatus)
-		log.Errorf(message)
-		panic(message) // TODO get rid of panic
+	// if we don't have this sha already, let's add it
+	if !ok {
+		log.Warnf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
+		model.AddImage(*image)
+		results = model.safeGet(image.Sha)
 	}
-	results.setScanStatus(ScanStatusRunningHubScan)
+
+	if results.ScanStatus != ScanStatusRunningScanClient {
+		log.Warnf("expected to find image %s in state RunningScanClient, is actually in (%s)", string(image.Sha), results.ScanStatus)
+	}
+
+	if err == nil {
+		results.SetScanStatus(ScanStatusRunningHubScan)
+	} else {
+		log.Errorf("error running scan client -- %s", err.Error())
+		results.SetScanStatus(ScanStatusError)
+		model.AddImageToScanQueue(image.Sha)
+	}
 }
 
 // additional methods
 
-func (model *Model) inProgressScans() []DockerImageSha {
+func (model *Model) InProgressScans() []DockerImageSha {
 	inProgressShas := []DockerImageSha{}
 	for sha, results := range model.Images {
 		switch results.ScanStatus {
@@ -205,33 +219,22 @@ func (model *Model) inProgressScans() []DockerImageSha {
 	return inProgressShas
 }
 
-func (model *Model) inProgressScanCount() int {
-	return len(model.inProgressScans())
+func (model *Model) InProgressScanCount() int {
+	return len(model.InProgressScans())
 }
 
-func (model *Model) inProgressScanClientScans() []*ImageInfo {
-	inProgressScans := []*ImageInfo{}
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case ScanStatusRunningScanClient:
-			inProgressScans = append(inProgressScans, imageInfo)
-		}
-	}
-	return inProgressScans
-}
-
-func (model *Model) inProgressHubScans() []Image {
+func (model *Model) InProgressHubScans() []Image {
 	inProgressHubScans := []Image{}
 	for _, imageInfo := range model.Images {
 		switch imageInfo.ScanStatus {
 		case ScanStatusRunningHubScan:
-			inProgressHubScans = append(inProgressHubScans, imageInfo.image())
+			inProgressHubScans = append(inProgressHubScans, imageInfo.Image())
 		}
 	}
 	return inProgressHubScans
 }
 
-func (model *Model) metrics() *ModelMetrics {
+func (model *Model) Metrics() *ModelMetrics {
 	// number of images in each status
 	statusCounts := make(map[ScanStatus]int)
 	for _, imageResults := range model.Images {

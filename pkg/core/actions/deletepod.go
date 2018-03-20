@@ -22,30 +22,19 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+type DeletePod struct {
+	PodName string
+}
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func (d *DeletePod) Apply(model *m.Model) {
+	_, ok := model.Pods[d.PodName]
+	if !ok {
+		log.Warnf("unable to delete pod %s, pod not found", d.PodName)
+		return
+	}
+	delete(model.Pods, d.PodName)
 }

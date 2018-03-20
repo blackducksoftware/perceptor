@@ -22,10 +22,13 @@ under the License.
 package core
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/hub"
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type HubImageScan struct {
-	Sha  DockerImageSha
-	Scan *hub.ImageScan
+type AddPod struct {
+	Pod m.Pod
+}
+
+func (a *AddPod) Apply(model *m.Model) {
+	model.AddPod(a.Pod)
 }

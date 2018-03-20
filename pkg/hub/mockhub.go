@@ -74,3 +74,7 @@ func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error)
 func (hub *MockHub) HubVersion() string {
 	return hub.hubVersion
 }
+
+func (hub *MockHub) Login() error {
+	return nil
+}
