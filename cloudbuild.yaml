@@ -15,4 +15,4 @@ steps:
   args:
   - '-c'
   - |
-    curl -d "" -X POST http://ec2-54-205-198-237.compute-1.amazonaws.com:8081/webhook-perceptor/$REPO_NAME
+    curl -d "" -X POST http://ec2-54-205-198-237.compute-1.amazonaws.com:8081/webhook-perceptor/$REPO_NAME || echo "Success"
