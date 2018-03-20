@@ -49,6 +49,14 @@ func RunPerceptor() {
 		panic(err)
 	}
 
+	level, err := config.GetLogLevel()
+	if err != nil {
+		log.Errorf(err.Error())
+		panic(err)
+	}
+
+	log.SetLevel(level)
+
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 

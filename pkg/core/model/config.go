@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -36,6 +37,11 @@ type Config struct {
 	ConcurrentScanLimit int
 	UseMockMode         bool
 	Port                int
+	LogLevel            string
+}
+
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
 }
 
 // GetConfig returns a configuration object to configure Perceptor
