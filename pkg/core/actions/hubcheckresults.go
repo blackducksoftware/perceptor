@@ -41,13 +41,13 @@ func (h *HubCheckResults) Apply(model *m.Model) {
 
 	// case 2: nil
 	if scan.Scan == nil {
-		log.Infof("found nil checking hub for completed scan for image %s", string(scan.Sha))
+		log.Debugf("found nil checking hub for completed scan for image %s", string(scan.Sha))
 		return
 	}
 
 	// case 3: not done
 	if !scan.Scan.IsDone() {
-		log.Infof("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
 		return
 	}
 

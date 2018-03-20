@@ -142,7 +142,7 @@ func (model *Model) AddImageToScanQueue(sha DockerImageSha) {
 
 func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 	if len(model.ImageHubCheckQueue) == 0 {
-		log.Info("hub check queue empty")
+		log.Debug("hub check queue empty")
 		return nil
 	}
 
@@ -159,12 +159,12 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 
 func (model *Model) GetNextImageFromScanQueue() *Image {
 	if model.InProgressScanCount() >= model.ConcurrentScanLimit {
-		log.Infof("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
+		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
 		return nil
 	}
 
 	if len(model.ImageScanQueue) == 0 {
-		log.Info("scan queue empty, can't start a new scan")
+		log.Debug("scan queue empty, can't start a new scan")
 		return nil
 	}
 

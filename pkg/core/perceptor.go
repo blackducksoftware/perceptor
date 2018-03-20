@@ -226,7 +226,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 
 		for _, image := range completedImages {
 			time.Sleep(recheckHubThrottle)
-			log.Infof("rechecking hub for image %s", image.PullSpec())
+			log.Debugf("rechecking hub for image %s", image.PullSpec())
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
 			perceptor.actions <- &a.HubRecheckResults{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 		}
@@ -241,5 +241,6 @@ func (perceptor *Perceptor) startReloggingInToHub() {
 		if err != nil {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
 		}
+		log.Infof("successfully re-logged in to hub")
 	}
 }

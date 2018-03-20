@@ -21,6 +21,8 @@ under the License.
 
 package hub
 
+import log "github.com/sirupsen/logrus"
+
 type Version struct {
 	CodeLocations   []CodeLocation
 	RiskProfile     RiskProfile
@@ -54,7 +56,7 @@ func (version *Version) IsImageScanDone() bool {
 		}
 	}
 
-	// log.Infof("found a project version that's done: %v", version)
+	log.Debugf("found a project version that's done: %v", version)
 
 	// then it's done
 	return true

@@ -31,7 +31,7 @@ type GetInitialHubCheckImage struct {
 }
 
 func (g *GetInitialHubCheckImage) Apply(model *m.Model) {
-	log.Infof("looking for next image to search for in hub")
+	log.Debugf("looking for next image to search for in hub")
 	image := model.GetNextImageFromHubCheckQueue()
 	go g.Continuation(image)
 }
