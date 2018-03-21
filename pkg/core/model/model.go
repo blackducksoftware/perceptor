@@ -86,7 +86,8 @@ func (model *Model) AddImage(image Image) {
 
 // image state transitions
 
-func (model *Model) safeGet(sha DockerImageSha) *ImageInfo {
+// Be sure that `sha` is in `model.Images` before calling this method
+func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 	results, ok := model.Images[sha]
 	if !ok {
 		message := fmt.Sprintf("expected to already have image %s, but did not", string(sha))
@@ -97,7 +98,7 @@ func (model *Model) safeGet(sha DockerImageSha) *ImageInfo {
 }
 
 func (model *Model) AddImageToHubCheckQueue(sha DockerImageSha) {
-	imageInfo := model.safeGet(sha)
+	imageInfo := model.unsafeGet(sha)
 	switch imageInfo.ScanStatus {
 	case ScanStatusUnknown, ScanStatusError:
 		imageInfo.SetScanStatus(ScanStatusInHubCheckQueue)
@@ -128,7 +129,7 @@ func (model *Model) RemoveImageFromHubCheckQueue(sha DockerImageSha) error {
 }
 
 func (model *Model) AddImageToScanQueue(sha DockerImageSha) {
-	imageInfo := model.safeGet(sha)
+	imageInfo := model.unsafeGet(sha)
 	switch imageInfo.ScanStatus {
 	case ScanStatusInHubCheckQueue, ScanStatusError:
 		imageInfo.SetScanStatus(ScanStatusInQueue)
@@ -147,7 +148,7 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 	}
 
 	first := model.ImageHubCheckQueue[0]
-	imageInfo := model.safeGet(first.Sha)
+	imageInfo := model.unsafeGet(first.Sha)
 	if imageInfo.ScanStatus != ScanStatusInHubCheckQueue {
 		message := fmt.Sprintf("can't start checking hub for image %s, status is not ScanStatusInHubCheckQueue (%s)", string(first.Sha), imageInfo.ScanStatus)
 		log.Errorf(message)
@@ -169,7 +170,7 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 	}
 
 	first := model.ImageScanQueue[0]
-	imageInfo := model.safeGet(first.Sha)
+	imageInfo := model.unsafeGet(first.Sha)
 	if imageInfo.ScanStatus != ScanStatusInQueue {
 		message := fmt.Sprintf("can't start scanning image %s, status is not InQueue (%s)", string(first.Sha), imageInfo.ScanStatus)
 		log.Errorf(message)
@@ -188,7 +189,7 @@ func (model *Model) FinishRunningScanClient(image *Image, err error) {
 	if !ok {
 		log.Warnf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
 		model.AddImage(*image)
-		results = model.safeGet(image.Sha)
+		results = model.unsafeGet(image.Sha)
 	}
 
 	if results.ScanStatus != ScanStatusRunningScanClient {
