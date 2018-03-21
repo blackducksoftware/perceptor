@@ -33,5 +33,6 @@ type GetNextImage struct {
 func (g *GetNextImage) Apply(model *m.Model) {
 	log.Debugf("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.InProgressScanCount())
 	image := model.GetNextImageFromScanQueue()
+	model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
 	go g.Continuation(image)
 }
