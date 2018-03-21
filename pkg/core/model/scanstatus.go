@@ -64,3 +64,38 @@ func (s ScanStatus) MarshalJSON() ([]byte, error) {
 func (s ScanStatus) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
+
+func IsExpectedTransition(from ScanStatus, to ScanStatus) bool {
+	switch from {
+	case ScanStatusUnknown:
+		switch to {
+		case ScanStatusInHubCheckQueue, ScanStatusRunningHubScan:
+			return true
+		}
+	case ScanStatusInHubCheckQueue:
+		switch to {
+		case ScanStatusInQueue, ScanStatusRunningHubScan, ScanStatusComplete:
+			return true
+		}
+	case ScanStatusInQueue:
+		switch to {
+		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
+			return true
+		}
+	case ScanStatusRunningScanClient:
+		switch to {
+		case ScanStatusInQueue, ScanStatusRunningHubScan:
+			return true
+		}
+	case ScanStatusRunningHubScan:
+		switch to {
+		case ScanStatusInQueue, ScanStatusComplete:
+			return true
+		}
+		// case ScanStatusComplete:
+		// we never expect to transition FROM complete
+		// case ScanStatusError:
+		// TODO not sure what to do with the error state, yet.  maybe delete it?
+	}
+	return false
+}

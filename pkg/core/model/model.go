@@ -74,21 +74,14 @@ func (model *Model) AddPod(newPod Pod) {
 func (model *Model) AddImage(image Image) {
 	added := model.createImage(image)
 	if added {
-		model.SetImageScanStatus(image.Sha, ScanStatusInHubCheckQueue)
+		model.setImageScanStatus(image.Sha, ScanStatusInHubCheckQueue)
 	}
 }
 
 // image state transitions
 
-func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		err := fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
-		log.Errorf(err.Error())
-		return err
-	}
-
-	switch imageInfo.ScanStatus {
+func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) {
+	switch state {
 	case ScanStatusUnknown:
 		break
 	case ScanStatusInHubCheckQueue:
@@ -104,13 +97,10 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 	case ScanStatusError:
 		break
 	}
+}
 
-	// generate warnings for unexpected transitions
-	// switch imageInfo.ScanStatus {
-	// 	// uhhh looks like we'll have to do another switch/case for each case
-	// }
-
-	switch newScanStatus {
+func (model *Model) enterState(sha DockerImageSha, state ScanStatus) {
+	switch state {
 	case ScanStatusUnknown:
 		break
 	case ScanStatusInHubCheckQueue:
@@ -126,7 +116,26 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 	case ScanStatusError:
 		break
 	}
+}
 
+func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		err := fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
+		log.Errorf(err.Error())
+		return err
+	}
+
+	isExpected := IsExpectedTransition(imageInfo.ScanStatus, newScanStatus)
+	if !isExpected {
+		log.Warnf("unexpected image state transition from %s to %s", imageInfo.ScanStatus, newScanStatus)
+	} else {
+		log.Infof("image state transition from %s to %s", imageInfo.ScanStatus, newScanStatus)
+	}
+	recordStateTransition(imageInfo.ScanStatus, newScanStatus, isExpected)
+
+	model.leaveState(sha, imageInfo.ScanStatus)
+	model.enterState(sha, newScanStatus)
 	imageInfo.SetScanStatus(newScanStatus)
 
 	return nil
@@ -152,7 +161,7 @@ func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 	if !ok {
 		message := fmt.Sprintf("expected to already have image %s, but did not", string(sha))
 		log.Error(message)
-		panic(message) // TODO get rid of panic
+		panic(message)
 	}
 	return results
 }
@@ -228,6 +237,8 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 	first := model.ImageScanQueue[0]
 	image := model.unsafeGet(first).Image()
 
+	model.setImageScanStatus(first, ScanStatusRunningScanClient)
+
 	return &image
 }
 
@@ -241,10 +252,10 @@ func (model *Model) FinishRunningScanClient(image *Image, err error) {
 	}
 
 	if err == nil {
-		model.SetImageScanStatus(image.Sha, ScanStatusRunningHubScan)
+		model.setImageScanStatus(image.Sha, ScanStatusRunningHubScan)
 	} else {
 		log.Errorf("error running scan client -- %s", err.Error())
-		model.SetImageScanStatus(image.Sha, ScanStatusInQueue)
+		model.setImageScanStatus(image.Sha, ScanStatusInQueue)
 	}
 }
 

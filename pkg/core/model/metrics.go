@@ -22,16 +22,28 @@ under the License.
 package core
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"fmt"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-type GetNextImage struct {
-	Continuation func(image *m.Image)
+var stateTransitionCounter *prometheus.CounterVec
+
+func recordStateTransition(from ScanStatus, to ScanStatus, isExpected bool) {
+	stateTransitionCounter.With(prometheus.Labels{
+		"from":     from.String(),
+		"to":       to.String(),
+		"expected": fmt.Sprintf("%t", isExpected)}).Inc()
 }
 
-func (g *GetNextImage) Apply(model *m.Model) {
-	log.Debugf("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.InProgressScanCount())
-	image := model.GetNextImageFromScanQueue()
-	go g.Continuation(image)
+func init() {
+	stateTransitionCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Subsystem:   "core",
+		Name:        "model_image_state_transitions",
+		Help:        "state transitions for images in the perceptor model",
+		ConstLabels: map[string]string{},
+	}, []string{"from", "to", "expected"})
+
+	prometheus.MustRegister(stateTransitionCounter)
 }

@@ -22,16 +22,15 @@ under the License.
 package core
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"testing"
+
 	log "github.com/sirupsen/logrus"
 )
 
-type GetNextImage struct {
-	Continuation func(image *m.Image)
-}
+func TestMetrics(t *testing.T) {
+	recordStateTransition(ScanStatusUnknown, ScanStatusError, false)
 
-func (g *GetNextImage) Apply(model *m.Model) {
-	log.Debugf("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.InProgressScanCount())
-	image := model.GetNextImageFromScanQueue()
-	go g.Continuation(image)
+	message := "finished test case"
+	t.Log(message)
+	log.Info(message)
 }
