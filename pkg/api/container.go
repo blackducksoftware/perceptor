@@ -21,8 +21,14 @@ under the License.
 
 package api
 
+// swagger:model
 type Container struct {
+    // The image to which the container refers
+    // required: true
 	Image Image
+	
+	// The name of the container
+	// required: true
 	Name  string
 }
 

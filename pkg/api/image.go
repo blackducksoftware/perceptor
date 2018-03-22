@@ -21,9 +21,18 @@ under the License.
 
 package api
 
+// swagger:model
 type Image struct {
+    // The name of the image
+    // required: true
 	Name        string
+	
+	// The SHA of the image
+	// required: true
 	Sha         string
+	
+	// The Docker Image reference of the image
+	// required: true
 	DockerImage string
 }
 

@@ -21,10 +21,24 @@ under the License.
 
 package api
 
+// Pod object
+//
+// swagger:model
 type Pod struct {
+    // The name of the pod
+	// required: true
 	Name       string
+
+	// The unique id of the pod
+	// required: true
 	UID        string
+
+    // The namespace of the pod
+	// required: true
 	Namespace  string
+
+    // The containers that are part of the pod
+	// required: true
 	Containers []Container
 }
 
