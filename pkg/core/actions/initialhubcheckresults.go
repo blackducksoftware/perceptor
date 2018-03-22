@@ -70,7 +70,14 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	// case 4: found hub project, and it's in progress or failed
+	// case 4: found hub project, and it failed
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		log.Infof("check image in hub -- found failed image scan for sha %s: %+v", scan.Sha, *scan)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		return
+	}
+
+	// case 5: found hub project, and it's in progress
 	//   this likely means that a scan was started, perceptor went down, and now
 	//   perceptor is recovering on initial startup.
 	//   The scan could actually either be in the RunningScanClient or RunningHubScan
