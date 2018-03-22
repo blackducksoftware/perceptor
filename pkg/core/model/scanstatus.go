@@ -62,35 +62,36 @@ func (s ScanStatus) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
+var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
+	ScanStatusUnknown: {
+		ScanStatusInHubCheckQueue: true,
+		ScanStatusRunningHubScan:  true,
+	},
+	ScanStatusInHubCheckQueue: {
+		ScanStatusInQueue:        true,
+		ScanStatusRunningHubScan: true,
+		ScanStatusComplete:       true,
+	},
+	ScanStatusInQueue: {
+		ScanStatusRunningScanClient: true,
+		ScanStatusRunningHubScan:    true,
+	},
+	ScanStatusRunningScanClient: {
+		ScanStatusInQueue:        true,
+		ScanStatusRunningHubScan: true,
+	},
+	ScanStatusRunningHubScan: {
+		ScanStatusInQueue:  true,
+		ScanStatusComplete: true,
+	},
+	// we never expect to transition FROM complete
+	ScanStatusComplete: {},
+}
+
 func IsLegalTransition(from ScanStatus, to ScanStatus) bool {
-	switch from {
-	case ScanStatusUnknown:
-		switch to {
-		case ScanStatusInHubCheckQueue, ScanStatusRunningHubScan:
-			return true
-		}
-	case ScanStatusInHubCheckQueue:
-		switch to {
-		case ScanStatusInQueue, ScanStatusRunningHubScan, ScanStatusComplete:
-			return true
-		}
-	case ScanStatusInQueue:
-		switch to {
-		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			return true
-		}
-	case ScanStatusRunningScanClient:
-		switch to {
-		case ScanStatusInQueue, ScanStatusRunningHubScan:
-			return true
-		}
-	case ScanStatusRunningHubScan:
-		switch to {
-		case ScanStatusInQueue, ScanStatusComplete:
-			return true
-		}
-		// case ScanStatusComplete:
-		// we never expect to transition FROM complete
+	stateMap, ok := legalTransitions[from]
+	if !ok {
+		panic(fmt.Errorf("expected to find state transition map for %s but did not", from))
 	}
-	return false
+	return stateMap[to]
 }
