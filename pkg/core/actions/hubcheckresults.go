@@ -23,6 +23,7 @@ package core
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,13 +46,19 @@ func (h *HubCheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	// case 3: not done
-	if !scan.Scan.IsDone() {
+	// case 3: found it, and it's not done
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
 		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
 		return
 	}
 
-	// case 4: found it, and it's done
+	// case 4: found it, and it failed.  Put it back in the scan queue
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		return
+	}
+
+	// case 5: found it, and it's done
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
 		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
@@ -59,5 +66,5 @@ func (h *HubCheckResults) Apply(model *m.Model) {
 	}
 
 	imageInfo.ScanResults = scan.Scan
-	imageInfo.SetScanStatus(m.ScanStatusComplete)
+	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 }

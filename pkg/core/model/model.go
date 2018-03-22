@@ -202,7 +202,7 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 
 	model.leaveState(sha, imageInfo.ScanStatus)
 	model.enterState(sha, newScanStatus)
-	imageInfo.SetScanStatus(newScanStatus)
+	imageInfo.setScanStatus(newScanStatus)
 
 	return nil
 }

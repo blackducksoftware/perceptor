@@ -23,6 +23,7 @@ package core
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -62,14 +63,14 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	}
 
 	// case 3: found hub project, and it's complete
-	if scan.Scan.IsDone() {
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
 		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
 		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 		imageInfo.ScanResults = scan.Scan
 		return
 	}
 
-	// case 4: found hub project, and it's in progress
+	// case 4: found hub project, and it's in progress or failed
 	//   this likely means that a scan was started, perceptor went down, and now
 	//   perceptor is recovering on initial startup.
 	//   The scan could actually either be in the RunningScanClient or RunningHubScan

@@ -21,11 +21,35 @@ under the License.
 
 package hub
 
-func isScanSummaryStatusDone(scanSummaryStatus string) bool {
-	switch scanSummaryStatus {
-	case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED", "COMPLETE":
-		return true
+import "fmt"
+
+type ScanSummaryStatus int
+
+const (
+	ScanSummaryStatusInProgress ScanSummaryStatus = iota
+	ScanSummaryStatusSuccess    ScanSummaryStatus = iota
+	ScanSummaryStatusFailure    ScanSummaryStatus = iota
+)
+
+func (status ScanSummaryStatus) String() string {
+	switch status {
+	case ScanSummaryStatusInProgress:
+		return "ScanSummaryStatusInProgress"
+	case ScanSummaryStatusSuccess:
+		return "ScanSummaryStatusSuccess"
+	case ScanSummaryStatusFailure:
+		return "ScanSummaryStatusFailure"
+	}
+	panic(fmt.Errorf("invalid ScanSummaryStatus value: %d", status))
+}
+
+func parseScanSummaryStatus(statusString string) ScanSummaryStatus {
+	switch statusString {
+	case "COMPLETE":
+		return ScanSummaryStatusSuccess
+	case "ERROR", "ERROR_BUILDING_BOM", "ERROR_MATCHING", "ERROR_SAVING_SCAN_DATA", "ERROR_SCANNING", "CANCELLED":
+		return ScanSummaryStatusFailure
 	default:
-		return false
+		return ScanSummaryStatusInProgress
 	}
 }

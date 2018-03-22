@@ -42,11 +42,11 @@ func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 		ImageSha:    sha,
 		ImageNames:  []string{imageName},
 	}
-	imageInfo.SetScanStatus(ScanStatusUnknown)
+	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
 }
 
-func (imageInfo *ImageInfo) SetScanStatus(newStatus ScanStatus) {
+func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 	imageInfo.ScanStatus = newStatus
 	imageInfo.TimeOfLastStatusChange = time.Now()
 }

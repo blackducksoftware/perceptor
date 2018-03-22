@@ -23,6 +23,7 @@ package core
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,9 +53,9 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	// 3. scan is not done -- not sure why this would happen
-	if !scan.Scan.IsDone() {
-		log.Errorf("found in-progress scan %s, expected completed scan", scan.Sha)
+	// 3. scan is not done or is failure -- not sure why this would happen
+	if scan.Scan.ScanSummaryStatus() != hub.ScanSummaryStatusSuccess {
+		log.Errorf("found scan for sha %s in status %s, expected completed scan", scan.Sha, scan.Scan.ScanSummaryStatus())
 		return
 	}
 
