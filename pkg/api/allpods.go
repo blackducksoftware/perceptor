@@ -23,8 +23,8 @@ package api
 
 // swagger:model
 type AllPods struct {
-    // Collection of pods
-    // required: true
+	// Collection of pods
+	// required: true
 	Pods []Pod
 }
 

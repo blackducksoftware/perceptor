@@ -66,24 +66,24 @@ func SetupHTTPServer(responder Responder) {
 	// for receiving data from perceiver
 	http.HandleFunc("/pod", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
-    	// swagger:operation POST /pod perceiver addPod
-    	//
-    	// Add a new pod
-    	//
-    	// ---
-    	// parameters:
-    	// - name: body
-    	//   in: body
-    	//   description: New pod object
-    	//   required: true
-    	//   schema:
-    	//     "$ref": "#/definitions/Pod"
-    	//
-    	// responses:
-    	//   '200': 
-    	//     description: success
-    	//   '400': 
-    	//     description: request problem
+		// swagger:operation POST /pod perceiver addPod
+		//
+		// Add a new pod
+		//
+		// ---
+		// parameters:
+		// - name: body
+		//   in: body
+		//   description: New pod object
+		//   required: true
+		//   schema:
+		//     "$ref": "#/definitions/Pod"
+		//
+		// responses:
+		//   '200':
+		//     description: success
+		//   '400':
+		//     description: request problem
 		case "POST":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -100,25 +100,25 @@ func SetupHTTPServer(responder Responder) {
 			}
 			responder.AddPod(pod)
 			fmt.Fprint(w, "")
-			
-    	// swagger:operation PUT /pod perceiver updatePod
-    	// 
-    	// Update an existing pod or add if neccessary
-    	//
-    	// ---
-    	// parameters:
-    	// - name: body
-    	//   in: body
-    	//   description: Pod object
-    	//   required: true
-    	//   schema:
-    	//     "$ref": "#/definitions/Pod"
-    	//
-    	// responses:
-    	//   '200': 
-    	//     description: success
-    	//   '400': 
-    	//     description: request problem
+
+			// swagger:operation PUT /pod perceiver updatePod
+			//
+			// Update an existing pod or add if neccessary
+			//
+			// ---
+			// parameters:
+			// - name: body
+			//   in: body
+			//   description: Pod object
+			//   required: true
+			//   schema:
+			//     "$ref": "#/definitions/Pod"
+			//
+			// responses:
+			//   '200':
+			//     description: success
+			//   '400':
+			//     description: request problem
 		case "PUT":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -133,7 +133,7 @@ func SetupHTTPServer(responder Responder) {
 			}
 			responder.UpdatePod(pod)
 			fmt.Fprint(w, "")
-			
+
 		// swagger:operation DELETE /pod/{podName} perceiver deletePod
 		//
 		// Delete a pod
@@ -147,8 +147,8 @@ func SetupHTTPServer(responder Responder) {
 		//   type: string
 		//
 		// responses:
-        //   '200': 
-        //     description: success
+		//   '200':
+		//     description: success
 		case "DELETE":
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -162,24 +162,24 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 	http.HandleFunc("/allpods", func(w http.ResponseWriter, r *http.Request) {
-        // swagger:operation PUT /allPods perceiver allPods
-        //
-        // Updates all pods
-        //
-        // ---
-        // parameters:
-        // - name: body
-        //   in: body
-        //   description: AllPods object
-        //   required: true
-        //   schema:
-        //     "$ref": "#/definitions/AllPods"
-        //
-        // responses:
-        //   '200': 
-        //     description: success
-        //   '400': 
-        //     description: request problem
+		// swagger:operation PUT /allPods perceiver allPods
+		//
+		// Updates all pods
+		//
+		// ---
+		// parameters:
+		// - name: body
+		//   in: body
+		//   description: AllPods object
+		//   required: true
+		//   schema:
+		//     "$ref": "#/definitions/AllPods"
+		//
+		// responses:
+		//   '200':
+		//     description: success
+		//   '400':
+		//     description: request problem
 		if r.Method == "PUT" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -198,24 +198,24 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 	http.HandleFunc("/allimages", func(w http.ResponseWriter, r *http.Request) {
-        // swagger:operation PUT /allImages perceiver allImages
-        //
-        // Update all images
-        //
-        // ---
-        // parameters:
-        // - name: body
-        //   in: body
-        //   description: AllImages object
-        //   required: true
-        //   schema:
-        //     "$ref": "#/definitions/AllImages"
-        //
-        // responses:
-        //   '200': 
-        //     description: success
-        //   '400':
-        //     description: request problem
+		// swagger:operation PUT /allImages perceiver allImages
+		//
+		// Update all images
+		//
+		// ---
+		// parameters:
+		// - name: body
+		//   in: body
+		//   description: AllImages object
+		//   required: true
+		//   schema:
+		//     "$ref": "#/definitions/AllImages"
+		//
+		// responses:
+		//   '200':
+		//     description: success
+		//   '400':
+		//     description: request problem
 		if r.Method == "PUT" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -234,24 +234,24 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 	http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
-        // swagger:operation POST /image perceiver addImage
-        //
-        // Add a new image
-        //
-        // ---
-        // parameters:
-        // - name: body
-        //   in: body
-        //   description: New image object
-        //   required: true
-        //   schema:
-        //     "$ref": "#/definitions/Image"
-        //
-        // responses:
-        //   '200': 
-        //     description: success
-        //   '400': 
-        //     description: request problem
+		// swagger:operation POST /image perceiver addImage
+		//
+		// Add a new image
+		//
+		// ---
+		// parameters:
+		// - name: body
+		//   in: body
+		//   description: New image object
+		//   required: true
+		//   schema:
+		//     "$ref": "#/definitions/Image"
+		//
+		// responses:
+		//   '200':
+		//     description: success
+		//   '400':
+		//     description: request problem
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -272,14 +272,14 @@ func SetupHTTPServer(responder Responder) {
 
 	// for providing data to perceiver
 	http.HandleFunc("/scanresults", func(w http.ResponseWriter, r *http.Request) {
-        // swagger:operation GET /scanresults perceiver getScanResults
-        //
-        // Get scan results for all pods and images
-        //
-        // ---
-        // responses:
-        //   '200': 
-        //     description: success
+		// swagger:operation GET /scanresults perceiver getScanResults
+		//
+		// Get scan results for all pods and images
+		//
+		// ---
+		// responses:
+		//   '200':
+		//     description: success
 		if r.Method == "GET" {
 			scanResults := responder.GetScanResults()
 			jsonBytes, err := json.Marshal(scanResults)
@@ -311,8 +311,8 @@ func SetupHTTPServer(responder Responder) {
 	http.HandleFunc("/finishedscan", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
-				responder.Error(w, r, err, 400)
 			if err != nil {
+				responder.Error(w, r, err, 400)
 				return
 			}
 			var scanResults FinishedScanClientJob

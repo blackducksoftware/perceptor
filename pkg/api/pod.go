@@ -25,19 +25,19 @@ package api
 //
 // swagger:model
 type Pod struct {
-    // The name of the pod
+	// The name of the pod
 	// required: true
-	Name       string
+	Name string
 
 	// The unique id of the pod
 	// required: true
-	UID        string
+	UID string
 
-    // The namespace of the pod
+	// The namespace of the pod
 	// required: true
-	Namespace  string
+	Namespace string
 
-    // The containers that are part of the pod
+	// The containers that are part of the pod
 	// required: true
 	Containers []Container
 }

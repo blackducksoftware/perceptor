@@ -23,13 +23,13 @@ package api
 
 // swagger:model
 type Container struct {
-    // The image to which the container refers
-    // required: true
+	// The image to which the container refers
+	// required: true
 	Image Image
-	
+
 	// The name of the container
 	// required: true
-	Name  string
+	Name string
 }
 
 func NewContainer(image Image, name string) *Container {

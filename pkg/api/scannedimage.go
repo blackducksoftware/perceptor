@@ -23,27 +23,27 @@ package api
 
 // swagger:model
 type ScannedImage struct {
-    // The name of the image
-    // required: true
-	Name             string
-	
+	// The name of the image
+	// required: true
+	Name string
+
 	// The SHA of the image
 	// required: true
-	Sha              string
-	
+	Sha string
+
 	// The number of policy violations found in the image
 	// required: true
 	PolicyViolations int
-	
+
 	// The number of vulnerabilities found in the image
 	// required: true
-	Vulnerabilities  int
-	
+	Vulnerabilities int
+
 	// The overall status of the image
 	// required: true
-	OverallStatus    string
-	
+	OverallStatus string
+
 	// The components URL of the image
 	// required: true
-	ComponentsURL    string
+	ComponentsURL string
 }

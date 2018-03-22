@@ -23,21 +23,21 @@ package api
 
 // swagger:model
 type ScanResults struct {
-    // The scan client version used in the scan
-    // required: true
+	// The scan client version used in the scan
+	// required: true
 	HubScanClientVersion string
-	
+
 	// The version of the Hub used for analysis
 	// required: true
-	HubVersion           string
-	
+	HubVersion string
+
 	// Collection of pods scanned
 	// required: true
-	Pods                 []ScannedPod
-	
+	Pods []ScannedPod
+
 	// Collection of images scanned
 	// required: true
-	Images               []ScannedImage
+	Images []ScannedImage
 }
 
 func NewScanResults(hubScanClientVersion string, hubVersion string, pods []ScannedPod, images []ScannedImage) *ScanResults {
