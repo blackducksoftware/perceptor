@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	"time"
@@ -37,13 +37,11 @@ func (r *RequeueStalledScans) Apply(model *m.Model) {
 		switch imageInfo.ScanStatus {
 		case m.ScanStatusRunningScanClient:
 			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
-				imageInfo.SetScanStatus(m.ScanStatusError)
-				model.AddImageToScanQueue(imageInfo.ImageSha)
+				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
 			}
 		case m.ScanStatusRunningHubScan:
 			if imageInfo.TimeInCurrentScanStatus() > r.StalledHubScanTimeout {
-				imageInfo.SetScanStatus(m.ScanStatusError)
-				model.AddImageToScanQueue(imageInfo.ImageSha)
+				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
 			}
 		default:
 			// nothing to do

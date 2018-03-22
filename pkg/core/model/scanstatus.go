@@ -33,7 +33,6 @@ const (
 	ScanStatusRunningScanClient ScanStatus = iota
 	ScanStatusRunningHubScan    ScanStatus = iota
 	ScanStatusComplete          ScanStatus = iota
-	ScanStatusError             ScanStatus = iota
 )
 
 func (status ScanStatus) String() string {
@@ -50,8 +49,6 @@ func (status ScanStatus) String() string {
 		return "ScanStatusRunningHubScan"
 	case ScanStatusComplete:
 		return "ScanStatusComplete"
-	case ScanStatusError:
-		return "ScanStatusError"
 	}
 	panic(fmt.Errorf("invalid ScanStatus value: %d", status))
 }
@@ -63,4 +60,38 @@ func (s ScanStatus) MarshalJSON() ([]byte, error) {
 
 func (s ScanStatus) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
+}
+
+var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
+	ScanStatusUnknown: {
+		ScanStatusInHubCheckQueue: true,
+		ScanStatusRunningHubScan:  true,
+	},
+	ScanStatusInHubCheckQueue: {
+		ScanStatusInQueue:        true,
+		ScanStatusRunningHubScan: true,
+		ScanStatusComplete:       true,
+	},
+	ScanStatusInQueue: {
+		ScanStatusRunningScanClient: true,
+		ScanStatusRunningHubScan:    true,
+	},
+	ScanStatusRunningScanClient: {
+		ScanStatusInQueue:        true,
+		ScanStatusRunningHubScan: true,
+	},
+	ScanStatusRunningHubScan: {
+		ScanStatusInQueue:  true,
+		ScanStatusComplete: true,
+	},
+	// we never expect to transition FROM complete
+	ScanStatusComplete: {},
+}
+
+func IsLegalTransition(from ScanStatus, to ScanStatus) bool {
+	stateMap, ok := legalTransitions[from]
+	if !ok {
+		panic(fmt.Errorf("expected to find state transition map for %s but did not", from))
+	}
+	return stateMap[to]
 }

@@ -19,10 +19,11 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,12 +35,16 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	scan := h.Scan
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have sha %s, but did not", string(scan.Sha))
 		return
 	}
 
-	// case 1: error trying to access the hub project
-	//   Put the image back in the hub check queue.
+	if imageInfo.ScanStatus != m.ScanStatusInHubCheckQueue {
+		log.Warnf("ignoring hub check results for sha %s, invalid status (expected InHubCheckQueue, found %s)", string(scan.Sha), imageInfo.ScanStatus)
+		return
+	}
+
+	// case 1: error trying to access the hub project.  Don't change the status.
 	if scan.Err != nil {
 		log.Errorf("check image in hub -- unable to fetch image scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
@@ -53,21 +58,26 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	//       For now, we'll just ignore this case.
 	if scan.Scan == nil {
 		log.Infof("check image in hub -- unable to find image scan for sha %s, found nil", scan.Sha)
-		model.RemoveImageFromHubCheckQueue(scan.Sha)
-		model.AddImageToScanQueue(scan.Sha)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
 		return
 	}
 
 	// case 3: found hub project, and it's complete
-	if scan.Scan.IsDone() {
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
 		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
-		model.RemoveImageFromHubCheckQueue(scan.Sha)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 		imageInfo.ScanResults = scan.Scan
-		imageInfo.SetScanStatus(m.ScanStatusComplete)
 		return
 	}
 
-	// case 4: found hub project, and it's in progress
+	// case 4: found hub project, and it failed
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		log.Infof("check image in hub -- found failed image scan for sha %s: %+v", scan.Sha, *scan)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		return
+	}
+
+	// case 5: found hub project, and it's in progress
 	//   this likely means that a scan was started, perceptor went down, and now
 	//   perceptor is recovering on initial startup.
 	//   The scan could actually either be in the RunningScanClient or RunningHubScan
@@ -76,7 +86,5 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	//   there's a problem, it'll automatically get rescheduled by the regular
 	//   job that cleans up stalled scans.
 	log.Infof("check image in hub -- found running scan for sha %s: %+v", scan.Sha, *scan)
-	// imageInfo.ScanResults = scan.Scan // TODO we don't want to do this, do we?
-	model.RemoveImageFromHubCheckQueue(scan.Sha)
-	imageInfo.SetScanStatus(m.ScanStatusRunningHubScan)
+	model.SetImageScanStatus(scan.Sha, m.ScanStatusRunningHubScan)
 }

@@ -228,7 +228,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	scanSummaries := []hubapi.ScanSummary{}
 	for _, scanSummary := range scanSummariesList.Items {
-		if isScanSummaryStatusDone(scanSummary.Status) {
+		if parseScanSummaryStatus(scanSummary.Status) == ScanSummaryStatusSuccess {
 			scanSummaries = append(scanSummaries, scanSummary)
 		}
 	}
@@ -262,7 +262,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		ComponentsHref: componentsLink.Href,
 		ScanSummary: ScanSummary{
 			CreatedAt: scanSummary.CreatedAt,
-			Status:    scanSummary.Status,
+			Status:    parseScanSummaryStatus(scanSummary.Status),
 			UpdatedAt: scanSummary.UpdatedAt,
 		},
 		CodeLocationCreatedAt: codeLocation.CreatedAt,

@@ -19,10 +19,11 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +35,7 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 	scan := h.Scan
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
 		return
 	}
 
@@ -52,8 +53,13 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	// 3. successfully found project: update the image results
-	//   TODO: what if the scan is not done?  (and how/why would that happen?)
+	// 3. scan is not done or is failure -- not sure why this would happen
+	if scan.Scan.ScanSummaryStatus() != hub.ScanSummaryStatusSuccess {
+		log.Errorf("found scan for sha %s in status %s, expected completed scan", scan.Sha, scan.Scan.ScanSummaryStatus())
+		return
+	}
+
+	// 4. successfully found project: update the image results
 	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
 	imageInfo.ScanResults = scan.Scan
 }

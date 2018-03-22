@@ -21,8 +21,6 @@ under the License.
 
 package hub
 
-import log "github.com/sirupsen/logrus"
-
 type Version struct {
 	CodeLocations   []CodeLocation
 	RiskProfile     RiskProfile
@@ -33,31 +31,4 @@ type Version struct {
 	ReleasedOn      string
 	ReleaseComments string
 	Phase           string
-}
-
-func (version *Version) IsImageScanDone() bool {
-	// if there's at least 1 code location
-	if len(version.CodeLocations) == 0 {
-		return false
-	}
-
-	// and for each code location:
-	for _, codeLocation := range version.CodeLocations {
-		// there's at least 1 scan summary
-		if len(codeLocation.ScanSummaries) == 0 {
-			return false
-		}
-
-		for _, scanSummary := range codeLocation.ScanSummaries {
-			// and for each scan summary:
-			if !isScanSummaryStatusDone(scanSummary.Status) {
-				return false
-			}
-		}
-	}
-
-	log.Debugf("found a project version that's done: %v", version)
-
-	// then it's done
-	return true
 }

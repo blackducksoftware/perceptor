@@ -19,15 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package core
 
 import (
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func TestVersionIsDone(t *testing.T) {
-	version := Version{CodeLocations: []CodeLocation{}}
-	if version.IsImageScanDone() {
-		t.Errorf("expected scan to not be done")
-	}
+func TestMetrics(t *testing.T) {
+	recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
+
+	message := "finished test case"
+	t.Log(message)
+	log.Info(message)
 }

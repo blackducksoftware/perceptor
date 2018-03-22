@@ -23,6 +23,6 @@ package hub
 
 type ScanSummary struct {
 	CreatedAt string
-	Status    string
+	Status    ScanSummaryStatus
 	UpdatedAt string
 }

@@ -38,8 +38,8 @@ type ImageScan struct {
 
 // IsDone returns whether the hub imagescan results indicate that the scan is
 // complete.
-func (scan *ImageScan) IsDone() bool {
-	return isScanSummaryStatusDone(scan.ScanSummary.Status)
+func (scan *ImageScan) ScanSummaryStatus() ScanSummaryStatus {
+	return scan.ScanSummary.Status
 }
 
 func (scan *ImageScan) VulnerabilityCount() int {

@@ -19,19 +19,31 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package core
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"fmt"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-type AllPods struct {
-	Pods []m.Pod
+var stateTransitionCounter *prometheus.CounterVec
+
+func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
+	stateTransitionCounter.With(prometheus.Labels{
+		"from":  from.String(),
+		"to":    to.String(),
+		"legal": fmt.Sprintf("%t", isLegal)}).Inc()
 }
 
-func (a *AllPods) Apply(model *m.Model) {
-	model.Pods = map[string]m.Pod{}
-	for _, pod := range a.Pods {
-		model.AddPod(pod)
-	}
+func init() {
+	stateTransitionCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Subsystem:   "core",
+		Name:        "model_image_state_transitions",
+		Help:        "state transitions for images in the perceptor model",
+		ConstLabels: map[string]string{},
+	}, []string{"from", "to", "legal"})
+
+	prometheus.MustRegister(stateTransitionCounter)
 }

@@ -21,17 +21,13 @@ under the License.
 
 package actions
 
-import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-)
+import "testing"
 
-type AllPods struct {
-	Pods []m.Pod
-}
-
-func (a *AllPods) Apply(model *m.Model) {
-	model.Pods = map[string]m.Pod{}
-	for _, pod := range a.Pods {
-		model.AddPod(pod)
+// AllImages doesn't remove pre-existing images
+func TestAllImages(t *testing.T) {
+	actual := createNewModel1()
+	(&AllImages{}).Apply(actual)
+	if len(actual.Images) != 2 {
+		t.Errorf("expected 2 images, found %d", len(actual.Images))
 	}
 }

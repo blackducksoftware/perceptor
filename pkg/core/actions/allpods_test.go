@@ -21,17 +21,13 @@ under the License.
 
 package actions
 
-import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-)
+import "testing"
 
-type AllPods struct {
-	Pods []m.Pod
-}
-
-func (a *AllPods) Apply(model *m.Model) {
-	model.Pods = map[string]m.Pod{}
-	for _, pod := range a.Pods {
-		model.AddPod(pod)
+// AllPods does remove pre-existing pods
+func TestAllPods(t *testing.T) {
+	actual := createNewModel1()
+	(&AllPods{}).Apply(actual)
+	if len(actual.Pods) != 0 {
+		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
 	}
 }

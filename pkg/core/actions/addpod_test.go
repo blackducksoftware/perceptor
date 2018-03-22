@@ -22,16 +22,26 @@ under the License.
 package actions
 
 import (
+	"testing"
+
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type AllPods struct {
-	Pods []m.Pod
-}
-
-func (a *AllPods) Apply(model *m.Model) {
-	model.Pods = map[string]m.Pod{}
-	for _, pod := range a.Pods {
-		model.AddPod(pod)
-	}
+func TestAddPodAction(t *testing.T) {
+	// actual
+	actual := m.NewModel(&m.Config{}, "test version")
+	(&AddPod{testPod}).Apply(actual)
+	// expected (a bit hacky to get the times set up):
+	//  - pod gets added to .Pods
+	//  - all images within pod get added to .Images
+	//  - all new images get added to hub check queue
+	expected := *m.NewModel(&m.Config{}, "test version")
+	expected.Pods[testPod.QualifiedName()] = testPod
+	imageInfo := m.NewImageInfo(testSha, "image1")
+	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
+	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
+	expected.Images[testSha] = imageInfo
+	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
+	//
+	assertEqual(t, actual, expected)
 }
