@@ -143,7 +143,7 @@ func TestAddPodAction(t *testing.T) {
 	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 	expected.Images[testSha] = imageInfo
-	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.Image())
+	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
 	//
 	assertEqual(t, actual, expected)
 }
@@ -160,7 +160,7 @@ func TestAddImageAction(t *testing.T) {
 	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 	expected.Images[testSha] = imageInfo
-	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.Image())
+	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
 	//
 	assertEqual(t, actual, expected)
 }

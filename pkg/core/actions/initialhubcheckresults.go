@@ -34,12 +34,16 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	scan := h.Scan
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have sha %s, but did not", string(scan.Sha))
 		return
 	}
 
-	// case 1: error trying to access the hub project
-	//   Put the image back in the hub check queue.
+	if imageInfo.ScanStatus != m.ScanStatusInHubCheckQueue {
+		log.Warnf("ignoring hub check results for sha %s, invalid status (expected InHubCheckQueue, found %s)", string(scan.Sha), imageInfo.ScanStatus)
+		return
+	}
+
+	// case 1: error trying to access the hub project.  Don't change the status.
 	if scan.Err != nil {
 		log.Errorf("check image in hub -- unable to fetch image scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
@@ -53,17 +57,15 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	//       For now, we'll just ignore this case.
 	if scan.Scan == nil {
 		log.Infof("check image in hub -- unable to find image scan for sha %s, found nil", scan.Sha)
-		model.RemoveImageFromHubCheckQueue(scan.Sha)
-		model.AddImageToScanQueue(scan.Sha)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
 		return
 	}
 
 	// case 3: found hub project, and it's complete
 	if scan.Scan.IsDone() {
 		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
-		model.RemoveImageFromHubCheckQueue(scan.Sha)
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 		imageInfo.ScanResults = scan.Scan
-		imageInfo.SetScanStatus(m.ScanStatusComplete)
 		return
 	}
 
@@ -76,7 +78,5 @@ func (h *InitialHubCheckResults) Apply(model *m.Model) {
 	//   there's a problem, it'll automatically get rescheduled by the regular
 	//   job that cleans up stalled scans.
 	log.Infof("check image in hub -- found running scan for sha %s: %+v", scan.Sha, *scan)
-	// imageInfo.ScanResults = scan.Scan // TODO we don't want to do this, do we?
-	model.RemoveImageFromHubCheckQueue(scan.Sha)
-	imageInfo.SetScanStatus(m.ScanStatusRunningHubScan)
+	model.SetImageScanStatus(scan.Sha, m.ScanStatusRunningHubScan)
 }

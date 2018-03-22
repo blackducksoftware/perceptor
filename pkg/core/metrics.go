@@ -47,8 +47,7 @@ func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 		model.ScanStatusInQueue,
 		model.ScanStatusRunningScanClient,
 		model.ScanStatusRunningHubScan,
-		model.ScanStatusComplete,
-		model.ScanStatusError}
+		model.ScanStatusComplete}
 	for _, key := range keys {
 		val := modelMetrics.ScanStatusCounts[key]
 		status := fmt.Sprintf("image_status_%s", key.String())

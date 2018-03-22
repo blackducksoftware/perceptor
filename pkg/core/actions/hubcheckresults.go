@@ -54,7 +54,7 @@ func (h *HubCheckResults) Apply(model *m.Model) {
 	// case 4: found it, and it's done
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
 		return
 	}
 

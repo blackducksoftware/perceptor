@@ -33,7 +33,6 @@ const (
 	ScanStatusRunningScanClient ScanStatus = iota
 	ScanStatusRunningHubScan    ScanStatus = iota
 	ScanStatusComplete          ScanStatus = iota
-	ScanStatusError             ScanStatus = iota
 )
 
 func (status ScanStatus) String() string {
@@ -50,8 +49,6 @@ func (status ScanStatus) String() string {
 		return "ScanStatusRunningHubScan"
 	case ScanStatusComplete:
 		return "ScanStatusComplete"
-	case ScanStatusError:
-		return "ScanStatusError"
 	}
 	panic(fmt.Errorf("invalid ScanStatus value: %d", status))
 }
@@ -94,8 +91,6 @@ func IsExpectedTransition(from ScanStatus, to ScanStatus) bool {
 		}
 		// case ScanStatusComplete:
 		// we never expect to transition FROM complete
-		// case ScanStatusError:
-		// TODO not sure what to do with the error state, yet.  maybe delete it?
 	}
 	return false
 }

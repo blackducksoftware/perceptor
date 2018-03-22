@@ -34,7 +34,7 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 	scan := h.Scan
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
-		log.Warnf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
 		return
 	}
 
@@ -52,8 +52,13 @@ func (h *HubRecheckResults) Apply(model *m.Model) {
 		return
 	}
 
-	// 3. successfully found project: update the image results
-	//   TODO: what if the scan is not done?  (and how/why would that happen?)
+	// 3. scan is not done -- not sure why this would happen
+	if !scan.Scan.IsDone() {
+		log.Errorf("found in-progress scan %s, expected completed scan", scan.Sha)
+		return
+	}
+
+	// 4. successfully found project: update the image results
 	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
 	imageInfo.ScanResults = scan.Scan
 }
