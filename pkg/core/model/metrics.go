@@ -29,11 +29,11 @@ import (
 
 var stateTransitionCounter *prometheus.CounterVec
 
-func recordStateTransition(from ScanStatus, to ScanStatus, isExpected bool) {
+func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
 	stateTransitionCounter.With(prometheus.Labels{
-		"from":     from.String(),
-		"to":       to.String(),
-		"expected": fmt.Sprintf("%t", isExpected)}).Inc()
+		"from":  from.String(),
+		"to":    to.String(),
+		"legal": fmt.Sprintf("%t", isLegal)}).Inc()
 }
 
 func init() {
@@ -43,7 +43,7 @@ func init() {
 		Name:        "model_image_state_transitions",
 		Help:        "state transitions for images in the perceptor model",
 		ConstLabels: map[string]string{},
-	}, []string{"from", "to", "expected"})
+	}, []string{"from", "to", "legal"})
 
 	prometheus.MustRegister(stateTransitionCounter)
 }

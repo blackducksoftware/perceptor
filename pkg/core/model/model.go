@@ -59,7 +59,7 @@ func (model *Model) DeletePod(podName string) {
 // If the pod is already present in the model, it will be removed
 // and a new one created in its place.
 // The key is the combination of the pod's namespace and name.
-// It extract the containers and images from the pod,
+// It extracts the containers and images from the pod,
 // adding them into the cache.
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
@@ -114,8 +114,26 @@ func (model *Model) enterState(sha DockerImageSha, state ScanStatus) {
 	}
 }
 
-// createImage AddImage adds it image to the model, but does not add it to the
-// scan queue
+func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus ScanStatus) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
+	}
+
+	isLegal := IsLegalTransition(imageInfo.ScanStatus, newScanStatus)
+	recordStateTransition(imageInfo.ScanStatus, newScanStatus, isLegal)
+	if !isLegal {
+		return fmt.Errorf("illegal image state transition from %s to %s for sha %s", imageInfo.ScanStatus, newScanStatus, sha)
+	}
+
+	model.leaveState(sha, imageInfo.ScanStatus)
+	model.enterState(sha, newScanStatus)
+	imageInfo.setScanStatus(newScanStatus)
+
+	return nil
+}
+
+// createImage adds the image to the model, but not to the scan queue
 func (model *Model) createImage(image Image) bool {
 	_, hasImage := model.Images[image.Sha]
 	if !hasImage {
@@ -184,27 +202,11 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) {
 
 // "Public" methods
 
-func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		err := fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
-		log.Errorf(err.Error())
-		return err
+func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) {
+	err := model.setImageScanStatusForSha(sha, newScanStatus)
+	if err != nil {
+		log.Errorf("unable to transition image state for sha %s to %s", sha, newScanStatus)
 	}
-
-	isExpected := IsExpectedTransition(imageInfo.ScanStatus, newScanStatus)
-	if !isExpected {
-		log.Warnf("unexpected image state transition from %s to %s", imageInfo.ScanStatus, newScanStatus)
-	} else {
-		log.Infof("image state transition from %s to %s", imageInfo.ScanStatus, newScanStatus)
-	}
-	recordStateTransition(imageInfo.ScanStatus, newScanStatus, isExpected)
-
-	model.leaveState(sha, imageInfo.ScanStatus)
-	model.enterState(sha, newScanStatus)
-	imageInfo.setScanStatus(newScanStatus)
-
-	return nil
 }
 
 func (model *Model) GetNextImageFromHubCheckQueue() *Image {
@@ -253,10 +255,7 @@ func (model *Model) FinishRunningScanClient(image *Image, scanClientError error)
 		log.Errorf("error running scan client -- %s", scanClientError.Error())
 	}
 
-	err := model.SetImageScanStatus(image.Sha, scanStatus)
-	if err != nil {
-		log.Errorf("unable to change image scan status for sha %s: %s", image.Sha, err.Error())
-	}
+	model.SetImageScanStatus(image.Sha, scanStatus)
 }
 
 // additional methods

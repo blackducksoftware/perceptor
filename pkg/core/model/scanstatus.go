@@ -62,7 +62,7 @@ func (s ScanStatus) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
-func IsExpectedTransition(from ScanStatus, to ScanStatus) bool {
+func IsLegalTransition(from ScanStatus, to ScanStatus) bool {
 	switch from {
 	case ScanStatusUnknown:
 		switch to {
