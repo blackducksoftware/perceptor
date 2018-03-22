@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	"encoding/json"
@@ -172,28 +172,4 @@ func TestAllPods(t *testing.T) {
 	if len(actual.Pods) != 0 {
 		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
 	}
-}
-
-// AllImages doesn't remove pre-existing images
-func TestAllImages(t *testing.T) {
-	actual := createNewModel1()
-	(&AllImages{}).Apply(actual)
-	if len(actual.Images) != 2 {
-		t.Errorf("expected 2 images, found %d", len(actual.Images))
-	}
-}
-
-func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
-	// actual
-	var nextImage *m.Image
-	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
-	(&GetNextImage{func(image *m.Image) {
-		nextImage = image
-	}}).Apply(actual)
-	// expected: front image removed from scan queue, status and time of image changed
-	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
-
-	assertEqual(t, nextImage, nil)
-	log.Infof("%+v, %+v", actual, expected)
-	// assertEqual(t, actual, expected)
 }

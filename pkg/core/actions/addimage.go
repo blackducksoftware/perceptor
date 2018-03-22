@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
