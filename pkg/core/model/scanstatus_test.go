@@ -64,7 +64,7 @@ var cases = []transitionCase{
 	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusInHubCheckQueue, isLegal: false},
 	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusInQueue, isLegal: true},
 	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusRunningScanClient, isLegal: false},
-	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusRunningHubScan, isLegal: true},
+	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusRunningHubScan, isLegal: false},
 	transitionCase{from: ScanStatusRunningHubScan, to: ScanStatusComplete, isLegal: true},
 
 	transitionCase{from: ScanStatusComplete, to: ScanStatusUnknown, isLegal: false},
