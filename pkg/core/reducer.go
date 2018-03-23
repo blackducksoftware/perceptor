@@ -22,7 +22,6 @@ under the License.
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -43,12 +42,7 @@ func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 			select {
 			case nextAction := <-actions:
 				if log.GetLevel() == log.DebugLevel {
-					jsonBytes, err := json.Marshal(nextAction)
-					if err != nil {
-						log.Errorf("unable to produce json for action %s: %s", reflect.TypeOf(nextAction), err.Error())
-					} else {
-						log.Debugf("processing reducer action of type %s: %s", reflect.TypeOf(nextAction), string(jsonBytes))
-					}
+					log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
 				}
 
 				// metrics: how many messages are waiting?
