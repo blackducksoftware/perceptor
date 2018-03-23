@@ -198,7 +198,7 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) {
 		panic(fmt.Errorf("unable to remove sha %s from hub check queue, not found", string(sha)))
 	}
 
-	model.ImageHubCheckQueue = append(model.ImageScanQueue[:index], model.ImageScanQueue[index+1:]...)
+	model.ImageScanQueue = append(model.ImageScanQueue[:index], model.ImageScanQueue[index+1:]...)
 }
 
 // "Public" methods
