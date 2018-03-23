@@ -26,7 +26,6 @@ package api
 // curl -X GET http://perceptor.bds-perceptor:3001/metrics
 // curl -X GET http://perceptor:3001/metrics
 const (
-	PerceptorBaseURL = "http://perceptor"
 	// perceptor-scanner paths
 	NextImagePath    = "nextimage"
 	FinishedScanPath = "finishedscan"

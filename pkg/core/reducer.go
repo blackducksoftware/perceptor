@@ -28,6 +28,7 @@ import (
 
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
 type reducer struct{}
@@ -40,6 +41,10 @@ func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 		for {
 			select {
 			case nextAction := <-actions:
+				if log.GetLevel() == log.DebugLevel {
+					log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
+				}
+
 				// metrics: how many messages are waiting?
 				recordNumberOfMessagesInQueue(len(actions))
 
