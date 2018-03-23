@@ -120,6 +120,7 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 		return fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
 	}
 
+	log.Debugf("attempting to transition sha %s from %s to %s", sha, imageInfo.ScanStatus, newScanStatus)
 	isLegal := IsLegalTransition(imageInfo.ScanStatus, newScanStatus)
 	recordStateTransition(imageInfo.ScanStatus, newScanStatus, isLegal)
 	if !isLegal {
@@ -205,7 +206,12 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) {
 func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) {
 	err := model.setImageScanStatusForSha(sha, newScanStatus)
 	if err != nil {
-		log.Errorf("unable to transition image state for sha %s to %s", sha, newScanStatus)
+		imageInfo, ok := model.Images[sha]
+		statusString := "sha not found"
+		if ok {
+			statusString = imageInfo.ScanStatus.String()
+		}
+		log.Errorf("unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
 	}
 }
 
