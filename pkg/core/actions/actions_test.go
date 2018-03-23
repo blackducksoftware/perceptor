@@ -81,21 +81,21 @@ func assertEqual(t *testing.T, actual interface{}, expected interface{}) {
 	if actual == expected {
 		return
 	}
-	bs1, err := json.Marshal(actual)
+	actualBytes, err := json.Marshal(actual)
 	if err != nil {
 		t.Errorf("json serialization error: %s", err.Error())
 		return
 	}
-	bs2, err := json.Marshal(expected)
+	expectedBytes, err := json.Marshal(expected)
 	if err != nil {
 		t.Errorf("json serialization error: %s", err.Error())
 		return
 	}
-	if string(bs1) == string(bs2) {
+	if string(actualBytes) == string(expectedBytes) {
 		return
 	}
 	// t.Errorf("expected \n%+v, got \n%+v", expected, actual)
-	t.Errorf("expected \n%s, got \n%s", string(bs1), string(bs2))
+	t.Errorf("expected \n%s, got \n%s", string(expectedBytes), string(actualBytes))
 }
 
 func TestActionsImplementInterface(t *testing.T) {
