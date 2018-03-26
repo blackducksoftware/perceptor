@@ -53,8 +53,6 @@ var imageVulnerabilitiesGauge *prometheus.GaugeVec
 var statusHistogram *prometheus.GaugeVec
 
 func recordModelMetrics(modelMetrics *model.ModelMetrics) {
-	// log.Info("generating status metrics")
-
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
 		model.ScanStatusInHubCheckQueue,
