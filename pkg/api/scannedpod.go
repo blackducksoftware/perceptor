@@ -21,25 +21,10 @@ under the License.
 
 package api
 
-// swagger:model
 type ScannedPod struct {
-	// The namespace of the pod
-	// required: true
-	Namespace string
-
-	// The name of the pod
-	// required: true
-	Name string
-
-	// The number of the policy violations found in the pod
-	// required: true
+	Namespace        string
+	Name             string
 	PolicyViolations int
-
-	// The number of vulnerabilities found in the pod
-	// required: true
-	Vulnerabilities int
-
-	// The overall status of the pod
-	// required: true
-	OverallStatus string
+	Vulnerabilities  int
+	OverallStatus    string
 }

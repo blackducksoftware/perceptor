@@ -21,10 +21,7 @@ under the License.
 
 package api
 
-// swagger:model
 type AllImages struct {
-	// Collection of images
-	// required: true
 	Images []Image
 }
 

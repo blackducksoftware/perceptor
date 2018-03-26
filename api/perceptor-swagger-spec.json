@@ -1,0 +1,417 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Perceptor core REST API",
+    "title": "Perceptor API.",
+    "termsOfService": "https://www.blackducksoftware.com/",
+    "contact": {
+      "name": "Black Duck Software",
+      "email": "blackduck@blackducksoftware.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.0.0"
+  },
+  "host": "perceptor",
+  "basePath": "/perceptor",
+  "paths": {
+    "/allImages": {
+      "put": {
+        "description": "Update all images",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "allImages",
+        "parameters": [
+          {
+            "description": "AllImages object",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AllImages"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "description": "request problem"
+          }
+        }
+      }
+    },
+    "/allPods": {
+      "put": {
+        "description": "Updates all pods",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "allPods",
+        "parameters": [
+          {
+            "description": "AllPods object",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AllPods"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "description": "request problem"
+          }
+        }
+      }
+    },
+    "/image": {
+      "post": {
+        "description": "Add a new image",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "addImage",
+        "parameters": [
+          {
+            "description": "New image object",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Image"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "description": "request problem"
+          }
+        }
+      }
+    },
+    "/pod": {
+      "put": {
+        "description": "Update an existing pod or add if neccessary",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "updatePod",
+        "parameters": [
+          {
+            "description": "Pod object",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Pod"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "description": "request problem"
+          }
+        }
+      },
+      "post": {
+        "description": "Add a new pod",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "addPod",
+        "parameters": [
+          {
+            "description": "New pod object",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Pod"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "400": {
+            "description": "request problem"
+          }
+        }
+      }
+    },
+    "/pod/{podName}": {
+      "delete": {
+        "description": "Delete a pod",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "deletePod",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Qualified name of the pod, in the format namespace/name",
+            "name": "podName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success"
+          }
+        }
+      }
+    },
+    "/scanresults": {
+      "get": {
+        "description": "Get scan results for all pods and images",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "getScanResults",
+        "responses": {
+          "200": {
+            "description": "success"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "AllImages": {
+      "type": "object",
+      "required": [
+        "Images"
+      ],
+      "properties": {
+        "Images": {
+          "description": "Collection of images",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Image"
+          }
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "AllPods": {
+      "type": "object",
+      "required": [
+        "Pods"
+      ],
+      "properties": {
+        "Pods": {
+          "description": "Collection of pods",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Pod"
+          }
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "Container": {
+      "type": "object",
+      "required": [
+        "Image",
+        "Name"
+      ],
+      "properties": {
+        "Image": {
+          "$ref": "#/definitions/Image"
+        },
+        "Name": {
+          "description": "The name of the container",
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "Image": {
+      "type": "object",
+      "required": [
+        "Name",
+        "Sha",
+        "DockerImage"
+      ],
+      "properties": {
+        "DockerImage": {
+          "description": "The Docker Image reference of the image",
+          "type": "string"
+        },
+        "Name": {
+          "description": "The name of the image",
+          "type": "string"
+        },
+        "Sha": {
+          "description": "The SHA of the image",
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "Pod": {
+      "description": "Pod object",
+      "type": "object",
+      "required": [
+        "Name",
+        "UID",
+        "Namespace",
+        "Containers"
+      ],
+      "properties": {
+        "Containers": {
+          "description": "The containers that are part of the pod",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          }
+        },
+        "Name": {
+          "description": "The name of the pod",
+          "type": "string"
+        },
+        "Namespace": {
+          "description": "The namespace of the pod",
+          "type": "string"
+        },
+        "UID": {
+          "description": "The unique id of the pod",
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "ScanResults": {
+      "type": "object",
+      "required": [
+        "HubScanClientVersion",
+        "HubVersion",
+        "Pods",
+        "Images"
+      ],
+      "properties": {
+        "HubScanClientVersion": {
+          "description": "The scan client version used in the scan",
+          "type": "string"
+        },
+        "HubVersion": {
+          "description": "The version of the Hub used for analysis",
+          "type": "string"
+        },
+        "Images": {
+          "description": "Collection of images scanned",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScannedImage"
+          }
+        },
+        "Pods": {
+          "description": "Collection of pods scanned",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScannedPod"
+          }
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "ScannedImage": {
+      "type": "object",
+      "required": [
+        "Name",
+        "Sha",
+        "PolicyViolations",
+        "Vulnerabilities",
+        "OverallStatus",
+        "ComponentsURL"
+      ],
+      "properties": {
+        "ComponentsURL": {
+          "description": "The components URL of the image",
+          "type": "string"
+        },
+        "Name": {
+          "description": "The name of the image",
+          "type": "string"
+        },
+        "OverallStatus": {
+          "description": "The overall status of the image",
+          "type": "string"
+        },
+        "PolicyViolations": {
+          "description": "The number of policy violations found in the image",
+          "type": "integer",
+          "format": "int64"
+        },
+        "Sha": {
+          "description": "The SHA of the image",
+          "type": "string"
+        },
+        "Vulnerabilities": {
+          "description": "The number of vulnerabilities found in the image",
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "ScannedPod": {
+      "type": "object",
+      "required": [
+        "Namespace",
+        "Name",
+        "PolicyViolations",
+        "Vulnerabilities",
+        "OverallStatus"
+      ],
+      "properties": {
+        "Name": {
+          "description": "The name of the pod",
+          "type": "string"
+        },
+        "Namespace": {
+          "description": "The namespace of the pod",
+          "type": "string"
+        },
+        "OverallStatus": {
+          "description": "The overall status of the pod",
+          "type": "string"
+        },
+        "PolicyViolations": {
+          "description": "The number of the policy violations found in the pod",
+          "type": "integer",
+          "format": "int64"
+        },
+        "Vulnerabilities": {
+          "description": "The number of vulnerabilities found in the pod",
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    }
+  }
+}

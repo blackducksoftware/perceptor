@@ -21,10 +21,7 @@ under the License.
 
 package api
 
-// swagger:model
 type AllPods struct {
-	// Collection of pods
-	// required: true
 	Pods []Pod
 }
 
