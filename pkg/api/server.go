@@ -55,7 +55,7 @@ func SetupHTTPServer(responder Responder) {
 			var pod Pod
 			err = json.Unmarshal(body, &pod)
 			if err != nil {
-				log.Infof("unable to ummarshal JSON for pod POST: %s", err.Error())
+				log.Errorf("unable to ummarshal JSON for pod POST: %s", err.Error())
 				responder.Error(w, r, err, 400)
 				return
 			}

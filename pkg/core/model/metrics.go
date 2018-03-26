@@ -23,29 +23,27 @@ package core
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
 
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+var stateTransitionCounter *prometheus.CounterVec
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
+	stateTransitionCounter.With(prometheus.Labels{
+		"from":  from.String(),
+		"to":    to.String(),
+		"legal": fmt.Sprintf("%t", isLegal)}).Inc()
+}
+
+func init() {
+	stateTransitionCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "perceptor",
+		Subsystem:   "core",
+		Name:        "model_image_state_transitions",
+		Help:        "state transitions for images in the perceptor model",
+		ConstLabels: map[string]string{},
+	}, []string{"from", "to", "legal"})
+
+	prometheus.MustRegister(stateTransitionCounter)
 }

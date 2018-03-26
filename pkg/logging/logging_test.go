@@ -24,7 +24,7 @@ package logging
 import (
 	"testing"
 
-	log "github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestLogging(t *testing.T) {

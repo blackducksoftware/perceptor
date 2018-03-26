@@ -22,17 +22,15 @@ under the License.
 package core
 
 import (
-	"encoding/json"
 	"testing"
 
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
-func TestModelJSONSerialization(t *testing.T) {
-	m := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
-	jsonBytes, err := json.Marshal(m)
-	if err != nil {
-		t.Errorf("unabled to serialize model to json: %s", err.Error())
-	}
-	log.Infof("json bytes: %s", string(jsonBytes))
+func TestMetrics(t *testing.T) {
+	recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
+
+	message := "finished test case"
+	t.Log(message)
+	log.Info(message)
 }

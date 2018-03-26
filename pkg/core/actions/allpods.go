@@ -19,15 +19,19 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package actions
 
 import (
-	"testing"
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-func TestVersionIsDone(t *testing.T) {
-	version := Version{CodeLocations: []CodeLocation{}}
-	if version.IsImageScanDone() {
-		t.Errorf("expected scan to not be done")
+type AllPods struct {
+	Pods []m.Pod
+}
+
+func (a *AllPods) Apply(model *m.Model) {
+	model.Pods = map[string]m.Pod{}
+	for _, pod := range a.Pods {
+		model.AddPod(pod)
 	}
 }

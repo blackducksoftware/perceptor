@@ -51,21 +51,21 @@ func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 	imageInfo.TimeOfLastStatusChange = time.Now()
 }
 
-func (imageInfo *ImageInfo) timeInCurrentScanStatus() time.Duration {
+func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 	return time.Now().Sub(imageInfo.TimeOfLastStatusChange)
 }
 
-func (imageInfo *ImageInfo) image() Image {
-	return *NewImage(imageInfo.firstImageName(), imageInfo.ImageSha)
+func (imageInfo *ImageInfo) Image() Image {
+	return *NewImage(imageInfo.FirstImageName(), imageInfo.ImageSha)
 }
 
-func (imageInfo *ImageInfo) addImageName(imageName string) {
+func (imageInfo *ImageInfo) AddImageName(imageName string) {
 	if !arrayContains(imageInfo.ImageNames, imageName) {
 		imageInfo.ImageNames = append(imageInfo.ImageNames, imageName)
 	}
 }
 
-func (imageInfo *ImageInfo) firstImageName() string {
+func (imageInfo *ImageInfo) FirstImageName() string {
 	if len(imageInfo.ImageNames) == 0 {
 		panic(fmt.Errorf("expected at least 1 imageName, found 0"))
 	}

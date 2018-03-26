@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 var sha1 DockerImageSha
@@ -58,7 +58,7 @@ func init() {
 }
 
 func createNewModel1() *Model {
-	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
+	model := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
@@ -70,7 +70,7 @@ func createNewModel1() *Model {
 }
 
 func createNewModel2() *Model {
-	model := NewModel(PerceptorConfig{ConcurrentScanLimit: 3}, "test version")
+	model := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.AddPod(pod3)
@@ -90,7 +90,7 @@ func createNewModel2() *Model {
 
 func TestGetFullScanResults(t *testing.T) {
 	model := createNewModel1()
-	scanResults := model.scanResults()
+	scanResults := model.ScanResults()
 	if len(scanResults.Pods) != 1 {
 		t.Errorf("expected 1 finished pod, found %d", len(scanResults.Pods))
 	}
@@ -110,7 +110,7 @@ func TestGetFullScanResults(t *testing.T) {
 
 func TestPodOverallStatus(t *testing.T) {
 	model := createNewModel2()
-	pv1, vc1, os1, err := model.scanResultsForPod("ns1/pod1")
+	pv1, vc1, os1, err := model.ScanResultsForPod("ns1/pod1")
 	if err != nil {
 		jsonBytes, _ := json.Marshal(model)
 		log.Infof("model: %s", string(jsonBytes))
@@ -125,7 +125,7 @@ func TestPodOverallStatus(t *testing.T) {
 	if os1 != "IN_VIOLATION" {
 		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", os1)
 	}
-	pv2, vc2, os2, err := model.scanResultsForPod("ns1/pod2")
+	pv2, vc2, os2, err := model.ScanResultsForPod("ns1/pod2")
 	if err != nil {
 		panic(err)
 	}

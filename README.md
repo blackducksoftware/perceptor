@@ -110,7 +110,13 @@ Check out [Protoform](https://github.com/blackducksoftware/perceptor-protoform/)
 
 Perceptor embraces the traditional values of open source projects in the Apache and CNCF communities, and embraces ideas and community over the code itself.
 
-Please create an issue -- or, better yet, submit a pull request -- if you have any ideas for metrics, features, tests, or anything else related to Perceptor.
+## Pardon our dust
+
+Although perceptor is stable and has been heavily tested at large scales, its relatively new as an upstream project, and we're working on building the community.  If you have suggestions on how we could do a better job, let us know.
+
+## See a place to improve things?
+
+Please create an issue -- better yet, accompanied with a pull request-- if you have any ideas for metrics, features, tests, or anything else related to Perceptor.
 
 ## REST API
 
@@ -121,8 +127,11 @@ Modifications to the REST API or data model should be done with great care to no
 
 Going forward it would be beneficial to have server stubs automatically generated from the swagger specification. This would further canonize the swagger specification as the *single source of truth*.
 
-
-# Golang Standards
+## Sticking with golang Standards
 
 We follow the same standards for golang as are followed in the moby project, the kubernetes project, and other major golang projects.  
 We embrace modern golang idioms including usage of viper for configuration, glide for dependencies, and aim to stay on the 'bleeding edge', since, after all, we aim to always deploy inside of containers.
+
+## Testing your patches
+
+We enable travis-ci for builds, which runs all the unit tests associated with your patches.  Make sure you submit code with unit tests when possible and verify your tests pass in your pull request.    If there are any issues with travis, file an issue and assign it to  jay (jayunit100) and senthil (msenmurgan).

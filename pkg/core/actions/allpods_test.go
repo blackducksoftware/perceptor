@@ -19,33 +19,15 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
-import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
+import "testing"
 
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
-)
-
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
-
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+// AllPods does remove pre-existing pods
+func TestAllPods(t *testing.T) {
+	actual := createNewModel1()
+	(&AllPods{}).Apply(actual)
+	if len(actual.Pods) != 0 {
+		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
+	}
 }

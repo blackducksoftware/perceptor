@@ -19,33 +19,23 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package api
 
-import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
+type ImageSpec struct {
+	ImageName             string
+	PullSpec              string
+	Sha                   string
+	HubProjectName        string
+	HubProjectVersionName string
+	HubScanName           string
+}
 
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
-)
-
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
-
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func NewImageSpec(imageName string, pullSpec string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
+	return &ImageSpec{
+		ImageName:             imageName,
+		PullSpec:              pullSpec,
+		Sha:                   sha,
+		HubProjectName:        hubProjectName,
+		HubProjectVersionName: hubProjectVersionName,
+		HubScanName:           hubScanName}
 }

@@ -19,33 +19,31 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
 	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+func TestScanClientFails(t *testing.T) {
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 1}, "test version")
+	image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
+	model.AddImage(image)
+	model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
+	model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
+	model.FinishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+	if model.Images[image.Sha].ScanStatus != m.ScanStatusInQueue {
+		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
+		t.Fail()
+	}
+
+	nextImage := model.GetNextImageFromScanQueue()
+	if image != *nextImage {
+		t.Logf("expected nextImage of %v, got %v", image, nextImage)
+		t.Fail()
+	}
 }

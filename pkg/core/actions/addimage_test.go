@@ -19,33 +19,27 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
 	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
-
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func TestAddImageAction(t *testing.T) {
+	// actual
+	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	(&AddImage{testImage}).Apply(actual)
+	// expected (a bit hacky to get the times set up):
+	//  - image gets added to .Images
+	//  - image gets added to hub check queue
+	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	imageInfo := m.NewImageInfo(testSha, "image1")
+	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
+	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
+	expected.Images[testSha] = imageInfo
+	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
+	//
+	assertEqual(t, actual, expected)
 }

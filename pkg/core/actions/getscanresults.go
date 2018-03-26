@@ -19,13 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/hub"
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type HubImageScan struct {
-	Sha  DockerImageSha
-	Scan *hub.ImageScan
+type GetScanResults struct {
+	Continuation func(results api.ScanResults)
+}
+
+func (g *GetScanResults) Apply(model *m.Model) {
+	scanResults := model.ScanResults()
+	go g.Continuation(scanResults)
 }

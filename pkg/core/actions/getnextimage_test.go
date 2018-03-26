@@ -19,33 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package actions
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
 	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestMetrics(t *testing.T) {
-	recordAddPod()
-	recordAllPods()
-	recordAddImage()
-	recordDeletePod()
-	recordAllImages()
-	recordHTTPError(&http.Request{URL: &url.URL{}}, fmt.Errorf("oops"), 500)
-	recordAllImages()
-	recordGetNextImage()
-	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
-	recordGetScanResults()
-	recordPostFinishedScan()
+func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
+	// actual
+	var nextImage *m.Image
+	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+	}}).Apply(actual)
+	// expected: front image removed from scan queue, status and time of image changed
+	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
 
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+	assertEqual(t, nextImage, nil)
+	log.Infof("%+v, %+v", actual, expected)
+	// assertEqual(t, actual, expected)
 }

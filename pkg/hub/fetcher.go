@@ -40,18 +40,10 @@ type Fetcher struct {
 	username   string
 	password   string
 	baseURL    string
-	isLoggedIn bool
 }
 
-func (hf *Fetcher) login() error {
-	if hf.isLoggedIn {
-		return nil
-	}
-	// TODO figure out if the client stays logged in indefinitely,
-	//   or if maybe it will need to be relogged in at some point.
-	// For now, just assume it *will* stay logged in indefinitely.
+func (hf *Fetcher) Login() error {
 	err := hf.client.Login(hf.username, hf.password)
-	hf.isLoggedIn = (err == nil)
 	return err
 }
 
@@ -78,12 +70,11 @@ func NewFetcher(username string, password string, baseURL string) (*Fetcher, err
 		return nil, err
 	}
 	hf := Fetcher{
-		client:     *client,
-		username:   username,
-		password:   password,
-		baseURL:    baseURL,
-		isLoggedIn: false}
-	err = hf.login()
+		client:   *client,
+		username: username,
+		password: password,
+		baseURL:  baseURL}
+	err = hf.Login()
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +228,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	scanSummaries := []hubapi.ScanSummary{}
 	for _, scanSummary := range scanSummariesList.Items {
-		if isScanSummaryStatusDone(scanSummary.Status) {
+		if parseScanSummaryStatus(scanSummary.Status) == ScanSummaryStatusSuccess {
 			scanSummaries = append(scanSummaries, scanSummary)
 		}
 	}
@@ -271,7 +262,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		ComponentsHref: componentsLink.Href,
 		ScanSummary: ScanSummary{
 			CreatedAt: scanSummary.CreatedAt,
-			Status:    scanSummary.Status,
+			Status:    parseScanSummaryStatus(scanSummary.Status),
 			UpdatedAt: scanSummary.UpdatedAt,
 		},
 		CodeLocationCreatedAt: codeLocation.CreatedAt,

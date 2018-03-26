@@ -25,22 +25,28 @@ import (
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-// PerceptorConfig contains all configuration for Perceptor
-type PerceptorConfig struct {
+// Config contains all configuration for Perceptor
+type Config struct {
 	HubHost             string
 	HubUser             string
 	HubUserPassword     string
 	ConcurrentScanLimit int
 	UseMockMode         bool
 	Port                int
+	LogLevel            string
 }
 
-// GetPerceptorConfig returns a configuration object to configure Perceptor
-func GetPerceptorConfig() (*PerceptorConfig, error) {
-	var config *PerceptorConfig
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
+}
+
+// GetConfig returns a configuration object to configure Perceptor
+func GetConfig() (*Config, error) {
+	var config *Config
 
 	viper.SetConfigName("perceptor_conf")
 	viper.AddConfigPath("/etc/perceptor")
@@ -60,7 +66,7 @@ func GetPerceptorConfig() (*PerceptorConfig, error) {
 
 // StartWatch will start watching the Perceptor configuration file and
 // call the passed handler function when the configuration file has changed
-func (p *PerceptorConfig) StartWatch(handler func(fsnotify.Event)) {
+func (p *Config) StartWatch(handler func(fsnotify.Event)) {
 	viper.WatchConfig()
 	viper.OnConfigChange(handler)
 }
