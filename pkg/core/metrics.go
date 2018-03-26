@@ -30,6 +30,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	statusLabel           = "status"
+	vulnerabilitiesLabel  = "vulnerability_count"
+	policyViolationsLabel = "policy_violation_count"
+)
+
 var statusGauge *prometheus.GaugeVec
 var handledHTTPRequest *prometheus.CounterVec
 var reducerActivityCounter *prometheus.CounterVec
@@ -78,27 +84,27 @@ func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 	}
 
 	for podStatus, count := range modelMetrics.PodStatus {
-		podStatusGauge.With(prometheus.Labels{"status": podStatus}).Set(float64(count))
+		podStatusGauge.With(prometheus.Labels{statusLabel: podStatus}).Set(float64(count))
 	}
 	for podVulnerabilities, count := range modelMetrics.PodVulnerabilities {
 		value := fmt.Sprintf("%d", podVulnerabilities)
-		podVulnerabilitiesGauge.With(prometheus.Labels{"vulnerability_count": value}).Set(float64(count))
+		podVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
 	}
 	for podPolicyViolations, count := range modelMetrics.PodPolicyViolations {
 		value := fmt.Sprintf("%d", podPolicyViolations)
-		podPolicyViolationsGauge.With(prometheus.Labels{"policy_violation_count": value}).Set(float64(count))
+		podPolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
 	}
 
 	for imageStatus, count := range modelMetrics.ImageStatus {
-		imageStatusGauge.With(prometheus.Labels{"status": imageStatus}).Set(float64(count))
+		imageStatusGauge.With(prometheus.Labels{statusLabel: imageStatus}).Set(float64(count))
 	}
 	for imageVulnerabilities, count := range modelMetrics.ImageVulnerabilities {
 		value := fmt.Sprintf("%d", imageVulnerabilities)
-		imageVulnerabilitiesGauge.With(prometheus.Labels{"vulnerability_count": value}).Set(float64(count))
+		imageVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
 	}
 	for imagePolicyViolations, count := range modelMetrics.ImagePolicyViolations {
 		value := fmt.Sprintf("%d", imagePolicyViolations)
-		imagePolicyViolationsGauge.With(prometheus.Labels{"policy_violation_count": value}).Set(float64(count))
+		imagePolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
 	}
 
 	// TODO
@@ -229,7 +235,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "pod_status",
 		Help:      "buckets of pod status ('Unknown' means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{statusLabel})
 	prometheus.MustRegister(podStatusGauge)
 
 	podVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -237,7 +243,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "pod_vulnerabilities",
 		Help:      "buckets of pod vulnerability counts (-1 means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{vulnerabilitiesLabel})
 	prometheus.MustRegister(podVulnerabilitiesGauge)
 
 	podPolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -245,7 +251,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "pod_policy_violations",
 		Help:      "buckets of pod policy violation counts (-1 means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{policyViolationsLabel})
 	prometheus.MustRegister(podPolicyViolationsGauge)
 
 	imageStatusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -253,7 +259,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "image_status",
 		Help:      "buckets of image status ('Unknown' means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{statusLabel})
 	prometheus.MustRegister(imageStatusGauge)
 
 	imageVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -261,7 +267,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "image_vulnerabilities",
 		Help:      "buckets of image vulnerability counts (-1 means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{vulnerabilitiesLabel})
 	prometheus.MustRegister(imageVulnerabilitiesGauge)
 
 	imagePolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -269,6 +275,6 @@ func init() {
 		Subsystem: "core",
 		Name:      "image_policy_violations",
 		Help:      "buckets of image policy violation counts (-1 means not yet scanned)",
-	}, []string{"name", "count"})
+	}, []string{policyViolationsLabel})
 	prometheus.MustRegister(imagePolicyViolationsGauge)
 }
