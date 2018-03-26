@@ -24,6 +24,7 @@ package core
 import (
 	"fmt"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -294,6 +295,40 @@ func (model *Model) InProgressHubScans() []Image {
 	return inProgressHubScans
 }
 
+func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
+	pod, ok := model.Pods[podName]
+	if !ok {
+		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
+	}
+
+	overallStatus := hub.PolicyStatusTypeNotInViolation
+	policyViolationCount := 0
+	vulnerabilityCount := 0
+	for _, container := range pod.Containers {
+		imageInfo, ok := model.Images[container.Image.Sha]
+		if !ok {
+			return nil, fmt.Errorf("could not find image of sha %s in cache", container.Image.Sha)
+		}
+		if imageInfo.ScanStatus != ScanStatusComplete {
+			return nil, nil
+		}
+		if imageInfo.ScanResults == nil {
+			return nil, fmt.Errorf("could not find scan results for completed image %s", container.Image.Sha)
+		}
+		policyViolationCount += imageInfo.ScanResults.PolicyViolationCount()
+		vulnerabilityCount += imageInfo.ScanResults.VulnerabilityCount()
+		imageScanOverallStatus := imageInfo.ScanResults.OverallStatus()
+		if imageScanOverallStatus != hub.PolicyStatusTypeNotInViolation {
+			overallStatus = imageScanOverallStatus
+		}
+	}
+	podScan := &PodScan{
+		OverallStatus:    overallStatus.String(),
+		PolicyViolations: policyViolationCount,
+		Vulnerabilities:  vulnerabilityCount}
+	return podScan, nil
+}
+
 func (model *Model) Metrics() *ModelMetrics {
 	// number of images in each status
 	statusCounts := make(map[ScanStatus]int)
@@ -319,13 +354,59 @@ func (model *Model) Metrics() *ModelMetrics {
 		imageCountHistogram[count]++
 	}
 
+	podStatus := map[string]int{}
+	podPolicyViolations := map[int]int{}
+	podVulnerabilities := map[int]int{}
+	for podName, _ := range model.Pods {
+		podScan, err := model.ScanResultsForPod(podName)
+		if err != nil {
+			log.Errorf("unable to get scan results for pod %s: %s", podName, err.Error())
+			continue
+		}
+		if podScan != nil {
+			podStatus[podScan.OverallStatus]++
+			podPolicyViolations[podScan.PolicyViolations]++
+			podVulnerabilities[podScan.Vulnerabilities]++
+		} else {
+			podStatus["Unknown"]++
+			podPolicyViolations[-1]++
+			podVulnerabilities[-1]++
+		}
+	}
+
+	imageStatus := map[string]int{}
+	imagePolicyViolations := map[int]int{}
+	imageVulnerabilities := map[int]int{}
+	for sha, imageInfo := range model.Images {
+		if imageInfo.ScanStatus == ScanStatusComplete {
+			imageScan := imageInfo.ScanResults
+			if imageScan == nil {
+				log.Errorf("found nil scan results for completed image %s", sha)
+				continue
+			}
+			imageStatus[imageScan.OverallStatus().String()]++
+			imagePolicyViolations[imageScan.PolicyViolationCount()]++
+			imageVulnerabilities[imageScan.VulnerabilityCount()]++
+		} else {
+			imageStatus["Unknown"]++
+			imagePolicyViolations[-1]++
+			imageVulnerabilities[-1]++
+		}
+	}
+
 	// TODO
 	// number of images without a pod pointing to them
 	return &ModelMetrics{
-		ScanStatusCounts:    statusCounts,
-		NumberOfImages:      len(model.Images),
-		NumberOfPods:        len(model.Pods),
-		ContainerCounts:     containerCounts,
-		ImageCountHistogram: imageCountHistogram,
+		ScanStatusCounts:      statusCounts,
+		NumberOfImages:        len(model.Images),
+		NumberOfPods:          len(model.Pods),
+		ContainerCounts:       containerCounts,
+		ImageCountHistogram:   imageCountHistogram,
+		PodStatus:             podStatus,
+		ImageStatus:           imageStatus,
+		PodPolicyViolations:   podPolicyViolations,
+		ImagePolicyViolations: imagePolicyViolations,
+		PodVulnerabilities:    podVulnerabilities,
+		ImageVulnerabilities:  imageVulnerabilities,
 	}
 }

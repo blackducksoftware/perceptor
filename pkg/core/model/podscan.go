@@ -21,16 +21,8 @@ under the License.
 
 package core
 
-type ModelMetrics struct {
-	ScanStatusCounts      map[ScanStatus]int
-	NumberOfPods          int
-	NumberOfImages        int
-	ContainerCounts       map[int]int
-	ImageCountHistogram   map[int]int
-	PodStatus             map[string]int
-	ImageStatus           map[string]int
-	PodPolicyViolations   map[int]int
-	ImagePolicyViolations map[int]int
-	PodVulnerabilities    map[int]int
-	ImageVulnerabilities  map[int]int
+type PodScan struct {
+	OverallStatus    string
+	PolicyViolations int
+	Vulnerabilities  int
 }

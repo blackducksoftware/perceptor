@@ -110,32 +110,27 @@ func TestGetFullScanResults(t *testing.T) {
 
 func TestPodOverallStatus(t *testing.T) {
 	model := createNewModel2()
-	pv1, vc1, os1, err := model.ScanResultsForPod("ns1/pod1")
+	scan1, err := model.ScanResultsForPod("ns1/pod1")
 	if err != nil {
 		jsonBytes, _ := json.Marshal(model)
 		log.Infof("model: %s", string(jsonBytes))
 		panic(err)
 	}
-	if pv1 != 3 {
-		t.Errorf("expected 3 policy violations, found %d", pv1)
+	if scan1 != nil {
+		t.Errorf("expected nil scan results for pod %s, found %+v", "ns1/pod1", scan1)
 	}
-	if vc1 != 0 {
-		t.Errorf("expected 0 vulnerabilities, found %d", vc1)
-	}
-	if os1 != "IN_VIOLATION" {
-		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", os1)
-	}
-	pv2, vc2, os2, err := model.ScanResultsForPod("ns1/pod2")
+
+	scan2, err := model.ScanResultsForPod("ns1/pod2")
 	if err != nil {
 		panic(err)
 	}
-	if pv2 != 3 {
-		t.Errorf("expected 0 policy violations, found %d", pv2)
+	if scan2.PolicyViolations != 3 {
+		t.Errorf("expected 0 policy violations, found %d", scan2.PolicyViolations)
 	}
-	if vc2 != 0 {
-		t.Errorf("expected 0 vulnerabilities, found %d", vc2)
+	if scan2.Vulnerabilities != 0 {
+		t.Errorf("expected 0 vulnerabilities, found %d", scan2.Vulnerabilities)
 	}
-	if os2 != "IN_VIOLATION" {
-		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", os2)
+	if scan2.OverallStatus != "IN_VIOLATION" {
+		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", scan2.OverallStatus)
 	}
 }

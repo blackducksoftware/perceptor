@@ -35,6 +35,14 @@ var handledHTTPRequest *prometheus.CounterVec
 var reducerActivityCounter *prometheus.CounterVec
 var reducerMessageCounter *prometheus.CounterVec
 
+var podStatusGauge *prometheus.GaugeVec
+var podPolicyViolationsGauge *prometheus.GaugeVec
+var podVulnerabilitiesGauge *prometheus.GaugeVec
+
+var imageStatusGauge *prometheus.GaugeVec
+var imagePolicyViolationsGauge *prometheus.GaugeVec
+var imageVulnerabilitiesGauge *prometheus.GaugeVec
+
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
 
@@ -67,6 +75,30 @@ func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 	for numberOfReferences, occurences := range modelMetrics.ImageCountHistogram {
 		strCount := fmt.Sprintf("%d", numberOfReferences)
 		statusHistogram.With(prometheus.Labels{"name": "references_per_image", "count": strCount}).Set(float64(occurences))
+	}
+
+	for podStatus, count := range modelMetrics.PodStatus {
+		podStatusGauge.With(prometheus.Labels{"status": podStatus}).Set(float64(count))
+	}
+	for podVulnerabilities, count := range modelMetrics.PodVulnerabilities {
+		value := fmt.Sprintf("%d", podVulnerabilities)
+		podVulnerabilitiesGauge.With(prometheus.Labels{"vulnerability_count": value}).Set(float64(count))
+	}
+	for podPolicyViolations, count := range modelMetrics.PodPolicyViolations {
+		value := fmt.Sprintf("%d", podPolicyViolations)
+		podPolicyViolationsGauge.With(prometheus.Labels{"policy_violation_count": value}).Set(float64(count))
+	}
+
+	for imageStatus, count := range modelMetrics.ImageStatus {
+		imageStatusGauge.With(prometheus.Labels{"status": imageStatus}).Set(float64(count))
+	}
+	for imageVulnerabilities, count := range modelMetrics.ImageVulnerabilities {
+		value := fmt.Sprintf("%d", imageVulnerabilities)
+		imageVulnerabilitiesGauge.With(prometheus.Labels{"vulnerability_count": value}).Set(float64(count))
+	}
+	for imagePolicyViolations, count := range modelMetrics.ImagePolicyViolations {
+		value := fmt.Sprintf("%d", imagePolicyViolations)
+		imagePolicyViolationsGauge.With(prometheus.Labels{"policy_violation_count": value}).Set(float64(count))
 	}
 
 	// TODO
