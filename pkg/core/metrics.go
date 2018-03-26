@@ -189,6 +189,7 @@ func init() {
 		Name:      "status_gauge",
 		Help:      "a gauge of statuses for perceptor core's current state",
 	}, []string{"name"})
+	prometheus.MustRegister(statusGauge)
 
 	statusHistogram = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",
@@ -196,6 +197,7 @@ func init() {
 		Name:      "status_histogram",
 		Help:      "a histogram of statuses for perceptor core's current state",
 	}, []string{"name", "count"})
+	prometheus.MustRegister(statusHistogram)
 
 	handledHTTPRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   "perceptor",
@@ -204,6 +206,7 @@ func init() {
 		Help:        "status codes for HTTP requests handled by perceptor core",
 		ConstLabels: map[string]string{},
 	}, []string{"path", "method", "code"})
+	prometheus.MustRegister(handledHTTPRequest)
 
 	reducerActivityCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
@@ -211,6 +214,7 @@ func init() {
 		Name:      "reducer_activity",
 		Help:      "activity of the reducer -- how much time it's been idle and active, in seconds",
 	}, []string{"state"})
+	prometheus.MustRegister(reducerActivityCounter)
 
 	reducerMessageCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
@@ -218,10 +222,53 @@ func init() {
 		Name:      "reducer_message",
 		Help:      "count of the message types processed by the reducer",
 	}, []string{"message"})
-
-	prometheus.MustRegister(handledHTTPRequest)
-	prometheus.MustRegister(statusGauge)
-	prometheus.MustRegister(statusHistogram)
-	prometheus.MustRegister(reducerActivityCounter)
 	prometheus.MustRegister(reducerMessageCounter)
+
+	podStatusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_status",
+		Help:      "buckets of pod status ('Unknown' means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(podStatusGauge)
+
+	podVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_vulnerabilities",
+		Help:      "buckets of pod vulnerability counts (-1 means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(podVulnerabilitiesGauge)
+
+	podPolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_policy_violations",
+		Help:      "buckets of pod policy violation counts (-1 means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(podPolicyViolationsGauge)
+
+	imageStatusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_status",
+		Help:      "buckets of image status ('Unknown' means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(imageStatusGauge)
+
+	imageVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_vulnerabilities",
+		Help:      "buckets of image vulnerability counts (-1 means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(imageVulnerabilitiesGauge)
+
+	imagePolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_policy_violations",
+		Help:      "buckets of image policy violation counts (-1 means not yet scanned)",
+	}, []string{"name", "count"})
+	prometheus.MustRegister(imagePolicyViolationsGauge)
 }
