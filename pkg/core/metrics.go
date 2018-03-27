@@ -30,17 +30,29 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	statusLabel           = "status"
+	vulnerabilitiesLabel  = "vulnerability_count"
+	policyViolationsLabel = "policy_violation_count"
+)
+
 var statusGauge *prometheus.GaugeVec
 var handledHTTPRequest *prometheus.CounterVec
 var reducerActivityCounter *prometheus.CounterVec
 var reducerMessageCounter *prometheus.CounterVec
 
+var podStatusGauge *prometheus.GaugeVec
+var podPolicyViolationsGauge *prometheus.GaugeVec
+var podVulnerabilitiesGauge *prometheus.GaugeVec
+
+var imageStatusGauge *prometheus.GaugeVec
+var imagePolicyViolationsGauge *prometheus.GaugeVec
+var imageVulnerabilitiesGauge *prometheus.GaugeVec
+
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
 
 func recordModelMetrics(modelMetrics *model.ModelMetrics) {
-	// log.Info("generating status metrics")
-
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
 		model.ScanStatusInHubCheckQueue,
@@ -67,6 +79,30 @@ func recordModelMetrics(modelMetrics *model.ModelMetrics) {
 	for numberOfReferences, occurences := range modelMetrics.ImageCountHistogram {
 		strCount := fmt.Sprintf("%d", numberOfReferences)
 		statusHistogram.With(prometheus.Labels{"name": "references_per_image", "count": strCount}).Set(float64(occurences))
+	}
+
+	for podStatus, count := range modelMetrics.PodStatus {
+		podStatusGauge.With(prometheus.Labels{statusLabel: podStatus}).Set(float64(count))
+	}
+	for podVulnerabilities, count := range modelMetrics.PodVulnerabilities {
+		value := fmt.Sprintf("%d", podVulnerabilities)
+		podVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
+	}
+	for podPolicyViolations, count := range modelMetrics.PodPolicyViolations {
+		value := fmt.Sprintf("%d", podPolicyViolations)
+		podPolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
+	}
+
+	for imageStatus, count := range modelMetrics.ImageStatus {
+		imageStatusGauge.With(prometheus.Labels{statusLabel: imageStatus}).Set(float64(count))
+	}
+	for imageVulnerabilities, count := range modelMetrics.ImageVulnerabilities {
+		value := fmt.Sprintf("%d", imageVulnerabilities)
+		imageVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
+	}
+	for imagePolicyViolations, count := range modelMetrics.ImagePolicyViolations {
+		value := fmt.Sprintf("%d", imagePolicyViolations)
+		imagePolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
 	}
 
 	// TODO
@@ -157,6 +193,7 @@ func init() {
 		Name:      "status_gauge",
 		Help:      "a gauge of statuses for perceptor core's current state",
 	}, []string{"name"})
+	prometheus.MustRegister(statusGauge)
 
 	statusHistogram = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",
@@ -164,6 +201,7 @@ func init() {
 		Name:      "status_histogram",
 		Help:      "a histogram of statuses for perceptor core's current state",
 	}, []string{"name", "count"})
+	prometheus.MustRegister(statusHistogram)
 
 	handledHTTPRequest = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   "perceptor",
@@ -172,6 +210,7 @@ func init() {
 		Help:        "status codes for HTTP requests handled by perceptor core",
 		ConstLabels: map[string]string{},
 	}, []string{"path", "method", "code"})
+	prometheus.MustRegister(handledHTTPRequest)
 
 	reducerActivityCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
@@ -179,6 +218,7 @@ func init() {
 		Name:      "reducer_activity",
 		Help:      "activity of the reducer -- how much time it's been idle and active, in seconds",
 	}, []string{"state"})
+	prometheus.MustRegister(reducerActivityCounter)
 
 	reducerMessageCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
@@ -186,10 +226,53 @@ func init() {
 		Name:      "reducer_message",
 		Help:      "count of the message types processed by the reducer",
 	}, []string{"message"})
-
-	prometheus.MustRegister(handledHTTPRequest)
-	prometheus.MustRegister(statusGauge)
-	prometheus.MustRegister(statusHistogram)
-	prometheus.MustRegister(reducerActivityCounter)
 	prometheus.MustRegister(reducerMessageCounter)
+
+	podStatusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_status",
+		Help:      "buckets of pod status ('Unknown' means not yet scanned)",
+	}, []string{statusLabel})
+	prometheus.MustRegister(podStatusGauge)
+
+	podVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_vulnerabilities",
+		Help:      "buckets of pod vulnerability counts (-1 means not yet scanned)",
+	}, []string{vulnerabilitiesLabel})
+	prometheus.MustRegister(podVulnerabilitiesGauge)
+
+	podPolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "pod_policy_violations",
+		Help:      "buckets of pod policy violation counts (-1 means not yet scanned)",
+	}, []string{policyViolationsLabel})
+	prometheus.MustRegister(podPolicyViolationsGauge)
+
+	imageStatusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_status",
+		Help:      "buckets of image status ('Unknown' means not yet scanned)",
+	}, []string{statusLabel})
+	prometheus.MustRegister(imageStatusGauge)
+
+	imageVulnerabilitiesGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_vulnerabilities",
+		Help:      "buckets of image vulnerability counts (-1 means not yet scanned)",
+	}, []string{vulnerabilitiesLabel})
+	prometheus.MustRegister(imageVulnerabilitiesGauge)
+
+	imagePolicyViolationsGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "image_policy_violations",
+		Help:      "buckets of image policy violation counts (-1 means not yet scanned)",
+	}, []string{policyViolationsLabel})
+	prometheus.MustRegister(imagePolicyViolationsGauge)
 }

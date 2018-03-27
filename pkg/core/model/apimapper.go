@@ -22,10 +22,7 @@ under the License.
 package core
 
 import (
-	"fmt"
-
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,68 +46,26 @@ func ApiPodToCorePod(apiPod api.Pod) *Pod {
 
 // model -> api
 
-func (model *Model) ScanResultsForPod(podName string) (int, int, string, error) {
-	pod, ok := model.Pods[podName]
-	if !ok {
-		return 0, 0, "", fmt.Errorf("could not find pod of name %s in cache", podName)
-	}
-
-	overallStatus := hub.PolicyStatusTypeNotInViolation
-	policyViolationCount := 0
-	vulnerabilityCount := 0
-	for _, container := range pod.Containers {
-		imageInfo, ok := model.Images[container.Image.Sha]
-		if !ok {
-			continue
-		}
-		if imageInfo.ScanStatus != ScanStatusComplete {
-			continue
-		}
-		if imageInfo.ScanResults == nil {
-			continue
-		}
-		policyViolationCount += imageInfo.ScanResults.PolicyViolationCount()
-		vulnerabilityCount += imageInfo.ScanResults.VulnerabilityCount()
-		imageScanOverallStatus := imageInfo.ScanResults.OverallStatus()
-		if imageScanOverallStatus != hub.PolicyStatusTypeNotInViolation {
-			overallStatus = imageScanOverallStatus
-		}
-	}
-	return policyViolationCount, vulnerabilityCount, overallStatus.String(), nil
-}
-
 func (model *Model) ScanResults() api.ScanResults {
 	pods := []api.ScannedPod{}
 	images := []api.ScannedImage{}
 	// pods
 	for podName, pod := range model.Pods {
-		skipPod := false
-		for _, cont := range pod.Containers {
-			imageSha := cont.Image.Sha
-			imageInfo, ok := model.Images[imageSha]
-			if !ok {
-				log.Errorf("expected to find Image %s, but did not", string(imageSha))
-				continue
-			}
-			if imageInfo.ScanStatus != ScanStatusComplete {
-				skipPod = true
-				break
-			}
-		}
-		if skipPod {
-			continue
-		}
-		policyViolationCount, vulnerabilityCount, overallStatus, err := model.ScanResultsForPod(podName)
+		podScan, err := model.ScanResultsForPod(podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
+			continue
+		}
+		if podScan == nil {
+			log.Debugf("image scans not complete for pod %s, skipping (pod info: %+v)", podName, pod)
 			continue
 		}
 		pods = append(pods, api.ScannedPod{
 			Namespace:        pod.Namespace,
 			Name:             pod.Name,
-			PolicyViolations: policyViolationCount,
-			Vulnerabilities:  vulnerabilityCount,
-			OverallStatus:    overallStatus})
+			PolicyViolations: podScan.PolicyViolations,
+			Vulnerabilities:  podScan.Vulnerabilities,
+			OverallStatus:    podScan.OverallStatus})
 	}
 	// images
 	for _, imageInfo := range model.Images {

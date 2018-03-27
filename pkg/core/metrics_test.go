@@ -41,7 +41,19 @@ func TestMetrics(t *testing.T) {
 	recordAllImages()
 	recordGetNextImage()
 	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{})
+	recordModelMetrics(&m.ModelMetrics{
+		ContainerCounts:       map[int]int{3: 4},
+		ImageCountHistogram:   map[int]int{8: 5},
+		ImagePolicyViolations: map[int]int{2: 2},
+		ImageStatus:           map[string]int{"abc": 4},
+		ImageVulnerabilities:  map[int]int{9: 3},
+		NumberOfImages:        4,
+		NumberOfPods:          8,
+		PodPolicyViolations:   map[int]int{13: 16},
+		PodStatus:             map[string]int{"zzz": 8},
+		PodVulnerabilities:    map[int]int{9: 1},
+		ScanStatusCounts:      map[m.ScanStatus]int{m.ScanStatusComplete: 31},
+	})
 	recordGetScanResults()
 	recordPostFinishedScan()
 
