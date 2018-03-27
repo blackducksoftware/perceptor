@@ -41,8 +41,7 @@ and scanners to communicate with it.
 
 ## REST API
 
- - [guidelines](https://confluence.dc1.lan/display/DEV/REST+API+-+Overview+and+Guidelines)
- - [docs](./core-rest-api.swagger) -- check out [this online viewer](https://editor.swagger.io//#) to get a nice UI
+ - [docs](./core-rest-api.swagger) -- check out [this online viewer](https://editor.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
 
 
 # Scanners
@@ -118,6 +117,15 @@ Although perceptor is stable and has been heavily tested at large scales, its re
 ## See a place to improve things?
 
 Please create an issue -- better yet, accompanied with a pull request-- if you have any ideas for metrics, features, tests, or anything else related to Perceptor.
+
+## REST API
+
+Modifications to the REST API or data model should be done with great care to not break backward compatibility. If REST API or data model changes are performed, the following must occur:
+
+- [ ] The swagger specification located at api/perceptor-swagger-spec.json file must be modified 
+- [ ] The updated swagger specification must be present as part of the PR containing the modifications to the server
+
+Going forward it would be beneficial to have server stubs automatically generated from the swagger specification. This would further canonize the swagger specification as the *single source of truth*.
 
 ## Sticking with golang Standards
 
