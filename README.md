@@ -44,7 +44,7 @@ and scanners to communicate with it.
 
 ## REST API
 
- - [docs](./api/perceptor-swagger-spec.json) -- check out [this online viewer](https://editor.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
+ - [docs](./api/perceptor-swagger-spec.json) -- check out [this online viewer](http://editor2.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
 
 Modifications to the REST API or data model should be done with great care to not break backward compatibility. If REST API or data model changes are performed, the following must occur:
 
