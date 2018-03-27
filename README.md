@@ -2,21 +2,24 @@
 
 # Perceptor
 
-Perceptor is an API server and event handler for consuming, storing, and queueing various workloads associated with responding to events that occur in distributed orchestration systems.  Canonically it is used to manage inforamtion related to container 'events' that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README. 
+Perceptor is an API server and event handler for consuming, storing, and queueing various workloads associated with responding to events that occur in distributed orchestration systems.  Canonically, it manages information related to container events that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README.
 
-The Perceiver API is currently managed in a swagger document, and can (theoretically) be interacted with via any programming language.  Note that the golang API objects maintained in this directory are, however, manually curated, and are currently the only APIs that we support and test (contributions welcome!).
+The Perceptor API is currently managed in [a swagger document](./api/perceptor-swagger-spec.json), and can, in principle, be consumed from any programming language.
+
+At the moment, the golang API objects maintained in this directory are manually curated, and are currently the only APIs that we support and test (contributions welcome!).
 
 # Perceivers
 
-Perceivers are the canonical extension point to a perceptor based deployment.
-Perceivers are workers that notify perceptor of events, and respond to information that perceptor acquires about those events.  IF you want to build one for your own platform, or customize the way cluster events are processed,  [ go here to learn more about them](https://github.com/blackducksoftware/perceivers).  
+Perceivers are the canonical extension point to a Perceptor-based deployment to support new platforms and orchestration systems.
+
+Perceivers are workers that notify Perceptor of events, and respond to information that Perceptor acquires about those events.  If you want to build one for your own platform, or customize the way cluster events are processed, check out [our Perceivers repo](https://github.com/blackducksoftware/perceivers) to learn more about them!
 
 Perceivers are responsible for interacting with the cluster manager -- whether kubernetes, openshift,
 docker swarm, or docker compose.  Perceivers watch for pod and image events -- create, update, delete --
-and forward those on to perceptor core.
+and forward those on to Perceptor core.
 
 By splitting perceivers into a separate pod, we gain two things:
- - platform independence of the perceptor core.  Perceivers require a relatively small amount of code,
+ - platform independence of the Perceptor core.  Perceivers require a relatively small amount of code,
    and are the only component that needs to be changed in order to support a new platform.
  - on openshift, perceivers require special permissions in order to be able to talk to the APIServer
    and watch pod and image events
@@ -29,7 +32,7 @@ Perceivers:
  - GKE (TODO)
  - compose (TODO)
  - swarm (TODO)
- 
+
 
 # Perceptor core
 
@@ -41,7 +44,14 @@ and scanners to communicate with it.
 
 ## REST API
 
- - [docs](./core-rest-api.swagger) -- check out [this online viewer](https://editor.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
+ - [docs](./api/perceptor-swagger-spec.json) -- check out [this online viewer](https://editor.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
+
+Modifications to the REST API or data model should be done with great care to not break backward compatibility. If REST API or data model changes are performed, the following must occur:
+
+ - [ ] The [swagger specification](./api/perceptor-swagger-spec.json) file must be modified
+ - [ ] The updated swagger specification must be present as part of the PR containing the modifications to the server
+
+ Going forward it will be beneficial to automatically generate server stubs from the swagger specification. This would further canonize the swagger specification as the *single source of truth*.
 
 
 # Scanners
@@ -54,53 +64,50 @@ when increasing the number of scanner pods, so that the hub is not overloaded.
 
 # Development Environment Setup
 
- - install gimme, run it to compile perceptor
- - curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme ; \nchmod +x ~/bin/gimme
- - export PATH=$PATH:~/bin/
- - gimme 1.9
+Install gimme, run it to compile perceptor:
+
+```
+curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+chmod +x ~/bin/gimme
+export PATH=$PATH:~/bin/
+gimme 1.9
+```
 
 Getting work done:
 
 Create a GO Project for Perceptor:
- - mkdir go/
- - mkdir go/src/
- - mkdir go/src/github.com/blackducksoftware/perceptor
- - mkdir -p go/src/github.com/blackducksoftware/perceptor
- - cd go/src/github.com/blackducksoftware/perceptor
- - install go-plus Atom package
+
+```
+cd <to_your_favorite_directory>
+mkdir go/
+mkdir go/src/
+mkdir go/src/github.com/blackducksoftware/perceptor
+mkdir -p go/src/github.com/blackducksoftware/perceptor
+cd go/src/github.com/blackducksoftware/perceptor
+install go-plus Atom package
+```
 
 Clone Perceptor:
- - git clone https://github.com/blackducksoftware/perceptor.git
 
-Add a your own remote
- - git remote add <foo>  https://github.com/sheppduck/perceptor.git
- - cd go/src/github.com/blackducksoftware/perceptor/
- - echo $GOPATH
+```
+git clone https://github.com/blackducksoftware/perceptor.git
+```
 
-Export GOPATH properly
- -  E.G. export GOPATH=/Users/jsmith/workspace-perceptor/go/
+Set up your GOPATH:
 
-Git to work:
- - git fetch --all
- - git checkout https://github.com/blackducksoftware/perceptor.git
- - git checkout origin/master
- - git pull
- - make
-
-If master is broken:
-
- - cd to one of the subdirs, that you wanted to work on :), and try to build that.
- - file an issue in github
+```
+export GOPATH=/Users/jsmith/workspace-perceptor/go/
+```
 
 # Building
 
-Check out the makefiles -- from the root directory, run:
+Check out [the makefile](./Makefile) -- from the root directory, run:
 
     make
-    
-# Continous Integration
 
-We build images, per commit, using cloud build files.  We're open to changing our build artifacts over time, checkout the cloud-build.yaml.  Note that post build hooks are currently disabled due to internal infrastructure changes.
+# Continuous Integration
+
+We build images, per commit, using cloud build files.  We're open to changing our build artifacts over time, check out the [cloudbuild.yaml](./cloudbuild.yaml).  Note that post build hooks are currently disabled due to internal infrastructure changes.
 
 # Running
 
@@ -112,26 +119,18 @@ Perceptor embraces the traditional values of open source projects in the Apache 
 
 ## Pardon our dust
 
-Although perceptor is stable and has been heavily tested at large scales, its relatively new as an upstream project, and we're working on building the community.  If you have suggestions on how we could do a better job, let us know.
+Although Perceptor is stable and has been heavily tested at large scales, it's relatively new as an upstream project, and we're working on building the community.  If you have suggestions on how we could do a better job, let us know.
 
 ## See a place to improve things?
 
 Please create an issue -- better yet, accompanied with a pull request-- if you have any ideas for metrics, features, tests, or anything else related to Perceptor.
 
-## REST API
-
-Modifications to the REST API or data model should be done with great care to not break backward compatibility. If REST API or data model changes are performed, the following must occur:
-
-- [ ] The swagger specification located at api/perceptor-swagger-spec.json file must be modified 
-- [ ] The updated swagger specification must be present as part of the PR containing the modifications to the server
-
-Going forward it would be beneficial to have server stubs automatically generated from the swagger specification. This would further canonize the swagger specification as the *single source of truth*.
-
 ## Sticking with golang Standards
 
 We follow the same standards for golang as are followed in the moby project, the kubernetes project, and other major golang projects.  
+
 We embrace modern golang idioms including usage of viper for configuration, glide for dependencies, and aim to stay on the 'bleeding edge', since, after all, we aim to always deploy inside of containers.
 
 ## Testing your patches
 
-We enable travis-ci for builds, which runs all the unit tests associated with your patches.  Make sure you submit code with unit tests when possible and verify your tests pass in your pull request.    If there are any issues with travis, file an issue and assign it to  jay (jayunit100) and senthil (msenmurgan).
+We enable travis-ci for builds, which runs all the unit tests associated with your patches.  Make sure you submit code with unit tests when possible and verify your tests pass in your pull request.    If there are any issues with travis, file an issue and assign it to Jay (jayunit100) and Senthil (msenmurgan).
