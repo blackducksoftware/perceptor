@@ -193,7 +193,10 @@
         "operationId": "getScanResults",
         "responses": {
           "200": {
-            "description": "success"
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/ScanResults"
+            }
           }
         }
       }
