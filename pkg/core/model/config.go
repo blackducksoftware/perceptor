@@ -31,13 +31,13 @@ import (
 
 // Config contains all configuration for Perceptor
 type Config struct {
-	HubHost             string
-	HubUser             string
-	HubUserPassword     string
-	ConcurrentScanLimit int
-	UseMockMode         bool
-	Port                int
-	LogLevel            string
+	HubHost               string
+	HubUser               string
+	HubUserPasswordEnvVar string
+	ConcurrentScanLimit   int
+	UseMockMode           bool
+	Port                  int
+	LogLevel              string
 }
 
 func (config *Config) GetLogLevel() (log.Level, error) {
@@ -49,15 +49,6 @@ func GetConfig() (*Config, error) {
 	var config *Config
 
 	viper.SetConfigName("perceptor_conf")
-
-	// these need to be set before we read in the config!
-	viper.SetEnvPrefix("PCP")
-	viper.BindEnv("HubUserPassword")
-	if viper.GetString("hubuserpassword") == "" {
-		viper.Debug()
-		panic("No hub database password secret supplied.  Please inject PCP_HUBUSERPASSWORD as a secret and restart!")
-	}
-
 	viper.AddConfigPath("/etc/perceptor")
 
 	err := viper.ReadInConfig()
