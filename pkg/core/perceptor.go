@@ -22,6 +22,8 @@ under the License.
 package core
 
 import (
+	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -70,7 +72,6 @@ func NewMockedPerceptor() (*Perceptor, error) {
 	mockConfig := model.Config{
 		HubHost:             "mock host",
 		HubUser:             "mock user",
-		HubUserPassword:     "mock password",
 		ConcurrentScanLimit: 2,
 	}
 	return newPerceptorHelper(hub.NewMockHub("mock hub version"), &mockConfig), nil
@@ -78,9 +79,14 @@ func NewMockedPerceptor() (*Perceptor, error) {
 
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(config *model.Config) (*Perceptor, error) {
-	log.Infof("instantiating perceptor with config: host %s, user %s", config.HubHost, config.HubUser)
+	log.Infof("instantiating perceptor with config %+v", config)
+	hubPassword := os.Getenv(config.HubUserPasswordEnvVar)
+	if hubPassword == "" {
+		return nil, fmt.Errorf("unable to read hub password")
+	}
+
 	baseURL := "https://" + config.HubHost
-	hubClient, err := hub.NewFetcher(config.HubUser, config.HubUserPassword, baseURL)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, baseURL)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
