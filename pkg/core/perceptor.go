@@ -81,6 +81,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 func NewPerceptor(config *model.Config) (*Perceptor, error) {
 	log.Infof("instantiating perceptor with config %+v", config)
 	hubPassword := os.Getenv(config.HubUserPasswordEnvVar)
+	log.Debugf("hub password: %s", hubPassword)
 	if hubPassword == "" {
 		return nil, fmt.Errorf("unable to read hub password")
 	}
