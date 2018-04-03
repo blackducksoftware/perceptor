@@ -60,6 +60,8 @@ func RunPerceptor() {
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
+	http.Handle("/metrics", prometheus.Handler())
+
 	if config.UseMockMode {
 		responder := api.NewMockResponder()
 		api.SetupHTTPServer(responder)
