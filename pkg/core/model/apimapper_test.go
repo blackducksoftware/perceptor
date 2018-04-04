@@ -110,17 +110,17 @@ func TestGetFullScanResults(t *testing.T) {
 
 func TestPodOverallStatus(t *testing.T) {
 	model := createNewModel2()
-	scan1, err := model.ScanResultsForPod("ns1/pod1")
+	scan1, err := model.ScanResultsForPod(pod1.QualifiedName())
 	if err != nil {
 		jsonBytes, _ := json.Marshal(model)
 		log.Infof("model: %s", string(jsonBytes))
 		panic(err)
 	}
 	if scan1 != nil {
-		t.Errorf("expected nil scan results for pod %s, found %+v", "ns1/pod1", scan1)
+		t.Errorf("expected nil scan results for pod %s, found %+v", pod1.QualifiedName(), scan1)
 	}
 
-	scan2, err := model.ScanResultsForPod("ns1/pod2")
+	scan2, err := model.ScanResultsForPod(pod2.QualifiedName())
 	if err != nil {
 		panic(err)
 	}
@@ -132,5 +132,55 @@ func TestPodOverallStatus(t *testing.T) {
 	}
 	if scan2.OverallStatus != "IN_VIOLATION" {
 		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", scan2.OverallStatus)
+	}
+
+	scan3, err := model.ScanResultsForPod(pod3.QualifiedName())
+	if err != nil {
+		panic(err)
+	}
+	if scan3.PolicyViolations != 0 {
+		t.Errorf("expected 0 policy violations, found %d", scan3.PolicyViolations)
+	}
+	if scan3.Vulnerabilities != 0 {
+		t.Errorf("expected 0 vulnerabilities, found %d", scan3.Vulnerabilities)
+	}
+	if scan3.OverallStatus != "NOT_IN_VIOLATION" {
+		t.Errorf("expected overall status of NOT_IN_VIOLATION, found <%s>", scan3.OverallStatus)
+	}
+
+	imageScan1, err := model.ScanResultsForImage(image1.Sha)
+	if err != nil {
+		panic(err)
+	}
+	if imageScan1.PolicyViolations != 3 {
+		t.Errorf("expected 0 policy violations, found %d", imageScan1.PolicyViolations)
+	}
+	if imageScan1.Vulnerabilities != 0 {
+		t.Errorf("expected 0 vulnerabilities, found %d", imageScan1.Vulnerabilities)
+	}
+	if imageScan1.OverallStatus.String() != "IN_VIOLATION" {
+		t.Errorf("expected overall status of IN_VIOLATION, found <%s>", imageScan1.OverallStatus)
+	}
+
+	imageScan2, err := model.ScanResultsForImage(image2.Sha)
+	if err != nil {
+		panic(err)
+	}
+	if imageScan2 != nil {
+		t.Errorf("expected nil scan results, got %+v", imageScan2)
+	}
+
+	imageScan3, err := model.ScanResultsForImage(image3.Sha)
+	if err != nil {
+		panic(err)
+	}
+	if imageScan3.PolicyViolations != 0 {
+		t.Errorf("expected 0 policy violations, found %d", imageScan3.PolicyViolations)
+	}
+	if imageScan3.Vulnerabilities != 0 {
+		t.Errorf("expected 0 vulnerabilities, found %d", imageScan3.Vulnerabilities)
+	}
+	if imageScan3.OverallStatus.String() != "NOT_IN_VIOLATION" {
+		t.Errorf("expected overall status of NOT_IN_VIOLATION, found <%s>", imageScan3.OverallStatus)
 	}
 }
