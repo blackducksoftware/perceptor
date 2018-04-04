@@ -41,6 +41,7 @@ var cont3 Container
 var pod1 Pod
 var pod2 Pod
 var pod3 Pod
+var pod4 Pod
 
 func init() {
 	sha1 = DockerImageSha("sha1")
@@ -55,6 +56,8 @@ func init() {
 	pod1 = *NewPod("pod1", "pod1uid", "ns1", []Container{cont1, cont2})
 	pod2 = *NewPod("pod2", "pod2uid", "ns1", []Container{cont1})
 	pod3 = *NewPod("pod3", "pod3uid", "ns3", []Container{cont3})
+	// this is ridiculous, but let's create a pod with 0 containers
+	pod4 = *NewPod("pod4", "pod4uid", "ns4", []Container{})
 }
 
 func createNewModel1() *Model {
@@ -74,6 +77,7 @@ func createNewModel2() *Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.AddPod(pod3)
+	model.AddPod(pod4)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].ScanResults = &hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
@@ -146,6 +150,20 @@ func TestPodOverallStatus(t *testing.T) {
 	}
 	if scan3.OverallStatus != "NOT_IN_VIOLATION" {
 		t.Errorf("expected overall status of NOT_IN_VIOLATION, found <%s>", scan3.OverallStatus)
+	}
+
+	scan4, err := model.ScanResultsForPod(pod4.QualifiedName())
+	if err != nil {
+		panic(err)
+	}
+	if scan4.PolicyViolations != 0 {
+		t.Errorf("expected 0 policy violations, found %d", scan4.PolicyViolations)
+	}
+	if scan4.Vulnerabilities != 0 {
+		t.Errorf("expected 0 vulnerabilities, found %d", scan4.Vulnerabilities)
+	}
+	if scan4.OverallStatus != "NOT_IN_VIOLATION" {
+		t.Errorf("expected overall status of NOT_IN_VIOLATION, found <%s>", scan4.OverallStatus)
 	}
 
 	imageScan1, err := model.ScanResultsForImage(image1.Sha)
