@@ -64,6 +64,9 @@ func (model *Model) DeletePod(podName string) {
 // adding them into the cache.
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
+	if len(newPod.Containers) == 0 {
+		log.Warnf("adding pod %s with 0 containers: %+v", newPod.QualifiedName(), newPod)
+	}
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
 	}
