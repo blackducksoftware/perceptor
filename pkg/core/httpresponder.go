@@ -98,7 +98,7 @@ func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 	recordAddImage()
 	image := *model.ApiImageToCoreImage(apiImage)
 	hr.AddImageChannel <- image
-	log.Debugf("handled add image %s", image.HumanReadableName())
+	log.Debugf("handled add image %s", image.PullSpec())
 }
 
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
