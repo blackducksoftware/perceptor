@@ -103,7 +103,7 @@ func (model *Model) APIModel() *api.Model {
 		Config: &api.ModelConfig{
 			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
 			HubHost:             model.Config.HubHost,
-			HubPassword:         "<redacted>",
+			HubPassword:         "...redacted...",
 			HubUser:             model.Config.HubUser,
 			LogLevel:            model.Config.LogLevel,
 			Port:                model.Config.Port,
