@@ -22,7 +22,6 @@ under the License.
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -56,13 +55,9 @@ func (mr *MockResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
 
-func (mr *MockResponder) GetModel() string {
-	jsonBytes, err := json.Marshal(mr)
-	if err != nil {
-		log.Errorf("unable to serialize JSON: %s", err.Error())
-		panic(err)
-	}
-	return string(jsonBytes)
+func (mr *MockResponder) GetModel() Model {
+	// TODO
+	return Model{}
 }
 
 // perceiver

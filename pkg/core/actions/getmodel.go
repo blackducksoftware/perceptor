@@ -22,21 +22,15 @@ under the License.
 package actions
 
 import (
-	"encoding/json"
-
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
 type GetModel struct {
-	Continuation func(json string)
+	Continuation func(model api.Model)
 }
 
 func (g *GetModel) Apply(model *m.Model) {
-	jsonBytes, err := json.Marshal(model)
-	if err != nil {
-		jsonBytes = []byte{}
-		log.Errorf("unable to serialize model: %s", err.Error())
-	}
-	go g.Continuation(string(jsonBytes))
+	apiModel := model.APIModel()
+	go g.Continuation(*apiModel)
 }
