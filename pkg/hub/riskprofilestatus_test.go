@@ -26,13 +26,25 @@ import (
 	"testing"
 )
 
-func TestRiskProfileStatusJSON(t *testing.T) {
+func TestRiskProfileStatusMarshalJSON(t *testing.T) {
 	jsonBytes, err := json.Marshal(RiskProfileStatusHigh)
 	if err != nil {
 		panic(err)
 	}
 	actual := string(jsonBytes)
 	expected := `"HIGH"`
+	if actual != expected {
+		t.Errorf("expected %s, got %s", expected, actual)
+	}
+}
+
+func TestRiskProfileStatusUnmarshalJSON(t *testing.T) {
+	var actual RiskProfileStatus
+	err := json.Unmarshal([]byte(`"OK"`), &actual)
+	if err != nil {
+		panic(err)
+	}
+	expected := RiskProfileStatusOK
 	if actual != expected {
 		t.Errorf("expected %s, got %s", expected, actual)
 	}

@@ -22,6 +22,7 @@ under the License.
 package hub
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -57,6 +58,29 @@ func (r RiskProfileCategory) String() string {
 // 	return []byte(jsonString), nil
 // }
 
+func (r *RiskProfileCategory) UnmarshalJSON(data []byte) error {
+	var str string
+	err := json.Unmarshal(data, &str)
+	if err != nil {
+		return err
+	}
+	status, err := parseHubRiskProfileCategory(str)
+	if err != nil {
+		return err
+	}
+	*r = status
+	return nil
+}
+
 func (r RiskProfileCategory) MarshalText() (text []byte, err error) {
 	return []byte(r.String()), nil
+}
+
+func (r *RiskProfileCategory) UnmarshalText(text []byte) (err error) {
+	status, err := parseHubRiskProfileCategory(string(text))
+	if err != nil {
+		return err
+	}
+	*r = status
+	return nil
 }
