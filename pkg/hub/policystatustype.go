@@ -52,3 +52,12 @@ func (p PolicyStatusType) MarshalJSON() ([]byte, error) {
 func (p PolicyStatusType) MarshalText() (text []byte, err error) {
 	return []byte(p.String()), nil
 }
+
+func (p *PolicyStatusType) UnmarshalText(text []byte) (err error) {
+	status, err := parseHubPolicyStatusType(string(text))
+	if err != nil {
+		return err
+	}
+	*p = status
+	return nil
+}

@@ -21,7 +21,10 @@ under the License.
 
 package hub
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type RiskProfileStatus int
 
@@ -55,6 +58,29 @@ func (r RiskProfileStatus) MarshalJSON() ([]byte, error) {
 	return []byte(jsonString), nil
 }
 
+func (r *RiskProfileStatus) UnmarshalJSON(data []byte) error {
+	var str string
+	err := json.Unmarshal(data, &str)
+	if err != nil {
+		return err
+	}
+	status, err := parseHubRiskProfileStatus(str)
+	if err != nil {
+		return err
+	}
+	*r = status
+	return nil
+}
+
 func (r RiskProfileStatus) MarshalText() (text []byte, err error) {
 	return []byte(r.String()), nil
+}
+
+func (r *RiskProfileStatus) UnmarshalText(text []byte) (err error) {
+	status, err := parseHubRiskProfileStatus(string(text))
+	if err != nil {
+		return err
+	}
+	*r = status
+	return nil
 }
