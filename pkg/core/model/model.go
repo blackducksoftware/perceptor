@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package model
 
 import (
 	"fmt"
@@ -64,6 +64,9 @@ func (model *Model) DeletePod(podName string) {
 // adding them into the cache.
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
+	if len(newPod.Containers) == 0 {
+		log.Warnf("adding pod %s with 0 containers: %+v", newPod.QualifiedName(), newPod)
+	}
 	for _, newCont := range newPod.Containers {
 		model.AddImage(newCont.Image)
 	}
@@ -305,19 +308,17 @@ func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
 	policyViolationCount := 0
 	vulnerabilityCount := 0
 	for _, container := range pod.Containers {
-		imageInfo, ok := model.Images[container.Image.Sha]
-		if !ok {
-			return nil, fmt.Errorf("could not find image of sha %s in cache", container.Image.Sha)
+		imageScan, err := model.ScanResultsForImage(container.Image.Sha)
+		if err != nil {
+			log.Errorf("unable to get scan results for image %s: %s", container.Image.Sha, err.Error())
+			return nil, err
 		}
-		if imageInfo.ScanStatus != ScanStatusComplete {
+		if imageScan == nil {
 			return nil, nil
 		}
-		if imageInfo.ScanResults == nil {
-			return nil, fmt.Errorf("could not find scan results for completed image %s", container.Image.Sha)
-		}
-		policyViolationCount += imageInfo.ScanResults.PolicyViolationCount()
-		vulnerabilityCount += imageInfo.ScanResults.VulnerabilityCount()
-		imageScanOverallStatus := imageInfo.ScanResults.OverallStatus()
+		policyViolationCount += imageScan.PolicyViolations
+		vulnerabilityCount += imageScan.Vulnerabilities
+		imageScanOverallStatus := imageScan.OverallStatus
 		if imageScanOverallStatus != hub.PolicyStatusTypeNotInViolation {
 			overallStatus = imageScanOverallStatus
 		}
@@ -327,6 +328,26 @@ func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
 		PolicyViolations: policyViolationCount,
 		Vulnerabilities:  vulnerabilityCount}
 	return podScan, nil
+}
+
+func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return nil, fmt.Errorf("could not find image of sha %s in cache", sha)
+	}
+
+	if imageInfo.ScanStatus != ScanStatusComplete {
+		return nil, nil
+	}
+	if imageInfo.ScanResults == nil {
+		return nil, fmt.Errorf("model inconsistency: could not find scan results for completed image %s", sha)
+	}
+
+	imageScan := &ImageScan{
+		OverallStatus:    imageInfo.ScanResults.OverallStatus(),
+		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
+		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
+	return imageScan, nil
 }
 
 func (model *Model) Metrics() *ModelMetrics {

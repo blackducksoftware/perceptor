@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package model
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -47,9 +47,8 @@ func ApiPodToCorePod(apiPod api.Pod) *Pod {
 // model -> api
 
 func (model *Model) ScanResults() api.ScanResults {
-	pods := []api.ScannedPod{}
-	images := []api.ScannedImage{}
 	// pods
+	pods := []api.ScannedPod{}
 	for podName, pod := range model.Pods {
 		podScan, err := model.ScanResultsForPod(podName)
 		if err != nil {
@@ -67,30 +66,27 @@ func (model *Model) ScanResults() api.ScanResults {
 			Vulnerabilities:  podScan.Vulnerabilities,
 			OverallStatus:    podScan.OverallStatus})
 	}
+
 	// images
-	for _, imageInfo := range model.Images {
+	images := []api.ScannedImage{}
+	for sha, imageInfo := range model.Images {
 		if imageInfo.ScanStatus != ScanStatusComplete {
 			continue
 		}
-		componentsURL := ""
-		overallStatus := ""
-		policyViolations := 0
-		vulnerabilities := 0
-		if imageInfo.ScanResults != nil {
-			policyViolations = imageInfo.ScanResults.PolicyViolationCount()
-			vulnerabilities = imageInfo.ScanResults.VulnerabilityCount()
-			componentsURL = imageInfo.ScanResults.ComponentsHref
-			overallStatus = imageInfo.ScanResults.OverallStatus().String()
+		if imageInfo.ScanResults == nil {
+			log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
+			continue
 		}
 		image := imageInfo.Image()
 		apiImage := api.ScannedImage{
 			Name:             image.HumanReadableName(),
 			Sha:              string(image.Sha),
-			PolicyViolations: policyViolations,
-			Vulnerabilities:  vulnerabilities,
-			OverallStatus:    overallStatus,
-			ComponentsURL:    componentsURL}
+			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
+			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
+			OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
+			ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
 		images = append(images, apiImage)
 	}
+
 	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
 }
