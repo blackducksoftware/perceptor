@@ -22,29 +22,33 @@ under the License.
 package api
 
 import (
-	"net/http"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
-type Responder interface {
-	GetModel() Model
+type Model struct {
+	Pods                map[string]*Pod
+	Images              map[string]*ModelImageInfo
+	ImageScanQueue      []string
+	ImageHubCheckQueue  []string
+	ConcurrentScanLimit int
+	Config              *ModelConfig
+	HubVersion          string
+}
 
-	// perceiver
-	AddPod(pod Pod)
-	UpdatePod(pod Pod)
-	DeletePod(qualifiedName string)
-	GetScanResults() ScanResults
-	AddImage(image Image)
-	UpdateAllPods(allPods AllPods)
-	UpdateAllImages(allImages AllImages)
+type ModelConfig struct {
+	HubHost             string
+	HubUser             string
+	HubPassword         string
+	ConcurrentScanLimit int
+	UseMockMode         bool
+	Port                int
+	LogLevel            string
+}
 
-	// scanner
-	GetNextImage() NextImage
-	PostFinishScan(job FinishedScanClientJob)
-
-	// internal use
-	SetConcurrentScanLimit(limit SetConcurrentScanLimit)
-
-	// errors
-	NotFound(w http.ResponseWriter, r *http.Request)
-	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
+type ModelImageInfo struct {
+	ScanStatus             string
+	TimeOfLastStatusChange string
+	ScanResults            *hub.ImageScan
+	ImageSha               string
+	ImageNames             []string
 }

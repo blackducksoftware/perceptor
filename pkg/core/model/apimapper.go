@@ -46,6 +46,76 @@ func ApiPodToCorePod(apiPod api.Pod) *Pod {
 
 // model -> api
 
+func CoreContainerToApiContainer(coreContainer Container) *api.Container {
+	return &api.Container{
+		Image: api.Image{
+			Name: coreContainer.Image.Name,
+			Sha:  string(coreContainer.Image.Sha),
+		},
+		Name: coreContainer.Name,
+	}
+}
+
+func CorePodToApiPod(corePod Pod) *api.Pod {
+	containers := []api.Container{}
+	for _, coreContainer := range corePod.Containers {
+		containers = append(containers, *CoreContainerToApiContainer(coreContainer))
+	}
+	return &api.Pod{
+		Containers: containers,
+		Name:       corePod.Name,
+		Namespace:  corePod.Namespace,
+		UID:        corePod.UID,
+	}
+}
+
+func (model *Model) APIModel() *api.Model {
+	// pods
+	pods := map[string]*api.Pod{}
+	for podName, pod := range model.Pods {
+		pods[podName] = CorePodToApiPod(pod)
+	}
+	// images
+	images := map[string]*api.ModelImageInfo{}
+	for imageSha, imageInfo := range model.Images {
+		images[string(imageSha)] = &api.ModelImageInfo{
+			ImageNames:             imageInfo.ImageNames,
+			ImageSha:               string(imageInfo.ImageSha),
+			ScanResults:            imageInfo.ScanResults,
+			ScanStatus:             imageInfo.ScanStatus.String(),
+			TimeOfLastStatusChange: imageInfo.TimeOfLastStatusChange.String(),
+		}
+	}
+	// hub check queue
+	hubQueue := []string{}
+	for _, image := range model.ImageHubCheckQueue {
+		hubQueue = append(hubQueue, string(image))
+	}
+	// scan queue
+	scanQueue := []string{}
+	for _, image := range model.ImageScanQueue {
+		scanQueue = append(scanQueue, string(image))
+	}
+	// return value
+	return &api.Model{
+		Pods:   pods,
+		Images: images,
+		Config: &api.ModelConfig{
+			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
+			HubHost:             model.Config.HubHost,
+			HubPassword:         "...redacted...",
+			HubUser:             model.Config.HubUser,
+			LogLevel:            model.Config.LogLevel,
+			Port:                model.Config.Port,
+			UseMockMode:         model.Config.UseMockMode,
+		},
+		ConcurrentScanLimit: model.ConcurrentScanLimit,
+		HubVersion:          model.HubVersion,
+		ImageHubCheckQueue:  hubQueue,
+		ImageScanQueue:      scanQueue,
+	}
+}
+
 func (model *Model) ScanResults() api.ScanResults {
 	// pods
 	pods := []api.ScannedPod{}
