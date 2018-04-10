@@ -209,7 +209,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	case 1:
 		break // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one code location of name %s, found %d", image.HubScanNameSearchString(), len(codeLocations))
+		log.Errorf("We saw more then one code location.  We will proceed, but your hub might have issues. See https://github.com/blackducksoftware/perceptor/issues/134...")
 	}
 
 	codeLocation := codeLocations[0]
