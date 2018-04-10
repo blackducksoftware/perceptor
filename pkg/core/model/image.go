@@ -35,18 +35,22 @@ func NewImage(name string, sha DockerImageSha) *Image {
 	return &Image{Name: name, Sha: sha}
 }
 
+func (image Image) shaPrefix() string {
+	return string(image.Sha)[:20]
+}
+
 // These strings are for the scanner
 
 func (image Image) HubProjectName() string {
-	return fmt.Sprintf("%s-%s", image.Name, string(image.Sha))
+	return fmt.Sprintf("%s-%s", image.Name, image.shaPrefix())
 }
 
 func (image Image) HubProjectVersionName() string {
-	return string(image.Sha)
+	return image.shaPrefix()
 }
 
 func (image Image) HubScanName() string {
-	return string(image.Sha)
+	return image.shaPrefix()
 }
 
 // These strings are for the hub fetcher
@@ -60,15 +64,15 @@ func (image Image) HubScanName() string {
 //  - have a meaningful, human-readable hub project name
 
 func (image Image) HubProjectNameSearchString() string {
-	return string(image.Sha)
+	return image.shaPrefix()
 }
 
 func (image Image) HubProjectVersionNameSearchString() string {
-	return string(image.Sha)
+	return image.shaPrefix()
 }
 
 func (image Image) HubScanNameSearchString() string {
-	return string(image.Sha)
+	return image.shaPrefix()
 }
 
 // HumanReadableName returns a nice, easy to read string
