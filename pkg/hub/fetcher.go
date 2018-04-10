@@ -106,12 +106,17 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 		return nil, err
 	}
 	projects := projectList.Items
-	if len(projects) == 0 {
+	switch len(projects) {
+	case 0:
+		recordHubData("projects", true)
 		return nil, nil
+	case 1:
+		recordHubData("projects", true) // good to go
+	default:
+		recordHubData("projects", false)
+		log.Warnf("expected 1 project matching name search string %s, found %d", image.HubProjectNameSearchString(), len(projects))
 	}
-	if len(projects) > 1 {
-		return nil, fmt.Errorf("expected 1 project matching name search string %s, found %d", image.HubProjectNameSearchString(), len(projects))
-	}
+
 	project := projects[0]
 	return hf.fetchImageScanUsingProject(project, image)
 }
@@ -144,11 +149,13 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	switch len(versions) {
 	case 0:
+		recordHubData("project versions", true)
 		return nil, nil
 	case 1:
-		break // good to go, continue
+		recordHubData("project versions", true) // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one project version of name %s, found %d", image.HubProjectVersionNameSearchString(), len(versions))
+		recordHubData("project versions", false)
+		log.Warnf("expected to find one project version of name %s, found %d", image.HubProjectVersionNameSearchString(), len(versions))
 	}
 
 	version := versions[0]
@@ -205,11 +212,13 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	switch len(codeLocations) {
 	case 0:
+		recordHubData("code locations", true)
 		return nil, nil
 	case 1:
-		break // good to go, continue
+		recordHubData("code locations", true) // good to go, continue
 	default:
-		log.Errorf("We saw more then one code location.  We will proceed, but your hub might have issues. See https://github.com/blackducksoftware/perceptor/issues/134...")
+		recordHubData("code locations", false)
+		log.Warnf("Found %d code locations for version %s, expected 1", len(codeLocations), version.VersionName)
 	}
 
 	codeLocation := codeLocations[0]
@@ -235,11 +244,13 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 
 	switch len(scanSummaries) {
 	case 0:
+		recordHubData("scan summaries", true)
 		return nil, nil
 	case 1:
-		break // good to go, continue
+		recordHubData("scan summaries", true) // good to go, continue
 	default:
-		return nil, fmt.Errorf("expected to find one scan summary for code location %s, found %d", image.HubScanNameSearchString(), len(scanSummariesList.Items))
+		recordHubData("scan summaries", false)
+		log.Warnf("expected to find one scan summary for code location %s, found %d", image.HubScanNameSearchString(), len(scanSummariesList.Items))
 	}
 
 	scanSummary := scanSummaries[0]
