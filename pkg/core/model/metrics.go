@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var eventsCounter *prometheus.CounterVec
 var stateTransitionCounter *prometheus.CounterVec
 
 func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
@@ -34,6 +35,10 @@ func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
 		"from":  from.String(),
 		"to":    to.String(),
 		"legal": fmt.Sprintf("%t", isLegal)}).Inc()
+}
+
+func recordEvent(event string) {
+	eventsCounter.With(prometheus.Labels{"event": event}).Inc()
 }
 
 func init() {
@@ -44,6 +49,13 @@ func init() {
 		Help:        "state transitions for images in the perceptor model",
 		ConstLabels: map[string]string{},
 	}, []string{"from", "to", "legal"})
-
 	prometheus.MustRegister(stateTransitionCounter)
+
+	eventsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "events",
+		Help:      "counters for events happening in the core",
+	}, []string{"event"})
+	prometheus.MustRegister(eventsCounter)
 }
