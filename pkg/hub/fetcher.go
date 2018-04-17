@@ -30,10 +30,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	hubClientTimeout = 5 * time.Second
-)
-
 type Fetcher struct {
 	client     hubclient.Client
 	hubVersion string
@@ -64,7 +60,8 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, baseURL string) (*Fetcher, error) {
+func NewFetcher(username string, password string, baseURL string, hubClientTimeoutSeconds int) (*Fetcher, error) {
+	hubClientTimeout := time.Second * time.Duration(hubClientTimeoutSeconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
 		return nil, err
