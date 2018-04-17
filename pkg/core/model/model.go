@@ -65,6 +65,7 @@ func (model *Model) DeletePod(podName string) {
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	if len(newPod.Containers) == 0 {
+		recordEvent("adding pod with 0 containers")
 		log.Warnf("adding pod %s with 0 containers: %+v", newPod.QualifiedName(), newPod)
 	}
 	for _, newCont := range newPod.Containers {
