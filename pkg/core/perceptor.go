@@ -86,7 +86,7 @@ func NewPerceptor(config *model.Config) (*Perceptor, error) {
 	}
 
 	baseURL := "https://" + config.HubHost
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, baseURL)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, baseURL, config.HubClientTimeoutSeconds)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
