@@ -35,6 +35,7 @@ type Config struct {
 	HubUser                 string
 	HubUserPasswordEnvVar   string
 	HubClientTimeoutSeconds int
+	HubPort                 int
 	ConcurrentScanLimit     int
 	UseMockMode             bool
 	Port                    int
