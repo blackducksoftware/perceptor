@@ -23,12 +23,14 @@ package main
 
 import (
 	//	"encoding/json"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
-	//	"github.com/blackducksoftware/perceptor/pkg/hub"
+	model "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,19 +74,21 @@ func listProjects() {
 }
 
 func HitHubAPI(projectName string) {
-	// pf, err := hub.NewFetcher(username, password, baseURL)
-	// if err != nil {
-	//	panic("unable to instantiate ProjectFetcher: " + err.Error())
-	// }
+	pf, err := hub.NewFetcher(username, password, baseURL, 120)
+	if err != nil {
+		panic("unable to instantiate ProjectFetcher: " + err.Error())
+	}
 
-	panic("unimplemented")
-	// project, err := pf.FetchProjectByName(projectName)
-	// if err != nil {
-	//	panic("unable to fetch project " + projectName + "; " + err.Error())
-	// }
-	// bytes, _ := json.Marshal(project)
-	// log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
-	// log.Infof("bytes: %d", len(bytes))
+	// panic("unimplemented")
+	//	pf.FetchScanFromImage(image)
+	image := model.NewImage("abc", model.DockerImageSha("9302549c9fc9e3e81d3c1cb8c2d643e7c7d6234ff91585aafc47cb76bbee7d72"))
+	project, err := pf.FetchScanFromImage(image)
+	if err != nil {
+		panic("unable to fetch project " + projectName + "; " + err.Error())
+	}
+	bytes, _ := json.Marshal(project)
+	log.Infof("fetched project: %v \n\nwith json: %v", project, string(bytes[:]))
+	log.Infof("bytes: %d", len(bytes))
 }
 
 func exampleHubAPI() {
