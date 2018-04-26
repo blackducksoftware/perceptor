@@ -23,6 +23,7 @@ package hub
 
 import (
 	"testing"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,6 +31,7 @@ import (
 func TestMetrics(t *testing.T) {
 	recordHubData("abc", true)
 	recordHubResponse("qrs", false)
+	recordHubResponseTime("abc", time.Now().Sub(time.Now()))
 
 	message := "finished test case"
 	t.Log(message)

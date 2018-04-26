@@ -39,12 +39,16 @@ type Fetcher struct {
 }
 
 func (hf *Fetcher) Login() error {
+	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)
+	recordHubResponseTime("login", time.Now().Sub(start))
 	return err
 }
 
 func (hf *Fetcher) fetchHubVersion() error {
+	start := time.Now()
 	currentVersion, err := hf.client.CurrentVersion()
+	recordHubResponseTime("version", time.Now().Sub(start))
 	if err != nil {
 		log.Errorf("unable to get hub version: %s", err.Error())
 		return err
@@ -94,8 +98,9 @@ func (hf *Fetcher) HubVersion() string {
 // - a completed status
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
+	startGetProjects := time.Now()
 	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
-
+	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
 	recordHubResponse("projects", err == nil)
 
 	if err != nil {
@@ -128,8 +133,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	}
 	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionNameSearchString())
 	options := hubapi.GetListOptions{Q: &q}
+	startGetVersions := time.Now()
 	versionList, err := client.ListProjectVersions(*link, &options)
-
+	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
 	recordHubResponse("projectVersions", err == nil)
 
 	if err != nil {
@@ -163,7 +169,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 
+	startGetRiskProfile := time.Now()
 	riskProfile, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
+	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
 	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version risk profile: %v", err)
@@ -175,7 +183,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting policy status link: %v", err)
 		return nil, err
 	}
+	startGetPolicyStatus := time.Now()
 	policyStatus, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
 	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version policy status: %v", err)
@@ -193,7 +203,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting code locations link: %v", err)
 		return nil, err
 	}
+	startGetCodeLocations := time.Now()
 	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink)
+	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
 	recordHubResponse("codeLocations", err == nil)
 	if err != nil {
 		log.Errorf("error fetching code locations: %v", err)
@@ -225,7 +237,9 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting scan summaries link: %v", err)
 		return nil, err
 	}
+	startGetScanSummaries := time.Now()
 	scanSummariesList, err := client.ListScanSummaries(*scanSummariesLink)
+	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
 	recordHubResponse("scanSummaries", err == nil)
 	if err != nil {
 		log.Errorf("error fetching scan summaries: %v", err)

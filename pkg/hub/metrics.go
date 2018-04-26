@@ -23,12 +23,14 @@ package hub
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 var hubResponse *prometheus.CounterVec
 var hubData *prometheus.CounterVec
+var hubResponseTime *prometheus.HistogramVec
 
 func recordHubResponse(name string, isSuccessful bool) {
 	isSuccessString := fmt.Sprintf("%t", isSuccessful)
@@ -38,6 +40,11 @@ func recordHubResponse(name string, isSuccessful bool) {
 func recordHubData(name string, isOkay bool) {
 	isOkayString := fmt.Sprintf("%t", isOkay)
 	hubData.With(prometheus.Labels{"name": name, "okay": isOkayString}).Inc()
+}
+
+func recordHubResponseTime(name string, duration time.Duration) {
+	milliseconds := float64(duration / time.Millisecond)
+	hubResponseTime.With(prometheus.Labels{"name": name}).Observe(milliseconds)
 }
 
 func init() {
@@ -58,4 +65,13 @@ func init() {
 		ConstLabels: map[string]string{},
 	}, []string{"name", "okay"})
 	prometheus.MustRegister(hubData)
+
+	hubResponseTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "hub_response_time",
+		Help:      "tracks the response times of Hub requests in milliseconds",
+		Buckets:   prometheus.ExponentialBuckets(1, 2, 20),
+	}, []string{"name"})
+	prometheus.MustRegister(hubResponseTime)
 }
