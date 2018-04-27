@@ -27,39 +27,44 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type HubRecheckResults struct {
+type FetchScanCompletion struct {
 	Scan *m.HubImageScan
 }
 
-func (h *HubRecheckResults) Apply(model *m.Model) {
+func (h *FetchScanCompletion) Apply(model *m.Model) {
 	scan := h.Scan
+
+	// case 1: error
+	if scan.Err != nil {
+		log.Errorf("error checking hub for completed scan for sha %s: %s", scan.Sha, scan.Err.Error())
+		return
+	}
+
+	// case 2: nil
+	if scan.Scan == nil {
+		log.Debugf("found nil checking hub for completed scan for image %s", string(scan.Sha))
+		return
+	}
+
+	// case 3: found it, and it's not done
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
+		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		return
+	}
+
+	// case 4: found it, and it failed.  Put it back in the scan queue
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		return
+	}
+
+	// case 5: found it, and it's done
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
 		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
 		return
 	}
 
-	// case 1: unable to fetch scan results
-	if scan.Err != nil {
-		log.Errorf("unable to fetch updated scan results for sha %s: %s", scan.Sha, scan.Err.Error())
-		return
-	}
-
-	// 2. successfully hit hub, but didn't find project
-	//   not sure why this would happen -- we should ALWAYS find the hub project
-	//   unless something else deleted it
-	if scan.Scan == nil {
-		log.Errorf("unable to fetch updated scan results for sha %s: got nil", scan.Sha)
-		return
-	}
-
-	// 3. scan is not done or is failure -- not sure why this would happen
-	if scan.Scan.ScanSummaryStatus() != hub.ScanSummaryStatusSuccess {
-		log.Errorf("found scan for sha %s in status %s, expected completed scan", scan.Sha, scan.Scan.ScanSummaryStatus())
-		return
-	}
-
-	// 4. successfully found project: update the image results
-	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
 	imageInfo.ScanResults = scan.Scan
+	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 }

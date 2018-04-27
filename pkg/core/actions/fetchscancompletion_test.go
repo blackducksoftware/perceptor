@@ -36,9 +36,9 @@ func hubCheckModel() *m.Model {
 	return model
 }
 
-func TestHubCheckResultsError(t *testing.T) {
+func TestFetchScanCompletionError(t *testing.T) {
 	model := hubCheckModel()
-	hc := HubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
+	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
 	hc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -48,9 +48,9 @@ func TestHubCheckResultsError(t *testing.T) {
 	}
 }
 
-func TestHubCheckResultsNotFound(t *testing.T) {
+func TestFetchScanCompletionNotFound(t *testing.T) {
 	model := hubCheckModel()
-	hc := HubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
+	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
 	hc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -60,9 +60,9 @@ func TestHubCheckResultsNotFound(t *testing.T) {
 	}
 }
 
-func TestHubCheckResultsInProgress(t *testing.T) {
+func TestFetchScanCompletionInProgress(t *testing.T) {
 	model := hubCheckModel()
-	hc := HubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
+	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
 	hc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -72,9 +72,9 @@ func TestHubCheckResultsInProgress(t *testing.T) {
 	}
 }
 
-func TestHubCheckResultsFailed(t *testing.T) {
+func TestFetchScanCompletionFailed(t *testing.T) {
 	model := hubCheckModel()
-	hc := HubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
+	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
 	hc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -84,9 +84,9 @@ func TestHubCheckResultsFailed(t *testing.T) {
 	}
 }
 
-func TestHubCheckResultsSuccess(t *testing.T) {
+func TestFetchScanCompletionSuccess(t *testing.T) {
 	model := hubCheckModel()
-	hc := HubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}
+	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}
 	hc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
