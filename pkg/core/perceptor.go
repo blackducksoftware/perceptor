@@ -181,8 +181,11 @@ func (perceptor *Perceptor) startPollingHubForScanCompletion() {
 	for {
 		time.Sleep(checkHubForCompletedScansPause)
 		log.Debug("checking hub for completion of running hub scans")
-		perceptor.actions <- &a.CheckScansCompletion{func(images []model.Image) {
-			for _, image := range images {
+		perceptor.actions <- &a.CheckScansCompletion{func(images *[]model.Image) {
+			if images == nil {
+				return
+			}
+			for _, image := range *images {
 				scan, err := perceptor.hubClient.FetchScanFromImage(image)
 				perceptor.actions <- &a.FetchScanCompletion{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
 				time.Sleep(checkHubThrottle)
