@@ -22,13 +22,15 @@ under the License.
 package actions
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type DebugGetModel struct {
-	Continuation func(model *m.Model)
-}
+func TestMetrics(t *testing.T) {
+	recordRequeueStalledScan("abc")
 
-func (d *DebugGetModel) Apply(model *m.Model) {
-	go d.Continuation(model)
+	message := "finished test case"
+	t.Log(message)
+	log.Info(message)
 }
