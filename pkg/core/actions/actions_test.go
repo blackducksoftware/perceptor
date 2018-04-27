@@ -106,7 +106,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&AllPods{})
 	processAction(&GetNextImage{})
 	processAction(&FinishScanClient{})
-	processAction(&GetInitialHubCheckImage{})
+	processAction(&CheckScanInitial{})
 	processAction(&FetchScanInitial{})
 	processAction(&FetchScanCompletion{})
 	processAction(&RequeueStalledScans{})
@@ -115,9 +115,9 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&GetModel{})
 	processAction(&GetMetrics{})
 	processAction(&GetScanResults{})
-	processAction(&GetRunningHubScans{})
+	processAction(&CheckScansCompletion{})
 	processAction(&FetchScanRefresh{})
-	processAction(&GetCompletedScans{})
+	processAction(&CheckScanRefresh{})
 }
 
 func processAction(nextAction Action) {

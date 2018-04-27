@@ -22,6 +22,7 @@ under the License.
 package actions
 
 import (
+	"sync"
 	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
@@ -41,4 +42,47 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	assertEqual(t, nextImage, nil)
 	log.Infof("%+v, %+v", actual, expected)
 	// assertEqual(t, actual, expected)
+}
+
+func TestGetNextImage(t *testing.T) {
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model.AddImage(image1)
+	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+
+	var nextImage *m.Image
+	var wg sync.WaitGroup
+	wg.Add(1)
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+		wg.Done()
+	}}).Apply(model)
+	wg.Wait()
+
+	// TODO expected: front image removed from scan queue, status and time of image changed
+	if nextImage == nil {
+		t.Errorf("expected %+v, got nil", image1)
+	} else if *nextImage != image1 {
+		t.Errorf("expected %+v, got %+v", nextImage, image1)
+	}
+}
+
+func TestGetNextImageHubInaccessible(t *testing.T) {
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model.AddImage(image1)
+	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+	model.IsHubAccessible = false
+
+	var nextImage *m.Image
+	var wg sync.WaitGroup
+	wg.Add(1)
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+		wg.Done()
+	}}).Apply(model)
+	wg.Wait()
+
+	// TODO expected: front image removed from scan queue, status and time of image changed
+	if nextImage != nil {
+		t.Errorf("expected nil, got %+v", nextImage)
+	}
 }

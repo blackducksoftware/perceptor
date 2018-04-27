@@ -23,15 +23,15 @@ package actions
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/prometheus/common/log"
 )
 
-type GetInitialHubCheckImage struct {
+type CheckScanRefresh struct {
 	Continuation func(image *m.Image)
 }
 
-func (g *GetInitialHubCheckImage) Apply(model *m.Model) {
-	log.Debugf("looking for next image to search for in hub")
-	image := model.GetNextImageFromHubCheckQueue()
+func (g *CheckScanRefresh) Apply(model *m.Model) {
+	log.Debugf("looking for next image to refresh in the hub")
+	image := model.GetNextImageFromRefreshQueue()
 	go g.Continuation(image)
 }

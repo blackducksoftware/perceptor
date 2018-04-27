@@ -38,7 +38,7 @@ func requeueTestModel() *m.Model {
 	return model
 }
 
-func TestRequeueStalledScanClientAndHubScans(t *testing.T) {
+func TestRequeueStalledScanClientButNotHubScans(t *testing.T) {
 	model := requeueTestModel()
 
 	if model.Images[image1.Sha].ScanStatus != m.ScanStatusRunningScanClient {
@@ -49,10 +49,10 @@ func TestRequeueStalledScanClientAndHubScans(t *testing.T) {
 	r := RequeueStalledScans{StalledHubScanTimeout: 1 * time.Nanosecond, StalledScanClientTimeout: 1 * time.Nanosecond}
 	r.Apply(model)
 
-	for _, sha := range []m.DockerImageSha{image1.Sha, image2.Sha} {
+	for _, sha := range []m.DockerImageSha{image1.Sha} {
 		actual := model.Images[sha].ScanStatus
 		if actual != m.ScanStatusInQueue {
-			t.Errorf("expected scan to be in queue, is actually %s", actual)
+			t.Errorf("expected scan %s to be in queue, is actually %s", sha, actual)
 		}
 	}
 }

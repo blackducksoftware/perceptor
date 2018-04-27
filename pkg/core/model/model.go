@@ -35,9 +35,11 @@ type Model struct {
 	Images              map[DockerImageSha]*ImageInfo
 	ImageScanQueue      []DockerImageSha
 	ImageHubCheckQueue  []DockerImageSha
+	ImageRefreshQueue   []DockerImageSha
 	ConcurrentScanLimit int
 	Config              *Config
 	HubVersion          string
+	IsHubAccessible     bool
 }
 
 func NewModel(config *Config, hubVersion string) *Model {
@@ -46,9 +48,11 @@ func NewModel(config *Config, hubVersion string) *Model {
 		Images:              make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue:      []DockerImageSha{},
 		ImageHubCheckQueue:  []DockerImageSha{},
+		ImageRefreshQueue:   []DockerImageSha{},
 		ConcurrentScanLimit: config.ConcurrentScanLimit,
 		Config:              config,
-		HubVersion:          hubVersion}
+		HubVersion:          hubVersion,
+		IsHubAccessible:     true}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
@@ -226,6 +230,11 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 		return nil
 	}
 
+	if !model.IsHubAccessible {
+		log.Debug("hub not accessible -- can't get next item from hub check queue")
+		return nil
+	}
+
 	first := model.ImageHubCheckQueue[0]
 	image := model.unsafeGet(first).Image()
 
@@ -243,12 +252,50 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 		return nil
 	}
 
+	if !model.IsHubAccessible {
+		log.Debug("hub not accessible -- can't start a new scan")
+		return nil
+	}
+
 	first := model.ImageScanQueue[0]
 	image := model.unsafeGet(first).Image()
 
 	model.SetImageScanStatus(first, ScanStatusRunningScanClient)
 
 	return &image
+}
+
+func (model *Model) GetNextImageFromRefreshQueue() *Image {
+	if len(model.ImageRefreshQueue) == 0 {
+		log.Debug("refresh queue empty")
+		return nil
+	}
+
+	if !model.IsHubAccessible {
+		log.Debug("cannot get next image: hub is not accessible")
+		return nil
+	}
+
+	first := model.ImageRefreshQueue[0]
+	image := model.unsafeGet(first).Image()
+
+	return &image
+}
+
+func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
+	index := -1
+	for i := 0; i < len(model.ImageRefreshQueue); i++ {
+		if model.ImageRefreshQueue[i] == sha {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return fmt.Errorf("unable to remove sha %s from refresh queue, not found", string(sha))
+	}
+
+	model.ImageRefreshQueue = append(model.ImageRefreshQueue[:index], model.ImageRefreshQueue[index+1:]...)
+	return nil
 }
 
 func (model *Model) FinishRunningScanClient(image *Image, scanClientError error) {
@@ -288,7 +335,10 @@ func (model *Model) InProgressScanCount() int {
 	return len(model.InProgressScans())
 }
 
-func (model *Model) InProgressHubScans() []Image {
+func (model *Model) InProgressHubScans() *([]Image) {
+	if !model.IsHubAccessible {
+		return nil
+	}
 	inProgressHubScans := []Image{}
 	for _, imageInfo := range model.Images {
 		switch imageInfo.ScanStatus {
@@ -296,7 +346,7 @@ func (model *Model) InProgressHubScans() []Image {
 			inProgressHubScans = append(inProgressHubScans, imageInfo.Image())
 		}
 	}
-	return inProgressHubScans
+	return &inProgressHubScans
 }
 
 func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {

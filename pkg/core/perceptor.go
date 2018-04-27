@@ -40,10 +40,9 @@ const (
 
 	checkForStalledScansPause = 1 * time.Minute
 	stalledScanClientTimeout  = 30 * time.Minute
-	stalledHubScanTimeout     = 1 * time.Hour
+	stalledHubScanTimeout     = 1 * time.Hour // TODO get rid of this?  or change to something very high?
 
-	recheckHubForUpdatesPause = 1 * time.Hour
-	recheckHubThrottle        = 5 * time.Second
+	refreshImagePause = 1 * time.Second
 
 	modelMetricsPause = 15 * time.Second
 
@@ -144,8 +143,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 
 	// 5. start regular tasks -- hitting the hub for results, checking for
 	//    stalled scans, model metrics
-	go perceptor.startInitialCheckingForImagesInHub()
-	go perceptor.startPollingHubForCompletedScans()
+	go perceptor.startHubInitialScanChecking()
+	go perceptor.startPollingHubForScanCompletion()
 	go perceptor.startCheckingForStalledScanClientScans()
 	go perceptor.startGeneratingModelMetrics()
 	go perceptor.startCheckingForUpdatesForCompletedScans()
@@ -155,12 +154,12 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 	return &perceptor
 }
 
-func (perceptor *Perceptor) startInitialCheckingForImagesInHub() {
+func (perceptor *Perceptor) startHubInitialScanChecking() {
 	for {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		var image *model.Image
-		perceptor.actions <- &a.GetInitialHubCheckImage{func(i *model.Image) {
+		perceptor.actions <- &a.CheckScanInitial{func(i *model.Image) {
 			image = i
 			wg.Done()
 		}}
@@ -177,12 +176,12 @@ func (perceptor *Perceptor) startInitialCheckingForImagesInHub() {
 	}
 }
 
-func (perceptor *Perceptor) startPollingHubForCompletedScans() {
-	log.Info("starting to poll hub for completion of running hub scans")
+func (perceptor *Perceptor) startPollingHubForScanCompletion() {
+	log.Info("starting to poll hub for scan completion")
 	for {
 		time.Sleep(checkHubForCompletedScansPause)
 		log.Debug("checking hub for completion of running hub scans")
-		perceptor.actions <- &a.GetRunningHubScans{func(images []model.Image) {
+		perceptor.actions <- &a.CheckScansCompletion{func(images []model.Image) {
 			for _, image := range images {
 				scan, err := perceptor.hubClient.FetchScanFromImage(image)
 				perceptor.actions <- &a.FetchScanCompletion{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
@@ -215,27 +214,25 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 
 func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 	for {
-		time.Sleep(recheckHubForUpdatesPause)
-
 		log.Info("requesting completed scans for rechecking hub")
 
-		var completedImages []*model.Image
 		var wg sync.WaitGroup
 		wg.Add(1)
-		perceptor.actions <- &a.GetCompletedScans{func(images []*model.Image) {
-			completedImages = images
+		perceptor.actions <- &a.CheckScanRefresh{func(image *model.Image) {
+			if image != nil {
+				log.Debugf("refreshing image %s", image.PullSpec())
+				scan, err := perceptor.hubClient.FetchScanFromImage(*image)
+				perceptor.actions <- &a.FetchScanRefresh{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+			}
 			wg.Done()
 		}}
 		wg.Wait()
 
-		log.Infof("received %d completed scans for rechecking hub", len(completedImages))
-
-		for _, image := range completedImages {
-			time.Sleep(recheckHubThrottle)
-			log.Debugf("rechecking hub for image %s", image.PullSpec())
-			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-			perceptor.actions <- &a.FetchScanRefresh{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
-		}
+		// TODO what should this constant be set to?
+		// it's okay if this gets run a lot, and really quickly -- since if the hub
+		// becomes unreachable, the circuit breaker will trip
+		// and if nothing needs to be refreshed, then this will be cheap
+		time.Sleep(refreshImagePause)
 	}
 }
 

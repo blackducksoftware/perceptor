@@ -25,14 +25,10 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type GetRunningHubScans struct {
-	Continuation func(images []m.Image)
+type CheckScansCompletion struct {
+	Continuation func(images *[]m.Image)
 }
 
-func (g *GetRunningHubScans) Apply(model *m.Model) {
-	scans := []m.Image{}
-	for _, image := range model.InProgressHubScans() {
-		scans = append(scans, image)
-	}
-	go g.Continuation(scans)
+func (g *CheckScansCompletion) Apply(model *m.Model) {
+	go g.Continuation(model.InProgressHubScans())
 }
