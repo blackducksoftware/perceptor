@@ -35,9 +35,9 @@ func initialCheckModel() *m.Model {
 	return model
 }
 
-func TestInitialHubCheckResultsError(t *testing.T) {
+func TestFetchScanInitialError(t *testing.T) {
 	model := initialCheckModel()
-	ihc := InitialHubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
+	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -47,9 +47,9 @@ func TestInitialHubCheckResultsError(t *testing.T) {
 	}
 }
 
-func TestInitialHubCheckResultsNotFound(t *testing.T) {
+func TestFetchScanInitialNotFound(t *testing.T) {
 	model := initialCheckModel()
-	ihc := InitialHubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
+	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -59,10 +59,10 @@ func TestInitialHubCheckResultsNotFound(t *testing.T) {
 	}
 }
 
-func TestInitialHubCheckResultsInProgress(t *testing.T) {
+func TestFetchScanInitialInProgress(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusInProgress}}
-	ihc := InitialHubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
+	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -72,10 +72,10 @@ func TestInitialHubCheckResultsInProgress(t *testing.T) {
 	}
 }
 
-func TestInitialHubCheckResultsFailed(t *testing.T) {
+func TestFetchScanInitialFailed(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusFailure}}
-	ihc := InitialHubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
+	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
@@ -85,10 +85,10 @@ func TestInitialHubCheckResultsFailed(t *testing.T) {
 	}
 }
 
-func TestInitialHubCheckResultsSuccess(t *testing.T) {
+func TestFetchScanInitialSuccess(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusSuccess}}
-	ihc := InitialHubCheckResults{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
+	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan, Err: nil}}
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus

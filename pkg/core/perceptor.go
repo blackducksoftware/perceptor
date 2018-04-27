@@ -168,7 +168,7 @@ func (perceptor *Perceptor) startInitialCheckingForImagesInHub() {
 
 		if image != nil {
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-			perceptor.actions <- &a.InitialHubCheckResults{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+			perceptor.actions <- &a.FetchScanInitial{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 			time.Sleep(checkHubThrottle)
 		} else {
 			// slow down the chatter if we didn't find something
@@ -185,7 +185,7 @@ func (perceptor *Perceptor) startPollingHubForCompletedScans() {
 		perceptor.actions <- &a.GetRunningHubScans{func(images []model.Image) {
 			for _, image := range images {
 				scan, err := perceptor.hubClient.FetchScanFromImage(image)
-				perceptor.actions <- &a.HubCheckResults{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
+				perceptor.actions <- &a.FetchScanCompletion{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
 				time.Sleep(checkHubThrottle)
 			}
 		}}
@@ -234,7 +234,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 			time.Sleep(recheckHubThrottle)
 			log.Debugf("rechecking hub for image %s", image.PullSpec())
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-			perceptor.actions <- &a.HubRecheckResults{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+			perceptor.actions <- &a.FetchScanRefresh{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 		}
 	}
 }

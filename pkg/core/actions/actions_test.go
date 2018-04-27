@@ -107,8 +107,8 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&GetNextImage{})
 	processAction(&FinishScanClient{})
 	processAction(&GetInitialHubCheckImage{})
-	processAction(&InitialHubCheckResults{})
-	processAction(&HubCheckResults{})
+	processAction(&FetchScanInitial{})
+	processAction(&FetchScanCompletion{})
 	processAction(&RequeueStalledScans{})
 	processAction(&SetConcurrentScanLimit{})
 	processAction(&AllImages{})
@@ -116,7 +116,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&GetMetrics{})
 	processAction(&GetScanResults{})
 	processAction(&GetRunningHubScans{})
-	processAction(&HubRecheckResults{})
+	processAction(&FetchScanRefresh{})
 	processAction(&GetCompletedScans{})
 }
 
