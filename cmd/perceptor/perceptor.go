@@ -22,9 +22,14 @@ under the License.
 package main
 
 import (
+	"fmt"
+	"os"
+
 	core "github.com/blackducksoftware/perceptor/pkg/core"
 )
 
 func main() {
-	core.RunPerceptor()
+	configPath := os.Args[1]
+	fmt.Printf("Config path: %s", configPath)
+	core.RunPerceptor(configPath)
 }
