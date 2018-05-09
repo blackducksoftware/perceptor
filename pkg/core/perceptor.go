@@ -40,9 +40,12 @@ const (
 
 	checkForStalledScansPause = 1 * time.Minute
 	stalledScanClientTimeout  = 30 * time.Minute
-	stalledHubScanTimeout     = 1 * time.Hour // TODO get rid of this?  or change to something very high?
 
 	refreshImagePause = 1 * time.Second
+
+	checkHubAccessibilityPause = 5 * time.Second
+
+	enqueueImagesForRefreshPause = 5 * time.Minute
 
 	modelMetricsPause = 15 * time.Second
 
@@ -148,6 +151,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 	go perceptor.startCheckingForStalledScanClientScans()
 	go perceptor.startGeneratingModelMetrics()
 	go perceptor.startCheckingForUpdatesForCompletedScans()
+	go perceptor.startCheckingForHubAccessibility()
+	go perceptor.startEnqueueingImagesNeedingRefreshing()
 	go perceptor.startReloggingInToHub()
 
 	// 6. done
@@ -199,9 +204,7 @@ func (perceptor *Perceptor) startCheckingForStalledScanClientScans() {
 	for {
 		time.Sleep(checkForStalledScansPause)
 		log.Info("checking for stalled scans")
-		perceptor.actions <- &a.RequeueStalledScans{
-			StalledHubScanTimeout:    stalledHubScanTimeout,
-			StalledScanClientTimeout: stalledScanClientTimeout}
+		perceptor.actions <- &a.RequeueStalledScans{StalledScanClientTimeout: stalledScanClientTimeout}
 	}
 }
 
@@ -236,6 +239,20 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 		// becomes unreachable, the circuit breaker will trip
 		// and if nothing needs to be refreshed, then this will be cheap
 		time.Sleep(refreshImagePause)
+	}
+}
+
+func (perceptor *Perceptor) startCheckingForHubAccessibility() {
+	for {
+		perceptor.actions <- &a.CheckHubAccessibility{}
+		time.Sleep(checkHubAccessibilityPause)
+	}
+}
+
+func (perceptor *Perceptor) startEnqueueingImagesNeedingRefreshing() {
+	for {
+		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{}
+		time.Sleep(enqueueImagesForRefreshPause)
 	}
 }
 

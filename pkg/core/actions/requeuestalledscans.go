@@ -29,7 +29,6 @@ import (
 
 type RequeueStalledScans struct {
 	StalledScanClientTimeout time.Duration
-	StalledHubScanTimeout    time.Duration
 }
 
 func (r *RequeueStalledScans) Apply(model *m.Model) {
@@ -40,13 +39,6 @@ func (r *RequeueStalledScans) Apply(model *m.Model) {
 				recordRequeueStalledScan(imageInfo.ScanStatus.String())
 				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
 			}
-			// TODO decide what to do here.  this seems like it's causing lots of
-			// trouble, and not providing any value
-		// case m.ScanStatusRunningHubScan:
-		// 	if imageInfo.TimeInCurrentScanStatus() > r.StalledHubScanTimeout {
-		// 		recordRequeueStalledScan(imageInfo.ScanStatus.String())
-		// 		model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
-		// 	}
 		default:
 			// nothing to do
 		}
