@@ -70,7 +70,7 @@ func TestGetNextImageHubInaccessible(t *testing.T) {
 	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-	model.IsHubAccessible = false
+	model.HubCircuitBreaker.HubFailure()
 
 	var nextImage *m.Image
 	var wg sync.WaitGroup

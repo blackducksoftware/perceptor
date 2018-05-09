@@ -22,16 +22,26 @@ under the License.
 package actions
 
 import (
+	"time"
+
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-type CheckScanRefresh struct {
-	Continuation func(image *m.Image)
-}
+type CheckHubAccessibility struct{}
 
-func (g *CheckScanRefresh) Apply(model *m.Model) {
-	log.Debugf("looking for next image to refresh in the hub")
-	image := model.GetNextImageFromRefreshQueue()
-	go g.Continuation(image)
+func (c *CheckHubAccessibility) Apply(model *m.Model) {
+	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
+		return
+	}
+
+	if time.Now().Before(*model.HubCircuitBreaker.NextCheckTime) {
+		return
+	}
+
+	err := model.HubCircuitBreaker.MoveToCheckingState()
+	if err != nil {
+		log.Errorf("unable to move to checking state: %s (circuit breaker: %+v)", err.Error(), model.HubCircuitBreaker)
+		recordError("CheckHubAccessibility", "unable to move to checking state")
+	}
 }

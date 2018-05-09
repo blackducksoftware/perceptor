@@ -26,12 +26,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CheckScanRefresh struct {
-	Continuation func(image *m.Image)
-}
+type EnqueueImagesNeedingRefreshing struct{}
 
-func (g *CheckScanRefresh) Apply(model *m.Model) {
-	log.Debugf("looking for next image to refresh in the hub")
-	image := model.GetNextImageFromRefreshQueue()
-	go g.Continuation(image)
+func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
+	for sha, imageInfo := range model.Images {
+		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
+		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
+		// TODO need to look at the time since it's last been refreshed
+		// hasNotBeenRefreshedRecently := imageInfo.
+		if isComplete && !isInRefreshQueue {
+			err := model.AddImageToRefreshQueue(sha)
+			if err != nil {
+				log.Error(err.Error())
+				recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
+			}
+		}
+	}
 }
