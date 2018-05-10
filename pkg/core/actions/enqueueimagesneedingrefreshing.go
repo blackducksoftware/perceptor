@@ -22,24 +22,37 @@ under the License.
 package actions
 
 import (
+	"time"
+
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
 type EnqueueImagesNeedingRefreshing struct{}
 
+var refreshThresholdDuration = 30 * time.Minute
+
 func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
 	for sha, imageInfo := range model.Images {
 		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
+		if !isComplete {
+			continue
+		}
+
 		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
-		// TODO need to look at the time since it's last been refreshed
-		// hasNotBeenRefreshedRecently := imageInfo.
-		if isComplete && !isInRefreshQueue {
-			err := model.AddImageToRefreshQueue(sha)
-			if err != nil {
-				log.Error(err.Error())
-				recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
-			}
+		if !isInRefreshQueue {
+			continue
+		}
+
+		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < refreshThresholdDuration
+		if hasBeenRefreshedRecently {
+			continue
+		}
+
+		err := model.AddImageToRefreshQueue(sha)
+		if err != nil {
+			log.Error(err.Error())
+			recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
 		}
 	}
 }
