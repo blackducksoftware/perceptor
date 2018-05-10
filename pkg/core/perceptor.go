@@ -234,10 +234,6 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 		}}
 		wg.Wait()
 
-		// TODO what should this constant be set to?
-		// it's okay if this gets run a lot, and really quickly -- since if the hub
-		// becomes unreachable, the circuit breaker will trip
-		// and if nothing needs to be refreshed, then this will be cheap
 		time.Sleep(refreshImagePause)
 	}
 }
