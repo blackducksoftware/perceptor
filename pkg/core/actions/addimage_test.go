@@ -35,7 +35,7 @@ func TestAddImageAction(t *testing.T) {
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
 	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
-	imageInfo := m.NewImageInfo(testSha, "image1")
+	imageInfo := m.NewImageInfo(testSha, "image1", "a", "b", "c")
 	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 	expected.Images[testSha] = imageInfo

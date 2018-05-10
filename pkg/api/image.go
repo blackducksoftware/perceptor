@@ -25,8 +25,7 @@ type Image struct {
 	Name        string
 	Sha         string
 	DockerImage string
-}
-
-func NewImage(name string, sha string, dockerImage string) *Image {
-	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
+	Project     string
+	Version     string
+	Scan        string
 }

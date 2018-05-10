@@ -42,14 +42,14 @@ func TestImageJSON(t *testing.T) {
 }
 
 func TestImageHubData(t *testing.T) {
-	image := NewImage("abc", DockerImageSha("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
+	image := &Image{"abc", DockerImageSha("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), "x", "y", "z"}
 	actualProject := image.HubProjectName()
-	expectedProject := "abc-abcdefghijklmnopqrst"
+	expectedProject := "x"
 	if actualProject != expectedProject {
 		t.Errorf("hub project name: expected %s, got %s", expectedProject, actualProject)
 	}
 	actualProjectVersion := image.HubProjectVersionName()
-	expectedProjectVersion := "abcdefghijklmnopqrst"
+	expectedProjectVersion := "y"
 	if image.HubProjectVersionName() != expectedProjectVersion {
 		t.Errorf("hub project version name: expected %s, got %s", expectedProjectVersion, actualProjectVersion)
 	}

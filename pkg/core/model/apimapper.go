@@ -29,7 +29,7 @@ import (
 // api -> model
 
 func ApiImageToCoreImage(apiImage api.Image) *Image {
-	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
+	return &Image{apiImage.Name, DockerImageSha(apiImage.Sha), apiImage.Project, apiImage.Version, apiImage.Scan}
 }
 
 func ApiContainerToCoreContainer(apiContainer api.Container) *Container {

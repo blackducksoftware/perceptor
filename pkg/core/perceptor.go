@@ -38,14 +38,14 @@ const (
 	checkHubForCompletedScansPause = 20 * time.Second
 	checkHubThrottle               = 1 * time.Second
 
-	checkForStalledScansPause = 1 * time.Minute
-	stalledScanClientTimeout  = 30 * time.Minute
+	checkForStalledScansPause = 10000 * time.Hour
+	stalledScanClientTimeout  = 3000 * time.Hour
 
-	refreshImagePause = 1 * time.Second
+	refreshImagePause = 1000 * time.Hour
 
 	checkHubAccessibilityPause = 5 * time.Second
 
-	enqueueImagesForRefreshPause = 5 * time.Minute
+	enqueueImagesForRefreshPause = 5000 * time.Hour
 
 	modelMetricsPause = 15 * time.Second
 

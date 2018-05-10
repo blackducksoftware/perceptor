@@ -46,11 +46,11 @@ var pod3 m.Pod
 
 func init() {
 	sha1 = m.DockerImageSha("sha1")
-	image1 = *m.NewImage("image1", sha1)
+	image1 = m.Image{"image1", sha1, "a", "b", "c"}
 	sha2 = m.DockerImageSha("sha2")
-	image2 = *m.NewImage("image2", sha2)
+	image2 = m.Image{"image2", sha2, "a", "b", "c"}
 	sha3 = m.DockerImageSha("sha3")
-	image3 = *m.NewImage("image3", sha3)
+	image3 = m.Image{"image3", sha3, "a", "b", "c"}
 	cont1 = *m.NewContainer(image1, "cont1")
 	cont2 = *m.NewContainer(image2, "cont2")
 	cont3 = *m.NewContainer(image3, "cont3")

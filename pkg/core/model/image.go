@@ -27,12 +27,11 @@ import (
 
 type Image struct {
 	// Name combines Host, User, and Project
-	Name string
-	Sha  DockerImageSha
-}
-
-func NewImage(name string, sha DockerImageSha) *Image {
-	return &Image{Name: name, Sha: sha}
+	Name    string
+	Sha     DockerImageSha
+	Project string
+	Version string
+	Scan    string
 }
 
 func (image Image) shaPrefix() string {
@@ -42,15 +41,15 @@ func (image Image) shaPrefix() string {
 // These strings are for the scanner
 
 func (image Image) HubProjectName() string {
-	return fmt.Sprintf("%s-%s", image.Name, image.shaPrefix())
+	return image.Project
 }
 
 func (image Image) HubProjectVersionName() string {
-	return image.shaPrefix()
+	return image.Version
 }
 
 func (image Image) HubScanName() string {
-	return image.shaPrefix()
+	return image.Scan
 }
 
 // These strings are for the hub fetcher
@@ -64,15 +63,15 @@ func (image Image) HubScanName() string {
 //  - have a meaningful, human-readable hub project name
 
 func (image Image) HubProjectNameSearchString() string {
-	return image.shaPrefix()
+	return image.Project
 }
 
 func (image Image) HubProjectVersionNameSearchString() string {
-	return image.shaPrefix()
+	return image.Version
 }
 
 func (image Image) HubScanNameSearchString() string {
-	return image.shaPrefix()
+	return image.Scan
 }
 
 // HumanReadableName returns a nice, easy to read string

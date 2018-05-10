@@ -45,11 +45,11 @@ var pod4 Pod
 
 func init() {
 	sha1 = DockerImageSha("sha1")
-	image1 = *NewImage("image1", sha1)
+	image1 = Image{"image1", sha1, "a", "b", "c"}
 	sha2 = DockerImageSha("sha2")
-	image2 = *NewImage("image2", sha2)
+	image2 = Image{"image2", sha2, "a", "b", "c"}
 	sha3 = DockerImageSha("sha3")
-	image3 = *NewImage("image3", sha3)
+	image3 = Image{"image3", sha3, "a", "b", "c"}
 	cont1 = *NewContainer(image1, "cont1")
 	cont2 = *NewContainer(image2, "cont2")
 	cont3 = *NewContainer(image3, "cont3")
