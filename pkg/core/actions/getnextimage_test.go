@@ -58,12 +58,15 @@ func TestGetNextImage(t *testing.T) {
 	}}).Apply(model)
 	wg.Wait()
 
-	// TODO expected: front image removed from scan queue, status and time of image changed
 	if nextImage == nil {
 		t.Errorf("expected %+v, got nil", image1)
 	} else if *nextImage != image1 {
 		t.Errorf("expected %+v, got %+v", nextImage, image1)
 	}
+
+	assertEqual(t, model.ImageScanQueue, []m.DockerImageSha{})
+	assertEqual(t, model.Images[image1.Sha].ScanStatus, m.ScanStatusRunningScanClient)
+	// TODO expected: time of image changed
 }
 
 func TestGetNextImageHubInaccessible(t *testing.T) {
@@ -81,7 +84,6 @@ func TestGetNextImageHubInaccessible(t *testing.T) {
 	}}).Apply(model)
 	wg.Wait()
 
-	// TODO expected: front image removed from scan queue, status and time of image changed
 	if nextImage != nil {
 		t.Errorf("expected nil, got %+v", nextImage)
 	}
