@@ -39,7 +39,7 @@ const (
 	checkHubThrottle               = 1 * time.Second
 
 	checkForStalledScansPause = 1 * time.Minute
-	stalledScanClientTimeout  = 30 * time.Minute
+	stalledScanClientTimeout  = 2 * time.Hour
 
 	refreshImagePause = 1 * time.Second
 
