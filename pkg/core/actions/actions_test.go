@@ -64,10 +64,10 @@ func createNewModel1() *m.Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].ScanResults = &hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
-			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	return model
 }
 

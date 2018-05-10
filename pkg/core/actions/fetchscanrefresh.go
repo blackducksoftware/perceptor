@@ -70,5 +70,5 @@ func (h *FetchScanRefresh) Apply(model *m.Model) {
 
 	// 4. successfully found project: update the image results
 	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
-	imageInfo.ScanResults = scan.Scan
+	imageInfo.SetScanResults(scan.Scan)
 }

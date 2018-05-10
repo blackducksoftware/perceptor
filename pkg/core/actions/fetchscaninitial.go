@@ -66,7 +66,7 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
 		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
 		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
-		imageInfo.ScanResults = scan.Scan
+		imageInfo.SetScanResults(scan.Scan)
 		return
 	}
 

@@ -65,10 +65,10 @@ func createNewModel1() *Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
-	model.Images[sha1].ScanResults = &hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
-			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	return model
 }
 
@@ -79,16 +79,16 @@ func createNewModel2() *Model {
 	model.AddPod(pod3)
 	model.AddPod(pod4)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
-	model.Images[sha1].ScanResults = &hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
-			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	model.Images[sha3].ScanStatus = ScanStatusComplete
-	model.Images[sha3].ScanResults = &hub.ImageScan{
+	model.Images[sha3].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus: hub.PolicyStatusTypeNotInViolation,
 		},
-	}
+	})
 	return model
 }
 
