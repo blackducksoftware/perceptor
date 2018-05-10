@@ -171,7 +171,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 	} else {
 		err = fmt.Errorf(job.Err)
 	}
-	image := model.NewImage(job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha))
+	image := &model.Image{job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha), "TODO", "TODO", "TODO"}
 	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
 	log.Debugf("handled finished scan job -- %v", job)
 }

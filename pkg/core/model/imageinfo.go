@@ -34,13 +34,19 @@ type ImageInfo struct {
 	ScanResults            *hub.ImageScan
 	ImageSha               DockerImageSha
 	ImageNames             []string
+	Project                string
+	Version                string
+	Scan                   string
 }
 
-func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
+func NewImageInfo(sha DockerImageSha, imageName string, project string, version string, scan string) *ImageInfo {
 	imageInfo := &ImageInfo{
 		ScanResults: nil,
 		ImageSha:    sha,
 		ImageNames:  []string{imageName},
+		Project:     project,
+		Version:     version,
+		Scan:        scan,
 	}
 	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
@@ -56,7 +62,7 @@ func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 }
 
 func (imageInfo *ImageInfo) Image() Image {
-	return *NewImage(imageInfo.FirstImageName(), imageInfo.ImageSha)
+	return Image{imageInfo.FirstImageName(), imageInfo.ImageSha, imageInfo.Project, imageInfo.Version, imageInfo.Scan}
 }
 
 func (imageInfo *ImageInfo) AddImageName(imageName string) {
