@@ -30,7 +30,7 @@ import (
 var riskProfile = RiskProfile{
 	BomLastUpdatedAt: "blua",
 	Categories: map[RiskProfileCategory]RiskProfileStatusCounts{
-		RiskProfileCategoryOperational: RiskProfileStatusCounts{
+		RiskProfileCategoryOperational: {
 			StatusCounts: map[RiskProfileStatus]int{
 				RiskProfileStatusLow: 31,
 			},

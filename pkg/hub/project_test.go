@@ -32,9 +32,9 @@ func TestProjectJSONRoundtrip(t *testing.T) {
 		Name:   "abc",
 		Source: "def",
 		Versions: []Version{
-			Version{
+			{
 				CodeLocations: []CodeLocation{
-					CodeLocation{
+					{
 						CodeLocationType:     "yyy",
 						CreatedAt:            "zzz",
 						MappedProjectVersion: "mpv",

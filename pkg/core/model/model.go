@@ -454,7 +454,7 @@ func (model *Model) Metrics() *ModelMetrics {
 	podStatus := map[string]int{}
 	podPolicyViolations := map[int]int{}
 	podVulnerabilities := map[int]int{}
-	for podName, _ := range model.Pods {
+	for podName := range model.Pods {
 		podScan, err := model.ScanResultsForPod(podName)
 		if err != nil {
 			log.Errorf("unable to get scan results for pod %s: %s", podName, err.Error())
