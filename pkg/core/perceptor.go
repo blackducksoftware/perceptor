@@ -51,7 +51,7 @@ const (
 
 	actionChannelSize = 100
 
-	hubReloginPause = 2 * time.Hour
+	hubReloginPause = 30 * time.Minute
 )
 
 // Perceptor ties together: a cluster, scan clients, and a hub.
