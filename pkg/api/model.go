@@ -36,13 +36,14 @@ type Model struct {
 }
 
 type ModelConfig struct {
-	HubHost             string
-	HubUser             string
-	HubPassword         string
-	ConcurrentScanLimit int
-	UseMockMode         bool
-	Port                int
-	LogLevel            string
+	HubHost                 string
+	HubUser                 string
+	HubPassword             string
+	HubClientTimeoutSeconds int
+	ConcurrentScanLimit     int
+	UseMockMode             bool
+	Port                    int
+	LogLevel                string
 }
 
 type ModelImageInfo struct {
