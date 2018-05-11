@@ -426,7 +426,7 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) 
 	return imageScan, nil
 }
 
-func (model *Model) Metrics() *ModelMetrics {
+func (model *Model) Metrics() *Metrics {
 	// number of images in each status
 	statusCounts := make(map[ScanStatus]int)
 	for _, imageResults := range model.Images {
@@ -493,7 +493,7 @@ func (model *Model) Metrics() *ModelMetrics {
 
 	// TODO
 	// number of images without a pod pointing to them
-	return &ModelMetrics{
+	return &Metrics{
 		ScanStatusCounts:      statusCounts,
 		NumberOfImages:        len(model.Images),
 		NumberOfPods:          len(model.Pods),

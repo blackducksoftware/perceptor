@@ -53,13 +53,13 @@ func (status ScanStatus) String() string {
 	panic(fmt.Errorf("invalid ScanStatus value: %d", status))
 }
 
-func (s ScanStatus) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, s.String())
+func (status ScanStatus) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, status.String())
 	return []byte(jsonString), nil
 }
 
-func (s ScanStatus) MarshalText() (text []byte, err error) {
-	return []byte(s.String()), nil
+func (status ScanStatus) MarshalText() (text []byte, err error) {
+	return []byte(status.String()), nil
 }
 
 var legalTransitions = map[ScanStatus]map[ScanStatus]bool{

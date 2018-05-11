@@ -27,6 +27,6 @@ type CodeLocation struct {
 	MappedProjectVersion string
 	Name                 string
 	CodeLocationType     string
-	Url                  string
+	URL                  string
 	UpdatedAt            string
 }

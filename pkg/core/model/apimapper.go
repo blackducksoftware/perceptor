@@ -28,15 +28,15 @@ import (
 
 // api -> model
 
-func ApiImageToCoreImage(apiImage api.Image) *Image {
+func APIImageToCoreImage(apiImage api.Image) *Image {
 	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
 }
 
 func ApiContainerToCoreContainer(apiContainer api.Container) *Container {
-	return NewContainer(*ApiImageToCoreImage(apiContainer.Image), apiContainer.Name)
+	return NewContainer(*APIImageToCoreImage(apiContainer.Image), apiContainer.Name)
 }
 
-func ApiPodToCorePod(apiPod api.Pod) *Pod {
+func APIPodToCorePod(apiPod api.Pod) *Pod {
 	containers := []Container{}
 	for _, apiContainer := range apiPod.Containers {
 		containers = append(containers, *ApiContainerToCoreContainer(apiContainer))
@@ -46,7 +46,7 @@ func ApiPodToCorePod(apiPod api.Pod) *Pod {
 
 // model -> api
 
-func CoreContainerToApiContainer(coreContainer Container) *api.Container {
+func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	return &api.Container{
 		Image: api.Image{
 			Name: coreContainer.Image.Name,
@@ -56,10 +56,10 @@ func CoreContainerToApiContainer(coreContainer Container) *api.Container {
 	}
 }
 
-func CorePodToApiPod(corePod Pod) *api.Pod {
+func CorePodToAPIPod(corePod Pod) *api.Pod {
 	containers := []api.Container{}
 	for _, coreContainer := range corePod.Containers {
-		containers = append(containers, *CoreContainerToApiContainer(coreContainer))
+		containers = append(containers, *CoreContainerToAPIContainer(coreContainer))
 	}
 	return &api.Pod{
 		Containers: containers,
@@ -73,7 +73,7 @@ func (model *Model) APIModel() *api.Model {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
-		pods[podName] = CorePodToApiPod(pod)
+		pods[podName] = CorePodToAPIPod(pod)
 	}
 	// images
 	images := map[string]*api.ModelImageInfo{}

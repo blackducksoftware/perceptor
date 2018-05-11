@@ -68,7 +68,7 @@ func GetConfig() (*Config, error) {
 
 // StartWatch will start watching the Perceptor configuration file and
 // call the passed handler function when the configuration file has changed
-func (p *Config) StartWatch(handler func(fsnotify.Event)) {
+func (config *Config) StartWatch(handler func(fsnotify.Event)) {
 	viper.WatchConfig()
 	viper.OnConfigChange(handler)
 }

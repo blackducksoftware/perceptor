@@ -41,7 +41,7 @@ func TestMetrics(t *testing.T) {
 	recordAllImages()
 	recordGetNextImage()
 	recordHTTPNotFound(&http.Request{URL: &url.URL{}})
-	recordModelMetrics(&m.ModelMetrics{
+	recordModelMetrics(&m.Metrics{
 		ContainerCounts:       map[int]int{3: 4},
 		ImageCountHistogram:   map[int]int{8: 5},
 		ImagePolicyViolations: map[int]int{2: 2},

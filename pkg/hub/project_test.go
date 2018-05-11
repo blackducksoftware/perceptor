@@ -40,7 +40,7 @@ func TestProjectJSONRoundtrip(t *testing.T) {
 						MappedProjectVersion: "mpv",
 						Name:                 "nnnnm",
 						UpdatedAt:            "upd",
-						Url:                  "myurl",
+						URL:                  "myurl",
 						ScanSummaries: []ScanSummary{
 							{
 								CreatedAt: "crt",
