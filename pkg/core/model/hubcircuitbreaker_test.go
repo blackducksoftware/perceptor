@@ -73,3 +73,32 @@ func TestHubCircuitBreaker(t *testing.T) {
 		t.Errorf("expected HubCircuitBreakerStateEnabled, found %s", cb.State)
 	}
 }
+
+func TestHubCircuitBreakerConsecutiveFailures(t *testing.T) {
+	cb := NewHubCircuitBreaker()
+	if cb.State != HubCircuitBreakerStateEnabled {
+		t.Errorf("expected HubCircuitBreakerStateEnabled, found %s", cb.State)
+	}
+
+	cb.HubFailure()
+	if cb.State != HubCircuitBreakerStateDisabled {
+		t.Errorf("expected HubCircuitBreakerStateDisabled, found %s", cb.State)
+	}
+	assertEqual(t, "state", cb.State, HubCircuitBreakerStateDisabled)
+	assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 1)
+	assertEqual(t, "is enabled", cb.IsEnabled(), false)
+
+	err := cb.MoveToCheckingState()
+	assertEqual(t, "error", err, nil)
+	cb.HubFailure()
+	assertEqual(t, "state", cb.State, HubCircuitBreakerStateDisabled)
+	assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 2)
+	assertEqual(t, "is enabled", cb.IsEnabled(), false)
+
+	err = cb.MoveToCheckingState()
+	assertEqual(t, "error", err, nil)
+	cb.HubFailure()
+	assertEqual(t, "state", cb.State, HubCircuitBreakerStateDisabled)
+	assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 3)
+	assertEqual(t, "is enabled", cb.IsEnabled(), false)
+}
