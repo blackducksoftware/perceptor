@@ -15,17 +15,23 @@
 package hubclient
 
 import (
+	"fmt"
+
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *Client) ListCodeLocations(link hubapi.ResourceLink) (*hubapi.CodeLocationList, error) {
+func (c *Client) ListCodeLocations(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
 
-	// Need offset/limit
-	// Should we abstract list fetching like we did with a single Get?
+	params := ""
+	if options != nil {
+		params = fmt.Sprintf("?%s", hubapi.ParameterString(options))
+	}
+
+	codeLocationsURL := fmt.Sprintf("%s%s", link.Href, params)
 
 	var codeLocationList hubapi.CodeLocationList
-	err := c.httpGetJSON(link.Href, &codeLocationList, 200)
+	err := c.HttpGetJSON(codeLocationsURL, &codeLocationList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve code location list: %+v.", err)
@@ -38,7 +44,7 @@ func (c *Client) ListCodeLocations(link hubapi.ResourceLink) (*hubapi.CodeLocati
 func (c *Client) GetCodeLocation(link hubapi.ResourceLink) (*hubapi.CodeLocation, error) {
 
 	var codeLocation hubapi.CodeLocation
-	err := c.httpGetJSON(link.Href, &codeLocation, 200)
+	err := c.HttpGetJSON(link.Href, &codeLocation, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a code location: %+v.", err)
@@ -48,13 +54,19 @@ func (c *Client) GetCodeLocation(link hubapi.ResourceLink) (*hubapi.CodeLocation
 	return &codeLocation, nil
 }
 
+// DeleteCodeLocation deletes a code location using
+// https://<base_hub_URL>/api.html#!/composite45code45location45rest45server/deleteCodeLocationUsingDELETE
+func (c *Client) DeleteCodeLocation(codeLocationURL string) error {
+	return c.HttpDelete(codeLocationURL, "application/json", 204)
+}
+
 func (c *Client) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
 
 	// Need offset/limit
 	// Should we abstract list fetching like we did with a single Get?
 
 	var scanSummaryList hubapi.ScanSummaryList
-	err := c.httpGetJSON(link.Href, &scanSummaryList, 200)
+	err := c.HttpGetJSON(link.Href, &scanSummaryList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve scan summary list: %+v.", err)
@@ -67,7 +79,7 @@ func (c *Client) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummar
 func (c *Client) GetScanSummary(link hubapi.ResourceLink) (*hubapi.ScanSummary, error) {
 
 	var scanSummary hubapi.ScanSummary
-	err := c.httpGetJSON(link.Href, &scanSummary, 200)
+	err := c.HttpGetJSON(link.Href, &scanSummary, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a scan summary: %+v.", err)

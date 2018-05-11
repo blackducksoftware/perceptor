@@ -12,9 +12,9 @@
     "hubapi",
     "hubclient"
   ]
-  revision = "0a45c9b235d6b5dfe73bcc1e17537eac2b302490"
+  revision = "373ae7b666893f7ea9285f02d31eceb552946b25"
   source = "git@github.com:blackducksoftware/hub-client-go.git"
-  version = "v0.9.1"
+  version = "v0.9.4"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -166,6 +166,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4a6cdbab52611167ed4ae2526ab2af45a1c8c934948459a67e10850ab2a272b6"
+  inputs-digest = "d919ad6f21301b7d627959e0d08d002a5a4de0cc11d2258f8989f14b55b838a6"
   solver-name = "gps-cdcl"
   solver-version = 1

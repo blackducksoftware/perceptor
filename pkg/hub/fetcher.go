@@ -204,7 +204,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetCodeLocations := time.Now()
-	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink)
+	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink, nil)
 	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
 	recordHubResponse("codeLocations", err == nil)
 	if err != nil {

@@ -28,7 +28,7 @@ func (c *Client) ListProjectVersionComponents(link hubapi.ResourceLink) (*hubapi
 	// Should we abstract list fetching like we did with a single Get?
 
 	var bomList hubapi.BomComponentList
-	err := c.httpGetJSON(link.Href+"?limit=2", &bomList, 200)
+	err := c.HttpGetJSON(link.Href+"?limit=2", &bomList, 200)
 
 	if err != nil {
 		log.Errorf("Error while trying to get Project Version Component list: %+v.\n", err)
@@ -45,7 +45,7 @@ func (c *Client) ListProjectVersionVulnerableComponents(link hubapi.ResourceLink
 	// Should we abstract list fetching like we did with a single Get?
 
 	var bomList hubapi.BomVulnerableComponentList
-	err := c.httpGetJSON(link.Href+"?limit=2", &bomList, 200)
+	err := c.HttpGetJSON(link.Href+"?limit=2", &bomList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve vulnerable components list: %+v.\n", err)
@@ -61,7 +61,7 @@ func (c *Client) PageProjectVersionVulnerableComponents(link hubapi.ResourceLink
 
 	var bomList hubapi.BomVulnerableComponentList
 	url := fmt.Sprintf("%s?offset=%d&limit=%d", link.Href, offset, limit)
-	err := c.httpGetJSON(url, &bomList, 200)
+	err := c.HttpGetJSON(url, &bomList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve vulnerable components page: %+v.\n", err)
@@ -77,7 +77,7 @@ func (c *Client) CountProjectVersionVulnerableComponents(link hubapi.ResourceLin
 	// Should we abstract list fetching like we did with a single Get?
 
 	var bomList hubapi.BomVulnerableComponentList
-	err := c.httpGetJSON(link.Href+"?offset=0&limit=1", &bomList, 200)
+	err := c.HttpGetJSON(link.Href+"?offset=0&limit=1", &bomList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve count of vulnerable components: %+v.\n", err)
