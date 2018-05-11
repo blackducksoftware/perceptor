@@ -226,7 +226,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 		wg.Add(1)
 		perceptor.actions <- &a.CheckScanRefresh{func(image *model.Image) {
 			if image != nil {
-				log.Debugf("refreshing image %s", image.PullSpec())
+				log.Debugf("refreshing image %s", string(image.Sha))
 				scan, err := perceptor.hubClient.FetchScanFromImage(*image)
 				perceptor.actions <- &a.FetchScanRefresh{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 			}

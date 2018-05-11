@@ -19,23 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package model
 
-type ImageSpec struct {
-	Repository            string
-	Tag                   string
-	Sha                   string
-	HubProjectName        string
-	HubProjectVersionName string
-	HubScanName           string
-}
-
-func NewImageSpec(repository string, tag string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
-	return &ImageSpec{
-		Repository:            repository,
-		Tag:                   tag,
-		Sha:                   sha,
-		HubProjectName:        hubProjectName,
-		HubProjectVersionName: hubProjectVersionName,
-		HubScanName:           hubScanName}
+// RepoTag combines a Docker repository and tag
+type RepoTag struct {
+	Repository string
+	Tag        string
 }

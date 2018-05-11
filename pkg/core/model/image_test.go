@@ -27,7 +27,11 @@ import (
 )
 
 func TestImageJSON(t *testing.T) {
-	jsonString := `{"Name":"docker.io/mfenwickbd/perceptor","Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5","DockerImage":"docker.io/mfenwickbd/perceptor:latest"}`
+	jsonString := `{
+		"Repository":"docker.io/mfenwickbd/perceptor",
+		"Tag":"latest",
+		"Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5"
+	}`
 	var image Image
 	err := json.Unmarshal([]byte(jsonString), &image)
 	if err != nil {
@@ -35,14 +39,14 @@ func TestImageJSON(t *testing.T) {
 		t.Fail()
 		panic("a")
 	}
-	expectedName := "docker.io/mfenwickbd/perceptor"
-	if image.Name != expectedName {
-		t.Errorf("expected name of %s, got %s", expectedName, image.Name)
+	expectedRepository := "docker.io/mfenwickbd/perceptor"
+	if image.Repository != expectedRepository {
+		t.Errorf("expected name of %s, got %s", expectedRepository, image.Repository)
 	}
 }
 
 func TestImageHubData(t *testing.T) {
-	image := NewImage("abc", DockerImageSha("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
+	image := NewImage("abc", "l", DockerImageSha("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
 	actualProject := image.HubProjectName()
 	expectedProject := "abc-abcdefghijklmnopqrst"
 	if actualProject != expectedProject {
