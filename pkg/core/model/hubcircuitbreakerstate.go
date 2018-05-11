@@ -43,11 +43,11 @@ func (state HubCircuitBreakerState) String() string {
 	panic(fmt.Errorf("invalid HubCircuitBreakerState value: %d", state))
 }
 
-func (h HubCircuitBreakerState) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, h.String())
+func (state HubCircuitBreakerState) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, state.String())
 	return []byte(jsonString), nil
 }
 
-func (h HubCircuitBreakerState) MarshalText() (text []byte, err error) {
-	return []byte(h.String()), nil
+func (state HubCircuitBreakerState) MarshalText() (text []byte, err error) {
+	return []byte(state.String()), nil
 }
