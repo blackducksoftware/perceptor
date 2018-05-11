@@ -76,7 +76,7 @@ func (hr *HTTPResponder) GetModel() api.Model {
 
 func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
 	recordAddPod()
-	pod := *model.ApiPodToCorePod(apiPod)
+	pod := *model.APIPodToCorePod(apiPod)
 	hr.AddPodChannel <- pod
 	log.Debugf("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 }
@@ -89,14 +89,14 @@ func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 
 func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
 	recordUpdatePod()
-	pod := *model.ApiPodToCorePod(apiPod)
+	pod := *model.APIPodToCorePod(apiPod)
 	hr.UpdatePodChannel <- pod
 	log.Debugf("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
 func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 	recordAddImage()
-	image := *model.ApiImageToCoreImage(apiImage)
+	image := *model.APIImageToCoreImage(apiImage)
 	hr.AddImageChannel <- image
 	log.Debugf("handled add image %s", image.PullSpec())
 }
@@ -105,7 +105,7 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 	recordAllPods()
 	pods := []model.Pod{}
 	for _, apiPod := range allPods.Pods {
-		pods = append(pods, *model.ApiPodToCorePod(apiPod))
+		pods = append(pods, *model.APIPodToCorePod(apiPod))
 	}
 	hr.AllPodsChannel <- pods
 	log.Debugf("handled update all pods -- %d pods", len(allPods.Pods))
@@ -115,7 +115,7 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 	recordAllImages()
 	images := []model.Image{}
 	for _, apiImage := range allImages.Images {
-		images = append(images, *model.ApiImageToCoreImage(apiImage))
+		images = append(images, *model.APIImageToCoreImage(apiImage))
 	}
 	hr.AllImagesChannel <- images
 	log.Debugf("handled update all images -- %d images", len(allImages.Images))

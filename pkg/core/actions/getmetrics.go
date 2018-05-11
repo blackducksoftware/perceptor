@@ -26,7 +26,7 @@ import (
 )
 
 type GetMetrics struct {
-	Continuation func(metrics *m.ModelMetrics)
+	Continuation func(metrics *m.Metrics)
 }
 
 func (g *GetMetrics) Apply(model *m.Model) {

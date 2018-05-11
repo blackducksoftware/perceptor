@@ -6,7 +6,7 @@ ifdef IMAGE_PREFIX
 PREFIX="$(IMAGE_PREFIX)-"
 endif
 
-ifneq (, $(findstring gcr.io,$(REGISTRY))) 
+ifneq (, $(findstring gcr.io,$(REGISTRY)))
 PREFIX_CMD="gcloud"
 DOCKER_OPTS="--"
 endif
@@ -21,7 +21,7 @@ all: compile
 compile:
 	# Simple easy compile, completely docker driven.
 	# Copy everything into an idiomatic gopath for easy debugging.  Build and copy to a build/perceptor binary.
-	docker run -t -i --rm -v ${CURRENT_DIR}:/go/src/github.com/blackducksoftware/perceptor/ -w /go/src/github.com/blackducksoftware/perceptor/cmd/perceptor -e CGO_ENABLED=0 -e GOOS=linux -e GOARCH=amd64 golang:1.9 go build -o perceptor 
+	docker run -t -i --rm -v ${CURRENT_DIR}:/go/src/github.com/blackducksoftware/perceptor/ -w /go/src/github.com/blackducksoftware/perceptor/cmd/perceptor -e CGO_ENABLED=0 -e GOOS=linux -e GOARCH=amd64 golang:1.9 go build -o perceptor
 	cp cmd/perceptor/perceptor $(OUTDIR)
 
 container: compile
@@ -38,3 +38,8 @@ clean:
 
 ${OUTDIR}:
 	mkdir -p ${OUTDIR}
+
+lint:
+	./hack/verify-gofmt.sh
+	./hack/verify-golint.sh
+	./hack/verify-govet.sh

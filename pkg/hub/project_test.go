@@ -32,15 +32,15 @@ func TestProjectJSONRoundtrip(t *testing.T) {
 		Name:   "abc",
 		Source: "def",
 		Versions: []Version{
-			Version{
+			{
 				CodeLocations: []CodeLocation{
-					CodeLocation{
+					{
 						CodeLocationType:     "yyy",
 						CreatedAt:            "zzz",
 						MappedProjectVersion: "mpv",
 						Name:                 "nnnnm",
 						UpdatedAt:            "upd",
-						Url:                  "myurl",
+						URL:                  "myurl",
 						ScanSummaries: []ScanSummary{
 							{
 								CreatedAt: "crt",

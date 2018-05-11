@@ -426,7 +426,7 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) 
 	return imageScan, nil
 }
 
-func (model *Model) Metrics() *ModelMetrics {
+func (model *Model) Metrics() *Metrics {
 	// number of images in each status
 	statusCounts := make(map[ScanStatus]int)
 	for _, imageResults := range model.Images {
@@ -454,7 +454,7 @@ func (model *Model) Metrics() *ModelMetrics {
 	podStatus := map[string]int{}
 	podPolicyViolations := map[int]int{}
 	podVulnerabilities := map[int]int{}
-	for podName, _ := range model.Pods {
+	for podName := range model.Pods {
 		podScan, err := model.ScanResultsForPod(podName)
 		if err != nil {
 			log.Errorf("unable to get scan results for pod %s: %s", podName, err.Error())
@@ -493,7 +493,7 @@ func (model *Model) Metrics() *ModelMetrics {
 
 	// TODO
 	// number of images without a pod pointing to them
-	return &ModelMetrics{
+	return &Metrics{
 		ScanStatusCounts:      statusCounts,
 		NumberOfImages:        len(model.Images),
 		NumberOfPods:          len(model.Pods),

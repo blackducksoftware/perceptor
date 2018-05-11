@@ -52,7 +52,7 @@ var imageVulnerabilitiesGauge *prometheus.GaugeVec
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
 
-func recordModelMetrics(modelMetrics *model.ModelMetrics) {
+func recordModelMetrics(modelMetrics *model.Metrics) {
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
 		model.ScanStatusInHubCheckQueue,
