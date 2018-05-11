@@ -221,7 +221,7 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 
 func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 	for {
-		log.Info("requesting completed scans for rechecking hub")
+		log.Debug("requesting completed scans for rechecking hub")
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -241,6 +241,7 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 
 func (perceptor *Perceptor) startCheckingForHubAccessibility() {
 	for {
+		log.Debug("checking for hub accessibility")
 		perceptor.actions <- &a.CheckHubAccessibility{}
 		time.Sleep(checkHubAccessibilityPause)
 	}
@@ -248,6 +249,7 @@ func (perceptor *Perceptor) startCheckingForHubAccessibility() {
 
 func (perceptor *Perceptor) startEnqueueingImagesNeedingRefreshing() {
 	for {
+		log.Debug("enqueueing images in need of refreshing")
 		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{refreshThresholdDuration}
 		time.Sleep(enqueueImagesForRefreshPause)
 	}

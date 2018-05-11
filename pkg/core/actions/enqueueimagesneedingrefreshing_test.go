@@ -22,37 +22,23 @@ under the License.
 package actions
 
 import (
+	"testing"
 	"time"
-
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-type EnqueueImagesNeedingRefreshing struct {
-	RefreshThresholdDuration time.Duration
+func TestEnqueueImagesNewScan(t *testing.T) {
+	actual := createNewModel1()
+	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
+	if len(actual.ImageRefreshQueue) != 0 {
+		t.Errorf("expected 0 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
+	}
 }
 
-func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
-	for sha, imageInfo := range model.Images {
-		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
-		if !isComplete {
-			continue
-		}
-
-		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
-		if isInRefreshQueue {
-			continue
-		}
-
-		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
-		if hasBeenRefreshedRecently {
-			continue
-		}
-
-		err := model.AddImageToRefreshQueue(sha)
-		if err != nil {
-			log.Error(err.Error())
-			recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
-		}
+func TestEnqueueImagesOldScan(t *testing.T) {
+	actual := createNewModel1()
+	actual.Images[image1.Sha].TimeOfLastRefresh = time.Now().Add(-45 * time.Second)
+	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
+	if len(actual.ImageRefreshQueue) != 1 {
+		t.Errorf("expected 1 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
 	}
 }
