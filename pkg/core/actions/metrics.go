@@ -26,9 +26,14 @@ import (
 )
 
 var requeueStalledScanCounter *prometheus.CounterVec
+var errorCounter *prometheus.CounterVec
 
 func recordRequeueStalledScan(imageState string) {
 	requeueStalledScanCounter.With(prometheus.Labels{"imageState": imageState}).Inc()
+}
+
+func recordError(action string, name string) {
+	errorCounter.With(prometheus.Labels{"action": action, "name": name}).Inc()
 }
 
 func init() {
@@ -39,4 +44,12 @@ func init() {
 		Help:      "records when image scans are timed-out and requeued",
 	}, []string{"imageState"})
 	prometheus.MustRegister(requeueStalledScanCounter)
+
+	errorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "action_errors_counter",
+		Help:      "records errors encounted during core action processing",
+	}, []string{"action", "name"})
+	prometheus.MustRegister(errorCounter)
 }

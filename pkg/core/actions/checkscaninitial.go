@@ -26,11 +26,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type GetInitialHubCheckImage struct {
+type CheckScanInitial struct {
 	Continuation func(image *m.Image)
 }
 
-func (g *GetInitialHubCheckImage) Apply(model *m.Model) {
+func (g *CheckScanInitial) Apply(model *m.Model) {
 	log.Debugf("looking for next image to search for in hub")
 	image := model.GetNextImageFromHubCheckQueue()
 	go g.Continuation(image)

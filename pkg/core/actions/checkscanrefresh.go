@@ -23,19 +23,15 @@ package actions
 
 import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
-type GetCompletedScans struct {
-	Continuation func(images []*m.Image)
+type CheckScanRefresh struct {
+	Continuation func(image *m.Image)
 }
 
-func (g *GetCompletedScans) Apply(model *m.Model) {
-	images := []*m.Image{}
-	for _, imageInfo := range model.Images {
-		if imageInfo.ScanStatus == m.ScanStatusComplete {
-			image := imageInfo.Image()
-			images = append(images, &image)
-		}
-	}
-	go g.Continuation(images)
+func (g *CheckScanRefresh) Apply(model *m.Model) {
+	log.Debugf("looking for next image to refresh in the hub")
+	image := model.GetNextImageFromRefreshQueue()
+	go g.Continuation(image)
 }

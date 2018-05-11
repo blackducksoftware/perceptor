@@ -22,25 +22,13 @@ under the License.
 package actions
 
 import (
-	"time"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-type RequeueStalledScans struct {
-	StalledScanClientTimeout time.Duration
+type CheckScansCompletion struct {
+	Continuation func(images *[]m.Image)
 }
 
-func (r *RequeueStalledScans) Apply(model *m.Model) {
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case m.ScanStatusRunningScanClient:
-			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
-				recordRequeueStalledScan(imageInfo.ScanStatus.String())
-				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
-			}
-		default:
-			// nothing to do
-		}
-	}
+func (g *CheckScansCompletion) Apply(model *m.Model) {
+	go g.Continuation(model.InProgressHubScans())
 }

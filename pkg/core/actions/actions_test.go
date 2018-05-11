@@ -64,10 +64,10 @@ func createNewModel1() *m.Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].ScanResults = &hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
-			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}}
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	return model
 }
 
@@ -106,7 +106,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&AllPods{})
 	processAction(&GetNextImage{})
 	processAction(&FinishScanClient{})
-	processAction(&GetInitialHubCheckImage{})
+	processAction(&CheckScanInitial{})
 	processAction(&FetchScanInitial{})
 	processAction(&FetchScanCompletion{})
 	processAction(&RequeueStalledScans{})
@@ -115,9 +115,9 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&GetModel{})
 	processAction(&GetMetrics{})
 	processAction(&GetScanResults{})
-	processAction(&GetRunningHubScans{})
+	processAction(&CheckScansCompletion{})
 	processAction(&FetchScanRefresh{})
-	processAction(&GetCompletedScans{})
+	processAction(&CheckScanRefresh{})
 }
 
 func processAction(nextAction Action) {

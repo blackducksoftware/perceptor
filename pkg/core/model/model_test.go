@@ -135,3 +135,45 @@ func TestModelRemoveAllItemsFromScanQueue(t *testing.T) {
 	model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 	assertEqual(t, "remove all items", model.ImageScanQueue, []DockerImageSha{})
 }
+
+func TestModelRefreshQueueOperations(t *testing.T) {
+	model := removeItemModel()
+	for _, image := range []Image{image1, image2, image3} {
+		model.SetImageScanStatus(image.Sha, ScanStatusComplete)
+		err := model.AddImageToRefreshQueue(image.Sha)
+		if err != nil {
+			t.Errorf("unable to add sha %s to image refresh queue: %s", image.Sha, err.Error())
+		}
+	}
+	assertEqual(t, "refresh queue: all items", model.ImageRefreshQueue, []DockerImageSha{image1.Sha, image2.Sha, image3.Sha})
+
+	image := model.GetNextImageFromRefreshQueue()
+	assertEqual(t, "next Image from refresh queue", image, image1)
+
+	err := model.RemoveImageFromRefreshQueue(image2.Sha)
+	if err != nil {
+		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
+	}
+	assertEqual(t, "refresh queue: 1 and 3", model.ImageRefreshQueue, []DockerImageSha{image1.Sha, image3.Sha})
+
+	image = model.GetNextImageFromRefreshQueue()
+	assertEqual(t, "next Image from refresh queue", image, image1)
+
+	err = model.RemoveImageFromRefreshQueue(image1.Sha)
+	if err != nil {
+		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
+	}
+	assertEqual(t, "refresh queue: 3", model.ImageRefreshQueue, []DockerImageSha{image3.Sha})
+
+	image = model.GetNextImageFromRefreshQueue()
+	assertEqual(t, "next Image from refresh queue", image, image3)
+
+	err = model.RemoveImageFromRefreshQueue(image3.Sha)
+	if err != nil {
+		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
+	}
+	assertEqual(t, "refresh queue: 1 and 3", model.ImageRefreshQueue, []DockerImageSha{})
+
+	image = model.GetNextImageFromRefreshQueue()
+	assertEqual(t, "next Image from refresh queue", image, nil)
+}

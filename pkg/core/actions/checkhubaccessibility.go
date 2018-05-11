@@ -25,22 +25,23 @@ import (
 	"time"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
-type RequeueStalledScans struct {
-	StalledScanClientTimeout time.Duration
-}
+type CheckHubAccessibility struct{}
 
-func (r *RequeueStalledScans) Apply(model *m.Model) {
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case m.ScanStatusRunningScanClient:
-			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
-				recordRequeueStalledScan(imageInfo.ScanStatus.String())
-				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
-			}
-		default:
-			// nothing to do
-		}
+func (c *CheckHubAccessibility) Apply(model *m.Model) {
+	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
+		return
+	}
+
+	if time.Now().Before(*model.HubCircuitBreaker.NextCheckTime) {
+		return
+	}
+
+	err := model.HubCircuitBreaker.MoveToCheckingState()
+	if err != nil {
+		log.Errorf("unable to move to checking state: %s (circuit breaker: %+v)", err.Error(), model.HubCircuitBreaker)
+		recordError("CheckHubAccessibility", "unable to move to checking state")
 	}
 }

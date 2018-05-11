@@ -65,6 +65,6 @@ func (h *FetchScanCompletion) Apply(model *m.Model) {
 		return
 	}
 
-	imageInfo.ScanResults = scan.Scan
+	imageInfo.SetScanResults(scan.Scan)
 	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 }
