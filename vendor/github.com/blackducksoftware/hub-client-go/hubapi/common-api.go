@@ -41,3 +41,29 @@ func (m *Meta) FindLinkByRel(rel string) (*ResourceLink, error) {
 
 	return nil, fmt.Errorf("no relation '%s' found", rel)
 }
+
+// GetListOptions describes the parameter model for the list GET endpoints.
+type GetListOptions struct {
+	Limit  *int
+	Offset *int
+	Sort   *string
+	Q      *string
+}
+
+// Parameters implements the URLParameters interface.
+func (glo *GetListOptions) Parameters() map[string]string {
+	params := make(map[string]string)
+	if glo.Limit != nil {
+		params["limit"] = fmt.Sprintf("%d", *glo.Limit)
+	}
+	if glo.Offset != nil {
+		params["offset"] = fmt.Sprintf("%d", *glo.Offset)
+	}
+	if glo.Sort != nil {
+		params["sort"] = *glo.Sort
+	}
+	if glo.Q != nil {
+		params["q"] = *glo.Q
+	}
+	return params
+}

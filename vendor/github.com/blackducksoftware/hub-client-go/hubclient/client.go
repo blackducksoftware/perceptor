@@ -91,6 +91,10 @@ func NewWithToken(baseURL string, authToken string, debugFlags HubClientDebug, t
 	}, nil
 }
 
+func (c *Client) BaseURL() string {
+	return c.baseURL
+}
+
 func readBytes(readCloser io.ReadCloser) ([]byte, error) {
 
 	defer readCloser.Close()
@@ -152,7 +156,7 @@ func (c *Client) processResponse(resp *http.Response, result interface{}, expect
 	return nil
 }
 
-func (c *Client) httpGetJSON(url string, result interface{}, expectedStatusCode int) error {
+func (c *Client) HttpGetJSON(url string, result interface{}, expectedStatusCode int) error {
 
 	// TODO: Content type?
 
@@ -187,7 +191,7 @@ func (c *Client) httpGetJSON(url string, result interface{}, expectedStatusCode 
 	return c.processResponse(resp, result, expectedStatusCode)
 }
 
-func (c *Client) httpPutJSON(url string, data interface{}, contentType string, expectedStatusCode int) error {
+func (c *Client) HttpPutJSON(url string, data interface{}, contentType string, expectedStatusCode int) error {
 
 	var resp *http.Response
 	var err error
@@ -231,7 +235,7 @@ func (c *Client) httpPutJSON(url string, data interface{}, contentType string, e
 	return c.processResponse(resp, nil, expectedStatusCode) // TODO: Maybe need a response too?
 }
 
-func (c *Client) httpPostJSON(url string, data interface{}, contentType string, expectedStatusCode int) (string, error) {
+func (c *Client) HttpPostJSON(url string, data interface{}, contentType string, expectedStatusCode int) (string, error) {
 
 	var resp *http.Response
 	var err error
@@ -279,7 +283,55 @@ func (c *Client) httpPostJSON(url string, data interface{}, contentType string, 
 	return resp.Header.Get("Location"), nil
 }
 
-func (c *Client) httpDelete(url string, contentType string, expectedStatusCode int) error {
+func (c *Client) HttpPostJSONExpectResult(url string, data interface{}, result interface{}, contentType string, expectedStatusCode int) (string, error) {
+
+	var resp *http.Response
+	var err error
+
+	if c.debugFlags&HubClientDebugTimings != 0 {
+		log.Debugf("DEBUG HTTP STARTING POST REQUEST: %s", url)
+	}
+
+	// Encode json
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+
+	if err := enc.Encode(&data); err != nil {
+		log.Errorf("Error encoding json: %+v.", err)
+	}
+
+	httpStart := time.Now()
+	req, err := http.NewRequest(http.MethodPost, url, &buf)
+	req.Header.Set(HeaderNameContentType, contentType)
+
+	if err != nil {
+		log.Errorf("Error making http post request: %+v.", err)
+		return "", err
+	}
+
+	c.doPreRequest(req)
+	log.Debugf("POST Request: %+v.", req)
+
+	if resp, err = c.httpClient.Do(req); err != nil {
+		log.Errorf("Error getting HTTP Response: %+v.", err)
+		readResponseBody(resp)
+		return "", err
+	}
+
+	httpElapsed := time.Since(httpStart)
+
+	if c.debugFlags&HubClientDebugTimings != 0 {
+		log.Debugf("DEBUG HTTP POST ELAPSED TIME: %d ms.   -- Request: %s", (httpElapsed / 1000 / 1000), url)
+	}
+
+	if err := c.processResponse(resp, result, expectedStatusCode); err != nil {
+		return "", err
+	}
+
+	return resp.Header.Get("Location"), nil
+}
+
+func (c *Client) HttpDelete(url string, contentType string, expectedStatusCode int) error {
 
 	var resp *http.Response
 	var err error

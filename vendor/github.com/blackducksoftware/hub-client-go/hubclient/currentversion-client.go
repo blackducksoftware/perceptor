@@ -25,7 +25,7 @@ func (c *Client) CurrentVersion() (*hubapi.CurrentVersion, error) {
 
 	var currentVersion hubapi.CurrentVersion
 	currentVersionURL := fmt.Sprintf("%s/api/current-version", c.baseURL)
-	err := c.httpGetJSON(currentVersionURL, &currentVersion, 200)
+	err := c.HttpGetJSON(currentVersionURL, &currentVersion, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to get current version: %+v.", err)

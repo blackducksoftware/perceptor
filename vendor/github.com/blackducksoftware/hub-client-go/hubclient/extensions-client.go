@@ -22,7 +22,7 @@ import (
 func (c *Client) GetExternalExtension(link hubapi.ResourceLink) (*hubapi.ExternalExtension, error) {
 
 	var extension hubapi.ExternalExtension
-	err := c.httpGetJSON(link.Href, &extension, 200)
+	err := c.HttpGetJSON(link.Href, &extension, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve an external extension: %+v.", err)
@@ -34,7 +34,7 @@ func (c *Client) GetExternalExtension(link hubapi.ResourceLink) (*hubapi.Externa
 
 func (c *Client) UpdateExternalExtension(extension *hubapi.ExternalExtension) error {
 
-	err := c.httpPutJSON(extension.Meta.Href, &extension, hubapi.ContentTypeExtensionJSON, 200)
+	err := c.HttpPutJSON(extension.Meta.Href, &extension, hubapi.ContentTypeExtensionJSON, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to update an external extension: %+v.", err)

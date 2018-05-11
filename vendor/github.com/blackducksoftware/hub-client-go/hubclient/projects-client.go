@@ -38,7 +38,7 @@ func (c *Client) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectLi
 	projectsURL := fmt.Sprintf("%s/api/projects%s", c.baseURL, params)
 
 	var projectList hubapi.ProjectList
-	err := c.httpGetJSON(projectsURL, &projectList, 200)
+	err := c.HttpGetJSON(projectsURL, &projectList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve project list: %+v.", err)
@@ -51,7 +51,7 @@ func (c *Client) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectLi
 func (c *Client) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
 
 	var project hubapi.Project
-	err := c.httpGetJSON(link.Href, &project, 200)
+	err := c.HttpGetJSON(link.Href, &project, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a project: %+v.", err)
@@ -64,7 +64,7 @@ func (c *Client) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
 func (c *Client) CreateProject(projectRequest *hubapi.ProjectRequest) (string, error) {
 
 	projectsURL := fmt.Sprintf("%s/api/projects", c.baseURL)
-	location, err := c.httpPostJSON(projectsURL, projectRequest, "application/json", 201)
+	location, err := c.HttpPostJSON(projectsURL, projectRequest, "application/json", 201)
 
 	if err != nil {
 		return location, err
@@ -78,7 +78,13 @@ func (c *Client) CreateProject(projectRequest *hubapi.ProjectRequest) (string, e
 }
 
 func (c *Client) DeleteProject(projectURL string) error {
-	return c.httpDelete(projectURL, "application/json", 204)
+	return c.HttpDelete(projectURL, "application/json", 204)
+}
+
+// DeleteProjectVersion deletes a project version using
+// https://<base_hub_URL>/api.html#!/project45version45rest45server/deleteVersionUsingDELETE
+func (c *Client) DeleteProjectVersion(projectVersionURL string) error {
+	return c.HttpDelete(projectVersionURL, "application/json", 204)
 }
 
 func (c *Client) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.ProjectVersionList, error) {
@@ -91,7 +97,7 @@ func (c *Client) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.G
 	projectVersionsURL := fmt.Sprintf("%s%s", link.Href, params)
 
 	var versionList hubapi.ProjectVersionList
-	err := c.httpGetJSON(projectVersionsURL, &versionList, 200)
+	err := c.HttpGetJSON(projectVersionsURL, &versionList, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve project version list list: %+v.", err)
@@ -104,7 +110,7 @@ func (c *Client) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.G
 func (c *Client) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
 
 	var projectVersion hubapi.ProjectVersion
-	err := c.httpGetJSON(link.Href, &projectVersion, 200)
+	err := c.HttpGetJSON(link.Href, &projectVersion, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a project version: %+v.", err)
@@ -116,7 +122,7 @@ func (c *Client) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVer
 
 func (c *Client) CreateProjectVersion(link hubapi.ResourceLink, projectVersionRequest *hubapi.ProjectVersionRequest) (string, error) {
 
-	location, err := c.httpPostJSON(link.Href, projectVersionRequest, "application/json", 201)
+	location, err := c.HttpPostJSON(link.Href, projectVersionRequest, "application/json", 201)
 
 	if err != nil {
 		return location, err
@@ -132,7 +138,7 @@ func (c *Client) CreateProjectVersion(link hubapi.ResourceLink, projectVersionRe
 func (c *Client) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
 
 	var riskProfile hubapi.ProjectVersionRiskProfile
-	err := c.httpGetJSON(link.Href, &riskProfile, 200)
+	err := c.HttpGetJSON(link.Href, &riskProfile, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a project version risk profile: %+v.", err)
@@ -145,7 +151,7 @@ func (c *Client) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi
 func (c *Client) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
 
 	var policyStatus hubapi.ProjectVersionPolicyStatus
-	err := c.httpGetJSON(link.Href, &policyStatus, 200)
+	err := c.HttpGetJSON(link.Href, &policyStatus, 200)
 
 	if err != nil {
 		log.Errorf("Error trying to retrieve a project version policy status: %+v", err)
@@ -153,4 +159,19 @@ func (c *Client) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubap
 	}
 
 	return &policyStatus, nil
+}
+
+func (c *Client) AssignUserToProject(link hubapi.ResourceLink, userAssignmentRequest *hubapi.UserAssignmentRequest) (string, error) {
+
+	location, err := c.HttpPostJSON(link.Href, userAssignmentRequest, "application/json", 201)
+
+	if err != nil {
+		return location, err
+	}
+
+	if location == "" {
+		log.Warnf("Did not get a location header back for project user assignment")
+	}
+
+	return location, err
 }
