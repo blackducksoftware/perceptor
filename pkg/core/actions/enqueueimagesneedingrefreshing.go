@@ -28,9 +28,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type EnqueueImagesNeedingRefreshing struct{}
-
-var refreshThresholdDuration = 30 * time.Minute
+type EnqueueImagesNeedingRefreshing struct {
+	RefreshThresholdDuration time.Duration
+}
 
 func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
 	for sha, imageInfo := range model.Images {
@@ -44,7 +44,7 @@ func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
 			continue
 		}
 
-		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < refreshThresholdDuration
+		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
 		if hasBeenRefreshedRecently {
 			continue
 		}

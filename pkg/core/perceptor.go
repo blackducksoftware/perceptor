@@ -46,6 +46,7 @@ const (
 	checkHubAccessibilityPause = 5 * time.Second
 
 	enqueueImagesForRefreshPause = 5 * time.Minute
+	refreshThresholdDuration     = 30 * time.Minute
 
 	modelMetricsPause = 15 * time.Second
 
@@ -203,7 +204,7 @@ func (perceptor *Perceptor) startCheckingForStalledScanClientScans() {
 	log.Info("starting checking for stalled scans")
 	for {
 		time.Sleep(checkForStalledScansPause)
-		log.Info("checking for stalled scans")
+		log.Debug("checking for stalled scans")
 		perceptor.actions <- &a.RequeueStalledScans{StalledScanClientTimeout: stalledScanClientTimeout}
 	}
 }
@@ -247,7 +248,7 @@ func (perceptor *Perceptor) startCheckingForHubAccessibility() {
 
 func (perceptor *Perceptor) startEnqueueingImagesNeedingRefreshing() {
 	for {
-		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{}
+		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{refreshThresholdDuration}
 		time.Sleep(enqueueImagesForRefreshPause)
 	}
 }
