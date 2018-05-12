@@ -45,8 +45,8 @@ const (
 
 	checkHubAccessibilityPause = 5 * time.Second
 
-	enqueueImagesForRefreshPause = 30 * time.Second // * time.Minute
-	refreshThresholdDuration     = 1 * time.Minute
+	enqueueImagesForRefreshPause = 5 * time.Minute
+	refreshThresholdDuration     = 30 * time.Minute
 
 	modelMetricsPause = 15 * time.Second
 
