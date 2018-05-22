@@ -112,27 +112,27 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 		for {
 			select {
 			case pod := <-httpResponder.AddPodChannel:
-				actions <- &a.AddPod{pod}
+				actions <- &a.AddPod{Pod: pod}
 			case pod := <-httpResponder.UpdatePodChannel:
-				actions <- &a.UpdatePod{pod}
+				actions <- &a.UpdatePod{Pod: pod}
 			case podName := <-httpResponder.DeletePodChannel:
-				actions <- &a.DeletePod{podName}
+				actions <- &a.DeletePod{PodName: podName}
 			case image := <-httpResponder.AddImageChannel:
-				actions <- &a.AddImage{image}
+				actions <- &a.AddImage{Image: image}
 			case pods := <-httpResponder.AllPodsChannel:
-				actions <- &a.AllPods{pods}
+				actions <- &a.AllPods{Pods: pods}
 			case images := <-httpResponder.AllImagesChannel:
-				actions <- &a.AllImages{images}
+				actions <- &a.AllImages{Images: images}
 			case job := <-httpResponder.PostFinishScanJobChannel:
 				actions <- job
 			case continuation := <-httpResponder.PostNextImageChannel:
-				actions <- &a.GetNextImage{continuation}
+				actions <- &a.GetNextImage{Continuation: continuation}
 			case limit := <-httpResponder.SetConcurrentScanLimitChannel:
-				actions <- &a.SetConcurrentScanLimit{limit}
+				actions <- &a.SetConcurrentScanLimit{Limit: limit}
 			case continuation := <-httpResponder.GetModelChannel:
-				actions <- &a.GetModel{continuation}
+				actions <- &a.GetModel{Continuation: continuation}
 			case continuation := <-httpResponder.GetScanResultsChannel:
-				actions <- &a.GetScanResults{continuation}
+				actions <- &a.GetScanResults{Continuation: continuation}
 			}
 		}
 	}()
@@ -168,7 +168,7 @@ func (perceptor *Perceptor) startHubInitialScanChecking() {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		var image *model.Image
-		perceptor.actions <- &a.CheckScanInitial{func(i *model.Image) {
+		perceptor.actions <- &a.CheckScanInitial{Continuation: func(i *model.Image) {
 			image = i
 			wg.Done()
 		}}
@@ -176,7 +176,7 @@ func (perceptor *Perceptor) startHubInitialScanChecking() {
 
 		if image != nil {
 			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-			perceptor.actions <- &a.FetchScanInitial{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+			perceptor.actions <- &a.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 			time.Sleep(checkHubThrottle)
 		} else {
 			// slow down the chatter if we didn't find something
@@ -190,13 +190,13 @@ func (perceptor *Perceptor) startPollingHubForScanCompletion() {
 	for {
 		time.Sleep(checkHubForCompletedScansPause)
 		log.Debug("checking hub for completion of running hub scans")
-		perceptor.actions <- &a.CheckScansCompletion{func(images *[]model.Image) {
+		perceptor.actions <- &a.CheckScansCompletion{Continuation: func(images *[]model.Image) {
 			if images == nil {
 				return
 			}
 			for _, image := range *images {
 				scan, err := perceptor.hubClient.FetchScanFromImage(image)
-				perceptor.actions <- &a.FetchScanCompletion{&model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
+				perceptor.actions <- &a.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
 				time.Sleep(checkHubThrottle)
 			}
 		}}
@@ -216,7 +216,7 @@ func (perceptor *Perceptor) startGeneratingModelMetrics() {
 	for {
 		time.Sleep(modelMetricsPause)
 
-		perceptor.actions <- &a.GetMetrics{func(modelMetrics *model.Metrics) {
+		perceptor.actions <- &a.GetMetrics{Continuation: func(modelMetrics *model.Metrics) {
 			recordModelMetrics(modelMetrics)
 		}}
 	}
@@ -228,11 +228,11 @@ func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		perceptor.actions <- &a.CheckScanRefresh{func(image *model.Image) {
+		perceptor.actions <- &a.CheckScanRefresh{Continuation: func(image *model.Image) {
 			if image != nil {
 				log.Debugf("refreshing image %s", image.PullSpec())
 				scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-				perceptor.actions <- &a.FetchScanRefresh{&model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+				perceptor.actions <- &a.FetchScanRefresh{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 			}
 			wg.Done()
 		}}
@@ -253,7 +253,7 @@ func (perceptor *Perceptor) startCheckingForHubAccessibility() {
 func (perceptor *Perceptor) startEnqueueingImagesNeedingRefreshing() {
 	for {
 		log.Debug("enqueueing images in need of refreshing")
-		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{refreshThresholdDuration}
+		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: refreshThresholdDuration}
 		time.Sleep(enqueueImagesForRefreshPause)
 	}
 }
