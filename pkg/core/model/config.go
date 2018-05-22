@@ -32,15 +32,15 @@ import (
 // Config contains all configuration for Perceptor
 // Config .....
 type Config struct {
-	HubHost                 string
-	HubUser                 string
-	HubUserPasswordEnvVar   string
-	HubClientTimeoutSeconds int
-	HubPort                 int
-	ConcurrentScanLimit     int
-	UseMockMode             bool
-	Port                    int
-	LogLevel                string
+	HubHost                      string
+	HubUser                      string
+	HubUserPasswordEnvVar        string
+	HubClientTimeoutMilliseconds int
+	HubPort                      int
+	ConcurrentScanLimit          int
+	UseMockMode                  bool
+	Port                         int
+	LogLevel                     string
 }
 
 // GetLogLevel .....

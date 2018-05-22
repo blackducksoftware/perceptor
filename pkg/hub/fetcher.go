@@ -67,8 +67,8 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
 // NewFetcher .....
-func NewFetcher(username string, password string, baseURL string, hubClientTimeoutSeconds int) (*Fetcher, error) {
-	hubClientTimeout := time.Second * time.Duration(hubClientTimeoutSeconds)
+func NewFetcher(username string, password string, baseURL string, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
+	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
 		return nil, err
