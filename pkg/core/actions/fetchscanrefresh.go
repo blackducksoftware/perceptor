@@ -36,6 +36,7 @@ func (h *FetchScanRefresh) Apply(model *m.Model) {
 
 	// case 0: unable to fetch scan results
 	if scan.Err != nil {
+		model.HubCircuitBreaker.HubFailure()
 		log.Errorf("unable to fetch updated scan results for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}

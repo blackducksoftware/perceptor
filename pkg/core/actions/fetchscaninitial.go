@@ -46,6 +46,7 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 
 	// case 1: error trying to access the hub project.  Don't change the status.
 	if scan.Err != nil {
+		model.HubCircuitBreaker.HubFailure()
 		log.Errorf("check image in hub -- unable to fetch image scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}
