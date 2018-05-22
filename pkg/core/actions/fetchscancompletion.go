@@ -36,6 +36,7 @@ func (h *FetchScanCompletion) Apply(model *m.Model) {
 
 	// case 1: error
 	if scan.Err != nil {
+		model.HubCircuitBreaker.HubFailure()
 		log.Errorf("error checking hub for completed scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}
