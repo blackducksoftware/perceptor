@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// FinishedScanClientJob .....
 type FinishedScanClientJob struct {
 	ImageSpec ImageSpec
 	Err       string

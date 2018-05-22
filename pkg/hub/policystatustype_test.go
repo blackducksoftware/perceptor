@@ -26,6 +26,7 @@ import (
 	"testing"
 )
 
+// TestPolicyStatusTypeJSON .....
 func TestPolicyStatusTypeJSON(t *testing.T) {
 	jsonBytes, err := json.Marshal(PolicyStatusTypeInViolation)
 	if err != nil {

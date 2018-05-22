@@ -23,6 +23,7 @@ package model
 
 import "fmt"
 
+// Pod .....
 type Pod struct {
 	Name       string
 	UID        string
@@ -30,6 +31,7 @@ type Pod struct {
 	Containers []Container
 }
 
+// QualifiedName .....
 func (pod *Pod) QualifiedName() string {
 	return fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 }
@@ -43,6 +45,7 @@ func (pod *Pod) hasImage(image Image) bool {
 	return false
 }
 
+// NewPod .....
 func NewPod(name string, uid string, namespace string, containers []Container) *Pod {
 	return &Pod{
 		Name:       name,

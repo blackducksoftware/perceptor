@@ -21,12 +21,14 @@ under the License.
 
 package hub
 
+// PolicyStatus .....
 type PolicyStatus struct {
 	OverallStatus                PolicyStatusType
 	UpdatedAt                    string
 	ComponentVersionStatusCounts map[PolicyStatusType]int
 }
 
+// ViolationCount .....
 func (ps *PolicyStatus) ViolationCount() int {
 	violationCount, ok := ps.ComponentVersionStatusCounts[PolicyStatusTypeInViolation]
 	if !ok {

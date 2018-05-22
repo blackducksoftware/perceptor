@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// SetConcurrentScanLimit .....
 type SetConcurrentScanLimit struct {
 	Limit int
 }

@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// AllImages .....
 type AllImages struct {
 	Images []m.Image
 }
 
+// Apply .....
 func (a *AllImages) Apply(model *m.Model) {
 	for _, image := range a.Images {
 		model.AddImage(image)

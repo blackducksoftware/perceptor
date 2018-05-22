@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// CodeLocation .....
 type CodeLocation struct {
 	ScanSummaries        []ScanSummary
 	CreatedAt            string

@@ -26,6 +26,7 @@ import (
 	"testing"
 )
 
+// TestRiskProfileCategoryJSON .....
 func TestRiskProfileCategoryJSON(t *testing.T) {
 	jsonBytes, err := json.Marshal(RiskProfileCategoryActivity)
 	if err != nil {
@@ -38,6 +39,7 @@ func TestRiskProfileCategoryJSON(t *testing.T) {
 	}
 }
 
+// TestRiskProfileCategoryJSONWithinDictionary .....
 func TestRiskProfileCategoryJSONWithinDictionary(t *testing.T) {
 	dict := map[RiskProfileCategory]RiskProfileCategory{
 		RiskProfileCategoryActivity:    RiskProfileCategoryVersion,

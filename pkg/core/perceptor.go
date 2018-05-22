@@ -61,6 +61,7 @@ const (
 // It has the hub scan images that have never been seen before.
 // It grabs the scan results from the hub and adds them to its model.
 // It publishes vulnerabilities that the cluster can find out about.
+// Perceptor .....
 type Perceptor struct {
 	hubClient     hub.FetcherInterface
 	httpResponder *HTTPResponder
@@ -71,6 +72,7 @@ type Perceptor struct {
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
+// NewMockedPerceptor .....
 func NewMockedPerceptor() (*Perceptor, error) {
 	mockConfig := model.Config{
 		HubHost:             "mock host",
@@ -81,6 +83,7 @@ func NewMockedPerceptor() (*Perceptor, error) {
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
+// NewPerceptor .....
 func NewPerceptor(config *model.Config) (*Perceptor, error) {
 	log.Infof("instantiating perceptor with config %+v", config)
 	hubPassword := os.Getenv(config.HubUserPasswordEnvVar)

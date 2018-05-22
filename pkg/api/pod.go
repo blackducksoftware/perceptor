@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// Pod .....
 type Pod struct {
 	Name       string
 	UID        string
@@ -28,6 +29,7 @@ type Pod struct {
 	Containers []Container
 }
 
+// NewPod .....
 func NewPod(name string, uid string, namespace string, containers []Container) *Pod {
 	return &Pod{
 		Name:       name,

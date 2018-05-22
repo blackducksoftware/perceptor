@@ -27,10 +27,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// FetchScanInitial .....
 type FetchScanInitial struct {
 	Scan *m.HubImageScan
 }
 
+// Apply .....
 func (h *FetchScanInitial) Apply(model *m.Model) {
 	scan := h.Scan
 	imageInfo, ok := model.Images[scan.Sha]

@@ -33,6 +33,7 @@ import (
 )
 
 // HTTPResponder ...
+// HTTPResponder .....
 type HTTPResponder struct {
 	AddPodChannel                 chan model.Pod
 	UpdatePodChannel              chan model.Pod
@@ -47,6 +48,7 @@ type HTTPResponder struct {
 	GetScanResultsChannel         chan func(scanResults api.ScanResults)
 }
 
+// NewHTTPResponder .....
 func NewHTTPResponder() *HTTPResponder {
 	return &HTTPResponder{
 		AddPodChannel:                 make(chan model.Pod),
@@ -62,6 +64,7 @@ func NewHTTPResponder() *HTTPResponder {
 		GetScanResultsChannel:         make(chan func(api.ScanResults))}
 }
 
+// GetModel .....
 func (hr *HTTPResponder) GetModel() api.Model {
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -74,6 +77,7 @@ func (hr *HTTPResponder) GetModel() api.Model {
 	return model
 }
 
+// AddPod .....
 func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
 	recordAddPod()
 	pod := *model.APIPodToCorePod(apiPod)
@@ -81,12 +85,14 @@ func (hr *HTTPResponder) AddPod(apiPod api.Pod) {
 	log.Debugf("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
+// DeletePod .....
 func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 	recordDeletePod()
 	hr.DeletePodChannel <- qualifiedName
 	log.Debugf("handled delete pod %s", qualifiedName)
 }
 
+// UpdatePod .....
 func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
 	recordUpdatePod()
 	pod := *model.APIPodToCorePod(apiPod)
@@ -94,6 +100,7 @@ func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) {
 	log.Debugf("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 }
 
+// AddImage .....
 func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 	recordAddImage()
 	image := *model.APIImageToCoreImage(apiImage)
@@ -101,6 +108,7 @@ func (hr *HTTPResponder) AddImage(apiImage api.Image) {
 	log.Debugf("handled add image %s", image.PullSpec())
 }
 
+// UpdateAllPods .....
 func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 	recordAllPods()
 	pods := []model.Pod{}
@@ -111,6 +119,7 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) {
 	log.Debugf("handled update all pods -- %d pods", len(allPods.Pods))
 }
 
+// UpdateAllImages .....
 func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 	recordAllImages()
 	images := []model.Image{}
@@ -124,6 +133,7 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 // GetScanResults returns results for:
 //  - all images that have a scan status of complete
 //  - all pods for which all their images have a scan status of complete
+// GetScanResults .....
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	recordGetScanResults()
 	var wg sync.WaitGroup
@@ -137,6 +147,7 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	return scanResults
 }
 
+// GetNextImage .....
 func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	recordGetNextImage()
 	var wg sync.WaitGroup
@@ -163,6 +174,7 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	return nextImage
 }
 
+// PostFinishScan .....
 func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 	recordPostFinishedScan()
 	var err error
@@ -178,6 +190,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 
 // internal use
 
+// SetConcurrentScanLimit .....
 func (hr *HTTPResponder) SetConcurrentScanLimit(limit api.SetConcurrentScanLimit) {
 	hr.SetConcurrentScanLimitChannel <- limit.Limit
 	log.Debugf("handled set concurrent scan limit -- %d", limit)
@@ -185,12 +198,14 @@ func (hr *HTTPResponder) SetConcurrentScanLimit(limit api.SetConcurrentScanLimit
 
 // errors
 
+// NotFound .....
 func (hr *HTTPResponder) NotFound(w http.ResponseWriter, r *http.Request) {
 	log.Errorf("HTTPResponder not found from request %+v", r)
 	recordHTTPNotFound(r)
 	http.NotFound(w, r)
 }
 
+// Error .....
 func (hr *HTTPResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	log.Errorf("HTTPResponder error %s with code %d from request %+v", err.Error(), statusCode, r)
 	recordHTTPError(r, err, statusCode)

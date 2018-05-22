@@ -21,6 +21,7 @@ under the License.
 
 package model
 
+// Metrics .....
 type Metrics struct {
 	ScanStatusCounts      map[ScanStatus]int
 	NumberOfPods          int

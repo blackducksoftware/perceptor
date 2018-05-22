@@ -28,8 +28,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CheckHubAccessibility .....
 type CheckHubAccessibility struct{}
 
+// Apply .....
 func (c *CheckHubAccessibility) Apply(model *m.Model) {
 	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
 		return

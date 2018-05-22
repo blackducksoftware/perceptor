@@ -38,6 +38,7 @@ var riskProfile = RiskProfile{
 	},
 }
 
+// TestRiskProfileJSONRoundtrip .....
 func TestRiskProfileJSONRoundtrip(t *testing.T) {
 	jsonBytes, err := json.Marshal(riskProfile)
 	if err != nil {
@@ -53,6 +54,7 @@ func TestRiskProfileJSONRoundtrip(t *testing.T) {
 	}
 }
 
+// TestRiskProfileUnmarshal .....
 func TestRiskProfileUnmarshal(t *testing.T) {
 	input := `{"Categories":{"OPERATIONAL":{"StatusCounts":{"LOW":31}}},"BomLastUpdatedAt":"blua"}`
 	var rp RiskProfile

@@ -24,6 +24,7 @@ package actions
 import "testing"
 
 // AllPods does remove pre-existing pods
+// TestAllPods .....
 func TestAllPods(t *testing.T) {
 	actual := createNewModel1()
 	(&AllPods{}).Apply(actual)

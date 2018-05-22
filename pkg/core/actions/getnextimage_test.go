@@ -29,6 +29,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestGetNextImageForScanningActionNoImageAvailable .....
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
 	var nextImage *m.Image
@@ -44,6 +45,7 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// assertEqual(t, actual, expected)
 }
 
+// TestGetNextImage .....
 func TestGetNextImage(t *testing.T) {
 	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
 	model.AddImage(image1)
@@ -69,6 +71,7 @@ func TestGetNextImage(t *testing.T) {
 	// TODO expected: time of image changed
 }
 
+// TestGetNextImageHubInaccessible .....
 func TestGetNextImageHubInaccessible(t *testing.T) {
 	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
 	model.AddImage(image1)

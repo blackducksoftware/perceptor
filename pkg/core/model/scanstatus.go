@@ -24,6 +24,7 @@ package model
 import "fmt"
 
 // ScanStatus describes the state of an image in perceptor
+// ScanStatus .....
 type ScanStatus int
 
 const (
@@ -35,6 +36,7 @@ const (
 	ScanStatusComplete          ScanStatus = iota
 )
 
+// String .....
 func (status ScanStatus) String() string {
 	switch status {
 	case ScanStatusUnknown:
@@ -53,11 +55,13 @@ func (status ScanStatus) String() string {
 	panic(fmt.Errorf("invalid ScanStatus value: %d", status))
 }
 
+// MarshalJSON .....
 func (status ScanStatus) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, status.String())
 	return []byte(jsonString), nil
 }
 
+// MarshalText .....
 func (status ScanStatus) MarshalText() (text []byte, err error) {
 	return []byte(status.String()), nil
 }
@@ -88,6 +92,7 @@ var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
 	ScanStatusComplete: {},
 }
 
+// IsLegalTransition .....
 func IsLegalTransition(from ScanStatus, to ScanStatus) bool {
 	stateMap, ok := legalTransitions[from]
 	if !ok {

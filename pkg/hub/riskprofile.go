@@ -21,11 +21,13 @@ under the License.
 
 package hub
 
+// RiskProfile .....
 type RiskProfile struct {
 	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
 	BomLastUpdatedAt string
 }
 
+// HighRiskVulnerabilityCount .....
 func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
 	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
 	if !ok {

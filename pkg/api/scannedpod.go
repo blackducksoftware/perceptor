@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// ScannedPod .....
 type ScannedPod struct {
 	Namespace        string
 	Name             string

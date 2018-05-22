@@ -21,12 +21,14 @@ under the License.
 
 package api
 
+// Image .....
 type Image struct {
 	Name        string
 	Sha         string
 	DockerImage string
 }
 
+// NewImage .....
 func NewImage(name string, sha string, dockerImage string) *Image {
 	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
 }

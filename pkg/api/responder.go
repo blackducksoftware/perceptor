@@ -25,6 +25,7 @@ import (
 	"net/http"
 )
 
+// Responder .....
 type Responder interface {
 	GetModel() Model
 

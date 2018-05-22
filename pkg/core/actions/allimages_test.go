@@ -24,6 +24,7 @@ package actions
 import "testing"
 
 // AllImages doesn't remove pre-existing images
+// TestAllImages .....
 func TestAllImages(t *testing.T) {
 	actual := createNewModel1()
 	(&AllImages{}).Apply(actual)

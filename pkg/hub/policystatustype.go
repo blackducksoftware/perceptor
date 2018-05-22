@@ -23,6 +23,7 @@ package hub
 
 import "fmt"
 
+// PolicyStatusType .....
 type PolicyStatusType int
 
 const (
@@ -31,6 +32,7 @@ const (
 	PolicyStatusTypeInViolationOverridden PolicyStatusType = iota
 )
 
+// String .....
 func (p PolicyStatusType) String() string {
 	switch p {
 	case PolicyStatusTypeNotInViolation:
@@ -44,15 +46,18 @@ func (p PolicyStatusType) String() string {
 	}
 }
 
+// MarshalJSON .....
 func (p PolicyStatusType) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, p.String())
 	return []byte(jsonString), nil
 }
 
+// MarshalText .....
 func (p PolicyStatusType) MarshalText() (text []byte, err error) {
 	return []byte(p.String()), nil
 }
 
+// UnmarshalText .....
 func (p *PolicyStatusType) UnmarshalText(text []byte) (err error) {
 	status, err := parseHubPolicyStatusType(string(text))
 	if err != nil {

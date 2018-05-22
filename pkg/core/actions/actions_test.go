@@ -98,6 +98,7 @@ func assertEqual(t *testing.T, actual interface{}, expected interface{}) {
 	t.Errorf("expected \n%s, got \n%s", string(expectedBytes), string(actualBytes))
 }
 
+// TestActionsImplementInterface .....
 func TestActionsImplementInterface(t *testing.T) {
 	processAction(&AddPod{m.Pod{}})
 	processAction(&UpdatePod{m.Pod{}})

@@ -27,10 +27,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// RequeueStalledScans .....
 type RequeueStalledScans struct {
 	StalledScanClientTimeout time.Duration
 }
 
+// Apply .....
 func (r *RequeueStalledScans) Apply(model *m.Model) {
 	for _, imageInfo := range model.Images {
 		switch imageInfo.ScanStatus {

@@ -27,6 +27,7 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// TestAddImageAction .....
 func TestAddImageAction(t *testing.T) {
 	// actual
 	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")

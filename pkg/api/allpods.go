@@ -21,10 +21,12 @@ under the License.
 
 package api
 
+// AllPods .....
 type AllPods struct {
 	Pods []Pod
 }
 
+// NewAllPods .....
 func NewAllPods(pods []Pod) *AllPods {
 	return &AllPods{Pods: pods}
 }

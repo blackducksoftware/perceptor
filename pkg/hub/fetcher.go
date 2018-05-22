@@ -30,6 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Fetcher .....
 type Fetcher struct {
 	client     hubclient.Client
 	hubVersion string
@@ -38,6 +39,7 @@ type Fetcher struct {
 	baseURL    string
 }
 
+// Login .....
 func (hf *Fetcher) Login() error {
 	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)
@@ -64,6 +66,7 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
+// NewFetcher .....
 func NewFetcher(username string, password string, baseURL string, hubClientTimeoutSeconds int) (*Fetcher, error) {
 	hubClientTimeout := time.Second * time.Duration(hubClientTimeoutSeconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -86,6 +89,7 @@ func NewFetcher(username string, password string, baseURL string, hubClientTimeo
 	return &hf, nil
 }
 
+// HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
@@ -96,6 +100,7 @@ func (hf *Fetcher) HubVersion() string {
 // - one code location, with
 // - one scan summary, with
 // - a completed status
+// FetchScanFromImage .....
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
 	startGetProjects := time.Now()

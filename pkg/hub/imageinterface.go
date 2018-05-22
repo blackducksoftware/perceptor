@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// ImageInterface .....
 type ImageInterface interface {
 	HubProjectNameSearchString() string
 	HubProjectVersionNameSearchString() string

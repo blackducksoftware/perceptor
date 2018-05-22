@@ -27,6 +27,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestMetrics .....
 func TestMetrics(t *testing.T) {
 	recordRequeueStalledScan("abc")
 

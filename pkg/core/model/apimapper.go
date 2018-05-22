@@ -28,14 +28,17 @@ import (
 
 // api -> model
 
+// APIImageToCoreImage .....
 func APIImageToCoreImage(apiImage api.Image) *Image {
 	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
 }
 
+// ApiContainerToCoreContainer .....
 func ApiContainerToCoreContainer(apiContainer api.Container) *Container {
 	return NewContainer(*APIImageToCoreImage(apiContainer.Image), apiContainer.Name)
 }
 
+// APIPodToCorePod .....
 func APIPodToCorePod(apiPod api.Pod) *Pod {
 	containers := []Container{}
 	for _, apiContainer := range apiPod.Containers {
@@ -46,6 +49,7 @@ func APIPodToCorePod(apiPod api.Pod) *Pod {
 
 // model -> api
 
+// CoreContainerToAPIContainer .....
 func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	return &api.Container{
 		Image: api.Image{
@@ -56,6 +60,7 @@ func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	}
 }
 
+// CorePodToAPIPod .....
 func CorePodToAPIPod(corePod Pod) *api.Pod {
 	containers := []api.Container{}
 	for _, coreContainer := range corePod.Containers {
@@ -69,6 +74,7 @@ func CorePodToAPIPod(corePod Pod) *api.Pod {
 	}
 }
 
+// APIModel .....
 func (model *Model) APIModel() *api.Model {
 	// pods
 	pods := map[string]*api.Pod{}
@@ -117,6 +123,7 @@ func (model *Model) APIModel() *api.Model {
 	}
 }
 
+// ScanResults .....
 func (model *Model) ScanResults() api.ScanResults {
 	// pods
 	pods := []api.ScannedPod{}

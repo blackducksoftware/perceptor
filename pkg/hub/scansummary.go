@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// ScanSummary .....
 type ScanSummary struct {
 	CreatedAt string
 	Status    ScanSummaryStatus

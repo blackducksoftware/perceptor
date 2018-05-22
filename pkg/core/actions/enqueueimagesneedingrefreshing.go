@@ -28,10 +28,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// EnqueueImagesNeedingRefreshing .....
 type EnqueueImagesNeedingRefreshing struct {
 	RefreshThresholdDuration time.Duration
 }
 
+// Apply .....
 func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
 	for sha, imageInfo := range model.Images {
 		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
