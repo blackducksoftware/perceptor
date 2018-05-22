@@ -28,6 +28,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestMetrics .....
 func TestMetrics(t *testing.T) {
 	recordHubData("abc", true)
 	recordHubResponse("qrs", false)

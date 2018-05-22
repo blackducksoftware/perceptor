@@ -26,6 +26,7 @@ import (
 	"testing"
 )
 
+// TestImageJSON .....
 func TestImageJSON(t *testing.T) {
 	jsonString := `{"ImageSpec":{"PullSpec": "", "Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5", "HubProjectName":"", "HubProjectVersionName":"", "HubScanName":""}}`
 	var nextImage NextImage

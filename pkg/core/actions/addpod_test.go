@@ -27,6 +27,7 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// TestAddPodAction .....
 func TestAddPodAction(t *testing.T) {
 	// actual
 	actual := m.NewModel(&m.Config{}, "test version")

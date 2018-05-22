@@ -75,6 +75,7 @@ var cases = []transitionCase{
 	{from: ScanStatusComplete, to: ScanStatusComplete, isLegal: false},
 }
 
+// TestLegalTransitions .....
 func TestLegalTransitions(t *testing.T) {
 	for _, testCase := range cases {
 		actual := IsLegalTransition(testCase.from, testCase.to)

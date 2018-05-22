@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// UpdatePod .....
 type UpdatePod struct {
 	Pod m.Pod
 }
 
+// Apply .....
 func (u *UpdatePod) Apply(model *m.Model) {
 	model.AddPod(u.Pod)
 }

@@ -23,14 +23,17 @@ package model
 
 import "fmt"
 
+// HubCircuitBreakerState .....
 type HubCircuitBreakerState int
 
+// .....
 const (
 	HubCircuitBreakerStateDisabled HubCircuitBreakerState = iota
 	HubCircuitBreakerStateEnabled  HubCircuitBreakerState = iota
 	HubCircuitBreakerStateChecking HubCircuitBreakerState = iota
 )
 
+// String .....
 func (state HubCircuitBreakerState) String() string {
 	switch state {
 	case HubCircuitBreakerStateDisabled:
@@ -43,11 +46,13 @@ func (state HubCircuitBreakerState) String() string {
 	panic(fmt.Errorf("invalid HubCircuitBreakerState value: %d", state))
 }
 
+// MarshalJSON .....
 func (state HubCircuitBreakerState) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, state.String())
 	return []byte(jsonString), nil
 }
 
+// MarshalText .....
 func (state HubCircuitBreakerState) MarshalText() (text []byte, err error) {
 	return []byte(state.String()), nil
 }

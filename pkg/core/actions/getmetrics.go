@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// GetMetrics .....
 type GetMetrics struct {
 	Continuation func(metrics *m.Metrics)
 }
 
+// Apply .....
 func (g *GetMetrics) Apply(model *m.Model) {
 	modelMetrics := model.Metrics()
 	go g.Continuation(modelMetrics)

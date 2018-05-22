@@ -29,6 +29,7 @@ import (
 )
 
 // Model is the root of the core model
+// Model .....
 type Model struct {
 	// Pods is a map of "<namespace>/<name>" to pod
 	Pods                 map[string]Pod
@@ -43,6 +44,7 @@ type Model struct {
 	HubCircuitBreaker    *HubCircuitBreaker
 }
 
+// NewModel .....
 func NewModel(config *Config, hubVersion string) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
@@ -59,6 +61,7 @@ func NewModel(config *Config, hubVersion string) *Model {
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
+// DeletePod .....
 func (model *Model) DeletePod(podName string) {
 	delete(model.Pods, podName)
 }
@@ -69,6 +72,7 @@ func (model *Model) DeletePod(podName string) {
 // The key is the combination of the pod's namespace and name.
 // It extracts the containers and images from the pod,
 // adding them into the cache.
+// AddPod .....
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	if len(newPod.Containers) == 0 {
@@ -83,6 +87,7 @@ func (model *Model) AddPod(newPod Pod) {
 }
 
 // AddImage adds an image to the model, adding it to the queue for hub checking.
+// AddImage .....
 func (model *Model) AddImage(image Image) {
 	added := model.createImage(image)
 	if added {
@@ -215,6 +220,7 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) {
 
 // "Public" methods
 
+// SetImageScanStatus .....
 func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) {
 	err := model.setImageScanStatusForSha(sha, newScanStatus)
 	if err != nil {
@@ -227,6 +233,7 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 	}
 }
 
+// GetNextImageFromHubCheckQueue .....
 func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 	if len(model.ImageHubCheckQueue) == 0 {
 		log.Debug("hub check queue empty")
@@ -244,6 +251,7 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 	return &image
 }
 
+// GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
 	if model.InProgressScanCount() >= model.ConcurrentScanLimit {
 		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
@@ -268,6 +276,7 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 	return &image
 }
 
+// AddImageToRefreshQueue .....
 func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
@@ -289,6 +298,7 @@ func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
 	return nil
 }
 
+// GetNextImageFromRefreshQueue .....
 func (model *Model) GetNextImageFromRefreshQueue() *Image {
 	if len(model.ImageRefreshQueue) == 0 {
 		log.Debug("refresh queue empty")
@@ -306,6 +316,7 @@ func (model *Model) GetNextImageFromRefreshQueue() *Image {
 	return &image
 }
 
+// RemoveImageFromRefreshQueue .....
 func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
 	index := -1
 	for i := 0; i < len(model.ImageRefreshQueue); i++ {
@@ -323,6 +334,7 @@ func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
 	return nil
 }
 
+// FinishRunningScanClient .....
 func (model *Model) FinishRunningScanClient(image *Image, scanClientError error) {
 	_, ok := model.Images[image.Sha]
 
@@ -343,6 +355,7 @@ func (model *Model) FinishRunningScanClient(image *Image, scanClientError error)
 
 // additional methods
 
+// InProgressScans .....
 func (model *Model) InProgressScans() []DockerImageSha {
 	inProgressShas := []DockerImageSha{}
 	for sha, results := range model.Images {
@@ -356,10 +369,12 @@ func (model *Model) InProgressScans() []DockerImageSha {
 	return inProgressShas
 }
 
+// InProgressScanCount .....
 func (model *Model) InProgressScanCount() int {
 	return len(model.InProgressScans())
 }
 
+// InProgressHubScans .....
 func (model *Model) InProgressHubScans() *([]Image) {
 	if !model.HubCircuitBreaker.IsEnabled() {
 		return nil
@@ -374,6 +389,7 @@ func (model *Model) InProgressHubScans() *([]Image) {
 	return &inProgressHubScans
 }
 
+// ScanResultsForPod .....
 func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
 	pod, ok := model.Pods[podName]
 	if !ok {
@@ -406,6 +422,7 @@ func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
 	return podScan, nil
 }
 
+// ScanResultsForImage .....
 func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
@@ -426,6 +443,7 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) 
 	return imageScan, nil
 }
 
+// Metrics .....
 func (model *Model) Metrics() *Metrics {
 	// number of images in each status
 	statusCounts := make(map[ScanStatus]int)

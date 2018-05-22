@@ -28,6 +28,7 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// TestScanClientFails .....
 func TestScanClientFails(t *testing.T) {
 	model := m.NewModel(&m.Config{ConcurrentScanLimit: 1}, "test version")
 	image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))

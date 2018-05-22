@@ -21,6 +21,7 @@ under the License.
 
 package model
 
+// PodScan .....
 type PodScan struct {
 	OverallStatus    string
 	PolicyViolations int

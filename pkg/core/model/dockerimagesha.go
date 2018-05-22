@@ -21,4 +21,5 @@ under the License.
 
 package model
 
+// DockerImageSha .....
 type DockerImageSha string

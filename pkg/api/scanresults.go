@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// ScanResults .....
 type ScanResults struct {
 	HubScanClientVersion string
 	HubVersion           string
@@ -28,6 +29,7 @@ type ScanResults struct {
 	Images               []ScannedImage
 }
 
+// NewScanResults .....
 func NewScanResults(hubScanClientVersion string, hubVersion string, pods []ScannedPod, images []ScannedImage) *ScanResults {
 	return &ScanResults{
 		HubScanClientVersion: hubScanClientVersion,

@@ -25,6 +25,7 @@ import (
 	"testing"
 )
 
+// TestHubCircuitBreaker .....
 func TestHubCircuitBreaker(t *testing.T) {
 	cb := NewHubCircuitBreaker()
 	if cb.State != HubCircuitBreakerStateEnabled {
@@ -74,6 +75,7 @@ func TestHubCircuitBreaker(t *testing.T) {
 	}
 }
 
+// TestHubCircuitBreakerConsecutiveFailures .....
 func TestHubCircuitBreakerConsecutiveFailures(t *testing.T) {
 	cb := NewHubCircuitBreaker()
 	if cb.State != HubCircuitBreakerStateEnabled {

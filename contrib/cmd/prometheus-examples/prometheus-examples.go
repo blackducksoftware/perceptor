@@ -55,7 +55,7 @@ func startDoingRandomMetrics(m *metrics) {
 		m.histVec.With(prometheus.Labels{"thing": thing}).Observe(seconds.Seconds())
 		time.Sleep(100 * time.Millisecond)
 	}
-	log.Info("done with random metrics")
+	// log.Info("done with random metrics")
 }
 
 type metrics struct {

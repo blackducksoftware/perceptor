@@ -26,10 +26,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SetConcurrentScanLimit .....
 type SetConcurrentScanLimit struct {
 	Limit int
 }
 
+// Apply .....
 func (s *SetConcurrentScanLimit) Apply(model *m.Model) {
 	limit := s.Limit
 	if limit < 0 {

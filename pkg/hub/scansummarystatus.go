@@ -23,14 +23,17 @@ package hub
 
 import "fmt"
 
+// ScanSummaryStatus .....
 type ScanSummaryStatus int
 
+// .....
 const (
 	ScanSummaryStatusInProgress ScanSummaryStatus = iota
 	ScanSummaryStatusSuccess    ScanSummaryStatus = iota
 	ScanSummaryStatusFailure    ScanSummaryStatus = iota
 )
 
+// String .....
 func (status ScanSummaryStatus) String() string {
 	switch status {
 	case ScanSummaryStatusInProgress:

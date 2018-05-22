@@ -27,12 +27,14 @@ import (
 	"time"
 )
 
+// HubCircuitBreaker .....
 type HubCircuitBreaker struct {
 	State               HubCircuitBreakerState
 	NextCheckTime       *time.Time
 	ConsecutiveFailures int
 }
 
+// NewHubCircuitBreaker .....
 func NewHubCircuitBreaker() *HubCircuitBreaker {
 	return &HubCircuitBreaker{
 		State:               HubCircuitBreakerStateEnabled,
@@ -41,10 +43,12 @@ func NewHubCircuitBreaker() *HubCircuitBreaker {
 	}
 }
 
+// IsEnabled .....
 func (hcb *HubCircuitBreaker) IsEnabled() bool {
 	return hcb.State != HubCircuitBreakerStateDisabled
 }
 
+// HubFailure .....
 func (hcb *HubCircuitBreaker) HubFailure() {
 	switch hcb.State {
 	case HubCircuitBreakerStateEnabled:
@@ -60,6 +64,7 @@ func (hcb *HubCircuitBreaker) HubFailure() {
 	}
 }
 
+// HubSuccess .....
 func (hcb *HubCircuitBreaker) HubSuccess() {
 	switch hcb.State {
 	case HubCircuitBreakerStateEnabled:
@@ -78,6 +83,7 @@ func (hcb *HubCircuitBreaker) setNextCheckTime() {
 	hcb.NextCheckTime = &nextCheckTime
 }
 
+// MoveToCheckingState .....
 func (hcb *HubCircuitBreaker) MoveToCheckingState() error {
 	var err error
 	switch hcb.State {

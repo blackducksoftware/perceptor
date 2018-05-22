@@ -30,6 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SetupHTTPServer .....
 func SetupHTTPServer(responder Responder) {
 	// state of the program
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {

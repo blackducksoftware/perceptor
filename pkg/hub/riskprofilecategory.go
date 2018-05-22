@@ -26,8 +26,10 @@ import (
 	"fmt"
 )
 
+// RiskProfileCategory .....
 type RiskProfileCategory int
 
+// .....
 const (
 	RiskProfileCategoryActivity      RiskProfileCategory = iota
 	RiskProfileCategoryLicense       RiskProfileCategory = iota
@@ -36,6 +38,7 @@ const (
 	RiskProfileCategoryVulnerability RiskProfileCategory = iota
 )
 
+// String .....
 func (r RiskProfileCategory) String() string {
 	switch r {
 	case RiskProfileCategoryActivity:
@@ -58,6 +61,7 @@ func (r RiskProfileCategory) String() string {
 // 	return []byte(jsonString), nil
 // }
 
+// UnmarshalJSON .....
 func (r *RiskProfileCategory) UnmarshalJSON(data []byte) error {
 	var str string
 	err := json.Unmarshal(data, &str)
@@ -72,10 +76,12 @@ func (r *RiskProfileCategory) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalText .....
 func (r RiskProfileCategory) MarshalText() (text []byte, err error) {
 	return []byte(r.String()), nil
 }
 
+// UnmarshalText .....
 func (r *RiskProfileCategory) UnmarshalText(text []byte) (err error) {
 	status, err := parseHubRiskProfileCategory(string(text))
 	if err != nil {

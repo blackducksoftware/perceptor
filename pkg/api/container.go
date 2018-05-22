@@ -21,11 +21,13 @@ under the License.
 
 package api
 
+// Container .....
 type Container struct {
 	Image Image
 	Name  string
 }
 
+// NewContainer .....
 func NewContainer(image Image, name string) *Container {
 	return &Container{Image: image, Name: name}
 }

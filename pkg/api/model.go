@@ -25,6 +25,7 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
+// Model .....
 type Model struct {
 	Pods                map[string]*Pod
 	Images              map[string]*ModelImageInfo
@@ -35,6 +36,7 @@ type Model struct {
 	HubVersion          string
 }
 
+// ModelConfig .....
 type ModelConfig struct {
 	HubHost                 string
 	HubUser                 string
@@ -46,6 +48,7 @@ type ModelConfig struct {
 	LogLevel                string
 }
 
+// ModelImageInfo .....
 type ModelImageInfo struct {
 	ScanStatus             string
 	TimeOfLastStatusChange string

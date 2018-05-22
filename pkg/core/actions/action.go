@@ -25,6 +25,7 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// Action .....
 type Action interface {
 	Apply(model *m.Model)
 }

@@ -29,10 +29,12 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
+// MetricsHook .....
 type MetricsHook struct {
 	vec *prometheus.CounterVec
 }
 
+// Levels .....
 func (hook *MetricsHook) Levels() []logrus.Level {
 	return []logrus.Level{
 		logrus.DebugLevel,
@@ -44,6 +46,7 @@ func (hook *MetricsHook) Levels() []logrus.Level {
 	}
 }
 
+// Fire .....
 func (hook *MetricsHook) Fire(entry *logrus.Entry) error {
 	hook.vec.WithLabelValues(entry.Level.String()).Inc()
 	return nil

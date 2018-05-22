@@ -36,6 +36,7 @@ func hubCheckModel() *m.Model {
 	return model
 }
 
+// TestFetchScanCompletionError .....
 func TestFetchScanCompletionError(t *testing.T) {
 	model := hubCheckModel()
 	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
@@ -48,6 +49,7 @@ func TestFetchScanCompletionError(t *testing.T) {
 	}
 }
 
+// TestFetchScanCompletionNotFound .....
 func TestFetchScanCompletionNotFound(t *testing.T) {
 	model := hubCheckModel()
 	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
@@ -60,6 +62,7 @@ func TestFetchScanCompletionNotFound(t *testing.T) {
 	}
 }
 
+// TestFetchScanCompletionInProgress .....
 func TestFetchScanCompletionInProgress(t *testing.T) {
 	model := hubCheckModel()
 	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
@@ -72,6 +75,7 @@ func TestFetchScanCompletionInProgress(t *testing.T) {
 	}
 }
 
+// TestFetchScanCompletionFailed .....
 func TestFetchScanCompletionFailed(t *testing.T) {
 	model := hubCheckModel()
 	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
@@ -84,6 +88,7 @@ func TestFetchScanCompletionFailed(t *testing.T) {
 	}
 }
 
+// TestFetchScanCompletionSuccess .....
 func TestFetchScanCompletionSuccess(t *testing.T) {
 	model := hubCheckModel()
 	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}

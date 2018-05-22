@@ -28,6 +28,7 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
+// ImageInfo .....
 type ImageInfo struct {
 	ScanStatus             ScanStatus
 	TimeOfLastStatusChange time.Time
@@ -37,6 +38,7 @@ type ImageInfo struct {
 	ImageNames             []string
 }
 
+// NewImageInfo .....
 func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 	imageInfo := &ImageInfo{
 		ScanResults: nil,
@@ -52,25 +54,30 @@ func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 	imageInfo.TimeOfLastStatusChange = time.Now()
 }
 
+// SetScanResults .....
 func (imageInfo *ImageInfo) SetScanResults(results *hub.ImageScan) {
 	imageInfo.ScanResults = results
 	imageInfo.TimeOfLastRefresh = time.Now()
 }
 
+// TimeInCurrentScanStatus .....
 func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 	return time.Now().Sub(imageInfo.TimeOfLastStatusChange)
 }
 
+// Image .....
 func (imageInfo *ImageInfo) Image() Image {
 	return *NewImage(imageInfo.FirstImageName(), imageInfo.ImageSha)
 }
 
+// AddImageName .....
 func (imageInfo *ImageInfo) AddImageName(imageName string) {
 	if !arrayContains(imageInfo.ImageNames, imageName) {
 		imageInfo.ImageNames = append(imageInfo.ImageNames, imageName)
 	}
 }
 
+// FirstImageName .....
 func (imageInfo *ImageInfo) FirstImageName() string {
 	if len(imageInfo.ImageNames) == 0 {
 		panic(fmt.Errorf("expected at least 1 imageName, found 0"))

@@ -38,6 +38,7 @@ func requeueTestModel() *m.Model {
 	return model
 }
 
+// TestRequeueStalledScanClientScans .....
 func TestRequeueStalledScanClientScans(t *testing.T) {
 	model := requeueTestModel()
 

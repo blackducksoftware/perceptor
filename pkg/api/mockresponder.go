@@ -29,12 +29,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// MockResponder .....
 type MockResponder struct {
 	Pods             map[string]Pod
 	Images           map[string]ImageInfo
 	NextImageCounter int
 }
 
+// NewMockResponder .....
 func NewMockResponder() *MockResponder {
 	return &MockResponder{
 		Pods:             map[string]Pod{},
@@ -43,6 +45,7 @@ func NewMockResponder() *MockResponder {
 	}
 }
 
+// ImageInfo .....
 type ImageInfo struct {
 	Image            Image
 	PolicyViolations int
@@ -51,10 +54,12 @@ type ImageInfo struct {
 	ComponentsURL    string
 }
 
+// GetMetrics .....
 func (mr *MockResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	// TODO
 }
 
+// GetModel .....
 func (mr *MockResponder) GetModel() Model {
 	// TODO
 	return Model{}
@@ -62,6 +67,7 @@ func (mr *MockResponder) GetModel() Model {
 
 // perceiver
 
+// AddPod .....
 func (mr *MockResponder) AddPod(pod Pod) {
 	log.Infof("add pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
@@ -76,17 +82,20 @@ func (mr *MockResponder) AddPod(pod Pod) {
 	}
 }
 
+// UpdatePod .....
 func (mr *MockResponder) UpdatePod(pod Pod) {
 	log.Infof("update pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 	mr.Pods[qualifiedName] = pod
 }
 
+// DeletePod .....
 func (mr *MockResponder) DeletePod(qualifiedName string) {
 	log.Infof("delete pod: %s", qualifiedName)
 	delete(mr.Pods, qualifiedName)
 }
 
+// GetScanResults .....
 func (mr *MockResponder) GetScanResults() ScanResults {
 	log.Info("get scan results")
 	scannedPods := []ScannedPod{}
@@ -114,6 +123,7 @@ func (mr *MockResponder) GetScanResults() ScanResults {
 	}
 }
 
+// AddImage .....
 func (mr *MockResponder) AddImage(image Image) {
 	_, ok := mr.Images[image.Sha]
 	if ok {
@@ -137,6 +147,7 @@ func (mr *MockResponder) AddImage(image Image) {
 		Vulnerabilities:  vulnerabilities}
 }
 
+// UpdateAllPods .....
 func (mr *MockResponder) UpdateAllPods(allPods AllPods) {
 	log.Infof("update all pods: %+v", allPods)
 	mr.Pods = map[string]Pod{}
@@ -145,6 +156,7 @@ func (mr *MockResponder) UpdateAllPods(allPods AllPods) {
 	}
 }
 
+// UpdateAllImages .....
 func (mr *MockResponder) UpdateAllImages(allImages AllImages) {
 	log.Infof("update all images: %+v", allImages)
 	mr.Images = map[string]ImageInfo{}
@@ -155,6 +167,7 @@ func (mr *MockResponder) UpdateAllImages(allImages AllImages) {
 
 // scanner
 
+// GetNextImage .....
 func (mr *MockResponder) GetNextImage() NextImage {
 	mr.NextImageCounter++
 	imageSpec := ImageSpec{
@@ -166,22 +179,26 @@ func (mr *MockResponder) GetNextImage() NextImage {
 	return NextImage{ImageSpec: &imageSpec}
 }
 
+// PostFinishScan .....
 func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
 	log.Infof("finished scan job: %+v", job)
 }
 
 // internal use
 
+// SetConcurrentScanLimit .....
 func (mr *MockResponder) SetConcurrentScanLimit(limit SetConcurrentScanLimit) {
 	// TODO
 }
 
 // errors
 
+// NotFound .....
 func (mr *MockResponder) NotFound(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+// Error .....
 func (mr *MockResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	http.Error(w, err.Error(), statusCode)
 }

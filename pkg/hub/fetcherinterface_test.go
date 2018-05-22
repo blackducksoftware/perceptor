@@ -25,6 +25,7 @@ import (
 	"testing"
 )
 
+// TestFetcherInterfaceImplementations .....
 func TestFetcherInterfaceImplementations(t *testing.T) {
 	consumeFetcherInterface(&Fetcher{})
 	consumeFetcherInterface(NewMockHub("abc version"))

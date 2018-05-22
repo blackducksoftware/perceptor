@@ -25,12 +25,14 @@ import (
 	"fmt"
 )
 
+// Image .....
 type Image struct {
 	// Name combines Host, User, and Project
 	Name string
 	Sha  DockerImageSha
 }
 
+// NewImage .....
 func NewImage(name string, sha DockerImageSha) *Image {
 	return &Image{Name: name, Sha: sha}
 }
@@ -41,14 +43,17 @@ func (image Image) shaPrefix() string {
 
 // These strings are for the scanner
 
+// HubProjectName .....
 func (image Image) HubProjectName() string {
 	return fmt.Sprintf("%s-%s", image.Name, image.shaPrefix())
 }
 
+// HubProjectVersionName .....
 func (image Image) HubProjectVersionName() string {
 	return image.shaPrefix()
 }
 
+// HubScanName .....
 func (image Image) HubScanName() string {
 	return image.shaPrefix()
 }
@@ -63,24 +68,29 @@ func (image Image) HubScanName() string {
 //  - have our hub projects be searchable by sha, regardless of docker image name
 //  - have a meaningful, human-readable hub project name
 
+// HubProjectNameSearchString .....
 func (image Image) HubProjectNameSearchString() string {
 	return image.shaPrefix()
 }
 
+// HubProjectVersionNameSearchString .....
 func (image Image) HubProjectVersionNameSearchString() string {
 	return image.shaPrefix()
 }
 
+// HubScanNameSearchString .....
 func (image Image) HubScanNameSearchString() string {
 	return image.shaPrefix()
 }
 
 // HumanReadableName returns a nice, easy to read string
+// HumanReadableName .....
 func (image *Image) HumanReadableName() string {
 	return image.Name
 }
 
 // PullSpec combines Name with the image sha and should be pullable by Docker
+// PullSpec .....
 func (image *Image) PullSpec() string {
 	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
 }

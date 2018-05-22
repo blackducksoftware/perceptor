@@ -26,6 +26,7 @@ import (
 	"time"
 )
 
+// TestEnqueueImagesNewScan .....
 func TestEnqueueImagesNewScan(t *testing.T) {
 	actual := createNewModel1()
 	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
@@ -34,6 +35,7 @@ func TestEnqueueImagesNewScan(t *testing.T) {
 	}
 }
 
+// TestEnqueueImagesOldScan .....
 func TestEnqueueImagesOldScan(t *testing.T) {
 	actual := createNewModel1()
 	actual.Images[image1.Sha].TimeOfLastRefresh = time.Now().Add(-45 * time.Second)

@@ -26,10 +26,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CheckScanRefresh .....
 type CheckScanRefresh struct {
 	Continuation func(image *m.Image)
 }
 
+// Apply .....
 func (g *CheckScanRefresh) Apply(model *m.Model) {
 	log.Debugf("looking for next image to refresh in the hub")
 	image := model.GetNextImageFromRefreshQueue()

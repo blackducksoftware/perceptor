@@ -35,6 +35,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// RunPerceptor .....
 func RunPerceptor(configPath string) {
 	log.Info("start")
 

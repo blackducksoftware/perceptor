@@ -56,6 +56,7 @@ func assertEqual(t *testing.T, message string, actual interface{}, expected inte
 	t.Errorf("%s: expected \n%s, got \n%s", message, string(expectedBytes), string(actualBytes))
 }
 
+// TestModelJSONSerialization .....
 func TestModelJSONSerialization(t *testing.T) {
 	m := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
 	jsonBytes, err := json.Marshal(m)
@@ -84,24 +85,28 @@ func removeScanItemModel() *Model {
 	return model
 }
 
+// TestModelRemoveItemFromFrontOfHubCheckQueue .....
 func TestModelRemoveItemFromFrontOfHubCheckQueue(t *testing.T) {
 	model := removeItemModel()
 	model.removeImageFromHubCheckQueue(image1.Sha)
 	assertEqual(t, "remove item from front of hub check queue", model.ImageHubCheckQueue, []DockerImageSha{image2.Sha, image3.Sha})
 }
 
+// TestModelRemoveItemFromMiddleOfHubCheckQueue .....
 func TestModelRemoveItemFromMiddleOfHubCheckQueue(t *testing.T) {
 	model := removeItemModel()
 	model.removeImageFromHubCheckQueue(image2.Sha)
 	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{image1.Sha, image3.Sha})
 }
 
+// TestModelRemoveItemFromEndOfHubCheckQueue .....
 func TestModelRemoveItemFromEndOfHubCheckQueue(t *testing.T) {
 	model := removeItemModel()
 	model.removeImageFromHubCheckQueue(image3.Sha)
 	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{image1.Sha, image2.Sha})
 }
 
+// TestModelRemoveAllItemsFromHubCheckQueue .....
 func TestModelRemoveAllItemsFromHubCheckQueue(t *testing.T) {
 	model := removeItemModel()
 	model.removeImageFromHubCheckQueue(image1.Sha)
@@ -110,24 +115,28 @@ func TestModelRemoveAllItemsFromHubCheckQueue(t *testing.T) {
 	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{})
 }
 
+// TestModelRemoveItemFromFrontOfScanQueue .....
 func TestModelRemoveItemFromFrontOfScanQueue(t *testing.T) {
 	model := removeScanItemModel()
 	model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
 	assertEqual(t, "remove from front of queue", model.ImageScanQueue, []DockerImageSha{image2.Sha, image3.Sha})
 }
 
+// TestModelRemoveItemFromMiddleOfScanQueue .....
 func TestModelRemoveItemFromMiddleOfScanQueue(t *testing.T) {
 	model := removeScanItemModel()
 	model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
 	assertEqual(t, "remove from middle of queue", model.ImageScanQueue, []DockerImageSha{image1.Sha, image3.Sha})
 }
 
+// TestModelRemoveItemFromEndOfScanQueue .....
 func TestModelRemoveItemFromEndOfScanQueue(t *testing.T) {
 	model := removeScanItemModel()
 	model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 	assertEqual(t, "remove from end of queue", model.ImageScanQueue, []DockerImageSha{image1.Sha, image2.Sha})
 }
 
+// TestModelRemoveAllItemsFromScanQueue .....
 func TestModelRemoveAllItemsFromScanQueue(t *testing.T) {
 	model := removeScanItemModel()
 	model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
@@ -136,6 +145,7 @@ func TestModelRemoveAllItemsFromScanQueue(t *testing.T) {
 	assertEqual(t, "remove all items", model.ImageScanQueue, []DockerImageSha{})
 }
 
+// TestModelRefreshQueueOperations .....
 func TestModelRefreshQueueOperations(t *testing.T) {
 	model := removeItemModel()
 	for _, image := range []Image{image1, image2, image3} {

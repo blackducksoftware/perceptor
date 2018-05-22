@@ -26,10 +26,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// DeletePod .....
 type DeletePod struct {
 	PodName string
 }
 
+// Apply .....
 func (d *DeletePod) Apply(model *m.Model) {
 	_, ok := model.Pods[d.PodName]
 	if !ok {

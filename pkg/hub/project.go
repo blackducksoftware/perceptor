@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// Project .....
 type Project struct {
 	Name     string
 	Source   string

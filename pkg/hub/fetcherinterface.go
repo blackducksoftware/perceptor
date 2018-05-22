@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// FetcherInterface .....
 type FetcherInterface interface {
 	Login() error
 	HubVersion() string
