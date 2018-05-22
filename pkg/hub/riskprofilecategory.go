@@ -29,6 +29,7 @@ import (
 // RiskProfileCategory .....
 type RiskProfileCategory int
 
+// .....
 const (
 	RiskProfileCategoryActivity      RiskProfileCategory = iota
 	RiskProfileCategoryLicense       RiskProfileCategory = iota

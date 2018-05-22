@@ -26,6 +26,7 @@ import "fmt"
 // HubCircuitBreakerState .....
 type HubCircuitBreakerState int
 
+// .....
 const (
 	HubCircuitBreakerStateDisabled HubCircuitBreakerState = iota
 	HubCircuitBreakerStateEnabled  HubCircuitBreakerState = iota

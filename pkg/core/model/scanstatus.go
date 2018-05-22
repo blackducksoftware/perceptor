@@ -27,6 +27,7 @@ import "fmt"
 // ScanStatus .....
 type ScanStatus int
 
+// .....
 const (
 	ScanStatusUnknown           ScanStatus = iota
 	ScanStatusInHubCheckQueue   ScanStatus = iota

@@ -33,8 +33,8 @@ func APIImageToCoreImage(apiImage api.Image) *Image {
 	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
 }
 
-// ApiContainerToCoreContainer .....
-func ApiContainerToCoreContainer(apiContainer api.Container) *Container {
+// APIContainerToCoreContainer .....
+func APIContainerToCoreContainer(apiContainer api.Container) *Container {
 	return NewContainer(*APIImageToCoreImage(apiContainer.Image), apiContainer.Name)
 }
 
@@ -42,7 +42,7 @@ func ApiContainerToCoreContainer(apiContainer api.Container) *Container {
 func APIPodToCorePod(apiPod api.Pod) *Pod {
 	containers := []Container{}
 	for _, apiContainer := range apiPod.Containers {
-		containers = append(containers, *ApiContainerToCoreContainer(apiContainer))
+		containers = append(containers, *APIContainerToCoreContainer(apiContainer))
 	}
 	return NewPod(apiPod.Name, apiPod.UID, apiPod.Namespace, containers)
 }

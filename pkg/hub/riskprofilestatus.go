@@ -29,6 +29,7 @@ import (
 // RiskProfileStatus .....
 type RiskProfileStatus int
 
+// .....
 const (
 	RiskProfileStatusHigh    RiskProfileStatus = iota
 	RiskProfileStatusMedium  RiskProfileStatus = iota

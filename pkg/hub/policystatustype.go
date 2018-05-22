@@ -26,6 +26,7 @@ import "fmt"
 // PolicyStatusType .....
 type PolicyStatusType int
 
+// .....
 const (
 	PolicyStatusTypeNotInViolation        PolicyStatusType = iota
 	PolicyStatusTypeInViolation           PolicyStatusType = iota

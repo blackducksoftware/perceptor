@@ -26,6 +26,7 @@ import "fmt"
 // ScanSummaryStatus .....
 type ScanSummaryStatus int
 
+// .....
 const (
 	ScanSummaryStatusInProgress ScanSummaryStatus = iota
 	ScanSummaryStatusSuccess    ScanSummaryStatus = iota

@@ -23,7 +23,6 @@ package hub
 
 // ImageScan models the results that we expect to get from the hub after
 // scanning a docker image.
-// ImageScan .....
 type ImageScan struct {
 	RiskProfile                      RiskProfile
 	PolicyStatus                     PolicyStatus
@@ -37,8 +36,6 @@ type ImageScan struct {
 	CodeLocationUpdatedAt            string
 }
 
-// IsDone returns whether the hub imagescan results indicate that the scan is
-// complete.
 // ScanSummaryStatus .....
 func (scan *ImageScan) ScanSummaryStatus() ScanSummaryStatus {
 	return scan.ScanSummary.Status
