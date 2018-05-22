@@ -31,7 +31,7 @@ push: container
 	$(PREFIX_CMD) docker $(DOCKER_OPTS) push $(REGISTRY)/$(PREFIX)perceptor:latest
 
 test:
-	go test ./pkg/...
+	docker run -t -i --rm -v ${CURRENT_DIR}:/go/src/github.com/blackducksoftware/perceptor/ -w /go/src/github.com/blackducksoftware/perceptor -e CGO_ENABLED=0 -e GOOS=linux -e GOARCH=amd64 golang:1.9 go test ./pkg/...
 
 clean:
 	rm -rf ${OUTDIR} cmd/perceptor/perceptor

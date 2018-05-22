@@ -13,7 +13,6 @@
     "hubclient"
   ]
   revision = "373ae7b666893f7ea9285f02d31eceb552946b25"
-  source = "git@github.com:blackducksoftware/hub-client-go.git"
   version = "v0.9.4"
 
 [[projects]]
@@ -166,6 +165,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d919ad6f21301b7d627959e0d08d002a5a4de0cc11d2258f8989f14b55b838a6"
+  inputs-digest = "cc3861b2cd30324d5e78b7aa34817a388e15f17268f22f2311dd4717e9430df7"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -35,10 +35,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RunPerceptor() {
+func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	config, err := model.GetConfig()
+	config, err := model.GetConfig(configPath)
 	if err != nil {
 		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
