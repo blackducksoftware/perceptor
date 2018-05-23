@@ -70,4 +70,5 @@ func (cm *ConfigManager) StartWatch(continuation func(*model.Config, error)) {
 		log.Infof("config change detected: %+v", event)
 		continuation(cm.GetConfig())
 	})
+	viper.WatchConfig()
 }
