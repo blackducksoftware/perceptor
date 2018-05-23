@@ -25,8 +25,6 @@ import (
 	"fmt"
 
 	"github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/fsnotify/fsnotify"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -63,12 +61,13 @@ func (cm *ConfigManager) GetConfig() (*model.Config, error) {
 	return config, nil
 }
 
-// StartWatch will call `continuation` whenever the config file changes
-func (cm *ConfigManager) StartWatch(continuation func(*model.Config, error)) {
-	viper.WatchConfig()
-	viper.OnConfigChange(func(event fsnotify.Event) {
-		log.Infof("config change detected: %+v", event)
-		continuation(cm.GetConfig())
-	})
-	viper.WatchConfig()
-}
+//
+// // StartWatch will call `continuation` whenever the config file changes
+// func (cm *ConfigManager) StartWatch(continuation func(*model.Config, error)) {
+// 	viper.WatchConfig()
+// 	viper.OnConfigChange(func(event fsnotify.Event) {
+// 		log.Infof("config change detected: %+v", event)
+// 		continuation(cm.GetConfig())
+// 	})
+// 	viper.WatchConfig()
+// }
