@@ -39,7 +39,9 @@ import (
 func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	config, err := model.GetConfig(configPath)
+	configManager := NewConfigManager(configPath)
+
+	config, err := configManager.GetConfig()
 	if err != nil {
 		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)
@@ -73,6 +75,13 @@ func RunPerceptor(configPath string) {
 			log.Errorf("unable to instantiate percepter: %s", err.Error())
 			panic(err)
 		}
+		configManager.StartWatch(func(config *model.Config, err error) {
+			if err != nil {
+				log.Errorf("unable to read new config after change: %s", err.Error())
+				return
+			}
+			log.Infof("config change detected, new config is %+v", config)
+		})
 
 		log.Infof("instantiated perceptor in real mode: %+v", perceptor)
 	}
