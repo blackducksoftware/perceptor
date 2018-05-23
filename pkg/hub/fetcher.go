@@ -22,7 +22,6 @@ under the License.
 package hub
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
@@ -32,11 +31,12 @@ import (
 
 // Fetcher .....
 type Fetcher struct {
-	client     hubclient.Client
-	hubVersion string
-	username   string
-	password   string
-	baseURL    string
+	client         *hubclient.Client
+	circuitBreaker *CircuitBreaker
+	hubVersion     string
+	username       string
+	password       string
+	baseURL        string
 }
 
 // Login .....
@@ -66,7 +66,6 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-// NewFetcher .....
 func NewFetcher(username string, password string, baseURL string, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
 	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -74,10 +73,11 @@ func NewFetcher(username string, password string, baseURL string, hubClientTimeo
 		return nil, err
 	}
 	hf := Fetcher{
-		client:   *client,
-		username: username,
-		password: password,
-		baseURL:  baseURL}
+		client:         client,
+		circuitBreaker: NewCircuitBreaker(client),
+		username:       username,
+		password:       password,
+		baseURL:        baseURL}
 	err = hf.Login()
 	if err != nil {
 		return nil, err
@@ -100,11 +100,9 @@ func (hf *Fetcher) HubVersion() string {
 // - one code location, with
 // - one scan summary, with
 // - a completed status
-// FetchScanFromImage .....
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
 	startGetProjects := time.Now()
-	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
+	projectList, err := hf.circuitBreaker.ListProjects(image.HubProjectNameSearchString())
 	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
 	recordHubResponse("projects", err == nil)
 
@@ -129,17 +127,13 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 }
 
 func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image ImageInterface) (*ImageScan, error) {
-	client := hf.client
-
 	link, err := project.GetProjectVersionsLink()
 	if err != nil {
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionNameSearchString())
-	options := hubapi.GetListOptions{Q: &q}
 	startGetVersions := time.Now()
-	versionList, err := client.ListProjectVersions(*link, &options)
+	versionList, err := hf.circuitBreaker.ListProjectVersions(*link, image.HubProjectVersionNameSearchString())
 	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
 	recordHubResponse("projectVersions", err == nil)
 
@@ -175,7 +169,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	}
 
 	startGetRiskProfile := time.Now()
-	riskProfile, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
+	riskProfile, err := hf.circuitBreaker.GetProjectVersionRiskProfile(*riskProfileLink)
 	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
 	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err != nil {
@@ -189,7 +183,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetPolicyStatus := time.Now()
-	policyStatus, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+	policyStatus, err := hf.circuitBreaker.GetProjectVersionPolicyStatus(*policyStatusLink)
 	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
 	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err != nil {
@@ -209,7 +203,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetCodeLocations := time.Now()
-	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink, nil)
+	codeLocationsList, err := hf.circuitBreaker.ListCodeLocations(*codeLocationsLink)
 	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
 	recordHubResponse("codeLocations", err == nil)
 	if err != nil {
@@ -243,7 +237,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetScanSummaries := time.Now()
-	scanSummariesList, err := client.ListScanSummaries(*scanSummariesLink)
+	scanSummariesList, err := hf.circuitBreaker.ListScanSummaries(*scanSummariesLink)
 	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
 	recordHubResponse("scanSummaries", err == nil)
 	if err != nil {

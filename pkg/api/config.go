@@ -21,7 +21,8 @@ under the License.
 
 package api
 
-// SetConcurrentScanLimit .....
-type SetConcurrentScanLimit struct {
-	Limit int
+// Config allows certain config parameters to be changed.
+type Config struct {
+	ConcurrentScanLimit          *int
+	HubClientTimeoutMilliseconds *int
 }

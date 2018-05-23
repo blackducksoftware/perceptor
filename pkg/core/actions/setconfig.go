@@ -22,28 +22,16 @@ under the License.
 package actions
 
 import (
-	"time"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
-// CheckHubAccessibility .....
-type CheckHubAccessibility struct{}
+// SetConfig .....
+type SetConfig struct {
+	ConcurrentScanLimit          *int
+	HubClientTimeoutMilliseconds *int
+}
 
 // Apply .....
-func (c *CheckHubAccessibility) Apply(model *m.Model) {
-	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
-		return
-	}
-
-	if time.Now().Before(*model.HubCircuitBreaker.NextCheckTime) {
-		return
-	}
-
-	err := model.HubCircuitBreaker.MoveToCheckingState()
-	if err != nil {
-		log.Errorf("unable to move to checking state: %s (circuit breaker: %+v)", err.Error(), model.HubCircuitBreaker)
-		recordError("CheckHubAccessibility", "unable to move to checking state")
-	}
+func (s *SetConfig) Apply(model *m.Model) {
+	// TODO
 }

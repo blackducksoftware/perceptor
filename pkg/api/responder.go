@@ -43,7 +43,7 @@ type Responder interface {
 	PostFinishScan(job FinishedScanClientJob)
 
 	// internal use
-	SetConcurrentScanLimit(limit SetConcurrentScanLimit)
+	PostConfig(config *Config)
 
 	// errors
 	NotFound(w http.ResponseWriter, r *http.Request)

@@ -186,8 +186,8 @@ func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
 
 // internal use
 
-// SetConcurrentScanLimit .....
-func (mr *MockResponder) SetConcurrentScanLimit(limit SetConcurrentScanLimit) {
+// PostConfig .....
+func (mr *MockResponder) PostConfig(config *Config) {
 	// TODO
 }
 

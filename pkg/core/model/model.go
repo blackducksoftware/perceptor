@@ -40,8 +40,8 @@ type Model struct {
 	ImageRefreshQueueSet map[DockerImageSha]bool
 	ConcurrentScanLimit  int
 	Config               *Config
+	TaskTimingConfig     *TaskTimingConfig
 	HubVersion           string
-	HubCircuitBreaker    *HubCircuitBreaker
 }
 
 // NewModel .....
@@ -55,8 +55,8 @@ func NewModel(config *Config, hubVersion string) *Model {
 		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
 		ConcurrentScanLimit:  config.ConcurrentScanLimit,
 		Config:               config,
+		TaskTimingConfig:     DefaultTaskTimingConfig,
 		HubVersion:           hubVersion,
-		HubCircuitBreaker:    NewHubCircuitBreaker(),
 	}
 }
 
@@ -240,11 +240,6 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 		return nil
 	}
 
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("hub not accessible -- can't get next item from hub check queue")
-		return nil
-	}
-
 	first := model.ImageHubCheckQueue[0]
 	image := model.unsafeGet(first).Image()
 
@@ -260,11 +255,6 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 
 	if len(model.ImageScanQueue) == 0 {
 		log.Debug("scan queue empty, can't start a new scan")
-		return nil
-	}
-
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("hub not accessible -- can't start a new scan")
 		return nil
 	}
 
@@ -302,11 +292,6 @@ func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
 func (model *Model) GetNextImageFromRefreshQueue() *Image {
 	if len(model.ImageRefreshQueue) == 0 {
 		log.Debug("refresh queue empty")
-		return nil
-	}
-
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("cannot get next image: hub is not accessible")
 		return nil
 	}
 
@@ -376,9 +361,6 @@ func (model *Model) InProgressScanCount() int {
 
 // InProgressHubScans .....
 func (model *Model) InProgressHubScans() *([]Image) {
-	if !model.HubCircuitBreaker.IsEnabled() {
-		return nil
-	}
 	inProgressHubScans := []Image{}
 	for _, imageInfo := range model.Images {
 		switch imageInfo.ScanStatus {
