@@ -31,6 +31,7 @@ func handleConfig(configPath string) {
 	}
 }
 
+// Config ...
 type Config struct {
 	A int
 	B string
