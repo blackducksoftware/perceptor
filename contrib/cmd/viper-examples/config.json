@@ -1,0 +1,6 @@
+{
+  "A": 2,
+  "B": "hello",
+  "C": true,
+  "D": ["qrs", "tuv", "wx", "yz"]
+}
