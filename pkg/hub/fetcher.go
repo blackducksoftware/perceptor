@@ -22,6 +22,7 @@ under the License.
 package hub
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
@@ -66,7 +67,8 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, baseURL string, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
+func NewFetcher(username string, password string, hubHost string, hubPort int, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
+	baseURL := fmt.Sprintf("https://%s:%d", hubHost, hubPort)
 	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {

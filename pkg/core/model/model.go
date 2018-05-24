@@ -37,14 +37,13 @@ type Model struct {
 	ImageHubCheckQueue   []DockerImageSha
 	ImageRefreshQueue    []DockerImageSha
 	ImageRefreshQueueSet map[DockerImageSha]bool
-	ConcurrentScanLimit  int
 	HubVersion           string
 	Config               *Config
 	Timings              *Timings
 }
 
 // NewModel .....
-func NewModel(concurrentScanLimit int, hubVersion string, config *Config, timings *Timings) *Model {
+func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
 		Images:               make(map[DockerImageSha]*ImageInfo),
@@ -52,7 +51,6 @@ func NewModel(concurrentScanLimit int, hubVersion string, config *Config, timing
 		ImageHubCheckQueue:   []DockerImageSha{},
 		ImageRefreshQueue:    []DockerImageSha{},
 		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		ConcurrentScanLimit:  concurrentScanLimit,
 		HubVersion:           hubVersion,
 		Config:               config,
 		Timings:              timings,
@@ -244,7 +242,7 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 
 // GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
-	if model.InProgressScanCount() >= model.ConcurrentScanLimit {
+	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
 		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
 		return nil
 	}

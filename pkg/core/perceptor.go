@@ -69,8 +69,7 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubBaseURL := fmt.Sprintf("https://%s:%d", config.HubHost, config.HubPort)
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, hubBaseURL, config.HubClientTimeoutMilliseconds)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
@@ -88,14 +87,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 	stop := make(chan struct{})
 	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
 
-	// 3. perceptor
-	perceptor := Perceptor{
-		hubClient:          hubClient,
-		httpResponder:      httpResponder,
-		routineTaskManager: routineTaskManager,
-	}
-
-	// 4. gather up all actions into a single channel
+	// 3. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
 	go func() {
 		for {
@@ -131,7 +123,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		}
 	}()
 
-	// 5. now for the reducer
+	// 4. now for the reducer
 	modelConfig := &model.Config{
 		HubHost:               config.HubHost,
 		HubPort:               config.HubPort,
@@ -139,16 +131,31 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		HubUserPasswordEnvVar: config.HubUserPasswordEnvVar,
 		LogLevel:              config.LogLevel,
 		Port:                  config.Port,
+		ConcurrentScanLimit:   config.ConcurrentScanLimit,
 	}
 	timings := &model.Timings{
-		CheckForStalledScansPause: model.DefaultTimings.CheckForStalledScansPause,
+		HubClientTimeout:               config.HubClientTimeout(),
+		CheckForStalledScansPause:      model.DefaultTimings.CheckForStalledScansPause,
+		CheckHubForCompletedScansPause: model.DefaultTimings.CheckHubForCompletedScansPause,
+		CheckHubThrottle:               model.DefaultTimings.CheckHubThrottle,
+		EnqueueImagesForRefreshPause:   model.DefaultTimings.EnqueueImagesForRefreshPause,
+		HubReloginPause:                model.DefaultTimings.HubReloginPause,
+		ModelMetricsPause:              model.DefaultTimings.ModelMetricsPause,
+		RefreshImagePause:              model.DefaultTimings.RefreshImagePause,
+		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
+		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(config.ConcurrentScanLimit, hubClient.HubVersion(), modelConfig, timings), actions)
+	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
 
-	// 6. tie the knot
-	perceptor.actions = actions
-	perceptor.reducer = reducer
+	// 5. perceptor
+	perceptor := Perceptor{
+		hubClient:          hubClient,
+		httpResponder:      httpResponder,
+		reducer:            reducer,
+		routineTaskManager: routineTaskManager,
+		actions:            actions,
+	}
 
-	// 7. done
+	// 6. done
 	return &perceptor
 }

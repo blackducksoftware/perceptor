@@ -104,18 +104,18 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 	}
 	// return value
 	return &api.Model{
-		Pods:                pods,
-		Images:              images,
-		ConcurrentScanLimit: model.ConcurrentScanLimit,
-		HubVersion:          model.HubVersion,
-		ImageHubCheckQueue:  hubQueue,
-		ImageScanQueue:      scanQueue,
+		Pods:               pods,
+		Images:             images,
+		HubVersion:         model.HubVersion,
+		ImageHubCheckQueue: hubQueue,
+		ImageScanQueue:     scanQueue,
 		Config: &api.ModelConfig{
-			HubHost:     model.Config.HubHost,
-			HubPassword: "... redacted ...",
-			HubUser:     model.Config.HubUser,
-			LogLevel:    model.Config.LogLevel,
-			Port:        model.Config.Port,
+			HubHost:             model.Config.HubHost,
+			HubPassword:         "... redacted ...",
+			HubUser:             model.Config.HubUser,
+			LogLevel:            model.Config.LogLevel,
+			Port:                model.Config.Port,
+			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
 		},
 	}
 }

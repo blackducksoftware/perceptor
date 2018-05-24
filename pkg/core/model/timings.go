@@ -25,6 +25,8 @@ import "time"
 
 // Timings manages values for regularly scheduled internal tasks
 type Timings struct {
+	HubClientTimeout time.Duration
+
 	CheckHubForCompletedScansPause time.Duration
 	CheckHubThrottle               time.Duration
 
@@ -43,6 +45,7 @@ type Timings struct {
 
 // DefaultTimings supplies reasonable default values for TaskTimingConfig
 var DefaultTimings = &Timings{
+	HubClientTimeout:               20 * time.Second,
 	CheckHubForCompletedScansPause: 20 * time.Second,
 	CheckHubThrottle:               1 * time.Second,
 	CheckForStalledScansPause:      1 * time.Minute,

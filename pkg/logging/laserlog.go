@@ -53,7 +53,7 @@ func (hook *MetricsHook) Fire(entry *logrus.Entry) error {
 }
 
 func init() {
-	logrus.Infof("INITIALIZING LOGRUS WITH METRICS HOOK [metrics subsystem = %v]", "laserbeak")
+	logrus.Info("Laserbeak: Initializing Logrus with metrics hook")
 	// formatter := &logrus.TextFormatter{
 	// 	FullTimestamp:   false,
 	// 	TimestampFormat: "15:04",

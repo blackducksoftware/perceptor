@@ -22,6 +22,8 @@ under the License.
 package core
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,6 +38,10 @@ type Config struct {
 	UseMockMode                  bool
 	Port                         int
 	LogLevel                     string
+}
+
+func (config *Config) HubClientTimeout() time.Duration {
+	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
 }
 
 // GetLogLevel .....

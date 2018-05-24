@@ -21,6 +21,7 @@ under the License.
 
 package model
 
+// Config ...
 type Config struct {
 	HubHost               string
 	HubUser               string
@@ -28,4 +29,5 @@ type Config struct {
 	HubPort               int
 	Port                  int
 	LogLevel              string
+	ConcurrentScanLimit   int
 }

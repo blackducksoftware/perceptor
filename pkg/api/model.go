@@ -27,22 +27,22 @@ import (
 
 // Model .....
 type Model struct {
-	Pods                map[string]*Pod
-	Images              map[string]*ModelImageInfo
-	ImageScanQueue      []string
-	ImageHubCheckQueue  []string
-	ConcurrentScanLimit int
-	HubVersion          string
-	Config              *ModelConfig
+	Pods               map[string]*Pod
+	Images             map[string]*ModelImageInfo
+	ImageScanQueue     []string
+	ImageHubCheckQueue []string
+	HubVersion         string
+	Config             *ModelConfig
 }
 
 // ModelConfig .....
 type ModelConfig struct {
-	HubHost     string
-	HubUser     string
-	HubPassword string
-	Port        int
-	LogLevel    string
+	HubHost             string
+	HubUser             string
+	HubPassword         string
+	Port                int
+	LogLevel            string
+	ConcurrentScanLimit int
 }
 
 // ModelImageInfo .....

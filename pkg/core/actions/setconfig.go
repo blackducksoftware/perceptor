@@ -22,7 +22,10 @@ under the License.
 package actions
 
 import (
+	"time"
+
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
 // SetConfig .....
@@ -33,5 +36,16 @@ type SetConfig struct {
 
 // Apply .....
 func (s *SetConfig) Apply(model *m.Model) {
-	// TODO
+	if s.HubClientTimeoutMilliseconds != nil {
+		model.Timings.HubClientTimeout = time.Duration(*s.HubClientTimeoutMilliseconds) * time.Millisecond
+	}
+	if s.ConcurrentScanLimit != nil {
+		limit := *s.ConcurrentScanLimit
+		if limit < 0 {
+			log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
+			return
+		} else {
+			model.Config.ConcurrentScanLimit = limit
+		}
+	}
 }

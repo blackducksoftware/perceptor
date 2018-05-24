@@ -65,7 +65,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	return rtm
 }
 
-// UpdateConfig ...
+// SetHubClientTimeout ...
 func (rtm *RoutineTaskManager) SetHubClientTimeout(hubClientTimeout time.Duration) {
 	// TODO rtm.Timings.
 }
@@ -92,7 +92,6 @@ func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {
 func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 	log.Info("starting to poll hub for scan completion")
 	return NewScheduler(rtm.Timings.CheckHubForCompletedScansPause, rtm.stop, func() {
-		time.Sleep(rtm.Timings.CheckHubForCompletedScansPause)
 		log.Debug("checking hub for completion of running hub scans")
 		rtm.actions <- &actions.CheckScansCompletion{Continuation: func(images *[]model.Image) {
 			if images == nil {
