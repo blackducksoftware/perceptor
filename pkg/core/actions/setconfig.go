@@ -32,6 +32,7 @@ import (
 type SetConfig struct {
 	ConcurrentScanLimit          *int
 	HubClientTimeoutMilliseconds *int
+	LogLevel                     *string
 }
 
 // Apply .....
@@ -46,6 +47,14 @@ func (s *SetConfig) Apply(model *m.Model) {
 			return
 		} else {
 			model.Config.ConcurrentScanLimit = limit
+		}
+	}
+	if s.LogLevel != nil {
+		logLevel, err := log.ParseLevel(*s.LogLevel)
+		if err == nil {
+			log.SetLevel(logLevel)
+		} else {
+			log.Errorf("invalid log level: %s", err.Error())
 		}
 	}
 }

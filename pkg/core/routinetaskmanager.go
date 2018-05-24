@@ -65,9 +65,13 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	return rtm
 }
 
-// SetHubClientTimeout ...
-func (rtm *RoutineTaskManager) SetHubClientTimeout(hubClientTimeout time.Duration) {
-	// TODO rtm.Timings.
+// SetTimings ...
+func (rtm *RoutineTaskManager) SetTimings(timings model.Timings) {
+	// TODO make this thread-safe (between writing here, and reading in the other places)
+	if timings.HubClientTimeout != rtm.Timings.HubClientTimeout {
+		// TODO set timeout
+	}
+	rtm.Timings = &timings
 }
 
 func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {

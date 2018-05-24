@@ -112,6 +112,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 				actions <- &a.SetConfig{
 					ConcurrentScanLimit:          config.ConcurrentScanLimit,
 					HubClientTimeoutMilliseconds: config.HubClientTimeoutMilliseconds,
+					LogLevel:                     config.LogLevel,
 				}
 			case continuation := <-httpResponder.GetModelChannel:
 				actions <- &a.GetModel{Continuation: continuation}
@@ -147,7 +148,17 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 	}
 	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
 
-	// 5. perceptor
+	// 5. connect reducer notifications to routine task manager
+	go func() {
+		for {
+			select {
+			case timings := <-reducer.Timings:
+				routineTaskManager.SetTimings(timings)
+			}
+		}
+	}()
+
+	// 6. perceptor
 	perceptor := Perceptor{
 		hubClient:          hubClient,
 		httpResponder:      httpResponder,
@@ -156,6 +167,6 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		actions:            actions,
 	}
 
-	// 6. done
+	// 7. done
 	return &perceptor
 }
