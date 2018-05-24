@@ -33,12 +33,12 @@ import (
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
 	var nextImage *m.Image
-	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	actual := m.NewModel(3, "test version", nil, nil)
 	(&GetNextImage{func(image *m.Image) {
 		nextImage = image
 	}}).Apply(actual)
 	// expected: front image removed from scan queue, status and time of image changed
-	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	expected := *m.NewModel(3, "test version", nil, nil)
 
 	assertEqual(t, nextImage, nil)
 	log.Infof("%+v, %+v", actual, expected)
@@ -47,7 +47,7 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 
 // TestGetNextImage .....
 func TestGetNextImage(t *testing.T) {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel(3, "test version", nil, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 

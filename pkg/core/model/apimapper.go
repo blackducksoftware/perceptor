@@ -74,8 +74,8 @@ func CorePodToAPIPod(corePod Pod) *api.Pod {
 	}
 }
 
-// APIModel .....
-func (model *Model) APIModel() *api.Model {
+// CoreModelToAPIModel .....
+func CoreModelToAPIModel(model *Model) *api.Model {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
@@ -104,22 +104,19 @@ func (model *Model) APIModel() *api.Model {
 	}
 	// return value
 	return &api.Model{
-		Pods:   pods,
-		Images: images,
-		Config: &api.ModelConfig{
-			ConcurrentScanLimit:          model.Config.ConcurrentScanLimit,
-			HubHost:                      model.Config.HubHost,
-			HubPassword:                  "...redacted...",
-			HubClientTimeoutMilliseconds: model.Config.HubClientTimeoutMilliseconds,
-			HubUser:     model.Config.HubUser,
-			LogLevel:    model.Config.LogLevel,
-			Port:        model.Config.Port,
-			UseMockMode: model.Config.UseMockMode,
-		},
+		Pods:                pods,
+		Images:              images,
 		ConcurrentScanLimit: model.ConcurrentScanLimit,
 		HubVersion:          model.HubVersion,
 		ImageHubCheckQueue:  hubQueue,
 		ImageScanQueue:      scanQueue,
+		Config: &api.ModelConfig{
+			HubHost:     model.Config.HubHost,
+			HubPassword: "... redacted ...",
+			HubUser:     model.Config.HubUser,
+			LogLevel:    model.Config.LogLevel,
+			Port:        model.Config.Port,
+		},
 	}
 }
 

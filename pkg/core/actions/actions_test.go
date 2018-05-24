@@ -60,7 +60,7 @@ func init() {
 }
 
 func createNewModel1() *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel(3, "test version", nil, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete

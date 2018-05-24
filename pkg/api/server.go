@@ -210,7 +210,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var config *Config
+			var config *PostConfig
 			err = json.Unmarshal(body, config)
 			if err != nil {
 				responder.Error(w, r, err, 400)

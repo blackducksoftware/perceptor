@@ -43,7 +43,7 @@ type Responder interface {
 	PostFinishScan(job FinishedScanClientJob)
 
 	// internal use
-	PostConfig(config *Config)
+	PostConfig(config *PostConfig)
 
 	// errors
 	NotFound(w http.ResponseWriter, r *http.Request)

@@ -24,7 +24,6 @@ package core
 import (
 	"fmt"
 
-	"github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/spf13/viper"
 )
 
@@ -43,8 +42,8 @@ func NewConfigManager(configPath string) *ConfigManager {
 }
 
 // GetConfig returns a configuration object to configure Perceptor
-func (cm *ConfigManager) GetConfig() (*model.Config, error) {
-	var config *model.Config
+func (cm *ConfigManager) GetConfig() (*Config, error) {
+	var config *Config
 
 	viper.SetConfigFile(cm.ConfigPath)
 

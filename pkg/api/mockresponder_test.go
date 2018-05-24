@@ -21,8 +21,17 @@ under the License.
 
 package api
 
-// Config allows certain config parameters to be changed.
-type Config struct {
-	ConcurrentScanLimit          *int
-	HubClientTimeoutMilliseconds *int
+import (
+	"testing"
+
+	log "github.com/sirupsen/logrus"
+)
+
+// TestMockResponderImplementsInterface .....
+func TestMockResponderImplementsInterface(t *testing.T) {
+	consumeResponder(NewMockResponder())
+}
+
+func consumeResponder(r Responder) {
+	log.Infof("responder: %+v", r)
 }

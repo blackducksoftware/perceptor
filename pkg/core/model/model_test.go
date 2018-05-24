@@ -58,7 +58,7 @@ func assertEqual(t *testing.T, message string, actual interface{}, expected inte
 
 // TestModelJSONSerialization .....
 func TestModelJSONSerialization(t *testing.T) {
-	m := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
+	m := NewModel(3, "test version", nil, nil)
 	jsonBytes, err := json.Marshal(m)
 	if err != nil {
 		t.Errorf("unabled to serialize model to json: %s", err.Error())
@@ -67,7 +67,7 @@ func TestModelJSONSerialization(t *testing.T) {
 }
 
 func removeItemModel() *Model {
-	model := NewModel(&Config{ConcurrentScanLimit: 1}, "zzz")
+	model := NewModel(1, "zzz", nil, nil)
 	model.AddImage(image1)
 	model.AddImage(image2)
 	model.AddImage(image3)
@@ -75,7 +75,7 @@ func removeItemModel() *Model {
 }
 
 func removeScanItemModel() *Model {
-	model := NewModel(&Config{ConcurrentScanLimit: 1}, "zzz")
+	model := NewModel(1, "zzz", nil, nil)
 	model.AddImage(image1)
 	model.AddImage(image2)
 	model.AddImage(image3)

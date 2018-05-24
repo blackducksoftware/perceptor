@@ -33,7 +33,6 @@ import (
 )
 
 // HTTPResponder ...
-// HTTPResponder .....
 type HTTPResponder struct {
 	AddPodChannel            chan model.Pod
 	UpdatePodChannel         chan model.Pod
@@ -43,7 +42,7 @@ type HTTPResponder struct {
 	AllImagesChannel         chan []model.Image
 	PostNextImageChannel     chan func(*model.Image)
 	PostFinishScanJobChannel chan *a.FinishScanClient
-	PostConfigChannel        chan *a.SetConfig
+	PostConfigChannel        chan *api.PostConfig
 	GetModelChannel          chan func(api.Model)
 	GetScanResultsChannel    chan func(scanResults api.ScanResults)
 }
@@ -59,7 +58,7 @@ func NewHTTPResponder() *HTTPResponder {
 		AllImagesChannel:         make(chan []model.Image),
 		PostNextImageChannel:     make(chan func(*model.Image)),
 		PostFinishScanJobChannel: make(chan *a.FinishScanClient),
-		PostConfigChannel:        make(chan *a.SetConfig),
+		PostConfigChannel:        make(chan *api.PostConfig),
 		GetModelChannel:          make(chan func(api.Model)),
 		GetScanResultsChannel:    make(chan func(api.ScanResults))}
 }
@@ -133,7 +132,6 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) {
 // GetScanResults returns results for:
 //  - all images that have a scan status of complete
 //  - all pods for which all their images have a scan status of complete
-// GetScanResults .....
 func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	recordGetScanResults()
 	var wg sync.WaitGroup
@@ -191,8 +189,8 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 // internal use
 
 // PostConfig .....
-func (hr *HTTPResponder) PostConfig(config *api.Config) {
-	// TODO
+func (hr *HTTPResponder) PostConfig(config *api.PostConfig) {
+	hr.PostConfigChannel <- config
 	log.Debugf("handled post config -- %+v", config)
 }
 

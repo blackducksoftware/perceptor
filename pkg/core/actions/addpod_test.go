@@ -30,13 +30,13 @@ import (
 // TestAddPodAction .....
 func TestAddPodAction(t *testing.T) {
 	// actual
-	actual := m.NewModel(&m.Config{}, "test version")
+	actual := m.NewModel(0, "test version", nil, nil)
 	(&AddPod{testPod}).Apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - pod gets added to .Pods
 	//  - all images within pod get added to .Images
 	//  - all new images get added to hub check queue
-	expected := *m.NewModel(&m.Config{}, "test version")
+	expected := *m.NewModel(0, "test version", nil, nil)
 	expected.Pods[testPod.QualifiedName()] = testPod
 	imageInfo := m.NewImageInfo(testSha, "image1")
 	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue

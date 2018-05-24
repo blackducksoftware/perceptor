@@ -32,20 +32,17 @@ type Model struct {
 	ImageScanQueue      []string
 	ImageHubCheckQueue  []string
 	ConcurrentScanLimit int
-	Config              *ModelConfig
 	HubVersion          string
+	Config              *ModelConfig
 }
 
 // ModelConfig .....
 type ModelConfig struct {
-	HubHost                      string
-	HubUser                      string
-	HubPassword                  string
-	HubClientTimeoutMilliseconds int
-	ConcurrentScanLimit          int
-	UseMockMode                  bool
-	Port                         int
-	LogLevel                     string
+	HubHost     string
+	HubUser     string
+	HubPassword string
+	Port        int
+	LogLevel    string
 }
 
 // ModelImageInfo .....

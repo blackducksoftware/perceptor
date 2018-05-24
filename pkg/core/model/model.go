@@ -29,9 +29,8 @@ import (
 )
 
 // Model is the root of the core model
-// Model .....
 type Model struct {
-	// Pods is a map of "<namespace>/<name>" to pod
+	// Pods is a map of qualified name ("<namespace>/<name>") to pod
 	Pods                 map[string]Pod
 	Images               map[DockerImageSha]*ImageInfo
 	ImageScanQueue       []DockerImageSha
@@ -39,13 +38,13 @@ type Model struct {
 	ImageRefreshQueue    []DockerImageSha
 	ImageRefreshQueueSet map[DockerImageSha]bool
 	ConcurrentScanLimit  int
-	Config               *Config
-	TaskTimingConfig     *TaskTimingConfig
 	HubVersion           string
+	Config               *Config
+	Timings              *Timings
 }
 
 // NewModel .....
-func NewModel(config *Config, hubVersion string) *Model {
+func NewModel(concurrentScanLimit int, hubVersion string, config *Config, timings *Timings) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
 		Images:               make(map[DockerImageSha]*ImageInfo),
@@ -53,15 +52,14 @@ func NewModel(config *Config, hubVersion string) *Model {
 		ImageHubCheckQueue:   []DockerImageSha{},
 		ImageRefreshQueue:    []DockerImageSha{},
 		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		ConcurrentScanLimit:  config.ConcurrentScanLimit,
-		Config:               config,
-		TaskTimingConfig:     DefaultTaskTimingConfig,
+		ConcurrentScanLimit:  concurrentScanLimit,
 		HubVersion:           hubVersion,
+		Config:               config,
+		Timings:              timings,
 	}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
-// DeletePod .....
 func (model *Model) DeletePod(podName string) {
 	delete(model.Pods, podName)
 }
@@ -72,7 +70,6 @@ func (model *Model) DeletePod(podName string) {
 // The key is the combination of the pod's namespace and name.
 // It extracts the containers and images from the pod,
 // adding them into the cache.
-// AddPod .....
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	if len(newPod.Containers) == 0 {
@@ -87,7 +84,6 @@ func (model *Model) AddPod(newPod Pod) {
 }
 
 // AddImage adds an image to the model, adding it to the queue for hub checking.
-// AddImage .....
 func (model *Model) AddImage(image Image) {
 	added := model.createImage(image)
 	if added {

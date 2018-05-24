@@ -19,20 +19,11 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package api
 
-import (
-	"github.com/blackducksoftware/perceptor/pkg/api"
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-)
-
-// GetModel .....
-type GetModel struct {
-	Continuation func(model api.Model)
-}
-
-// Apply .....
-func (g *GetModel) Apply(model *m.Model) {
-	apiModel := m.CoreModelToAPIModel(model)
-	go g.Continuation(*apiModel)
+// PostConfig allows certain config parameters to be changed.
+type PostConfig struct {
+	ConcurrentScanLimit          *int
+	HubClientTimeoutMilliseconds *int
+	LogLevel                     *string
 }

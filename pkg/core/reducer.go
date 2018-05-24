@@ -33,17 +33,13 @@ import (
 
 type reducer struct{}
 
-// logic
-
 func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 	stop := time.Now()
 	go func() {
 		for {
 			select {
 			case nextAction := <-actions:
-				if log.GetLevel() == log.DebugLevel {
-					log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
-				}
+				log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
 
 				// metrics: how many messages are waiting?
 				recordNumberOfMessagesInQueue(len(actions))

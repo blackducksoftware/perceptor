@@ -47,7 +47,7 @@ func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ImageS
 }
 
 func recheckModel(vulnCount int) *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "abc")
+	model := m.NewModel(3, "abc", nil, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusComplete)
 	model.Images[image1.Sha].SetScanResults(imageScan(vulnCount, hub.ScanSummaryStatusSuccess))

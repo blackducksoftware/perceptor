@@ -19,20 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package core
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/api"
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
-// GetModel .....
-type GetModel struct {
-	Continuation func(model api.Model)
+// Config contains all configuration for Perceptor
+type Config struct {
+	HubHost                      string
+	HubUser                      string
+	HubUserPasswordEnvVar        string
+	HubClientTimeoutMilliseconds int
+	HubPort                      int
+	ConcurrentScanLimit          int
+	UseMockMode                  bool
+	Port                         int
+	LogLevel                     string
 }
 
-// Apply .....
-func (g *GetModel) Apply(model *m.Model) {
-	apiModel := m.CoreModelToAPIModel(model)
-	go g.Continuation(*apiModel)
+// GetLogLevel .....
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
 }

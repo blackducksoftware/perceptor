@@ -30,7 +30,7 @@ import (
 )
 
 func hubCheckModel() *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 2}, "abc")
+	model := m.NewModel(2, "abc", nil, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningHubScan)
 	return model

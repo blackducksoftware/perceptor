@@ -23,8 +23,8 @@ package model
 
 import "time"
 
-// TaskTimingConfig manages values for regularly scheduled internal tasks
-type TaskTimingConfig struct {
+// Timings manages values for regularly scheduled internal tasks
+type Timings struct {
 	CheckHubForCompletedScansPause time.Duration
 	CheckHubThrottle               time.Duration
 
@@ -41,8 +41,8 @@ type TaskTimingConfig struct {
 	HubReloginPause time.Duration
 }
 
-// DefaultTaskTimingConfig supplies reasonable default values for TaskTimingConfig
-var DefaultTaskTimingConfig = &TaskTimingConfig{
+// DefaultTimings supplies reasonable default values for TaskTimingConfig
+var DefaultTimings = &Timings{
 	CheckHubForCompletedScansPause: 20 * time.Second,
 	CheckHubThrottle:               1 * time.Second,
 	CheckForStalledScansPause:      1 * time.Minute,

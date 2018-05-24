@@ -53,7 +53,7 @@ type Perceptor struct {
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
 func NewMockedPerceptor() (*Perceptor, error) {
-	mockConfig := model.Config{
+	mockConfig := Config{
 		HubHost:             "mock host",
 		HubUser:             "mock user",
 		ConcurrentScanLimit: 2,
@@ -62,11 +62,11 @@ func NewMockedPerceptor() (*Perceptor, error) {
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-func NewPerceptor(config *model.Config) (*Perceptor, error) {
+func NewPerceptor(config *Config) (*Perceptor, error) {
 	log.Infof("instantiating perceptor with config %+v", config)
-	hubPassword := os.Getenv(config.HubUserPasswordEnvVar)
-	if hubPassword == "" {
-		return nil, fmt.Errorf("unable to read hub password")
+	hubPassword, ok := os.LookupEnv(config.HubUserPasswordEnvVar)
+	if !ok {
+		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
 	hubBaseURL := fmt.Sprintf("https://%s:%d", config.HubHost, config.HubPort)
@@ -79,16 +79,23 @@ func NewPerceptor(config *model.Config) (*Perceptor, error) {
 	return newPerceptorHelper(hubClient, config), nil
 }
 
-func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *Perceptor {
+func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Perceptor {
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
 
 	// 2. routine task manager
 	stop := make(chan struct{})
-	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTaskTimingConfig)
+	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
 
-	// 3. gather up all actions into a single channel
+	// 3. perceptor
+	perceptor := Perceptor{
+		hubClient:          hubClient,
+		httpResponder:      httpResponder,
+		routineTaskManager: routineTaskManager,
+	}
+
+	// 4. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
 	go func() {
 		for {
@@ -110,7 +117,10 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 			case continuation := <-httpResponder.PostNextImageChannel:
 				actions <- &a.GetNextImage{Continuation: continuation}
 			case config := <-httpResponder.PostConfigChannel:
-				actions <- &a.SetConfig{ConcurrentScanLimit: config.ConcurrentScanLimit, HubClientTimeoutMilliseconds: config.HubClientTimeoutMilliseconds}
+				actions <- &a.SetConfig{
+					ConcurrentScanLimit:          config.ConcurrentScanLimit,
+					HubClientTimeoutMilliseconds: config.HubClientTimeoutMilliseconds,
+				}
 			case continuation := <-httpResponder.GetModelChannel:
 				actions <- &a.GetModel{Continuation: continuation}
 			case continuation := <-httpResponder.GetScanResultsChannel:
@@ -121,18 +131,24 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 		}
 	}()
 
-	// 4. now for the reducer
-	reducer := newReducer(model.NewModel(config, hubClient.HubVersion()), actions)
-
-	// 5. instantiate perceptor
-	perceptor := Perceptor{
-		hubClient:          hubClient,
-		httpResponder:      httpResponder,
-		reducer:            reducer,
-		actions:            actions,
-		routineTaskManager: routineTaskManager,
+	// 5. now for the reducer
+	modelConfig := &model.Config{
+		HubHost:               config.HubHost,
+		HubPort:               config.HubPort,
+		HubUser:               config.HubUser,
+		HubUserPasswordEnvVar: config.HubUserPasswordEnvVar,
+		LogLevel:              config.LogLevel,
+		Port:                  config.Port,
 	}
+	timings := &model.Timings{
+		CheckForStalledScansPause: model.DefaultTimings.CheckForStalledScansPause,
+	}
+	reducer := newReducer(model.NewModel(config.ConcurrentScanLimit, hubClient.HubVersion(), modelConfig, timings), actions)
 
-	// 6. done
+	// 6. tie the knot
+	perceptor.actions = actions
+	perceptor.reducer = reducer
+
+	// 7. done
 	return &perceptor
 }

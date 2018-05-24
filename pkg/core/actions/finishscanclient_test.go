@@ -30,7 +30,7 @@ import (
 
 // TestScanClientFails .....
 func TestScanClientFails(t *testing.T) {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 1}, "test version")
+	model := m.NewModel(1, "test version", nil, nil)
 	image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
 	model.AddImage(image)
 	model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)

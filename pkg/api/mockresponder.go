@@ -187,7 +187,7 @@ func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
 // internal use
 
 // PostConfig .....
-func (mr *MockResponder) PostConfig(config *Config) {
+func (mr *MockResponder) PostConfig(config *PostConfig) {
 	// TODO
 }
 

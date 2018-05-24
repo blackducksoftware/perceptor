@@ -21,24 +21,11 @@ under the License.
 
 package model
 
-import (
-	log "github.com/sirupsen/logrus"
-)
-
-// Config contains all configuration for Perceptor
 type Config struct {
-	HubHost                      string
-	HubUser                      string
-	HubUserPasswordEnvVar        string
-	HubClientTimeoutMilliseconds int
-	HubPort                      int
-	ConcurrentScanLimit          int
-	UseMockMode                  bool
-	Port                         int
-	LogLevel                     string
-}
-
-// GetLogLevel .....
-func (config *Config) GetLogLevel() (log.Level, error) {
-	return log.ParseLevel(config.LogLevel)
+	HubHost               string
+	HubUser               string
+	HubUserPasswordEnvVar string
+	HubPort               int
+	Port                  int
+	LogLevel              string
 }
