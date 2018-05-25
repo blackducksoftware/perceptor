@@ -33,10 +33,12 @@ import (
 
 // RoutineTaskManager manages routine tasks
 type RoutineTaskManager struct {
-	actions   chan actions.Action
-	stop      <-chan struct{}
-	hubClient hub.FetcherInterface
-	Timings   *model.Timings
+	actions      chan actions.Action
+	stop         <-chan struct{}
+	readTimings  chan func(model.Timings)
+	writeTimings chan model.Timings
+	hubClient    hub.FetcherInterface
+	Timings      *model.Timings
 	// routine tasks
 	InitialHubCheckScheduler         *Scheduler
 	HubScanCompletionScheduler       *Scheduler
@@ -50,10 +52,12 @@ type RoutineTaskManager struct {
 // NewRoutineTaskManager ...
 func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface, timings *model.Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
-		actions:   make(chan actions.Action),
-		stop:      stop,
-		hubClient: hubClient,
-		Timings:   timings,
+		actions:      make(chan actions.Action),
+		stop:         stop,
+		readTimings:  make(chan func(model.Timings)),
+		writeTimings: make(chan model.Timings),
+		hubClient:    hubClient,
+		Timings:      timings,
 	}
 	rtm.InitialHubCheckScheduler = rtm.startHubInitialScanChecking()
 	rtm.HubScanCompletionScheduler = rtm.startPollingHubForScanCompletion()
@@ -62,16 +66,41 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	rtm.HubScanRefreshScheduler = rtm.startCheckingForUpdatesForCompletedScans()
 	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
 	rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case continuation := <-rtm.readTimings:
+				timings := *rtm.Timings
+				go continuation(timings)
+			case newTimings := <-rtm.writeTimings:
+				rtm.Timings = &newTimings
+			}
+		}
+	}()
 	return rtm
 }
 
-// SetTimings ...
+// SetTimings sets the timings in a threadsafe way
 func (rtm *RoutineTaskManager) SetTimings(timings model.Timings) {
-	// TODO make this thread-safe (between writing here, and reading in the other places)
 	if timings.HubClientTimeout != rtm.Timings.HubClientTimeout {
-		// TODO set timeout
+		// TODO set timeout on hub client
 	}
-	rtm.Timings = &timings
+	rtm.writeTimings <- timings
+}
+
+// GetTimings gets the timings in a threadsafe way
+func (rtm *RoutineTaskManager) GetTimings() model.Timings {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var timings model.Timings
+	rtm.readTimings <- func(currentTimings model.Timings) {
+		timings = currentTimings
+		wg.Done()
+	}
+	wg.Wait()
+	return timings
 }
 
 func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {
@@ -104,7 +133,7 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 			for _, image := range *images {
 				scan, err := rtm.hubClient.FetchScanFromImage(image)
 				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
-				time.Sleep(rtm.Timings.CheckHubThrottle)
+				time.Sleep(rtm.GetTimings().CheckHubThrottle)
 			}
 		}}
 	})
@@ -114,7 +143,7 @@ func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *Schedul
 	log.Info("starting checking for stalled scans")
 	return NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
 		log.Debug("checking for stalled scans")
-		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.Timings.StalledScanClientTimeout}
+		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
 	})
 }
 
@@ -145,7 +174,7 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *Scheduler {
 	return NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
 		log.Debug("enqueueing images in need of refreshing")
-		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.Timings.RefreshThresholdDuration}
+		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
 	})
 }
 
