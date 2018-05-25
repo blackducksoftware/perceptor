@@ -113,6 +113,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					ConcurrentScanLimit:          config.ConcurrentScanLimit,
 					HubClientTimeoutMilliseconds: config.HubClientTimeoutMilliseconds,
 					LogLevel:                     config.LogLevel,
+					ImageRefreshThresholdSeconds: config.ImageRefreshThresholdSeconds,
 				}
 			case continuation := <-httpResponder.GetModelChannel:
 				actions <- &a.GetModel{Continuation: continuation}

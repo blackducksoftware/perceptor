@@ -33,6 +33,7 @@ type SetConfig struct {
 	ConcurrentScanLimit          *int
 	HubClientTimeoutMilliseconds *int
 	LogLevel                     *string
+	ImageRefreshThresholdSeconds *int
 }
 
 // Apply .....
@@ -55,5 +56,8 @@ func (s *SetConfig) Apply(model *m.Model) {
 		} else {
 			log.Errorf("invalid log level: %s", err.Error())
 		}
+	}
+	if s.ImageRefreshThresholdSeconds != nil {
+		model.Timings.RefreshThresholdDuration = time.Duration(*s.ImageRefreshThresholdSeconds) * time.Second
 	}
 }

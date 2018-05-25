@@ -26,4 +26,5 @@ type PostConfig struct {
 	ConcurrentScanLimit          *int
 	HubClientTimeoutMilliseconds *int
 	LogLevel                     *string
+	ImageRefreshThresholdSeconds *int
 }
