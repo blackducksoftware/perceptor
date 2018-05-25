@@ -111,11 +111,23 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 		ImageScanQueue:     scanQueue,
 		Config: &api.ModelConfig{
 			HubHost:             model.Config.HubHost,
-			HubPassword:         "... redacted ...",
 			HubUser:             model.Config.HubUser,
+			HubPort:             model.Config.HubPort,
 			LogLevel:            model.Config.LogLevel,
 			Port:                model.Config.Port,
 			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
+		},
+		Timings: &api.ModelTimings{
+			CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
+			CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
+			CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
+			EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
+			HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
+			HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
+			ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),
+			RefreshImagePause:              *api.NewModelTime(model.Timings.RefreshImagePause),
+			RefreshThresholdDuration:       *api.NewModelTime(model.Timings.RefreshThresholdDuration),
+			StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
 		},
 	}
 }

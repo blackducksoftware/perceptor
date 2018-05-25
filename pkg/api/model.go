@@ -22,6 +22,8 @@ under the License.
 package api
 
 import (
+	"time"
+
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
@@ -33,16 +35,51 @@ type Model struct {
 	ImageHubCheckQueue []string
 	HubVersion         string
 	Config             *ModelConfig
+	Timings            *ModelTimings
 }
 
 // ModelConfig .....
 type ModelConfig struct {
-	HubHost             string
-	HubUser             string
-	HubPassword         string
+	HubHost string
+	HubUser string
+	//	HubPasswordEnvVar   string
+	HubPort             int
 	Port                int
 	LogLevel            string
 	ConcurrentScanLimit int
+}
+
+// ModelTime ...
+type ModelTime struct {
+	duration     time.Duration
+	Minutes      int
+	Seconds      int
+	Milliseconds int
+}
+
+// NewModelTime consumes a time.Duration and calculates the minutes, seconds,
+// and milliseconds
+func NewModelTime(duration time.Duration) *ModelTime {
+	return &ModelTime{
+		duration:     duration,
+		Minutes:      int(duration / time.Minute),
+		Seconds:      int(duration / time.Second),
+		Milliseconds: int(duration / time.Millisecond),
+	}
+}
+
+// ModelTimings ...
+type ModelTimings struct {
+	HubClientTimeout               ModelTime
+	CheckHubForCompletedScansPause ModelTime
+	CheckHubThrottle               ModelTime
+	CheckForStalledScansPause      ModelTime
+	StalledScanClientTimeout       ModelTime
+	RefreshImagePause              ModelTime
+	EnqueueImagesForRefreshPause   ModelTime
+	RefreshThresholdDuration       ModelTime
+	ModelMetricsPause              ModelTime
+	HubReloginPause                ModelTime
 }
 
 // ModelImageInfo .....
