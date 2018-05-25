@@ -40,12 +40,18 @@ type CircuitBreaker struct {
 
 // NewCircuitBreaker .....
 func NewCircuitBreaker(client *hubclient.Client) *CircuitBreaker {
-	return &CircuitBreaker{
+	cb := &CircuitBreaker{
 		Client:              client,
-		State:               CircuitBreakerStateEnabled,
 		NextCheckTime:       nil,
 		ConsecutiveFailures: 0,
 	}
+	cb.setState(CircuitBreakerStateEnabled)
+	return cb
+}
+
+func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
+	recordCircuitBreakerState(state)
+	cb.State = state
 }
 
 // IsEnabled .....
@@ -58,7 +64,7 @@ func (cb *CircuitBreaker) IsEnabled() bool {
 // 2. returns whether the circuit breaker is enabled
 func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
 	if cb.State == CircuitBreakerStateDisabled && time.Now().After(*cb.NextCheckTime) {
-		cb.State = CircuitBreakerStateChecking
+		cb.setState(CircuitBreakerStateChecking)
 	}
 	return cb.IsEnabled()
 }
@@ -66,13 +72,13 @@ func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
 func (cb *CircuitBreaker) failure() {
 	switch cb.State {
 	case CircuitBreakerStateEnabled:
-		cb.State = CircuitBreakerStateDisabled
+		cb.setState(CircuitBreakerStateDisabled)
 		cb.ConsecutiveFailures = 1
 		cb.setNextCheckTime()
 	case CircuitBreakerStateDisabled:
 		break
 	case CircuitBreakerStateChecking:
-		cb.State = CircuitBreakerStateDisabled
+		cb.setState(CircuitBreakerStateDisabled)
 		cb.ConsecutiveFailures++
 		cb.setNextCheckTime()
 	}
@@ -85,7 +91,7 @@ func (cb *CircuitBreaker) success() {
 	case CircuitBreakerStateDisabled:
 		break
 	case CircuitBreakerStateChecking:
-		cb.State = CircuitBreakerStateEnabled
+		cb.setState(CircuitBreakerStateEnabled)
 		cb.ConsecutiveFailures = 0
 		cb.NextCheckTime = nil
 	}
