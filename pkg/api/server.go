@@ -210,13 +210,13 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var config *PostConfig
-			err = json.Unmarshal(body, config)
+			var config PostConfig
+			err = json.Unmarshal(body, &config)
 			if err != nil {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			responder.PostConfig(config)
+			responder.PostConfig(&config)
 			fmt.Fprint(w, "")
 		} else {
 			responder.NotFound(w, r)
