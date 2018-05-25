@@ -76,6 +76,13 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 				go continuation(timings)
 			case newTimings := <-rtm.writeTimings:
 				rtm.Timings = &newTimings
+				rtm.InitialHubCheckScheduler.SetDelay(newTimings.CheckHubThrottle)
+				rtm.HubScanCompletionScheduler.SetDelay(newTimings.CheckHubForCompletedScansPause)
+				rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
+				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
+				rtm.HubScanRefreshScheduler.SetDelay(newTimings.RefreshImagePause)
+				rtm.ReloginToHubScheduler.SetDelay(newTimings.HubReloginPause)
+				rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueImagesForRefreshPause)
 			}
 		}
 	}()
