@@ -119,6 +119,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&CheckScansCompletion{})
 	processAction(&FetchScanRefresh{})
 	processAction(&CheckScanRefresh{})
+	processAction(&SetIsHubEnabled{})
 }
 
 func processAction(nextAction Action) {

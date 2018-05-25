@@ -40,6 +40,7 @@ type Model struct {
 	HubVersion           string
 	Config               *Config
 	Timings              *Timings
+	IsHubEnabled         bool
 }
 
 // NewModel .....
@@ -54,6 +55,7 @@ func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 		HubVersion:           hubVersion,
 		Config:               config,
 		Timings:              timings,
+		IsHubEnabled:         true,
 	}
 }
 
@@ -242,6 +244,11 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 
 // GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
+	if !model.IsHubEnabled {
+		log.Debugf("Hub not enabled, can't start a new scan")
+		return nil
+	}
+
 	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
 		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
 		return nil

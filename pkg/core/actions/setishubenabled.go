@@ -19,13 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package actions
 
-// PostConfig allows certain config parameters to be changed.
-type PostConfig struct {
-	ConcurrentScanLimit                 *int
-	HubClientTimeoutMilliseconds        *int
-	LogLevel                            *string
-	ImageRefreshThresholdSeconds        *int
-	EnqueueImagesForRefreshPauseSeconds *int
+import (
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
+
+// SetIsHubEnabled .....
+type SetIsHubEnabled struct {
+	IsEnabled bool
+}
+
+// Apply .....
+func (s *SetIsHubEnabled) Apply(model *m.Model) {
+	model.IsHubEnabled = s.IsEnabled
 }
