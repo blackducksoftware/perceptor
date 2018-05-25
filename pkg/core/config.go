@@ -40,6 +40,7 @@ type Config struct {
 	LogLevel                     string
 }
 
+// HubClientTimeout converts the milliseconds to a duration
 func (config *Config) HubClientTimeout() time.Duration {
 	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
 }

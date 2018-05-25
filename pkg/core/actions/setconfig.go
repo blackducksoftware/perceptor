@@ -44,7 +44,6 @@ func (s *SetConfig) Apply(model *m.Model) {
 		limit := *s.ConcurrentScanLimit
 		if limit < 0 {
 			log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
-			return
 		} else {
 			model.Config.ConcurrentScanLimit = limit
 		}
