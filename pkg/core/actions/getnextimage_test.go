@@ -70,3 +70,35 @@ func TestGetNextImage(t *testing.T) {
 	assertEqual(t, model.Images[image1.Sha].ScanStatus, m.ScanStatusRunningScanClient)
 	// TODO expected: time of image changed
 }
+
+// TestGetNextImageHubInaccessible .....
+func TestGetNextImageHubInaccessible(t *testing.T) {
+	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+	model.AddImage(image1)
+	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+	model.IsHubEnabled = false
+
+	var nextImage *m.Image
+	var wg sync.WaitGroup
+	wg.Add(1)
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+		wg.Done()
+	}}).Apply(model)
+	wg.Wait()
+
+	if nextImage != nil {
+		t.Errorf("expected nil, got %+v", nextImage)
+	}
+
+	model.IsHubEnabled = true
+	wg.Add(1)
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+		wg.Done()
+	}}).Apply(model)
+	wg.Wait()
+	if nextImage == nil {
+		t.Errorf("expected image, got nil")
+	}
+}
