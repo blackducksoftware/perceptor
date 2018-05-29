@@ -27,19 +27,18 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
-	"github.com/blackducksoftware/hub-client-go/hubclient"
 )
 
 // CircuitBreaker .....
 type CircuitBreaker struct {
-	Client              *hubclient.Client
+	Client              ClientInterface
 	State               CircuitBreakerState
 	NextCheckTime       *time.Time
 	ConsecutiveFailures int
 }
 
 // NewCircuitBreaker .....
-func NewCircuitBreaker(client *hubclient.Client) *CircuitBreaker {
+func NewCircuitBreaker(client ClientInterface) *CircuitBreaker {
 	cb := &CircuitBreaker{
 		Client:              client,
 		NextCheckTime:       nil,
