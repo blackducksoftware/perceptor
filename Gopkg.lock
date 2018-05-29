@@ -8,13 +8,13 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  branch = "master"
   name = "github.com/blackducksoftware/hub-client-go"
   packages = [
     "hubapi",
     "hubclient"
   ]
-  revision = "373ae7b666893f7ea9285f02d31eceb552946b25"
-  version = "v0.9.4"
+  revision = "21556e0ded16e8469d9871fcafda87bb782d5fcb"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -54,8 +54,8 @@
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
-  revision = "3247c84500bff8d9fb6d579d800f20b3e091582c"
-  version = "v1.0.0"
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -100,7 +100,7 @@
     "nfs",
     "xfs"
   ]
-  revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
+  revision = "fe93d378a6b03758a2c1b65e86cf630bf78681c0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -145,7 +145,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
+  revision = "ab813273cd59e1333f7ae7bff5d027d4aadf528c"
 
 [[projects]]
   branch = "master"
@@ -154,7 +154,7 @@
     "unix",
     "windows"
   ]
-  revision = "89da893103a6ed6c87fb4bb5c19fcf97812df621"
+  revision = "c11f84a56e43e20a78cee75a7c034031ecf57d1f"
 
 [[projects]]
   name = "golang.org/x/text"
