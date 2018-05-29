@@ -90,7 +90,7 @@ func (hub *MockHub) SetTimeout(timeout time.Duration) {
 	//
 }
 
-// FetcherModel ...
+// Model ...
 func (hub *MockHub) Model() *FetcherModel {
 	return &FetcherModel{}
 }

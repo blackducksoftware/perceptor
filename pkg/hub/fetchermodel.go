@@ -23,6 +23,7 @@ package hub
 
 import "time"
 
+// FetcherModel holds the state of the fetcher
 type FetcherModel struct {
 	State               CircuitBreakerState
 	NextCheckTime       *time.Time
