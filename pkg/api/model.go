@@ -52,9 +52,9 @@ type ModelConfig struct {
 // ModelTime ...
 type ModelTime struct {
 	duration     time.Duration
-	Minutes      int
-	Seconds      int
-	Milliseconds int
+	Minutes      float64
+	Seconds      float64
+	Milliseconds float64
 }
 
 // NewModelTime consumes a time.Duration and calculates the minutes, seconds,
@@ -62,9 +62,9 @@ type ModelTime struct {
 func NewModelTime(duration time.Duration) *ModelTime {
 	return &ModelTime{
 		duration:     duration,
-		Minutes:      int(duration / time.Minute),
-		Seconds:      int(duration / time.Second),
-		Milliseconds: int(duration / time.Millisecond),
+		Minutes:      float64(duration / time.Minute),
+		Seconds:      float64(duration / time.Second),
+		Milliseconds: float64(duration / time.Millisecond),
 	}
 }
 
