@@ -84,3 +84,8 @@ func (hub *MockHub) HubVersion() string {
 func (hub *MockHub) Login() error {
 	return nil
 }
+
+// SetTimeout ...
+func (hub *MockHub) SetTimeout(timeout time.Duration) {
+	//
+}

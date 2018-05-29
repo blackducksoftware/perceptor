@@ -91,6 +91,11 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	return &hf, nil
 }
 
+// SetTimeout ...
+func (hf *Fetcher) SetTimeout(timeout time.Duration) {
+	hf.client.SetTimeout(timeout)
+}
+
 // HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion

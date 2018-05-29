@@ -90,11 +90,11 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 }
 
 // SetTimings sets the timings in a threadsafe way
-func (rtm *RoutineTaskManager) SetTimings(timings model.Timings) {
-	if timings.HubClientTimeout != rtm.Timings.HubClientTimeout {
-		// TODO set timeout on hub client
+func (rtm *RoutineTaskManager) SetTimings(newTimings model.Timings) {
+	if newTimings.HubClientTimeout != rtm.Timings.HubClientTimeout {
+		rtm.hubClient.SetTimeout(newTimings.HubClientTimeout)
 	}
-	rtm.writeTimings <- timings
+	rtm.writeTimings <- newTimings
 }
 
 // GetTimings gets the timings in a threadsafe way
