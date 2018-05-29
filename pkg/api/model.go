@@ -63,9 +63,9 @@ type ModelTime struct {
 func NewModelTime(duration time.Duration) *ModelTime {
 	return &ModelTime{
 		duration:     duration,
-		Minutes:      float64(duration / time.Minute),
-		Seconds:      float64(duration / time.Second),
-		Milliseconds: float64(duration / time.Millisecond),
+		Minutes:      float64(duration) / float64(time.Minute),
+		Seconds:      float64(duration) / float64(time.Second),
+		Milliseconds: float64(duration) / float64(time.Millisecond),
 	}
 }
 
