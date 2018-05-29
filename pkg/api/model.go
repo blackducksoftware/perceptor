@@ -36,6 +36,7 @@ type Model struct {
 	HubVersion         string
 	Config             *ModelConfig
 	Timings            *ModelTimings
+	HubCircuitBreaker  *ModelCircuitBreaker
 }
 
 // ModelConfig .....
@@ -89,4 +90,11 @@ type ModelImageInfo struct {
 	ScanResults            *hub.ImageScan
 	ImageSha               string
 	ImageNames             []string
+}
+
+// ModelCircuitBreaker ...
+type ModelCircuitBreaker struct {
+	State               string
+	NextCheckTime       *time.Time
+	ConsecutiveFailures int
 }

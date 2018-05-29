@@ -117,7 +117,15 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					EnqueueImagesForRefreshPauseSeconds: config.EnqueueImagesForRefreshPauseSeconds,
 				}
 			case continuation := <-httpResponder.GetModelChannel:
-				actions <- &a.GetModel{Continuation: continuation}
+				actions <- &a.GetModel{Continuation: func(apiModel api.Model) {
+					cbModel := hubClient.Model()
+					apiModel.HubCircuitBreaker = &api.ModelCircuitBreaker{
+						ConsecutiveFailures: cbModel.ConsecutiveFailures,
+						NextCheckTime:       cbModel.NextCheckTime,
+						State:               cbModel.State.String(),
+					}
+					continuation(apiModel)
+				}}
 			case continuation := <-httpResponder.GetScanResultsChannel:
 				actions <- &a.GetScanResults{Continuation: continuation}
 			case action := <-routineTaskManager.actions:

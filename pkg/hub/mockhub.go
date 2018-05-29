@@ -89,3 +89,8 @@ func (hub *MockHub) Login() error {
 func (hub *MockHub) SetTimeout(timeout time.Duration) {
 	//
 }
+
+// FetcherModel ...
+func (hub *MockHub) Model() *FetcherModel {
+	return &FetcherModel{}
+}

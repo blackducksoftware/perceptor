@@ -23,11 +23,8 @@ package hub
 
 import "time"
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
-	SetTimeout(timeout time.Duration)
-	Model() *FetcherModel
+type FetcherModel struct {
+	State               CircuitBreakerState
+	NextCheckTime       *time.Time
+	ConsecutiveFailures int
 }

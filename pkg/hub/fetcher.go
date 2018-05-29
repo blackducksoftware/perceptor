@@ -40,6 +40,15 @@ type Fetcher struct {
 	baseURL        string
 }
 
+// Model ...
+func (hf *Fetcher) Model() *FetcherModel {
+	return &FetcherModel{
+		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
+		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
+		State:               hf.circuitBreaker.State,
+	}
+}
+
 // Login .....
 func (hf *Fetcher) Login() error {
 	start := time.Now()
