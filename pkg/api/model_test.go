@@ -27,8 +27,8 @@ import (
 	"time"
 )
 
-// TestModel .....
-func TestModel(t *testing.T) {
+// TestNewModelTime .....
+func TestNewModelTime(t *testing.T) {
 	m := NewModelTime(500 * time.Millisecond)
 	if math.Abs(m.Seconds-0.5) > 0.000001 {
 		t.Errorf("expected 0.5, got %f", m.Minutes)
