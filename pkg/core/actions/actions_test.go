@@ -60,7 +60,7 @@ func init() {
 }
 
 func createNewModel1() *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
@@ -111,7 +111,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&FetchScanInitial{})
 	processAction(&FetchScanCompletion{})
 	processAction(&RequeueStalledScans{})
-	processAction(&SetConcurrentScanLimit{})
+	processAction(&SetConfig{})
 	processAction(&AllImages{})
 	processAction(&GetModel{})
 	processAction(&GetMetrics{})
@@ -119,6 +119,7 @@ func TestActionsImplementInterface(t *testing.T) {
 	processAction(&CheckScansCompletion{})
 	processAction(&FetchScanRefresh{})
 	processAction(&CheckScanRefresh{})
+	processAction(&SetIsHubEnabled{})
 }
 
 func processAction(nextAction Action) {

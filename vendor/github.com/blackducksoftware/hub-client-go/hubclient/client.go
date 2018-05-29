@@ -95,6 +95,10 @@ func (c *Client) BaseURL() string {
 	return c.baseURL
 }
 
+func (c *Client) SetTimeout(timeout time.Duration) {
+	c.httpClient.Timeout = timeout
+}
+
 func readBytes(readCloser io.ReadCloser) ([]byte, error) {
 
 	defer readCloser.Close()

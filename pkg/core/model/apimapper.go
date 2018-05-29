@@ -74,8 +74,8 @@ func CorePodToAPIPod(corePod Pod) *api.Pod {
 	}
 }
 
-// APIModel .....
-func (model *Model) APIModel() *api.Model {
+// CoreModelToAPIModel .....
+func CoreModelToAPIModel(model *Model) *api.Model {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
@@ -104,22 +104,31 @@ func (model *Model) APIModel() *api.Model {
 	}
 	// return value
 	return &api.Model{
-		Pods:   pods,
-		Images: images,
+		Pods:               pods,
+		Images:             images,
+		HubVersion:         model.HubVersion,
+		ImageHubCheckQueue: hubQueue,
+		ImageScanQueue:     scanQueue,
 		Config: &api.ModelConfig{
-			ConcurrentScanLimit:     model.Config.ConcurrentScanLimit,
-			HubHost:                 model.Config.HubHost,
-			HubPassword:             "...redacted...",
-			HubClientTimeoutSeconds: model.Config.HubClientTimeoutSeconds,
-			HubUser:                 model.Config.HubUser,
-			LogLevel:                model.Config.LogLevel,
-			Port:                    model.Config.Port,
-			UseMockMode:             model.Config.UseMockMode,
+			HubHost:             model.Config.HubHost,
+			HubUser:             model.Config.HubUser,
+			HubPort:             model.Config.HubPort,
+			LogLevel:            model.Config.LogLevel,
+			Port:                model.Config.Port,
+			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
 		},
-		ConcurrentScanLimit: model.ConcurrentScanLimit,
-		HubVersion:          model.HubVersion,
-		ImageHubCheckQueue:  hubQueue,
-		ImageScanQueue:      scanQueue,
+		Timings: &api.ModelTimings{
+			CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
+			CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
+			CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
+			EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
+			HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
+			HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
+			ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),
+			RefreshImagePause:              *api.NewModelTime(model.Timings.RefreshImagePause),
+			RefreshThresholdDuration:       *api.NewModelTime(model.Timings.RefreshThresholdDuration),
+			StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
+		},
 	}
 }
 

@@ -24,8 +24,6 @@ package core
 import (
 	"fmt"
 	"os"
-	"sync"
-	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
@@ -35,24 +33,7 @@ import (
 )
 
 const (
-	checkHubForCompletedScansPause = 20 * time.Second
-	checkHubThrottle               = 1 * time.Second
-
-	checkForStalledScansPause = 1 * time.Minute
-	stalledScanClientTimeout  = 2 * time.Hour
-
-	refreshImagePause = 1 * time.Second
-
-	checkHubAccessibilityPause = 5 * time.Second
-
-	enqueueImagesForRefreshPause = 5 * time.Minute
-	refreshThresholdDuration     = 30 * time.Minute
-
-	modelMetricsPause = 15 * time.Second
-
 	actionChannelSize = 100
-
-	hubReloginPause = 30 * time.Minute
 )
 
 // Perceptor ties together: a cluster, scan clients, and a hub.
@@ -61,20 +42,18 @@ const (
 // It has the hub scan images that have never been seen before.
 // It grabs the scan results from the hub and adds them to its model.
 // It publishes vulnerabilities that the cluster can find out about.
-// Perceptor .....
 type Perceptor struct {
-	hubClient     hub.FetcherInterface
-	httpResponder *HTTPResponder
-	// reducer
-	reducer *reducer
+	hubClient          hub.FetcherInterface
+	httpResponder      *HTTPResponder
+	reducer            *reducer
+	routineTaskManager *RoutineTaskManager
 	// channels
 	actions chan a.Action
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
-// NewMockedPerceptor .....
 func NewMockedPerceptor() (*Perceptor, error) {
-	mockConfig := model.Config{
+	mockConfig := Config{
 		HubHost:             "mock host",
 		HubUser:             "mock user",
 		ConcurrentScanLimit: 2,
@@ -83,16 +62,14 @@ func NewMockedPerceptor() (*Perceptor, error) {
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-// NewPerceptor .....
-func NewPerceptor(config *model.Config) (*Perceptor, error) {
+func NewPerceptor(config *Config) (*Perceptor, error) {
 	log.Infof("instantiating perceptor with config %+v", config)
-	hubPassword := os.Getenv(config.HubUserPasswordEnvVar)
-	if hubPassword == "" {
-		return nil, fmt.Errorf("unable to read hub password")
+	hubPassword, ok := os.LookupEnv(config.HubUserPasswordEnvVar)
+	if !ok {
+		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubBaseURL := fmt.Sprintf("https://%s:%d", config.HubHost, config.HubPort)
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, hubBaseURL, config.HubClientTimeoutSeconds)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
@@ -101,12 +78,16 @@ func NewPerceptor(config *model.Config) (*Perceptor, error) {
 	return newPerceptorHelper(hubClient, config), nil
 }
 
-func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *Perceptor {
+func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Perceptor {
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
 
-	// 2. combine actions
+	// 2. routine task manager
+	stop := make(chan struct{})
+	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
+
+	// 3. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
 	go func() {
 		for {
@@ -127,145 +108,77 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *model.Config) *P
 				actions <- job
 			case continuation := <-httpResponder.PostNextImageChannel:
 				actions <- &a.GetNextImage{Continuation: continuation}
-			case limit := <-httpResponder.SetConcurrentScanLimitChannel:
-				actions <- &a.SetConcurrentScanLimit{Limit: limit}
+			case config := <-httpResponder.PostConfigChannel:
+				actions <- &a.SetConfig{
+					ConcurrentScanLimit:                 config.ConcurrentScanLimit,
+					HubClientTimeoutMilliseconds:        config.HubClientTimeoutMilliseconds,
+					LogLevel:                            config.LogLevel,
+					ImageRefreshThresholdSeconds:        config.ImageRefreshThresholdSeconds,
+					EnqueueImagesForRefreshPauseSeconds: config.EnqueueImagesForRefreshPauseSeconds,
+				}
 			case continuation := <-httpResponder.GetModelChannel:
-				actions <- &a.GetModel{Continuation: continuation}
+				actions <- &a.GetModel{Continuation: func(apiModel api.Model) {
+					cbModel := hubClient.Model()
+					apiModel.HubCircuitBreaker = &api.ModelCircuitBreaker{
+						ConsecutiveFailures: cbModel.ConsecutiveFailures,
+						NextCheckTime:       cbModel.NextCheckTime,
+						State:               cbModel.State.String(),
+					}
+					continuation(apiModel)
+				}}
 			case continuation := <-httpResponder.GetScanResultsChannel:
 				actions <- &a.GetScanResults{Continuation: continuation}
+			case action := <-routineTaskManager.actions:
+				actions <- action
+			case isEnabled := <-hubClient.IsEnabled():
+				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			}
 		}
 	}()
 
-	// 3. now for the reducer
-	reducer := newReducer(model.NewModel(config, hubClient.HubVersion()), actions)
+	// 4. now for the reducer
+	modelConfig := &model.Config{
+		HubHost:               config.HubHost,
+		HubPort:               config.HubPort,
+		HubUser:               config.HubUser,
+		HubUserPasswordEnvVar: config.HubUserPasswordEnvVar,
+		LogLevel:              config.LogLevel,
+		Port:                  config.Port,
+		ConcurrentScanLimit:   config.ConcurrentScanLimit,
+	}
+	timings := &model.Timings{
+		HubClientTimeout:               config.HubClientTimeout(),
+		CheckForStalledScansPause:      model.DefaultTimings.CheckForStalledScansPause,
+		CheckHubForCompletedScansPause: model.DefaultTimings.CheckHubForCompletedScansPause,
+		CheckHubThrottle:               model.DefaultTimings.CheckHubThrottle,
+		EnqueueImagesForRefreshPause:   model.DefaultTimings.EnqueueImagesForRefreshPause,
+		HubReloginPause:                model.DefaultTimings.HubReloginPause,
+		ModelMetricsPause:              model.DefaultTimings.ModelMetricsPause,
+		RefreshImagePause:              model.DefaultTimings.RefreshImagePause,
+		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
+		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
+	}
+	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
 
-	// 4. instantiate perceptor
+	// 5. connect reducer notifications to routine task manager
+	go func() {
+		for {
+			select {
+			case timings := <-reducer.Timings:
+				routineTaskManager.SetTimings(timings)
+			}
+		}
+	}()
+
+	// 6. perceptor
 	perceptor := Perceptor{
-		hubClient:     hubClient,
-		httpResponder: httpResponder,
-		reducer:       reducer,
-		actions:       actions,
+		hubClient:          hubClient,
+		httpResponder:      httpResponder,
+		reducer:            reducer,
+		routineTaskManager: routineTaskManager,
+		actions:            actions,
 	}
 
-	// 5. start regular tasks -- hitting the hub for results, checking for
-	//    stalled scans, model metrics
-	go perceptor.startHubInitialScanChecking()
-	go perceptor.startPollingHubForScanCompletion()
-	go perceptor.startCheckingForStalledScanClientScans()
-	go perceptor.startGeneratingModelMetrics()
-	go perceptor.startCheckingForUpdatesForCompletedScans()
-	go perceptor.startCheckingForHubAccessibility()
-	go perceptor.startEnqueueingImagesNeedingRefreshing()
-	go perceptor.startReloggingInToHub()
-
-	// 6. done
+	// 7. done
 	return &perceptor
-}
-
-func (perceptor *Perceptor) startHubInitialScanChecking() {
-	for {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		var image *model.Image
-		perceptor.actions <- &a.CheckScanInitial{Continuation: func(i *model.Image) {
-			image = i
-			wg.Done()
-		}}
-		wg.Wait()
-
-		if image != nil {
-			scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-			perceptor.actions <- &a.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
-			time.Sleep(checkHubThrottle)
-		} else {
-			// slow down the chatter if we didn't find something
-			time.Sleep(checkHubForCompletedScansPause)
-		}
-	}
-}
-
-func (perceptor *Perceptor) startPollingHubForScanCompletion() {
-	log.Info("starting to poll hub for scan completion")
-	for {
-		time.Sleep(checkHubForCompletedScansPause)
-		log.Debug("checking hub for completion of running hub scans")
-		perceptor.actions <- &a.CheckScansCompletion{Continuation: func(images *[]model.Image) {
-			if images == nil {
-				return
-			}
-			for _, image := range *images {
-				scan, err := perceptor.hubClient.FetchScanFromImage(image)
-				perceptor.actions <- &a.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
-				time.Sleep(checkHubThrottle)
-			}
-		}}
-	}
-}
-
-func (perceptor *Perceptor) startCheckingForStalledScanClientScans() {
-	log.Info("starting checking for stalled scans")
-	for {
-		time.Sleep(checkForStalledScansPause)
-		log.Debug("checking for stalled scans")
-		perceptor.actions <- &a.RequeueStalledScans{StalledScanClientTimeout: stalledScanClientTimeout}
-	}
-}
-
-func (perceptor *Perceptor) startGeneratingModelMetrics() {
-	for {
-		time.Sleep(modelMetricsPause)
-
-		perceptor.actions <- &a.GetMetrics{Continuation: func(modelMetrics *model.Metrics) {
-			recordModelMetrics(modelMetrics)
-		}}
-	}
-}
-
-func (perceptor *Perceptor) startCheckingForUpdatesForCompletedScans() {
-	for {
-		log.Debug("requesting completed scans for rechecking hub")
-
-		var wg sync.WaitGroup
-		wg.Add(1)
-		perceptor.actions <- &a.CheckScanRefresh{Continuation: func(image *model.Image) {
-			if image != nil {
-				log.Debugf("refreshing image %s", image.PullSpec())
-				scan, err := perceptor.hubClient.FetchScanFromImage(*image)
-				perceptor.actions <- &a.FetchScanRefresh{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
-			}
-			wg.Done()
-		}}
-		wg.Wait()
-
-		time.Sleep(refreshImagePause)
-	}
-}
-
-func (perceptor *Perceptor) startCheckingForHubAccessibility() {
-	for {
-		log.Debug("checking for hub accessibility")
-		perceptor.actions <- &a.CheckHubAccessibility{}
-		time.Sleep(checkHubAccessibilityPause)
-	}
-}
-
-func (perceptor *Perceptor) startEnqueueingImagesNeedingRefreshing() {
-	for {
-		log.Debug("enqueueing images in need of refreshing")
-		perceptor.actions <- &a.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: refreshThresholdDuration}
-		time.Sleep(enqueueImagesForRefreshPause)
-	}
-}
-
-func (perceptor *Perceptor) startReloggingInToHub() {
-	for {
-		time.Sleep(hubReloginPause)
-
-		err := perceptor.hubClient.Login()
-		if err != nil {
-			log.Errorf("unable to re-login to hub: %s", err.Error())
-		}
-		log.Infof("successfully re-logged in to hub")
-	}
 }

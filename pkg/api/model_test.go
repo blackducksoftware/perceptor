@@ -21,7 +21,19 @@ under the License.
 
 package api
 
-// SetConcurrentScanLimit .....
-type SetConcurrentScanLimit struct {
-	Limit int
+import (
+	"math"
+	"testing"
+	"time"
+)
+
+// TestNewModelTime .....
+func TestNewModelTime(t *testing.T) {
+	m := NewModelTime(500 * time.Millisecond)
+	if math.Abs(m.Seconds-0.5) > 0.000001 {
+		t.Errorf("expected 0.5, got %f", m.Minutes)
+	}
+	if math.Abs(m.Minutes-0.0083333) > 0.0000001 {
+		t.Errorf("expected 0.0083333, got %f", m.Minutes)
+	}
 }

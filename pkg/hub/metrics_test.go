@@ -33,6 +33,7 @@ func TestMetrics(t *testing.T) {
 	recordHubData("abc", true)
 	recordHubResponse("qrs", false)
 	recordHubResponseTime("abc", time.Now().Sub(time.Now()))
+	recordCircuitBreakerState(CircuitBreakerStateDisabled)
 
 	message := "finished test case"
 	t.Log(message)

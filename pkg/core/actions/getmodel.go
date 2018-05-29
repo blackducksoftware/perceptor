@@ -33,6 +33,6 @@ type GetModel struct {
 
 // Apply .....
 func (g *GetModel) Apply(model *m.Model) {
-	apiModel := model.APIModel()
+	apiModel := m.CoreModelToAPIModel(model)
 	go g.Continuation(*apiModel)
 }

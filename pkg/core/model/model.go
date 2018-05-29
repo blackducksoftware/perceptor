@@ -29,23 +29,22 @@ import (
 )
 
 // Model is the root of the core model
-// Model .....
 type Model struct {
-	// Pods is a map of "<namespace>/<name>" to pod
+	// Pods is a map of qualified name ("<namespace>/<name>") to pod
 	Pods                 map[string]Pod
 	Images               map[DockerImageSha]*ImageInfo
 	ImageScanQueue       []DockerImageSha
 	ImageHubCheckQueue   []DockerImageSha
 	ImageRefreshQueue    []DockerImageSha
 	ImageRefreshQueueSet map[DockerImageSha]bool
-	ConcurrentScanLimit  int
-	Config               *Config
 	HubVersion           string
-	HubCircuitBreaker    *HubCircuitBreaker
+	Config               *Config
+	Timings              *Timings
+	IsHubEnabled         bool
 }
 
 // NewModel .....
-func NewModel(config *Config, hubVersion string) *Model {
+func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
 		Images:               make(map[DockerImageSha]*ImageInfo),
@@ -53,15 +52,14 @@ func NewModel(config *Config, hubVersion string) *Model {
 		ImageHubCheckQueue:   []DockerImageSha{},
 		ImageRefreshQueue:    []DockerImageSha{},
 		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		ConcurrentScanLimit:  config.ConcurrentScanLimit,
-		Config:               config,
 		HubVersion:           hubVersion,
-		HubCircuitBreaker:    NewHubCircuitBreaker(),
+		Config:               config,
+		Timings:              timings,
+		IsHubEnabled:         true,
 	}
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
-// DeletePod .....
 func (model *Model) DeletePod(podName string) {
 	delete(model.Pods, podName)
 }
@@ -72,7 +70,6 @@ func (model *Model) DeletePod(podName string) {
 // The key is the combination of the pod's namespace and name.
 // It extracts the containers and images from the pod,
 // adding them into the cache.
-// AddPod .....
 func (model *Model) AddPod(newPod Pod) {
 	log.Debugf("about to add pod: UID %s, qualified name %s", newPod.UID, newPod.QualifiedName())
 	if len(newPod.Containers) == 0 {
@@ -87,7 +84,6 @@ func (model *Model) AddPod(newPod Pod) {
 }
 
 // AddImage adds an image to the model, adding it to the queue for hub checking.
-// AddImage .....
 func (model *Model) AddImage(image Image) {
 	added := model.createImage(image)
 	if added {
@@ -240,11 +236,6 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 		return nil
 	}
 
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("hub not accessible -- can't get next item from hub check queue")
-		return nil
-	}
-
 	first := model.ImageHubCheckQueue[0]
 	image := model.unsafeGet(first).Image()
 
@@ -253,18 +244,18 @@ func (model *Model) GetNextImageFromHubCheckQueue() *Image {
 
 // GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
-	if model.InProgressScanCount() >= model.ConcurrentScanLimit {
+	if !model.IsHubEnabled {
+		log.Debugf("Hub not enabled, can't start a new scan")
+		return nil
+	}
+
+	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
 		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
 		return nil
 	}
 
 	if len(model.ImageScanQueue) == 0 {
 		log.Debug("scan queue empty, can't start a new scan")
-		return nil
-	}
-
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("hub not accessible -- can't start a new scan")
 		return nil
 	}
 
@@ -302,11 +293,6 @@ func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
 func (model *Model) GetNextImageFromRefreshQueue() *Image {
 	if len(model.ImageRefreshQueue) == 0 {
 		log.Debug("refresh queue empty")
-		return nil
-	}
-
-	if !model.HubCircuitBreaker.IsEnabled() {
-		log.Debug("cannot get next image: hub is not accessible")
 		return nil
 	}
 
@@ -376,9 +362,6 @@ func (model *Model) InProgressScanCount() int {
 
 // InProgressHubScans .....
 func (model *Model) InProgressHubScans() *([]Image) {
-	if !model.HubCircuitBreaker.IsEnabled() {
-		return nil
-	}
 	inProgressHubScans := []Image{}
 	for _, imageInfo := range model.Images {
 		switch imageInfo.ScanStatus {

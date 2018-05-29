@@ -19,31 +19,33 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package core
 
 import (
 	"time"
 
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-// CheckHubAccessibility .....
-type CheckHubAccessibility struct{}
+// Config contains all configuration for Perceptor
+type Config struct {
+	HubHost                      string
+	HubUser                      string
+	HubUserPasswordEnvVar        string
+	HubClientTimeoutMilliseconds int
+	HubPort                      int
+	ConcurrentScanLimit          int
+	UseMockMode                  bool
+	Port                         int
+	LogLevel                     string
+}
 
-// Apply .....
-func (c *CheckHubAccessibility) Apply(model *m.Model) {
-	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
-		return
-	}
+// HubClientTimeout converts the milliseconds to a duration
+func (config *Config) HubClientTimeout() time.Duration {
+	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
+}
 
-	if time.Now().Before(*model.HubCircuitBreaker.NextCheckTime) {
-		return
-	}
-
-	err := model.HubCircuitBreaker.MoveToCheckingState()
-	if err != nil {
-		log.Errorf("unable to move to checking state: %s (circuit breaker: %+v)", err.Error(), model.HubCircuitBreaker)
-		recordError("CheckHubAccessibility", "unable to move to checking state")
-	}
+// GetLogLevel .....
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
 }

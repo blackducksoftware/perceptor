@@ -21,57 +21,13 @@ under the License.
 
 package model
 
-import (
-	"fmt"
-
-	"github.com/fsnotify/fsnotify"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-)
-
-// Config contains all configuration for Perceptor
-// Config .....
+// Config ...
 type Config struct {
-	HubHost                 string
-	HubUser                 string
-	HubUserPasswordEnvVar   string
-	HubClientTimeoutSeconds int
-	HubPort                 int
-	ConcurrentScanLimit     int
-	UseMockMode             bool
-	Port                    int
-	LogLevel                string
-}
-
-// GetLogLevel .....
-func (config *Config) GetLogLevel() (log.Level, error) {
-	return log.ParseLevel(config.LogLevel)
-}
-
-// GetConfig returns a configuration object to configure Perceptor
-// GetConfig .....
-func GetConfig(configPath string) (*Config, error) {
-	var config *Config
-
-	viper.SetConfigFile(configPath)
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
-	}
-
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
-	}
-
-	return config, nil
-}
-
-// StartWatch will start watching the Perceptor configuration file and
-// call the passed handler function when the configuration file has changed
-// StartWatch .....
-func (config *Config) StartWatch(handler func(fsnotify.Event)) {
-	viper.WatchConfig()
-	viper.OnConfigChange(handler)
+	HubHost               string
+	HubUser               string
+	HubUserPasswordEnvVar string
+	HubPort               int
+	Port                  int
+	LogLevel              string
+	ConcurrentScanLimit   int
 }

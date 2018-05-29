@@ -22,30 +22,65 @@ under the License.
 package api
 
 import (
+	"time"
+
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 // Model .....
 type Model struct {
-	Pods                map[string]*Pod
-	Images              map[string]*ModelImageInfo
-	ImageScanQueue      []string
-	ImageHubCheckQueue  []string
-	ConcurrentScanLimit int
-	Config              *ModelConfig
-	HubVersion          string
+	Pods               map[string]*Pod
+	Images             map[string]*ModelImageInfo
+	ImageScanQueue     []string
+	ImageHubCheckQueue []string
+	HubVersion         string
+	Config             *ModelConfig
+	Timings            *ModelTimings
+	HubCircuitBreaker  *ModelCircuitBreaker
 }
 
 // ModelConfig .....
 type ModelConfig struct {
-	HubHost                 string
-	HubUser                 string
-	HubPassword             string
-	HubClientTimeoutSeconds int
-	ConcurrentScanLimit     int
-	UseMockMode             bool
-	Port                    int
-	LogLevel                string
+	HubHost string
+	HubUser string
+	//	HubPasswordEnvVar   string
+	HubPort             int
+	Port                int
+	LogLevel            string
+	ConcurrentScanLimit int
+}
+
+// ModelTime ...
+type ModelTime struct {
+	duration     time.Duration
+	Minutes      float64
+	Seconds      float64
+	Milliseconds float64
+}
+
+// NewModelTime consumes a time.Duration and calculates the minutes, seconds,
+// and milliseconds
+func NewModelTime(duration time.Duration) *ModelTime {
+	return &ModelTime{
+		duration:     duration,
+		Minutes:      float64(duration) / float64(time.Minute),
+		Seconds:      float64(duration) / float64(time.Second),
+		Milliseconds: float64(duration) / float64(time.Millisecond),
+	}
+}
+
+// ModelTimings ...
+type ModelTimings struct {
+	HubClientTimeout               ModelTime
+	CheckHubForCompletedScansPause ModelTime
+	CheckHubThrottle               ModelTime
+	CheckForStalledScansPause      ModelTime
+	StalledScanClientTimeout       ModelTime
+	RefreshImagePause              ModelTime
+	EnqueueImagesForRefreshPause   ModelTime
+	RefreshThresholdDuration       ModelTime
+	ModelMetricsPause              ModelTime
+	HubReloginPause                ModelTime
 }
 
 // ModelImageInfo .....
@@ -55,4 +90,11 @@ type ModelImageInfo struct {
 	ScanResults            *hub.ImageScan
 	ImageSha               string
 	ImageNames             []string
+}
+
+// ModelCircuitBreaker ...
+type ModelCircuitBreaker struct {
+	State               string
+	NextCheckTime       *time.Time
+	ConsecutiveFailures int
 }

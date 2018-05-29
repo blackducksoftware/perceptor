@@ -84,3 +84,18 @@ func (hub *MockHub) HubVersion() string {
 func (hub *MockHub) Login() error {
 	return nil
 }
+
+// SetTimeout ...
+func (hub *MockHub) SetTimeout(timeout time.Duration) {
+	//
+}
+
+// Model ...
+func (hub *MockHub) Model() *FetcherModel {
+	return &FetcherModel{}
+}
+
+// IsEnabled ...
+func (hub *MockHub) IsEnabled() <-chan bool {
+	return make(<-chan bool)
+}

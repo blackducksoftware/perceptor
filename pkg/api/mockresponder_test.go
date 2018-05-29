@@ -19,24 +19,19 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package api
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"testing"
+
 	log "github.com/sirupsen/logrus"
 )
 
-// SetConcurrentScanLimit .....
-type SetConcurrentScanLimit struct {
-	Limit int
+// TestMockResponderImplementsInterface .....
+func TestMockResponderImplementsInterface(t *testing.T) {
+	consumeResponder(NewMockResponder())
 }
 
-// Apply .....
-func (s *SetConcurrentScanLimit) Apply(model *m.Model) {
-	limit := s.Limit
-	if limit < 0 {
-		log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
-		return
-	}
-	model.ConcurrentScanLimit = limit
+func consumeResponder(r Responder) {
+	log.Infof("responder: %+v", r)
 }
