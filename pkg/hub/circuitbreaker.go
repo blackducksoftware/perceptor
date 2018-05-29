@@ -35,6 +35,7 @@ type CircuitBreaker struct {
 	State               CircuitBreakerState
 	NextCheckTime       *time.Time
 	ConsecutiveFailures int
+	IsEnabledChannel    chan bool
 }
 
 // NewCircuitBreaker .....
@@ -43,6 +44,7 @@ func NewCircuitBreaker(client ClientInterface) *CircuitBreaker {
 		Client:              client,
 		NextCheckTime:       nil,
 		ConsecutiveFailures: 0,
+		IsEnabledChannel:    make(chan bool),
 	}
 	cb.setState(CircuitBreakerStateEnabled)
 	return cb
@@ -51,6 +53,16 @@ func NewCircuitBreaker(client ClientInterface) *CircuitBreaker {
 func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
 	recordCircuitBreakerState(state)
 	cb.State = state
+	go func() {
+		switch state {
+		case CircuitBreakerStateEnabled:
+			cb.IsEnabledChannel <- true
+		case CircuitBreakerStateDisabled:
+			cb.IsEnabledChannel <- false
+		case CircuitBreakerStateChecking:
+			break
+		}
+	}()
 }
 
 // IsEnabled .....

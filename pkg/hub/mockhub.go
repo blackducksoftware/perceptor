@@ -94,3 +94,8 @@ func (hub *MockHub) SetTimeout(timeout time.Duration) {
 func (hub *MockHub) Model() *FetcherModel {
 	return &FetcherModel{}
 }
+
+// IsEnabled ...
+func (hub *MockHub) IsEnabled() <-chan bool {
+	return make(<-chan bool)
+}

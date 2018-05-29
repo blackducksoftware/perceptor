@@ -49,6 +49,12 @@ func (hf *Fetcher) Model() *FetcherModel {
 	}
 }
 
+// IsEnabled returns whether the fetcher is currently enabled
+// example: the circuit breaker is disabled -> the fetcher is disabled
+func (hf *Fetcher) IsEnabled() <-chan bool {
+	return hf.circuitBreaker.IsEnabledChannel
+}
+
 // Login .....
 func (hf *Fetcher) Login() error {
 	start := time.Now()

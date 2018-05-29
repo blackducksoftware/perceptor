@@ -30,4 +30,5 @@ type FetcherInterface interface {
 	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
 	SetTimeout(timeout time.Duration)
 	Model() *FetcherModel
+	IsEnabled() <-chan bool
 }

@@ -130,6 +130,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 				actions <- &a.GetScanResults{Continuation: continuation}
 			case action := <-routineTaskManager.actions:
 				actions <- action
+			case isEnabled := <-hubClient.IsEnabled():
+				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			}
 		}
 	}()
