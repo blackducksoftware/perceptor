@@ -30,6 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SetupHTTPServer .....
 func SetupHTTPServer(responder Responder) {
 	// state of the program
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
@@ -202,20 +203,20 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	// internal use
-	http.HandleFunc("/concurrentscanlimit", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			var limit SetConcurrentScanLimit
-			err = json.Unmarshal(body, &limit)
+			var config PostConfig
+			err = json.Unmarshal(body, &config)
 			if err != nil {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			responder.SetConcurrentScanLimit(limit)
+			responder.PostConfig(&config)
 			fmt.Fprint(w, "")
 		} else {
 			responder.NotFound(w, r)

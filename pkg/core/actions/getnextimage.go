@@ -26,11 +26,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// GetNextImage .....
 type GetNextImage struct {
 	Continuation func(image *m.Image)
 }
 
+// Apply .....
 func (g *GetNextImage) Apply(model *m.Model) {
-	log.Debugf("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.ConcurrentScanLimit, model.InProgressScanCount())
+	log.Debugf("looking for next image to scan with concurrency limit of %d, and %d currently in progress", model.Config.ConcurrentScanLimit, model.InProgressScanCount())
 	go g.Continuation(model.GetNextImageFromScanQueue())
 }

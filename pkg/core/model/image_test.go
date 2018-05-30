@@ -26,6 +26,7 @@ import (
 	"testing"
 )
 
+// TestImageJSON .....
 func TestImageJSON(t *testing.T) {
 	jsonString := `{
 		"Repository":"docker.io/mfenwickbd/perceptor",
@@ -45,6 +46,7 @@ func TestImageJSON(t *testing.T) {
 	}
 }
 
+// TestImageHubData .....
 func TestImageHubData(t *testing.T) {
 	image := NewImage("abc", "l", DockerImageSha("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
 	actualProject := image.HubProjectName()

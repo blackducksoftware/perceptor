@@ -29,7 +29,7 @@ import (
 )
 
 func requeueTestModel() *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningScanClient)
@@ -38,6 +38,7 @@ func requeueTestModel() *m.Model {
 	return model
 }
 
+// TestRequeueStalledScanClientScans .....
 func TestRequeueStalledScanClientScans(t *testing.T) {
 	model := requeueTestModel()
 

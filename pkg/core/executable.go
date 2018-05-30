@@ -27,7 +27,6 @@ import (
 	"os"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	model "github.com/blackducksoftware/perceptor/pkg/core/model"
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,10 +34,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RunPerceptor() {
+// RunPerceptor .....
+func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	config, err := model.GetConfig()
+	configManager := NewConfigManager(configPath)
+
+	config, err := configManager.GetConfig()
 	if err != nil {
 		log.Errorf("Failed to load configuration: %s", err.Error())
 		panic(err)

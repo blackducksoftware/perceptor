@@ -26,11 +26,13 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// GetModel .....
 type GetModel struct {
 	Continuation func(model api.Model)
 }
 
+// Apply .....
 func (g *GetModel) Apply(model *m.Model) {
-	apiModel := model.APIModel()
+	apiModel := m.CoreModelToAPIModel(model)
 	go g.Continuation(*apiModel)
 }

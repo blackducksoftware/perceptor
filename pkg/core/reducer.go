@@ -31,19 +31,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type reducer struct{}
-
-// logic
+type reducer struct {
+	Timings chan m.Timings
+}
 
 func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 	stop := time.Now()
+	r := &reducer{
+		Timings: make(chan m.Timings),
+	}
 	go func() {
 		for {
 			select {
 			case nextAction := <-actions:
-				if log.GetLevel() == log.DebugLevel {
-					log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
-				}
+				log.Debugf("processing reducer action of type %s", reflect.TypeOf(nextAction))
 
 				// metrics: how many messages are waiting?
 				recordNumberOfMessagesInQueue(len(actions))
@@ -57,6 +58,7 @@ func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 
 				// actually do the work
 				nextAction.Apply(model)
+				r.generateNotifications(nextAction, model)
 
 				// metrics: how long did the work take?
 				stop = time.Now()
@@ -64,5 +66,17 @@ func newReducer(model *m.Model, actions <-chan a.Action) *reducer {
 			}
 		}
 	}()
-	return &reducer{}
+	return r
+}
+
+func (r *reducer) generateNotifications(action a.Action, model *m.Model) {
+	switch action.(type) {
+	case *a.SetConfig:
+		timings := *model.Timings
+		go func() {
+			r.Timings <- timings
+		}()
+	default:
+		// nothing to do
+	}
 }

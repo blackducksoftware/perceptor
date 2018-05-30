@@ -19,22 +19,21 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package api
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"math"
+	"testing"
+	"time"
 )
 
-type SetConcurrentScanLimit struct {
-	Limit int
-}
-
-func (s *SetConcurrentScanLimit) Apply(model *m.Model) {
-	limit := s.Limit
-	if limit < 0 {
-		log.Errorf("cannot set concurrent scan limit to less than 0 (got %d)", limit)
-		return
+// TestNewModelTime .....
+func TestNewModelTime(t *testing.T) {
+	m := NewModelTime(500 * time.Millisecond)
+	if math.Abs(m.Seconds-0.5) > 0.000001 {
+		t.Errorf("expected 0.5, got %f", m.Minutes)
 	}
-	model.ConcurrentScanLimit = limit
+	if math.Abs(m.Minutes-0.0083333) > 0.0000001 {
+		t.Errorf("expected 0.0083333, got %f", m.Minutes)
+	}
 }

@@ -200,6 +200,74 @@
           }
         }
       }
+    },
+    "/nextimage": {
+      "post": {
+        "description": "Get the next image from the scan queue",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "getNextImage",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/NextImage"
+            }
+          }
+        }
+      }
+    },
+    "/finishedscan": {
+      "post": {
+        "description": "Notify Perceptor that a scan client has finished",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "postFinishedScan",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/FinishedScanClientJob"
+            }
+          }
+        }
+      }
+    },
+    "/config": {
+      "post": {
+        "description": "Set configuration parameters",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "setConfig",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/SetConfig"
+            }
+          }
+        }
+      }
+    },
+    "/model": {
+      "get": {
+        "description": "Get scan results for all pods and images",
+        "tags": [
+          "perceiver"
+        ],
+        "operationId": "getModel",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/Model"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -252,6 +320,23 @@
       },
       "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
     },
+    "FinishedScanClientJob": {
+      "type": "object",
+      "required": [
+        "Err",
+        "ImageSpec"
+      ],
+      "properties": {
+        "Err": {
+          "description": "empty or missing if no error",
+          "type": "string"
+        },
+        "ImageSpec": {
+          "$ref": "#/definitions/ImageSpec"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
     "Image": {
       "type": "object",
       "required": [
@@ -270,6 +355,58 @@
         },
         "Sha": {
           "description": "The SHA of the image",
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "Model": {
+      "description": "debug",
+      "type": "object",
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "NextImage": {
+      "type": "object",
+      "properties": {
+        "ImageSpec": {
+          "$ref": "#/definitions/ImageSpec"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "ImageSpec": {
+      "type": "object",
+      "required": [
+        "ImageName",
+        "PullSpec",
+        "Sha",
+        "HubProjectName",
+        "HubProjectVersionName",
+        "HubScanName"
+      ],
+      "properties": {
+        "ImageName": {
+          "description": "The Docker Image reference of the image",
+          "type": "string"
+        },
+        "PullSpec": {
+          "description": "The name of the image",
+          "type": "string"
+        },
+        "Sha": {
+          "description": "The SHA of the image",
+          "type": "string"
+        },
+        "HubProjectName": {
+          "description": "The Hub project name",
+          "type": "string"
+        },
+        "HubProjectVersionName": {
+          "description": "The Hub project version name",
+          "type": "string"
+        },
+        "HubScanName": {
+          "description": "The Hub scan name",
           "type": "string"
         }
       },
@@ -412,6 +549,33 @@
           "description": "The number of vulnerabilities found in the pod",
           "type": "integer",
           "format": "int64"
+        }
+      },
+      "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
+    },
+    "SetConfig": {
+      "description": "set config values",
+      "type": "object",
+      "properties": {
+        "ConcurrentScanLimit": {
+          "description": "The number of scans that may be run at the same time",
+          "type": "integer"
+        },
+        "HubClientTimeoutMilliseconds": {
+          "description": "The timeout for HTTP requests issued to the Hub",
+          "type": "integer"
+        },
+        "LogLevel": {
+          "description": "The log level.  Must be a valid Logrus string",
+          "type": "string"
+        },
+        "ImageRefreshThresholdSeconds": {
+          "description": "How stale an image needs to be before it'll be updated",
+          "type": "integer"
+        },
+        "EnqueueImagesForRefreshPauseSeconds": {
+          "description": "The pause between checks for images that need to be updated",
+          "type": "integer"
         }
       },
       "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"

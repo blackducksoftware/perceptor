@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// ScannedImage .....
 type ScannedImage struct {
 	Repository       string
 	Tag              string

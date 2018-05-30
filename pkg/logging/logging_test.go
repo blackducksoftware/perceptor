@@ -27,6 +27,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestLogging .....
 func TestLogging(t *testing.T) {
 	log.Info("test log")
 }

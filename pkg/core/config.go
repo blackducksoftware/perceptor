@@ -19,8 +19,33 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package core
 
-type SetConcurrentScanLimit struct {
-	Limit int
+import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
+// Config contains all configuration for Perceptor
+type Config struct {
+	HubHost                      string
+	HubUser                      string
+	HubUserPasswordEnvVar        string
+	HubClientTimeoutMilliseconds int
+	HubPort                      int
+	ConcurrentScanLimit          int
+	UseMockMode                  bool
+	Port                         int
+	LogLevel                     string
+}
+
+// HubClientTimeout converts the milliseconds to a duration
+func (config *Config) HubClientTimeout() time.Duration {
+	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
+}
+
+// GetLogLevel .....
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
 }

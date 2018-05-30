@@ -21,10 +21,12 @@ under the License.
 
 package api
 
+// NextImage .....
 type NextImage struct {
 	ImageSpec *ImageSpec
 }
 
+// NewNextImage .....
 func NewNextImage(imageSpec *ImageSpec) *NextImage {
 	return &NextImage{ImageSpec: imageSpec}
 }

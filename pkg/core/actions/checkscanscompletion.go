@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// CheckScansCompletion .....
 type CheckScansCompletion struct {
 	Continuation func(images *[]m.Image)
 }
 
+// Apply .....
 func (g *CheckScansCompletion) Apply(model *m.Model) {
 	go g.Continuation(model.InProgressHubScans())
 }

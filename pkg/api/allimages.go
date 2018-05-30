@@ -21,10 +21,12 @@ under the License.
 
 package api
 
+// AllImages .....
 type AllImages struct {
 	Images []Image
 }
 
+// NewAllImages .....
 func NewAllImages(images []Image) *AllImages {
 	return &AllImages{Images: images}
 }

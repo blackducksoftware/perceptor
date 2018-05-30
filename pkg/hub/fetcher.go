@@ -30,14 +30,32 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Fetcher .....
 type Fetcher struct {
-	client     hubclient.Client
-	hubVersion string
-	username   string
-	password   string
-	baseURL    string
+	client         *hubclient.Client
+	circuitBreaker *CircuitBreaker
+	hubVersion     string
+	username       string
+	password       string
+	baseURL        string
 }
 
+// Model ...
+func (hf *Fetcher) Model() *FetcherModel {
+	return &FetcherModel{
+		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
+		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
+		State:               hf.circuitBreaker.State,
+	}
+}
+
+// IsEnabled returns whether the fetcher is currently enabled
+// example: the circuit breaker is disabled -> the fetcher is disabled
+func (hf *Fetcher) IsEnabled() <-chan bool {
+	return hf.circuitBreaker.IsEnabledChannel
+}
+
+// Login .....
 func (hf *Fetcher) Login() error {
 	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)
@@ -64,17 +82,19 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, baseURL string, hubClientTimeoutSeconds int) (*Fetcher, error) {
-	hubClientTimeout := time.Second * time.Duration(hubClientTimeoutSeconds)
+func NewFetcher(username string, password string, hubHost string, hubPort int, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
+	baseURL := fmt.Sprintf("https://%s:%d", hubHost, hubPort)
+	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
 		return nil, err
 	}
 	hf := Fetcher{
-		client:   *client,
-		username: username,
-		password: password,
-		baseURL:  baseURL}
+		client:         client,
+		circuitBreaker: NewCircuitBreaker(client),
+		username:       username,
+		password:       password,
+		baseURL:        baseURL}
 	err = hf.Login()
 	if err != nil {
 		return nil, err
@@ -86,6 +106,12 @@ func NewFetcher(username string, password string, baseURL string, hubClientTimeo
 	return &hf, nil
 }
 
+// SetTimeout ...
+func (hf *Fetcher) SetTimeout(timeout time.Duration) {
+	hf.client.SetTimeout(timeout)
+}
+
+// HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
@@ -97,9 +123,8 @@ func (hf *Fetcher) HubVersion() string {
 // - one scan summary, with
 // - a completed status
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	queryString := fmt.Sprintf("name:%s", image.HubProjectNameSearchString())
 	startGetProjects := time.Now()
-	projectList, err := hf.client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
+	projectList, err := hf.circuitBreaker.ListProjects(image.HubProjectNameSearchString())
 	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
 	recordHubResponse("projects", err == nil)
 
@@ -124,17 +149,13 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 }
 
 func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image ImageInterface) (*ImageScan, error) {
-	client := hf.client
-
 	link, err := project.GetProjectVersionsLink()
 	if err != nil {
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	q := fmt.Sprintf("versionName:%s", image.HubProjectVersionNameSearchString())
-	options := hubapi.GetListOptions{Q: &q}
 	startGetVersions := time.Now()
-	versionList, err := client.ListProjectVersions(*link, &options)
+	versionList, err := hf.circuitBreaker.ListProjectVersions(*link, image.HubProjectVersionNameSearchString())
 	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
 	recordHubResponse("projectVersions", err == nil)
 
@@ -170,7 +191,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 	}
 
 	startGetRiskProfile := time.Now()
-	riskProfile, err := client.GetProjectVersionRiskProfile(*riskProfileLink)
+	riskProfile, err := hf.circuitBreaker.GetProjectVersionRiskProfile(*riskProfileLink)
 	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
 	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err != nil {
@@ -184,7 +205,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetPolicyStatus := time.Now()
-	policyStatus, err := client.GetProjectVersionPolicyStatus(*policyStatusLink)
+	policyStatus, err := hf.circuitBreaker.GetProjectVersionPolicyStatus(*policyStatusLink)
 	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
 	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err != nil {
@@ -204,7 +225,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetCodeLocations := time.Now()
-	codeLocationsList, err := client.ListCodeLocations(*codeLocationsLink, nil)
+	codeLocationsList, err := hf.circuitBreaker.ListCodeLocations(*codeLocationsLink)
 	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
 	recordHubResponse("codeLocations", err == nil)
 	if err != nil {
@@ -238,7 +259,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 	startGetScanSummaries := time.Now()
-	scanSummariesList, err := client.ListScanSummaries(*scanSummariesLink)
+	scanSummariesList, err := hf.circuitBreaker.ListScanSummaries(*scanSummariesLink)
 	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
 	recordHubResponse("scanSummaries", err == nil)
 	if err != nil {

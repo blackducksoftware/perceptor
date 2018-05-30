@@ -21,12 +21,14 @@ under the License.
 
 package api
 
+// Image .....
 type Image struct {
 	Repository string
 	Tag        string
 	Sha        string
 }
 
+// NewImage .....
 func NewImage(repository string, tag string, sha string) *Image {
 	return &Image{Repository: repository, Tag: tag, Sha: sha}
 }

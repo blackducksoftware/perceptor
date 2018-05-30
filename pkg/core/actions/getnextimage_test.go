@@ -29,23 +29,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestGetNextImageForScanningActionNoImageAvailable .....
 func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 	// actual
 	var nextImage *m.Image
-	actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	(&GetNextImage{func(image *m.Image) {
 		nextImage = image
 	}}).Apply(actual)
 	// expected: front image removed from scan queue, status and time of image changed
-	expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 
 	assertEqual(t, nextImage, nil)
 	log.Infof("%+v, %+v", actual, expected)
 	// assertEqual(t, actual, expected)
 }
 
+// TestGetNextImage .....
 func TestGetNextImage(t *testing.T) {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 
@@ -69,11 +71,12 @@ func TestGetNextImage(t *testing.T) {
 	// TODO expected: time of image changed
 }
 
+// TestGetNextImageHubInaccessible .....
 func TestGetNextImageHubInaccessible(t *testing.T) {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "test version")
+	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-	model.HubCircuitBreaker.HubFailure()
+	model.IsHubEnabled = false
 
 	var nextImage *m.Image
 	var wg sync.WaitGroup
@@ -86,5 +89,16 @@ func TestGetNextImageHubInaccessible(t *testing.T) {
 
 	if nextImage != nil {
 		t.Errorf("expected nil, got %+v", nextImage)
+	}
+
+	model.IsHubEnabled = true
+	wg.Add(1)
+	(&GetNextImage{func(image *m.Image) {
+		nextImage = image
+		wg.Done()
+	}}).Apply(model)
+	wg.Wait()
+	if nextImage == nil {
+		t.Errorf("expected image, got nil")
 	}
 }

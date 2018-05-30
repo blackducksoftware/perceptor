@@ -47,13 +47,14 @@ func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ImageS
 }
 
 func recheckModel(vulnCount int) *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "abc")
+	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusComplete)
 	model.Images[image1.Sha].SetScanResults(imageScan(vulnCount, hub.ScanSummaryStatusSuccess))
 	return model
 }
 
+// TestFetchScanRefreshError .....
 func TestFetchScanRefreshError(t *testing.T) {
 	vulnCount := 3
 	model := recheckModel(vulnCount)
@@ -65,6 +66,7 @@ func TestFetchScanRefreshError(t *testing.T) {
 	assertEqual(t, actual, expected)
 }
 
+// TestFetchScanRefreshNotFound .....
 func TestFetchScanRefreshNotFound(t *testing.T) {
 	vulnCount := 3
 	model := recheckModel(vulnCount)
@@ -76,6 +78,7 @@ func TestFetchScanRefreshNotFound(t *testing.T) {
 	assertEqual(t, actual, expected)
 }
 
+// TestFetchScanRefreshInProgress .....
 func TestFetchScanRefreshInProgress(t *testing.T) {
 	vulnCount := 3
 	model := recheckModel(vulnCount)
@@ -87,6 +90,7 @@ func TestFetchScanRefreshInProgress(t *testing.T) {
 	assertEqual(t, actual, expected)
 }
 
+// TestFetchScanRefreshFailed .....
 func TestFetchScanRefreshFailed(t *testing.T) {
 	vulnCount := 3
 	model := recheckModel(vulnCount)
@@ -98,6 +102,7 @@ func TestFetchScanRefreshFailed(t *testing.T) {
 	assertEqual(t, actual, expected)
 }
 
+// TestFetchScanRefreshSuccess .....
 func TestFetchScanRefreshSuccess(t *testing.T) {
 	vulnCount := 3
 	model := recheckModel(vulnCount)

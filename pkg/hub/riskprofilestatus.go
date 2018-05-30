@@ -26,8 +26,10 @@ import (
 	"fmt"
 )
 
+// RiskProfileStatus .....
 type RiskProfileStatus int
 
+// .....
 const (
 	RiskProfileStatusHigh    RiskProfileStatus = iota
 	RiskProfileStatusMedium  RiskProfileStatus = iota
@@ -36,6 +38,7 @@ const (
 	RiskProfileStatusUnknown RiskProfileStatus = iota
 )
 
+// String .....
 func (r RiskProfileStatus) String() string {
 	switch r {
 	case RiskProfileStatusHigh:
@@ -53,11 +56,13 @@ func (r RiskProfileStatus) String() string {
 	}
 }
 
+// MarshalJSON .....
 func (r RiskProfileStatus) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, r.String())
 	return []byte(jsonString), nil
 }
 
+// UnmarshalJSON .....
 func (r *RiskProfileStatus) UnmarshalJSON(data []byte) error {
 	var str string
 	err := json.Unmarshal(data, &str)
@@ -72,10 +77,12 @@ func (r *RiskProfileStatus) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalText .....
 func (r RiskProfileStatus) MarshalText() (text []byte, err error) {
 	return []byte(r.String()), nil
 }
 
+// UnmarshalText .....
 func (r *RiskProfileStatus) UnmarshalText(text []byte) (err error) {
 	status, err := parseHubRiskProfileStatus(string(text))
 	if err != nil {

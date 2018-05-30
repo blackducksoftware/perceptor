@@ -61,7 +61,7 @@ func init() {
 }
 
 func createNewModel1() *Model {
-	model := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
+	model := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
@@ -73,7 +73,7 @@ func createNewModel1() *Model {
 }
 
 func createNewModel2() *Model {
-	model := NewModel(&Config{ConcurrentScanLimit: 3}, "test version")
+	model := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.AddPod(pod3)
@@ -92,6 +92,7 @@ func createNewModel2() *Model {
 	return model
 }
 
+// TestGetFullScanResults .....
 func TestGetFullScanResults(t *testing.T) {
 	model := createNewModel1()
 	scanResults := model.ScanResults()
@@ -112,6 +113,7 @@ func TestGetFullScanResults(t *testing.T) {
 	}
 }
 
+// TestPodOverallStatus .....
 func TestPodOverallStatus(t *testing.T) {
 	model := createNewModel2()
 	scan1, err := model.ScanResultsForPod(pod1.QualifiedName())

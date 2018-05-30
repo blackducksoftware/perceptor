@@ -31,12 +31,14 @@ import (
 // need: mock hub, ?mock apiserver?
 
 // MockHub is a mock implementation of ScanClientInterface .
+// MockHub .....
 type MockHub struct {
 	inProgressImages []string
 	finishedImages   map[string]int
 	hubVersion       string
 }
 
+// NewMockHub .....
 func NewMockHub(hubVersion string) *MockHub {
 	return &MockHub{
 		inProgressImages: []string{},
@@ -63,18 +65,37 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
+// FetchProjectByName .....
 func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
 }
 
+// FetchScanFromImage .....
 func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	return nil, nil
 }
 
+// HubVersion .....
 func (hub *MockHub) HubVersion() string {
 	return hub.hubVersion
 }
 
+// Login .....
 func (hub *MockHub) Login() error {
 	return nil
+}
+
+// SetTimeout ...
+func (hub *MockHub) SetTimeout(timeout time.Duration) {
+	//
+}
+
+// Model ...
+func (hub *MockHub) Model() *FetcherModel {
+	return &FetcherModel{}
+}
+
+// IsEnabled ...
+func (hub *MockHub) IsEnabled() <-chan bool {
+	return make(<-chan bool)
 }

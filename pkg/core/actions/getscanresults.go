@@ -26,10 +26,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// GetScanResults .....
 type GetScanResults struct {
 	Continuation func(results api.ScanResults)
 }
 
+// Apply .....
 func (g *GetScanResults) Apply(model *m.Model) {
 	scanResults := model.ScanResults()
 	go g.Continuation(scanResults)

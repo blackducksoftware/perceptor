@@ -21,6 +21,7 @@ under the License.
 
 package hub
 
+// Version .....
 type Version struct {
 	CodeLocations   []CodeLocation
 	RiskProfile     RiskProfile

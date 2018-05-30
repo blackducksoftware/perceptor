@@ -25,6 +25,7 @@ import (
 	"fmt"
 )
 
+// Image .....
 type Image struct {
 	Repository string
 	// Tag is optional
@@ -32,6 +33,7 @@ type Image struct {
 	Sha DockerImageSha
 }
 
+// NewImage .....
 func NewImage(repository string, tag string, sha DockerImageSha) *Image {
 	return &Image{Repository: repository, Tag: tag, Sha: sha}
 }
@@ -42,14 +44,17 @@ func (image Image) shaPrefix() string {
 
 // These strings are for the scanner
 
+// HubProjectName .....
 func (image Image) HubProjectName() string {
 	return fmt.Sprintf("%s-%s", image.Repository, image.shaPrefix())
 }
 
+// HubProjectVersionName .....
 func (image Image) HubProjectVersionName() string {
 	return image.shaPrefix()
 }
 
+// HubScanName .....
 func (image Image) HubScanName() string {
 	return image.shaPrefix()
 }
@@ -64,20 +69,22 @@ func (image Image) HubScanName() string {
 //  - have our hub projects be searchable by sha, regardless of docker image name
 //  - have a meaningful, human-readable hub project name
 
+// HubProjectNameSearchString .....
 func (image Image) HubProjectNameSearchString() string {
 	return image.shaPrefix()
 }
 
+// HubProjectVersionNameSearchString .....
 func (image Image) HubProjectVersionNameSearchString() string {
 	return image.shaPrefix()
 }
 
+// HubScanNameSearchString .....
 func (image Image) HubScanNameSearchString() string {
 	return image.shaPrefix()
 }
 
-// HumanReadableName returns a nice, easy to read string
-// TODO is this now useless, and should be ditched?
-func (image *Image) HumanReadableName() string {
-	return image.Repository
+// PullSpec combines Name with the image sha and should be pullable by Docker
+func (image *Image) PullSpec() string {
+	return fmt.Sprintf("%s@sha256:%s", image.Repository, image.Sha)
 }

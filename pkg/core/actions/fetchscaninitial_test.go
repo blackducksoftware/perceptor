@@ -30,11 +30,12 @@ import (
 )
 
 func initialCheckModel() *m.Model {
-	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, "abc")
+	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1)
 	return model
 }
 
+// TestFetchScanInitialError .....
 func TestFetchScanInitialError(t *testing.T) {
 	model := initialCheckModel()
 	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
@@ -47,6 +48,7 @@ func TestFetchScanInitialError(t *testing.T) {
 	}
 }
 
+// TestFetchScanInitialNotFound .....
 func TestFetchScanInitialNotFound(t *testing.T) {
 	model := initialCheckModel()
 	ihc := FetchScanInitial{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
@@ -59,6 +61,7 @@ func TestFetchScanInitialNotFound(t *testing.T) {
 	}
 }
 
+// TestFetchScanInitialInProgress .....
 func TestFetchScanInitialInProgress(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusInProgress}}
@@ -72,6 +75,7 @@ func TestFetchScanInitialInProgress(t *testing.T) {
 	}
 }
 
+// TestFetchScanInitialFailed .....
 func TestFetchScanInitialFailed(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusFailure}}
@@ -85,6 +89,7 @@ func TestFetchScanInitialFailed(t *testing.T) {
 	}
 }
 
+// TestFetchScanInitialSuccess .....
 func TestFetchScanInitialSuccess(t *testing.T) {
 	model := initialCheckModel()
 	imageScan := &hub.ImageScan{ScanSummary: hub.ScanSummary{Status: hub.ScanSummaryStatusSuccess}}

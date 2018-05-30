@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// AddImage .....
 type AddImage struct {
 	Image m.Image
 }
 
+// Apply .....
 func (a *AddImage) Apply(model *m.Model) {
 	model.AddImage(a.Image)
 }

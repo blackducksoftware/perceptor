@@ -19,29 +19,19 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package api
 
 import (
-	"time"
+	"testing"
 
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
-type CheckHubAccessibility struct{}
+// TestMockResponderImplementsInterface .....
+func TestMockResponderImplementsInterface(t *testing.T) {
+	consumeResponder(NewMockResponder())
+}
 
-func (c *CheckHubAccessibility) Apply(model *m.Model) {
-	if model.HubCircuitBreaker.State != m.HubCircuitBreakerStateDisabled {
-		return
-	}
-
-	if time.Now().Before(*model.HubCircuitBreaker.NextCheckTime) {
-		return
-	}
-
-	err := model.HubCircuitBreaker.MoveToCheckingState()
-	if err != nil {
-		log.Errorf("unable to move to checking state: %s (circuit breaker: %+v)", err.Error(), model.HubCircuitBreaker)
-		recordError("CheckHubAccessibility", "unable to move to checking state")
-	}
+func consumeResponder(r Responder) {
+	log.Infof("responder: %+v", r)
 }

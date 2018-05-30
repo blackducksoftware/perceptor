@@ -21,6 +21,7 @@ under the License.
 
 package api
 
+// ImageSpec .....
 type ImageSpec struct {
 	Repository            string
 	Tag                   string
@@ -30,6 +31,7 @@ type ImageSpec struct {
 	HubScanName           string
 }
 
+// NewImageSpec .....
 func NewImageSpec(repository string, tag string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
 	return &ImageSpec{
 		Repository:            repository,

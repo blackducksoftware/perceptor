@@ -21,10 +21,12 @@ under the License.
 
 package hub
 
+// RiskProfileStatusCounts .....
 type RiskProfileStatusCounts struct {
 	StatusCounts map[RiskProfileStatus]int
 }
 
+// HighRiskVulnerabilityCount .....
 func (r *RiskProfileStatusCounts) HighRiskVulnerabilityCount() int {
 	highCount, ok := r.StatusCounts[RiskProfileStatusHigh]
 	if !ok {

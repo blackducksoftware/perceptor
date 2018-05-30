@@ -19,35 +19,40 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package hub
 
 import "fmt"
 
-type HubCircuitBreakerState int
+// CircuitBreakerState .....
+type CircuitBreakerState int
 
+// .....
 const (
-	HubCircuitBreakerStateDisabled HubCircuitBreakerState = iota
-	HubCircuitBreakerStateEnabled  HubCircuitBreakerState = iota
-	HubCircuitBreakerStateChecking HubCircuitBreakerState = iota
+	CircuitBreakerStateDisabled CircuitBreakerState = iota
+	CircuitBreakerStateEnabled  CircuitBreakerState = iota
+	CircuitBreakerStateChecking CircuitBreakerState = iota
 )
 
-func (state HubCircuitBreakerState) String() string {
+// String .....
+func (state CircuitBreakerState) String() string {
 	switch state {
-	case HubCircuitBreakerStateDisabled:
-		return "HubCircuitBreakerStateDisabled"
-	case HubCircuitBreakerStateEnabled:
-		return "HubCircuitBreakerStateEnabled"
-	case HubCircuitBreakerStateChecking:
-		return "HubCircuitBreakerStateChecking"
+	case CircuitBreakerStateDisabled:
+		return "CircuitBreakerStateDisabled"
+	case CircuitBreakerStateEnabled:
+		return "CircuitBreakerStateEnabled"
+	case CircuitBreakerStateChecking:
+		return "CircuitBreakerStateChecking"
 	}
-	panic(fmt.Errorf("invalid HubCircuitBreakerState value: %d", state))
+	panic(fmt.Errorf("invalid CircuitBreakerState value: %d", state))
 }
 
-func (state HubCircuitBreakerState) MarshalJSON() ([]byte, error) {
+// MarshalJSON .....
+func (state CircuitBreakerState) MarshalJSON() ([]byte, error) {
 	jsonString := fmt.Sprintf(`"%s"`, state.String())
 	return []byte(jsonString), nil
 }
 
-func (state HubCircuitBreakerState) MarshalText() (text []byte, err error) {
+// MarshalText .....
+func (state CircuitBreakerState) MarshalText() (text []byte, err error) {
 	return []byte(state.String()), nil
 }

@@ -25,10 +25,12 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
+// AllPods .....
 type AllPods struct {
 	Pods []m.Pod
 }
 
+// Apply .....
 func (a *AllPods) Apply(model *m.Model) {
 	model.Pods = map[string]m.Pod{}
 	for _, pod := range a.Pods {

@@ -26,6 +26,7 @@ import (
 	"testing"
 )
 
+// TestRiskProfileStatusMarshalJSON .....
 func TestRiskProfileStatusMarshalJSON(t *testing.T) {
 	jsonBytes, err := json.Marshal(RiskProfileStatusHigh)
 	if err != nil {
@@ -38,6 +39,7 @@ func TestRiskProfileStatusMarshalJSON(t *testing.T) {
 	}
 }
 
+// TestRiskProfileStatusUnmarshalJSON .....
 func TestRiskProfileStatusUnmarshalJSON(t *testing.T) {
 	var actual RiskProfileStatus
 	err := json.Unmarshal([]byte(`"OK"`), &actual)
