@@ -2,9 +2,7 @@
 
 # Perceptor
 
-Perceptor is an API server and event handler for consuming, storing, and queueing various workloads associated with responding to events that occur in distributed orchestration systems.  Canonically, it manages information related to container events that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).  It is meant to live in a decoupled state from its companion containers, which are called perceivers, described in the next section of this README.
-
-The Perceptor REST API is documented [here](./api/perceptor-swagger-spec.json), and can be consumed from any programming language.
+Perceptor is an API server and event handler for consuming, storing, and queueing various workloads associated with responding to events that occur in distributed orchestration systems.  Canonically, it manages information related to container events that happen in cloud native orchestration systems (i.e. openshift, kubernetes, ...).
 
 # Perceptor core
 
@@ -17,9 +15,9 @@ and scanners to communicate with it.
 
 ## REST API
 
- - [docs](./api/perceptor-swagger-spec.json) -- check out [this online viewer](http://editor2.swagger.io/#!/?import=https://raw.githubusercontent/blackducksoftware/perceptor/master/api/perceptor-swagger-spec.json) to get a nice UI
+The Perceptor REST API can be consumed from any programming language.  We have [a Swagger specification](./api/perceptor-swagger-spec.json).  Check out [this online viewer](http://editor2.swagger.io) or [this online viewer](https://editor.swagger.io/) to get a nice UI.
 
-Modifications to the REST API or data model should be done with great care in order to maintain backward compatibility. REST API change checklist:
+Modifications to the REST API or data model should be made with great care in order to maintain backward compatibility. REST API change checklist:
 
  - The [swagger specification](./api/perceptor-swagger-spec.json) must be modified
  - The updated swagger specification must be present as part of the PR containing the modifications to the server
