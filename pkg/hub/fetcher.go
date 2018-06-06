@@ -59,6 +59,7 @@ func (hf *Fetcher) IsEnabled() <-chan bool {
 func (hf *Fetcher) Login() error {
 	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)
+	recordHubResponse("login", err == nil)
 	recordHubResponseTime("login", time.Now().Sub(start))
 	return err
 }
@@ -66,6 +67,7 @@ func (hf *Fetcher) Login() error {
 func (hf *Fetcher) fetchHubVersion() error {
 	start := time.Now()
 	currentVersion, err := hf.client.CurrentVersion()
+	recordHubResponse("version", err == nil)
 	recordHubResponseTime("version", time.Now().Sub(start))
 	if err != nil {
 		log.Errorf("unable to get hub version: %s", err.Error())
@@ -123,10 +125,7 @@ func (hf *Fetcher) HubVersion() string {
 // - one scan summary, with
 // - a completed status
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	startGetProjects := time.Now()
 	projectList, err := hf.circuitBreaker.ListProjects(image.HubProjectNameSearchString())
-	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
-	recordHubResponse("projects", err == nil)
 
 	if err != nil {
 		log.Errorf("error fetching project list: %v", err)
@@ -154,10 +153,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting project versions link: %v", err)
 		return nil, err
 	}
-	startGetVersions := time.Now()
 	versionList, err := hf.circuitBreaker.ListProjectVersions(*link, image.HubProjectVersionNameSearchString())
-	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
-	recordHubResponse("projectVersions", err == nil)
 
 	if err != nil {
 		log.Errorf("error fetching project versions: %v", err)
@@ -190,10 +186,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		return nil, err
 	}
 
-	startGetRiskProfile := time.Now()
 	riskProfile, err := hf.circuitBreaker.GetProjectVersionRiskProfile(*riskProfileLink)
-	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
-	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version risk profile: %v", err)
 		return nil, err
@@ -204,10 +197,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting policy status link: %v", err)
 		return nil, err
 	}
-	startGetPolicyStatus := time.Now()
 	policyStatus, err := hf.circuitBreaker.GetProjectVersionPolicyStatus(*policyStatusLink)
-	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
-	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err != nil {
 		log.Errorf("error fetching project version policy status: %v", err)
 		return nil, err
@@ -224,10 +214,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting code locations link: %v", err)
 		return nil, err
 	}
-	startGetCodeLocations := time.Now()
 	codeLocationsList, err := hf.circuitBreaker.ListCodeLocations(*codeLocationsLink)
-	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
-	recordHubResponse("codeLocations", err == nil)
 	if err != nil {
 		log.Errorf("error fetching code locations: %v", err)
 		return nil, err
@@ -258,10 +245,7 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting scan summaries link: %v", err)
 		return nil, err
 	}
-	startGetScanSummaries := time.Now()
 	scanSummariesList, err := hf.circuitBreaker.ListScanSummaries(*scanSummariesLink)
-	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
-	recordHubResponse("scanSummaries", err == nil)
 	if err != nil {
 		log.Errorf("error fetching scan summaries: %v", err)
 		return nil, err

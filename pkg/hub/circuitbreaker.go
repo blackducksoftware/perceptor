@@ -52,6 +52,7 @@ func NewCircuitBreaker(client ClientInterface) *CircuitBreaker {
 
 func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
 	recordCircuitBreakerState(state)
+	recordCircuitBreakerTransition(cb.State, state)
 	cb.State = state
 	go func() {
 		switch state {
@@ -70,14 +71,17 @@ func (cb *CircuitBreaker) IsEnabled() bool {
 	return cb.State != CircuitBreakerStateDisabled
 }
 
-// isAbleToIssueRequest does 2 things:
+// isAbleToIssueRequest does 3 things:
 // 1. changes the state to `Checking` if necessary
-// 2. returns whether the circuit breaker is enabled
+// 2. increments a metric of the circuit breaker state
+// 3. returns whether the circuit breaker is enabled
 func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
 	if cb.State == CircuitBreakerStateDisabled && time.Now().After(*cb.NextCheckTime) {
 		cb.setState(CircuitBreakerStateChecking)
 	}
-	return cb.IsEnabled()
+	isEnabled := cb.IsEnabled()
+	recordCircuitBreakerIsEnabled(isEnabled)
+	return isEnabled
 }
 
 func (cb *CircuitBreaker) failure() {
@@ -119,7 +123,10 @@ func (cb *CircuitBreaker) ListProjects(projectName string) (*hubapi.ProjectList,
 		return nil, fmt.Errorf("unable to fetch project list: circuit breaker disabled")
 	}
 	queryString := fmt.Sprintf("name:%s", projectName)
+	startGetProjects := time.Now()
 	val, err := cb.Client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
+	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
+	recordHubResponse("projects", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -134,7 +141,10 @@ func (cb *CircuitBreaker) ListProjectVersions(link hubapi.ResourceLink, versionN
 		return nil, fmt.Errorf("unable to fetch project version list: circuit breaker disabled")
 	}
 	q := fmt.Sprintf("versionName:%s", versionName)
+	startGetVersions := time.Now()
 	val, err := cb.Client.ListProjectVersions(link, &hubapi.GetListOptions{Q: &q})
+	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
+	recordHubResponse("projectVersions", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -148,7 +158,10 @@ func (cb *CircuitBreaker) GetProjectVersionRiskProfile(link hubapi.ResourceLink)
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project version risk profile: circuit breaker disabled")
 	}
+	startGetRiskProfile := time.Now()
 	val, err := cb.Client.GetProjectVersionRiskProfile(link)
+	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
+	recordHubResponse("projectVersionRiskProfile", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -162,7 +175,10 @@ func (cb *CircuitBreaker) GetProjectVersionPolicyStatus(link hubapi.ResourceLink
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project version policy status: circuit breaker disabled")
 	}
+	startGetPolicyStatus := time.Now()
 	val, err := cb.Client.GetProjectVersionPolicyStatus(link)
+	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
+	recordHubResponse("projectVersionPolicyStatus", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -176,7 +192,10 @@ func (cb *CircuitBreaker) ListCodeLocations(link hubapi.ResourceLink) (*hubapi.C
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
 	}
+	startGetCodeLocations := time.Now()
 	val, err := cb.Client.ListCodeLocations(link, nil)
+	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
+	recordHubResponse("codeLocations", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -190,7 +209,10 @@ func (cb *CircuitBreaker) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.S
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch scan summary list: circuit breaker disabled")
 	}
+	startGetScanSummaries := time.Now()
 	val, err := cb.Client.ListScanSummaries(link)
+	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
+	recordHubResponse("scanSummaries", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
