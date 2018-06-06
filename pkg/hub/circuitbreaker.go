@@ -34,15 +34,17 @@ type CircuitBreaker struct {
 	Client              ClientInterface
 	State               CircuitBreakerState
 	NextCheckTime       *time.Time
+	MaxBackoffDuration  time.Duration
 	ConsecutiveFailures int
 	IsEnabledChannel    chan bool
 }
 
 // NewCircuitBreaker .....
-func NewCircuitBreaker(client ClientInterface) *CircuitBreaker {
+func NewCircuitBreaker(maxBackoffDuration time.Duration, client ClientInterface) *CircuitBreaker {
 	cb := &CircuitBreaker{
 		Client:              client,
 		NextCheckTime:       nil,
+		MaxBackoffDuration:  maxBackoffDuration,
 		ConsecutiveFailures: 0,
 		IsEnabledChannel:    make(chan bool),
 	}
@@ -113,7 +115,9 @@ func (cb *CircuitBreaker) success() {
 }
 
 func (cb *CircuitBreaker) setNextCheckTime() {
-	nextCheckTime := time.Now().Add(time.Duration(math.Pow(2, float64(cb.ConsecutiveFailures))) * time.Second)
+	nextExponentialSeconds := math.Pow(2, float64(cb.ConsecutiveFailures))
+	nextCheckDuration := MinDuration(cb.MaxBackoffDuration, time.Duration(nextExponentialSeconds)*time.Second)
+	nextCheckTime := time.Now().Add(nextCheckDuration)
 	cb.NextCheckTime = &nextCheckTime
 }
 
