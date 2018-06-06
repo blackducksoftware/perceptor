@@ -52,6 +52,8 @@ func NewCircuitBreaker(maxBackoffDuration time.Duration, client ClientInterface)
 	return cb
 }
 
+// Reset reenables the circuit breaker regardless of its current state,
+// and clears out ConsecutiveFailures and NextCheckTime
 func (cb *CircuitBreaker) Reset() {
 	cb.setState(CircuitBreakerStateEnabled)
 	cb.ConsecutiveFailures = 0
