@@ -19,17 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package api
 
-import "time"
-
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	IsEnabled() <-chan bool
+// PostCommand handles commands.  The values aren't important; only
+// the presence or absence of a key matters.
+type PostCommand struct {
+	ResetCircuitBreaker *bool
 }

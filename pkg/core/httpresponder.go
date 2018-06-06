@@ -34,33 +34,35 @@ import (
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	AddPodChannel            chan model.Pod
-	UpdatePodChannel         chan model.Pod
-	DeletePodChannel         chan string
-	AddImageChannel          chan model.Image
-	AllPodsChannel           chan []model.Pod
-	AllImagesChannel         chan []model.Image
-	PostNextImageChannel     chan func(*model.Image)
-	PostFinishScanJobChannel chan *a.FinishScanClient
-	PostConfigChannel        chan *api.PostConfig
-	GetModelChannel          chan func(api.Model)
-	GetScanResultsChannel    chan func(scanResults api.ScanResults)
+	AddPodChannel              chan model.Pod
+	UpdatePodChannel           chan model.Pod
+	DeletePodChannel           chan string
+	AddImageChannel            chan model.Image
+	AllPodsChannel             chan []model.Pod
+	AllImagesChannel           chan []model.Image
+	PostNextImageChannel       chan func(*model.Image)
+	PostFinishScanJobChannel   chan *a.FinishScanClient
+	PostConfigChannel          chan *api.PostConfig
+	ResetCircuitBreakerChannel chan bool
+	GetModelChannel            chan func(api.Model)
+	GetScanResultsChannel      chan func(scanResults api.ScanResults)
 }
 
 // NewHTTPResponder .....
 func NewHTTPResponder() *HTTPResponder {
 	return &HTTPResponder{
-		AddPodChannel:            make(chan model.Pod),
-		UpdatePodChannel:         make(chan model.Pod),
-		DeletePodChannel:         make(chan string),
-		AddImageChannel:          make(chan model.Image),
-		AllPodsChannel:           make(chan []model.Pod),
-		AllImagesChannel:         make(chan []model.Image),
-		PostNextImageChannel:     make(chan func(*model.Image)),
-		PostFinishScanJobChannel: make(chan *a.FinishScanClient),
-		PostConfigChannel:        make(chan *api.PostConfig),
-		GetModelChannel:          make(chan func(api.Model)),
-		GetScanResultsChannel:    make(chan func(api.ScanResults))}
+		AddPodChannel:              make(chan model.Pod),
+		UpdatePodChannel:           make(chan model.Pod),
+		DeletePodChannel:           make(chan string),
+		AddImageChannel:            make(chan model.Image),
+		AllPodsChannel:             make(chan []model.Pod),
+		AllImagesChannel:           make(chan []model.Image),
+		PostNextImageChannel:       make(chan func(*model.Image)),
+		PostFinishScanJobChannel:   make(chan *a.FinishScanClient),
+		PostConfigChannel:          make(chan *api.PostConfig),
+		ResetCircuitBreakerChannel: make(chan bool),
+		GetModelChannel:            make(chan func(api.Model)),
+		GetScanResultsChannel:      make(chan func(api.ScanResults))}
 }
 
 // GetModel .....
@@ -192,6 +194,14 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) {
 func (hr *HTTPResponder) PostConfig(config *api.PostConfig) {
 	hr.PostConfigChannel <- config
 	log.Debugf("handled post config -- %+v", config)
+}
+
+// PostCommand .....
+func (hr *HTTPResponder) PostCommand(command *api.PostCommand) {
+	if command.ResetCircuitBreaker != nil {
+		hr.ResetCircuitBreakerChannel <- true
+	}
+	log.Debugf("handled post command -- %+v", command)
 }
 
 // errors

@@ -95,6 +95,11 @@ func (hub *MockHub) Model() *FetcherModel {
 	return &FetcherModel{}
 }
 
+// ResetCircuitBreaker ...
+func (hub *MockHub) ResetCircuitBreaker() {
+	//
+}
+
 // IsEnabled ...
 func (hub *MockHub) IsEnabled() <-chan bool {
 	return make(<-chan bool)

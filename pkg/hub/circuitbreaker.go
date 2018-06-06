@@ -52,6 +52,12 @@ func NewCircuitBreaker(maxBackoffDuration time.Duration, client ClientInterface)
 	return cb
 }
 
+func (cb *CircuitBreaker) Reset() {
+	cb.setState(CircuitBreakerStateEnabled)
+	cb.ConsecutiveFailures = 0
+	cb.NextCheckTime = nil
+}
+
 func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
 	recordCircuitBreakerState(state)
 	recordCircuitBreakerTransition(cb.State, state)

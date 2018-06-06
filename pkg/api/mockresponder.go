@@ -191,6 +191,11 @@ func (mr *MockResponder) PostConfig(config *PostConfig) {
 	// TODO
 }
 
+// PostCommand
+func (mr *MockResponder) PostCommand(command *PostCommand) {
+	// TODO
+}
+
 // errors
 
 // NotFound .....

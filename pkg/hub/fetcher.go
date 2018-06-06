@@ -44,6 +44,11 @@ type Fetcher struct {
 	baseURL        string
 }
 
+// ResetCircuitBreaker ...
+func (hf *Fetcher) ResetCircuitBreaker() {
+	hf.circuitBreaker.Reset()
+}
+
 // Model ...
 func (hf *Fetcher) Model() *FetcherModel {
 	return &FetcherModel{
