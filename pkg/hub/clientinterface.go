@@ -26,10 +26,10 @@ import "github.com/blackducksoftware/hub-client-go/hubapi"
 // ClientInterface provides an interface around hub-client-go's client,
 // allowing it to be mocked for testing.
 type ClientInterface interface {
-	ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectList, error)
-	ListProjectVersions(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.ProjectVersionList, error)
+	ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error)
+	GetProject(link hubapi.ResourceLink) (*hubapi.Project, error)
+	GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error)
 	ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error)
 	GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error)
 	GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error)
-	ListCodeLocations(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error)
 }

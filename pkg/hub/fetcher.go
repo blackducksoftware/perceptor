@@ -118,6 +118,18 @@ func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
 
+func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
+	codeLocationList, err := hf.circuitBreaker.ListAllCodeLocations()
+	if err != nil {
+		return nil, err
+	}
+	scanNames := make([]string, len(codeLocationList.Items))
+	for i, cl := range codeLocationList.Items {
+		scanNames[i] = cl.Name
+	}
+	return scanNames, nil
+}
+
 // FetchScanFromImage returns an ImageScan only if:
 // - it can find a project with the matching name, with
 // - a project version with the matching name, with
@@ -125,60 +137,40 @@ func (hf *Fetcher) HubVersion() string {
 // - one scan summary, with
 // - a completed status
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	projectList, err := hf.circuitBreaker.ListProjects(image.HubProjectNameSearchString())
+	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(image.HubScanNameSearchString())
 
 	if err != nil {
-		log.Errorf("error fetching project list: %v", err)
+		log.Errorf("error fetching code location list: %v", err)
 		return nil, err
 	}
-	projects := projectList.Items
-	switch len(projects) {
+	codeLocations := codeLocationList.Items
+	switch len(codeLocations) {
 	case 0:
-		recordHubData("projects", true)
+		recordHubData("codeLocations", true)
 		return nil, nil
 	case 1:
-		recordHubData("projects", true) // good to go
+		recordHubData("codeLocations", true) // good to go
 	default:
-		recordHubData("projects", false)
-		log.Warnf("expected 1 project matching name search string %s, found %d", image.HubProjectNameSearchString(), len(projects))
+		recordHubData("codeLocations", false)
+		log.Warnf("expected 1 code location matching name search string %s, found %d", image.HubScanNameSearchString(), len(codeLocations))
 	}
 
-	project := projects[0]
-	return hf.fetchImageScanUsingProject(project, image)
+	codeLocation := codeLocations[0]
+	return hf.fetchImageScanUsingCodeLocation(codeLocation, image)
 }
 
-func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image ImageInterface) (*ImageScan, error) {
-	link, err := project.GetProjectVersionsLink()
+func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocation, image ImageInterface) (*ImageScan, error) {
+	versionLink, err := codeLocation.GetProjectVersionLink()
 	if err != nil {
-		log.Errorf("error getting project versions link: %v", err)
-		return nil, err
-	}
-	versionList, err := hf.circuitBreaker.ListProjectVersions(*link, image.HubProjectVersionNameSearchString())
-
-	if err != nil {
-		log.Errorf("error fetching project versions: %v", err)
+		log.Errorf("unable to get project version link: %s", err.Error())
 		return nil, err
 	}
 
-	versions := []hubapi.ProjectVersion{}
-	for _, v := range versionList.Items {
-		if v.VersionName == image.HubProjectVersionNameSearchString() {
-			versions = append(versions, v)
-		}
+	version, err := hf.circuitBreaker.GetProjectVersion(*versionLink)
+	if err != nil {
+		log.Errorf("unable to fetch project version: %s", err.Error())
+		return nil, err
 	}
-
-	switch len(versions) {
-	case 0:
-		recordHubData("project versions", true)
-		return nil, nil
-	case 1:
-		recordHubData("project versions", true) // good to go, continue
-	default:
-		recordHubData("project versions", false)
-		log.Warnf("expected to find one project version of name %s, found %d", image.HubProjectVersionNameSearchString(), len(versions))
-	}
-
-	version := versions[0]
 
 	riskProfileLink, err := version.GetProjectVersionRiskProfileLink()
 	if err != nil {
@@ -208,37 +200,6 @@ func (hf *Fetcher) fetchImageScanUsingProject(project hubapi.Project, image Imag
 		log.Errorf("error getting components link: %v", err)
 		return nil, err
 	}
-
-	codeLocationsLink, err := version.GetCodeLocationsLink()
-	if err != nil {
-		log.Errorf("error getting code locations link: %v", err)
-		return nil, err
-	}
-	codeLocationsList, err := hf.circuitBreaker.ListCodeLocations(*codeLocationsLink)
-	if err != nil {
-		log.Errorf("error fetching code locations: %v", err)
-		return nil, err
-	}
-
-	codeLocations := []hubapi.CodeLocation{}
-	for _, cl := range codeLocationsList.Items {
-		if cl.Name == image.HubScanNameSearchString() {
-			codeLocations = append(codeLocations, cl)
-		}
-	}
-
-	switch len(codeLocations) {
-	case 0:
-		recordHubData("code locations", true)
-		return nil, nil
-	case 1:
-		recordHubData("code locations", true) // good to go, continue
-	default:
-		recordHubData("code locations", false)
-		log.Warnf("Found %d code locations for version %s, expected 1", len(codeLocations), version.VersionName)
-	}
-
-	codeLocation := codeLocations[0]
 
 	scanSummariesLink, err := codeLocation.GetScanSummariesLink()
 	if err != nil {
