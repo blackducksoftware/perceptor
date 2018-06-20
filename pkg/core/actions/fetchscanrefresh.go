@@ -56,8 +56,8 @@ func (h *FetchScanRefresh) Apply(model *m.Model) {
 		// queue already
 	}
 
-	// 2. successfully hit hub, but didn't find project
-	//   not sure why this would happen -- we should ALWAYS find the hub project
+	// 2. successfully hit hub, but didn't find code location
+	//   not sure why this would happen -- we should ALWAYS find the hub code location
 	//   unless something else deleted it
 	if scan.Scan == nil {
 		log.Errorf("unable to fetch updated scan results for sha %s: got nil", scan.Sha)

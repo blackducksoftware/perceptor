@@ -60,13 +60,14 @@ func (h *FetchScanCompletion) Apply(model *m.Model) {
 		return
 	}
 
-	// case 5: found it, and it's done
+	// case 5: image mysteriously gone from model
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
 		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
 		return
 	}
 
+	// case 6: found it, and it's done
 	imageInfo.SetScanResults(scan.Scan)
 	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
 }

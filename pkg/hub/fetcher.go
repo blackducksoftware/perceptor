@@ -118,24 +118,29 @@ func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
 
-func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
-	codeLocationList, err := hf.circuitBreaker.ListAllCodeLocations()
-	if err != nil {
-		return nil, err
-	}
-	scanNames := make([]string, len(codeLocationList.Items))
-	for i, cl := range codeLocationList.Items {
-		scanNames[i] = cl.Name
-	}
-	return scanNames, nil
-}
+// func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
+// 	codeLocationList, err := hf.circuitBreaker.ListAllCodeLocations()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	scanNames := make([]string, len(codeLocationList.Items))
+// 	for i, cl := range codeLocationList.Items {
+// 		scanNames[i] = cl.Name
+// 	}
+// 	return scanNames, nil
+// }
 
-// FetchScanFromImage returns an ImageScan only if:
-// - it can find a project with the matching name, with
-// - a project version with the matching name, with
-// - one code location, with
-// - one scan summary, with
-// - a completed status
+// FetchScanFromImage finds an ImageScan by starting from a code location,
+// and following links from there.
+// It returns:
+//  - nil, if there's no code location with a matching name
+//  - nil, if there's 0 scan summaries for the code location
+//  - an error, if there were any HTTP problems or link problems
+//  - an ImageScan, but possibly with garbage data, in all other cases
+// Weird cases to watch out for:
+//  - multiple code locations with a matching name
+//  - multiple scan summaries for a code location
+//  - zero scan summaries for a code location
 func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
 	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(image.HubScanNameSearchString())
 
@@ -212,14 +217,7 @@ func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocat
 		return nil, err
 	}
 
-	scanSummaries := []hubapi.ScanSummary{}
-	for _, scanSummary := range scanSummariesList.Items {
-		if parseScanSummaryStatus(scanSummary.Status) == ScanSummaryStatusSuccess {
-			scanSummaries = append(scanSummaries, scanSummary)
-		}
-	}
-
-	switch len(scanSummaries) {
+	switch len(scanSummariesList.Items) {
 	case 0:
 		recordHubData("scan summaries", true)
 		return nil, nil
@@ -230,31 +228,27 @@ func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocat
 		log.Warnf("expected to find one scan summary for code location %s, found %d", image.HubScanNameSearchString(), len(scanSummariesList.Items))
 	}
 
-	scanSummary := scanSummaries[0]
-
 	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
-
 	if err != nil {
 		return nil, err
 	}
 
 	mappedPolicyStatus, err := newPolicyStatus(policyStatus.OverallStatus, policyStatus.UpdatedAt, policyStatus.ComponentVersionStatusCounts)
-
 	if err != nil {
 		return nil, err
 	}
 
+	scanSummaries := make([]ScanSummary, len(scanSummariesList.Items))
+	for i, scanSummary := range scanSummariesList.Items {
+		scanSummaries[i] = *NewScanSummaryFromHub(scanSummary)
+	}
+
 	scan := ImageScan{
-		RiskProfile:    *mappedRiskProfile,
-		PolicyStatus:   *mappedPolicyStatus,
-		ComponentsHref: componentsLink.Href,
-		ScanSummary: ScanSummary{
-			CreatedAt: scanSummary.CreatedAt,
-			Status:    parseScanSummaryStatus(scanSummary.Status),
-			UpdatedAt: scanSummary.UpdatedAt,
-		},
+		RiskProfile:           *mappedRiskProfile,
+		PolicyStatus:          *mappedPolicyStatus,
+		ComponentsHref:        componentsLink.Href,
+		ScanSummaries:         scanSummaries,
 		CodeLocationCreatedAt: codeLocation.CreatedAt,
-		//CodeLocationMappedProjectVersion string
 		CodeLocationName:      codeLocation.Name,
 		CodeLocationType:      codeLocation.Type,
 		CodeLocationURL:       codeLocation.URL,
