@@ -31,9 +31,9 @@ import (
 
 func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ImageScan {
 	return &hub.ImageScan{
-		ScanSummary: hub.ScanSummary{
+		ScanSummaries: []hub.ScanSummary{{
 			Status: status,
-		},
+		}},
 		RiskProfile: hub.RiskProfile{
 			Categories: map[hub.RiskProfileCategory]hub.RiskProfileStatusCounts{
 				hub.RiskProfileCategoryVulnerability: {

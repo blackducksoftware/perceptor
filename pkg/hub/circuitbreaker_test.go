@@ -35,14 +35,14 @@ func TestCircuitBreaker(t *testing.T) {
 	}
 
 	// API working -> cb remains enabled
-	cb.ListProjects("abc")
+	cb.ListCodeLocations("abc")
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
 	}
 
 	// API fails -> cb gets disabled
 	hubClient.ShouldFail = true
-	cb.ListProjects("abc")
+	cb.ListCodeLocations("abc")
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
 	}
@@ -51,12 +51,12 @@ func TestCircuitBreaker(t *testing.T) {
 	}
 
 	// cb disabled -> API calls fail
-	projectList, err := cb.ListProjects("abc")
+	clList, err := cb.ListCodeLocations("abc")
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
-	if projectList != nil {
-		t.Errorf("expected nil project list, got %+v", projectList)
+	if clList != nil {
+		t.Errorf("expected nil cl list, got %+v", clList)
 	}
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
@@ -67,12 +67,12 @@ func TestCircuitBreaker(t *testing.T) {
 
 	// disabled -> checks -> disabled
 	time.Sleep(2 * time.Second)
-	projectList, err = cb.ListProjects("abc")
+	clList, err = cb.ListCodeLocations("abc")
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
-	if projectList != nil {
-		t.Errorf("expected nil project list, got %+v", projectList)
+	if clList != nil {
+		t.Errorf("expected nil cl list, got %+v", clList)
 	}
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
@@ -84,12 +84,12 @@ func TestCircuitBreaker(t *testing.T) {
 	// disabled -> checks -> enabled
 	time.Sleep(4 * time.Second)
 	hubClient.ShouldFail = false
-	projectList, err = cb.ListProjects("abc")
+	clList, err = cb.ListCodeLocations("abc")
 	if err != nil {
 		t.Errorf("expected nil error, got: %s", err.Error())
 	}
-	if projectList == nil {
-		t.Errorf("expected project list, got nil")
+	if clList == nil {
+		t.Errorf("expected cl list, got nil")
 	}
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)

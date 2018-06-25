@@ -30,6 +30,7 @@ type ScanSummary struct {
 	UpdatedAt string
 }
 
+// NewScanSummaryFromHub .....
 func NewScanSummaryFromHub(hubScanSummary hubapi.ScanSummary) *ScanSummary {
 	return &ScanSummary{
 		CreatedAt: hubScanSummary.CreatedAt,
