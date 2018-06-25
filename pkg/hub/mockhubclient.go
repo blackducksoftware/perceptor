@@ -32,26 +32,34 @@ type MockHubClient struct {
 	ShouldFail bool
 }
 
-// ListProjects ...
-func (mhc *MockHubClient) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectList, error) {
+// ListAllCodeLocations ...
+func (mhc *MockHubClient) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
 	if mhc.ShouldFail {
-		return nil, fmt.Errorf("unable to fetch project list")
+		return nil, fmt.Errorf("unable to fetch code locations list")
 	}
-	return &hubapi.ProjectList{}, nil
+	return &hubapi.CodeLocationList{}, nil
 }
 
-// ListProjectVersions ...
-func (mhc *MockHubClient) ListProjectVersions(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.ProjectVersionList, error) {
+// GetProject ...
+func (mhc *MockHubClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
 	if mhc.ShouldFail {
-		return nil, fmt.Errorf("unable to fetch project version list")
+		return nil, fmt.Errorf("unable to fetch project")
 	}
-	return &hubapi.ProjectVersionList{}, nil
+	return &hubapi.Project{}, nil
+}
+
+// GetProjectVersion ...
+func (mhc *MockHubClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
+	if mhc.ShouldFail {
+		return nil, fmt.Errorf("unable to fetch project version")
+	}
+	return &hubapi.ProjectVersion{}, nil
 }
 
 // ListScanSummaries ...
 func (mhc *MockHubClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
 	if mhc.ShouldFail {
-		return nil, fmt.Errorf("unable to fetch scan summaries")
+		return nil, fmt.Errorf("unable to fetch scan summary list")
 	}
 	return &hubapi.ScanSummaryList{}, nil
 }
@@ -70,12 +78,4 @@ func (mhc *MockHubClient) GetProjectVersionPolicyStatus(link hubapi.ResourceLink
 		return nil, fmt.Errorf("unable to fetch project version policy status")
 	}
 	return &hubapi.ProjectVersionPolicyStatus{}, nil
-}
-
-// ListCodeLocations ...
-func (mhc *MockHubClient) ListCodeLocations(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
-	if mhc.ShouldFail {
-		return nil, fmt.Errorf("unable to fetch code locations")
-	}
-	return &hubapi.CodeLocationList{}, nil
 }

@@ -21,9 +21,20 @@ under the License.
 
 package hub
 
+import "github.com/blackducksoftware/hub-client-go/hubapi"
+
 // ScanSummary .....
 type ScanSummary struct {
 	CreatedAt string
 	Status    ScanSummaryStatus
 	UpdatedAt string
+}
+
+// NewScanSummaryFromHub .....
+func NewScanSummaryFromHub(hubScanSummary hubapi.ScanSummary) *ScanSummary {
+	return &ScanSummary{
+		CreatedAt: hubScanSummary.CreatedAt,
+		Status:    parseScanSummaryStatus(hubScanSummary.Status),
+		UpdatedAt: hubScanSummary.UpdatedAt,
+	}
 }

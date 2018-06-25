@@ -129,16 +129,33 @@ func (cb *CircuitBreaker) setNextCheckTime() {
 	cb.NextCheckTime = &nextCheckTime
 }
 
-// ListProjects ...
-func (cb *CircuitBreaker) ListProjects(projectName string) (*hubapi.ProjectList, error) {
+// // ListAllCodeLocations ...
+// func (cb *CircuitBreaker) ListAllCodeLocations() (*hubapi.CodeLocationList, error) {
+// 	if !cb.isAbleToIssueRequest() {
+// 		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
+// 	}
+// 	start := time.Now()
+// 	val, err := cb.Client.ListAllCodeLocations(nil)
+// 	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
+// 	recordHubResponse("allCodeLocations", err == nil)
+// 	if err == nil {
+// 		cb.success()
+// 	} else {
+// 		cb.failure()
+// 	}
+// 	return val, err
+// }
+
+// ListCodeLocations ...
+func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
 	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project list: circuit breaker disabled")
+		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
 	}
-	queryString := fmt.Sprintf("name:%s", projectName)
-	startGetProjects := time.Now()
-	val, err := cb.Client.ListProjects(&hubapi.GetListOptions{Q: &queryString})
-	recordHubResponseTime("projects", time.Now().Sub(startGetProjects))
-	recordHubResponse("projects", err == nil)
+	queryString := fmt.Sprintf("name:%s", codeLocationName)
+	start := time.Now()
+	val, err := cb.Client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
+	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
+	recordHubResponse("allCodeLocations", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -147,16 +164,32 @@ func (cb *CircuitBreaker) ListProjects(projectName string) (*hubapi.ProjectList,
 	return val, err
 }
 
-// ListProjectVersions ...
-func (cb *CircuitBreaker) ListProjectVersions(link hubapi.ResourceLink, versionName string) (*hubapi.ProjectVersionList, error) {
+// GetProjectVersion ...
+func (cb *CircuitBreaker) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
 	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project version list: circuit breaker disabled")
+		return nil, fmt.Errorf("unable to fetch project version: circuit breaker disabled")
 	}
-	q := fmt.Sprintf("versionName:%s", versionName)
-	startGetVersions := time.Now()
-	val, err := cb.Client.ListProjectVersions(link, &hubapi.GetListOptions{Q: &q})
-	recordHubResponseTime("projectVersions", time.Now().Sub(startGetVersions))
-	recordHubResponse("projectVersions", err == nil)
+	start := time.Now()
+	val, err := cb.Client.GetProjectVersion(link)
+	recordHubResponseTime("projectVersion", time.Now().Sub(start))
+	recordHubResponse("projectVersion", err == nil)
+	if err == nil {
+		cb.success()
+	} else {
+		cb.failure()
+	}
+	return val, err
+}
+
+// GetProject ...
+func (cb *CircuitBreaker) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
+	if !cb.isAbleToIssueRequest() {
+		return nil, fmt.Errorf("unable to fetch project: circuit breaker disabled")
+	}
+	start := time.Now()
+	val, err := cb.Client.GetProject(link)
+	recordHubResponseTime("project", time.Now().Sub(start))
+	recordHubResponse("project", err == nil)
 	if err == nil {
 		cb.success()
 	} else {
@@ -191,23 +224,6 @@ func (cb *CircuitBreaker) GetProjectVersionPolicyStatus(link hubapi.ResourceLink
 	val, err := cb.Client.GetProjectVersionPolicyStatus(link)
 	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
 	recordHubResponse("projectVersionPolicyStatus", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
-}
-
-// ListCodeLocations ...
-func (cb *CircuitBreaker) ListCodeLocations(link hubapi.ResourceLink) (*hubapi.CodeLocationList, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
-	}
-	startGetCodeLocations := time.Now()
-	val, err := cb.Client.ListCodeLocations(link, nil)
-	recordHubResponseTime("codeLocations", time.Now().Sub(startGetCodeLocations))
-	recordHubResponse("codeLocations", err == nil)
 	if err == nil {
 		cb.success()
 	} else {

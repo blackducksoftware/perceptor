@@ -35,24 +35,27 @@ type FetchScanInitial struct {
 // Apply .....
 func (h *FetchScanInitial) Apply(model *m.Model) {
 	scan := h.Scan
+
+	// case -1: image mysteriousy gone from model
 	imageInfo, ok := model.Images[scan.Sha]
 	if !ok {
 		log.Errorf("expected to already have sha %s, but did not", string(scan.Sha))
 		return
 	}
 
+	// case 0: image surprisingly has different status
 	if imageInfo.ScanStatus != m.ScanStatusInHubCheckQueue {
 		log.Warnf("ignoring hub check results for sha %s, invalid status (expected InHubCheckQueue, found %s)", string(scan.Sha), imageInfo.ScanStatus)
 		return
 	}
 
-	// case 1: error trying to access the hub project.  Don't change the status.
+	// case 1: error trying to access the hub code location.  Don't change the status.
 	if scan.Err != nil {
 		log.Errorf("check image in hub -- unable to fetch image scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}
 
-	// case 2: successfully determined that there's no hub project
+	// case 2: successfully determined that there's no code location, or no scan summary for that code location
 	//   likely interpretation: no scan was started for this sha, and it needs to be run
 	//   less likely interpretations:
 	//     - a scan client was started, perceptor crashed, and the scan hasn't
@@ -64,7 +67,7 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 		return
 	}
 
-	// case 3: found hub project, and it's complete
+	// case 3: found hub code location, and it's complete
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
 		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
 		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
@@ -72,14 +75,14 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 		return
 	}
 
-	// case 4: found hub project, and it failed
+	// case 4: found hub code location, and it failed
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
 		log.Infof("check image in hub -- found failed image scan for sha %s: %+v", scan.Sha, *scan)
 		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
 		return
 	}
 
-	// case 5: found hub project, and it's in progress
+	// case 5: found hub code location, and it's in progress
 	//   this likely means that a scan was started, perceptor went down, and now
 	//   perceptor is recovering on initial startup.
 	//   The scan could actually either be in the RunningScanClient or RunningHubScan

@@ -14,6 +14,8 @@
 
 package hubapi
 
+import "fmt"
+
 type CodeLocationList struct {
 	TotalCount uint32         `json:"totalCount"`
 	Items      []CodeLocation `json:"items"`
@@ -48,6 +50,13 @@ type ScanSummary struct {
 
 func (c *CodeLocation) GetScanSummariesLink() (*ResourceLink, error) {
 	return c.Meta.FindLinkByRel("scans")
+}
+
+func (c *CodeLocation) GetProjectVersionLink() (*ResourceLink, error) {
+	if c.MappedProjectVersion == "" {
+		return nil, fmt.Errorf("empty mapped project version")
+	}
+	return &ResourceLink{Href: c.MappedProjectVersion}, nil
 }
 
 func (s *ScanSummary) GetCodeLocationLink() (*ResourceLink, error) {
