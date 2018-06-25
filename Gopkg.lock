@@ -14,7 +14,7 @@
     "hubapi",
     "hubclient"
   ]
-  revision = "1ad7bfc473ffb01e1b8c6b1d9e79a30bf44e0bb5"
+  revision = "940138f994024143ee604ff0821f08ed2b597f9c"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -145,7 +145,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
+  revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
 [[projects]]
   branch = "master"
@@ -154,7 +154,7 @@
     "unix",
     "windows"
   ]
-  revision = "fc8bd948cf46f9c7af0f07d34151ce25fe90e477"
+  revision = "63fc586f45fe72d95d5240a5d5eb95e6503907d3"
 
 [[projects]]
   name = "golang.org/x/text"

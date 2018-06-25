@@ -21,6 +21,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func (c *Client) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
+
+	params := ""
+	if options != nil {
+		params = fmt.Sprintf("?%s", hubapi.ParameterString(options))
+	}
+
+	codeLocationsURL := fmt.Sprintf("%s/api/codelocations%s", c.baseURL, params)
+
+	var codeLocationsList hubapi.CodeLocationList
+	err := c.HttpGetJSON(codeLocationsURL, &codeLocationsList, 200)
+
+	if err != nil {
+		log.Errorf("Error trying to retrieve code locations list: %+v.", err)
+		return nil, err
+	}
+
+	return &codeLocationsList, nil
+}
+
 func (c *Client) ListCodeLocations(link hubapi.ResourceLink, options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
 
 	params := ""
