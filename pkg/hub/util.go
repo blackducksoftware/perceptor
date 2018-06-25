@@ -21,15 +21,12 @@ under the License.
 
 package hub
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	IsEnabled() <-chan bool
+// MinDuration is just max.Min, except for time.Duration values
+func MinDuration(left time.Duration, right time.Duration) time.Duration {
+	return time.Duration(math.Min(float64(left), float64(right)))
 }

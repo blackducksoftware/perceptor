@@ -30,6 +30,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	maxHubExponentialBackoffDuration = 1 * time.Hour
+)
+
 // Fetcher .....
 type Fetcher struct {
 	client         *hubclient.Client
@@ -38,6 +42,11 @@ type Fetcher struct {
 	username       string
 	password       string
 	baseURL        string
+}
+
+// ResetCircuitBreaker ...
+func (hf *Fetcher) ResetCircuitBreaker() {
+	hf.circuitBreaker.Reset()
 }
 
 // Model ...
@@ -93,7 +102,7 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	}
 	hf := Fetcher{
 		client:         client,
-		circuitBreaker: NewCircuitBreaker(client),
+		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
 		username:       username,
 		password:       password,
 		baseURL:        baseURL}

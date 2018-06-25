@@ -44,6 +44,7 @@ type Responder interface {
 
 	// internal use
 	PostConfig(config *PostConfig)
+	PostCommand(commands *PostCommand)
 
 	// errors
 	NotFound(w http.ResponseWriter, r *http.Request)

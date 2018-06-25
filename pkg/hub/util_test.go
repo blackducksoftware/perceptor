@@ -21,15 +21,27 @@ under the License.
 
 package hub
 
-import "time"
+import (
+	"testing"
+	"time"
+)
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	IsEnabled() <-chan bool
+// TestMinDuration .....
+func TestMinDuration(t *testing.T) {
+	cases := []struct {
+		left     time.Duration
+		right    time.Duration
+		expected time.Duration
+	}{
+		{time.Second, time.Minute, time.Second},
+		{time.Minute, time.Second, time.Second},
+		{time.Second, time.Second, time.Second},
+		{time.Duration(float64(2)) * time.Second, 4 * time.Second, 2 * time.Second},
+	}
+	for _, c := range cases {
+		actual := MinDuration(c.left, c.right)
+		if actual != c.expected {
+			t.Errorf("for %s and %s, expected %s but got %s", c.left, c.right, c.expected, actual)
+		}
+	}
 }
