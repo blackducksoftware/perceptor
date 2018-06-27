@@ -21,7 +21,10 @@ under the License.
 
 package core
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type node struct {
 	key      string
@@ -44,13 +47,38 @@ func NewPriorityQueue() *PriorityQueue {
 	}
 }
 
+// DebugString should only be used for debugging.
+func (pq *PriorityQueue) DebugString() string {
+	items := make([]map[string]interface{}, len(pq.items))
+	for i, item := range pq.items {
+		if i >= pq.size {
+			break
+		}
+		items[i] = map[string]interface{}{
+			"key":      item.key,
+			"priority": item.priority,
+			"value":    item.value,
+		}
+	}
+	dict := map[string]interface{}{
+		"keyToIndex": pq.keyToIndex,
+		"size":       pq.size,
+		"items":      items,
+	}
+	jsonBytes, err := json.Marshal(dict)
+	if err != nil {
+		return err.Error()
+	}
+	return string(jsonBytes)
+}
+
 // Adds an element.  'key' must be unique.
 func (pq *PriorityQueue) Add(key string, priority int, value interface{}) error {
 	if _, ok := pq.keyToIndex[key]; ok {
 		return fmt.Errorf("cannot add key %s: key already in map", key)
 	}
 	pq.resizeIfNecessary()
-	pq.items[pq.size] = &node{priority: priority, value: value}
+	pq.items[pq.size] = &node{key: key, priority: priority, value: value}
 	pq.keyToIndex[key] = pq.size
 	pq.siftUp(pq.size)
 	pq.size++
@@ -62,14 +90,14 @@ func (pq *PriorityQueue) Pop() (interface{}, error) {
 	if pq.size == 0 {
 		return nil, fmt.Errorf("cannot pop -- priority queue empty")
 	}
-	val := pq.items[0]
-	last := pq.items[pq.size]
+	item := pq.items[0]
 	pq.size--
+	last := pq.items[pq.size]
 	pq.items[0] = last
 	pq.keyToIndex[last.key] = 0
 	pq.items[pq.size] = nil
 	pq.siftDown(0)
-	return val, nil
+	return item.value, nil
 }
 
 // IsEmpty .....
@@ -148,6 +176,9 @@ func (pq *PriorityQueue) siftUp(index int) {
 		c := pq.items[ic]
 		if c.priority > p.priority {
 			pq.swap(ic, ip)
+		}
+		if ic <= 0 {
+			break
 		}
 		ic = ip
 	}
