@@ -91,12 +91,18 @@ func (pq *PriorityQueue) Pop() (interface{}, error) {
 		return nil, fmt.Errorf("cannot pop -- priority queue empty")
 	}
 	item := pq.items[0]
-	pq.size--
-	last := pq.items[pq.size]
-	pq.items[0] = last
-	pq.keyToIndex[last.key] = 0
+	// clean up
+	delete(pq.keyToIndex, item.key)
 	pq.items[pq.size] = nil
-	pq.siftDown(0)
+	pq.size--
+	// restore heap property
+	if pq.size > 0 {
+		last := pq.items[pq.size]
+		pq.items[0] = last
+		pq.keyToIndex[last.key] = 0
+		pq.siftDown(0)
+	}
+	// done
 	return item.value, nil
 }
 
@@ -148,6 +154,10 @@ func (pq *PriorityQueue) CheckValidity() []string {
 			errors = append(errors, fmt.Sprintf("key %s, index %d does not match node: %+v", key, ix, pq.items[ix]))
 		}
 	}
+	// check that the keyToIndex map is complete
+	if len(pq.keyToIndex) != pq.size {
+		errors = append(errors, fmt.Sprintf("keyToIndex size %d but pq.size is %d", len(pq.keyToIndex), pq.size))
+	}
 	// done
 	return errors
 }
@@ -169,8 +179,8 @@ func (pq *PriorityQueue) swap(i int, j int) {
 	temp := pq.items[i]
 	pq.items[i] = pq.items[j]
 	pq.items[j] = temp
-	pq.keyToIndex[pq.items[i].key] = j
-	pq.keyToIndex[pq.items[j].key] = i
+	pq.keyToIndex[pq.items[i].key] = i
+	pq.keyToIndex[pq.items[j].key] = j
 }
 
 func (pq *PriorityQueue) siftDown(index int) {

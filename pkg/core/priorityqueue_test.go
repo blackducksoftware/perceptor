@@ -47,7 +47,7 @@ func (s sortable) Len() int {
 }
 
 func (s sortable) Less(i, j int) bool {
-	return !(s.items[i] < s.items[j])
+	return s.items[i] > s.items[j]
 }
 
 func (s sortable) Swap(i, j int) {
@@ -89,14 +89,17 @@ var _ = Describe("Priority queue", func() {
 		pq := NewPriorityQueue()
 		It("should have size 0", func() {
 			Expect(pq.size).Should(Equal(0))
+			Expect(pq.CheckValidity()).To(Equal([]string{}))
 		})
 		It("should return an error when popping", func() {
 			next, err := pq.Pop()
 			Expect(next).Should(BeNil())
 			Expect(err).ShouldNot(BeNil())
+			Expect(pq.CheckValidity()).To(Equal([]string{}))
 		})
 		It("isEmpty", func() {
 			Expect(pq.IsEmpty()).To(Equal(true))
+			Expect(pq.CheckValidity()).To(Equal([]string{}))
 		})
 	})
 
@@ -107,6 +110,7 @@ var _ = Describe("Priority queue", func() {
 			for _, s := range fiveKeyVals {
 				err := pq.Add(s.key, s.priority, s.value)
 				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
 			}
 		})
 		It("should have n elements", func() {
@@ -120,6 +124,7 @@ var _ = Describe("Priority queue", func() {
 			}
 			Expect(pq.IsEmpty()).To(Equal(false))
 			Expect(pq.size).To(Equal(5))
+			Expect(pq.CheckValidity()).To(Equal([]string{}))
 		})
 		It("should produce the elements in sorted order, regardless of insertion order", func() {
 			expected := []keyVal{four, two, three, five, one}
@@ -128,6 +133,8 @@ var _ = Describe("Priority queue", func() {
 				Expect(elem).ToNot(BeNil())
 				Expect(elem).To(Equal(expected[i].value))
 				Expect(err).To(BeNil())
+				// log.Infof("pq dump after removing %+v: %s", elem, pq.DebugString())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
 			}
 		})
 	})
@@ -139,6 +146,7 @@ var _ = Describe("Priority queue", func() {
 				//log.Infof("add: %d %d", pq.size, len(pq.items))
 				err := pq.Add(fmt.Sprintf("%d", i), 0, i)
 				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
 			}
 			Expect(pq.size).To(Equal(500))
 		})
@@ -174,7 +182,7 @@ var _ = Describe("Priority queue", func() {
 	// profiling?  large scale performance test?
 	Describe("scale test", func() {
 		limits := []int{}
-		maxPower := 4 // 2^14 = 16384
+		maxPower := 16 // 2^16 = 65536
 		for i, val := 0, 1; i < maxPower+1; i, val = i+1, val*2 {
 			limits = append(limits, val)
 		}
@@ -193,6 +201,7 @@ var _ = Describe("Priority queue", func() {
 					}
 					stop := time.Now()
 					log.Infof("insertion of %d items: duration %s", itemCount, stop.Sub(start))
+					// log.Infof("pq dump: %s", pq.DebugString())
 					Expect(pq.CheckValidity()).To(Equal([]string{}))
 				})
 				It(fmt.Sprintf("should change %d priorities in n*log(n) time", limit), func() {
@@ -213,9 +222,21 @@ var _ = Describe("Priority queue", func() {
 						Expect(err).To(BeNil())
 					}
 					log.Infof("removal of %d items: duration %s", itemCount, time.Now().Sub(removeStart))
+					log.Infof("priorities: %+v", priorities)
+					Expect(checkArray(priorities)).To(Equal([][3]int{}))
 					Expect(sort.IsSorted(sortable{items: priorities})).To(BeTrue())
 				})
 			}
 		})
 	})
 })
+
+func checkArray(arr []int) [][3]int {
+	problems := [][3]int{}
+	for i := 0; i < len(arr)-1; i++ {
+		if arr[i] < arr[i+1] {
+			problems = append(problems, [3]int{i, arr[i], arr[i+1]})
+		}
+	}
+	return problems
+}
