@@ -139,7 +139,7 @@ var _ = Describe("Priority queue", func() {
 		})
 	})
 
-	Describe("Automatic resizing", func() {
+	Describe("Lots of adds, some deletes, more adds, more deletes", func() {
 		It("Should automatically resize the buffer as necessary", func() {
 			pq := NewPriorityQueue()
 			for i := 0; i < 500; i++ {
@@ -149,6 +149,28 @@ var _ = Describe("Priority queue", func() {
 				Expect(pq.CheckValidity()).To(Equal([]string{}))
 			}
 			Expect(pq.size).To(Equal(500))
+			for j := 0; j < 75; j++ {
+				elem, err := pq.Pop()
+				Expect(elem).NotTo(BeNil())
+				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
+			}
+			Expect(pq.size).To(Equal(425))
+			for i := 0; i < 75; i++ {
+				//log.Infof("add: %d %d", pq.size, len(pq.items))
+				err := pq.Add(fmt.Sprintf("part2-%d", i), 0, i+1000)
+				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
+			}
+			Expect(pq.size).To(Equal(500))
+			for j := 0; j < 500; j++ {
+				elem, err := pq.Pop()
+				Expect(elem).NotTo(BeNil())
+				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
+			}
+			Expect(pq.size).To(Equal(0))
+			Expect(pq.CheckValidity()).To(Equal([]string{}))
 		})
 	})
 
@@ -223,7 +245,7 @@ var _ = Describe("Priority queue", func() {
 						Expect(err).To(BeNil())
 					}
 					log.Infof("removal of %d items: duration %s", itemCount, time.Now().Sub(removeStart))
-					log.Infof("priorities: %+v", priorities)
+					// log.Infof("priorities: %+v", priorities)
 					Expect(pq.CheckValidity()).To(Equal([]string{}))
 					Expect(checkArrayForSortedness(priorities)).To(Equal([][3]int{}))
 					Expect(sort.IsSorted(sortable{items: priorities})).To(BeTrue())
