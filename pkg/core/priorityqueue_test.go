@@ -211,6 +211,7 @@ var _ = Describe("Priority queue", func() {
 						Expect(err).To(BeNil())
 					}
 					log.Infof("change priority of %d items: duration %s", itemCount, time.Now().Sub(changeStart))
+					Expect(pq.CheckValidity()).To(Equal([]string{}))
 				})
 				It(fmt.Sprintf("should remove %d items in n*log(n) time", limit), func() {
 					priorities := make([]int, itemCount)
@@ -223,7 +224,8 @@ var _ = Describe("Priority queue", func() {
 					}
 					log.Infof("removal of %d items: duration %s", itemCount, time.Now().Sub(removeStart))
 					log.Infof("priorities: %+v", priorities)
-					Expect(checkArray(priorities)).To(Equal([][3]int{}))
+					Expect(pq.CheckValidity()).To(Equal([]string{}))
+					Expect(checkArrayForSortedness(priorities)).To(Equal([][3]int{}))
 					Expect(sort.IsSorted(sortable{items: priorities})).To(BeTrue())
 				})
 			}
@@ -231,7 +233,7 @@ var _ = Describe("Priority queue", func() {
 	})
 })
 
-func checkArray(arr []int) [][3]int {
+func checkArrayForSortedness(arr []int) [][3]int {
 	problems := [][3]int{}
 	for i := 0; i < len(arr)-1; i++ {
 		if arr[i] < arr[i+1] {
