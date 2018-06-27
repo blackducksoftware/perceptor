@@ -118,16 +118,51 @@ func (pq *PriorityQueue) Set(key string, priority int) error {
 	return nil
 }
 
+// CheckValidity should always return an empty slice -- it is just a debugging tool.
+// If it returns a non-empty slice, then there's a bug somewhere in the heap code.
+func (pq *PriorityQueue) CheckValidity() []string {
+	errors := []string{}
+	// check the heap property
+	for i := 0; i < pq.size; i++ {
+		lc := leftChild(i)
+		if lc >= pq.size {
+			break
+		}
+		curr := pq.items[i]
+		left := pq.items[lc]
+		if left.priority > curr.priority {
+			errors = append(errors, fmt.Sprintf("parent %d(%d) has lower priority than left child %d(%d)", i, curr.priority, lc, left.priority))
+		}
+		rc := rightChild(i)
+		if rc >= pq.size {
+			break
+		}
+		right := pq.items[rc]
+		if right.priority > curr.priority {
+			errors = append(errors, fmt.Sprintf("parent %d(%d) has lower priority than right child %d(%d)", i, curr.priority, rc, right.priority))
+		}
+	}
+	// check that the keyToIndex map is correct
+	for key, ix := range pq.keyToIndex {
+		if pq.items[ix].key != key {
+			errors = append(errors, fmt.Sprintf("key %s, index %d does not match node: %+v", key, ix, pq.items[ix]))
+		}
+	}
+	// done
+	return errors
+}
+
 // Implementation details:
 
 func (pq *PriorityQueue) resizeIfNecessary() {
 	if pq.size < len(pq.items) {
 		return
 	}
-	newItems := make([]interface{}, len(pq.items)*2)
+	newItems := make([]*node, len(pq.items)*2)
 	for ix, val := range pq.items {
 		newItems[ix] = val
 	}
+	pq.items = newItems
 }
 
 func (pq *PriorityQueue) swap(i int, j int) {

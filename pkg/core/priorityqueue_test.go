@@ -22,14 +22,38 @@ under the License.
 package core
 
 import (
+	"fmt"
+	"math/rand"
+	"sort"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
 type keyVal struct {
 	key      string
 	priority int
 	value    string
+}
+
+type sortable struct {
+	items []int
+}
+
+func (s sortable) Len() int {
+	return len(s.items)
+}
+
+func (s sortable) Less(i, j int) bool {
+	return !(s.items[i] < s.items[j])
+}
+
+func (s sortable) Swap(i, j int) {
+	temp := s.items[i]
+	s.items[i] = s.items[j]
+	s.items[j] = temp
 }
 
 var _ = Describe("Priority queue", func() {
@@ -108,6 +132,18 @@ var _ = Describe("Priority queue", func() {
 		})
 	})
 
+	Describe("Automatic resizing", func() {
+		It("Should automatically resize the buffer as necessary", func() {
+			pq := NewPriorityQueue()
+			for i := 0; i < 500; i++ {
+				//log.Infof("add: %d %d", pq.size, len(pq.items))
+				err := pq.Add(fmt.Sprintf("%d", i), 0, i)
+				Expect(err).To(BeNil())
+			}
+			Expect(pq.size).To(Equal(500))
+		})
+	})
+
 	// remove
 
 	// change key
@@ -136,4 +172,50 @@ var _ = Describe("Priority queue", func() {
 	})
 
 	// profiling?  large scale performance test?
+	Describe("scale test", func() {
+		limits := []int{}
+		maxPower := 4 // 2^14 = 16384
+		for i, val := 0, 1; i < maxPower+1; i, val = i+1, val*2 {
+			limits = append(limits, val)
+		}
+		Context("add, change, and remove should generally require log(n) time", func() {
+			for _, limit := range limits {
+				itemCount := limit // copy to avoid variable capture
+				pq := NewPriorityQueue()
+				It(fmt.Sprintf("should insert %d items in n*log(n) time", limit), func() {
+					start := time.Now()
+					for i := 0; i < itemCount; i++ {
+						priority := rand.Int() % 100000
+						//log.Infof("add: %d", i)
+						err := pq.Add(fmt.Sprintf("%d", i), priority, i)
+						//log.Infof("pq: %s", pq.DebugString())
+						Expect(err).To(BeNil())
+					}
+					stop := time.Now()
+					log.Infof("insertion of %d items: duration %s", itemCount, stop.Sub(start))
+					Expect(pq.CheckValidity()).To(Equal([]string{}))
+				})
+				It(fmt.Sprintf("should change %d priorities in n*log(n) time", limit), func() {
+					changeStart := time.Now()
+					for i := 0; i < itemCount; i++ {
+						err := pq.Set(fmt.Sprintf("%d", i), rand.Int()%100000)
+						Expect(err).To(BeNil())
+					}
+					log.Infof("change priority of %d items: duration %s", itemCount, time.Now().Sub(changeStart))
+				})
+				It(fmt.Sprintf("should remove %d items in n*log(n) time", limit), func() {
+					priorities := make([]int, itemCount)
+					removeStart := time.Now()
+					for i := 0; i < itemCount; i++ {
+						priorities[i] = pq.items[0].priority
+						elem, err := pq.Pop()
+						Expect(elem).NotTo(BeNil())
+						Expect(err).To(BeNil())
+					}
+					log.Infof("removal of %d items: duration %s", itemCount, time.Now().Sub(removeStart))
+					Expect(sort.IsSorted(sortable{items: priorities})).To(BeTrue())
+				})
+			}
+		})
+	})
 })
