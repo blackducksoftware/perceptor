@@ -39,6 +39,7 @@ type PriorityQueue struct {
 	keyToIndex map[string]int
 }
 
+// NewPriorityQueue .....
 func NewPriorityQueue() *PriorityQueue {
 	return &PriorityQueue{
 		items:      make([]*node, 10),
@@ -93,7 +94,7 @@ func (pq *PriorityQueue) DebugString() string {
 	return string(jsonBytes)
 }
 
-// Adds an element.  'key' must be unique.
+// Add adds an element.  'key' must be unique.
 func (pq *PriorityQueue) Add(key string, priority int, value interface{}) error {
 	if _, ok := pq.keyToIndex[key]; ok {
 		return fmt.Errorf("cannot add key %s: key already in map", key)
