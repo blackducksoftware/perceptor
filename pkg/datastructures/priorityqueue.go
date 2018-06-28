@@ -124,6 +124,39 @@ func (pq *PriorityQueue) Set(key string, priority int) error {
 	return nil
 }
 
+// HasKey returns whether the priority queue has the key.
+func (pq *PriorityQueue) HasKey(key string) bool {
+	_, ok := pq.keyToIndex[key]
+	return ok
+}
+
+// Remove removes the value associated with the key from the priority queue,
+// returning an error if it can't be found.
+func (pq *PriorityQueue) Remove(key string) (interface{}, error) {
+	index, ok := pq.keyToIndex[key]
+	if !ok {
+		return nil, fmt.Errorf("cannot remove key %s, key is not present", key)
+	}
+	item := pq.items[index]
+	// if it's not the last one: must restore the heap property
+	// example: remove index 6, initial size was 7 => don't restore
+	// example: remove index 5, initial size was 7 => swap index 6 into 5, restore
+	lastIndex := pq.size - 1
+	if index != lastIndex {
+		pq.items[index] = pq.items[lastIndex]
+		pq.keyToIndex[pq.items[index].key] = index
+		pq.items[lastIndex] = nil
+		pq.size--
+		pq.siftUp(index)
+		pq.siftDown(index)
+	} else {
+		pq.items[lastIndex] = nil
+		pq.size--
+	}
+	delete(pq.keyToIndex, key)
+	return item.value, nil
+}
+
 // CheckValidity should always return an empty slice -- it is just a debugging tool.
 // If it returns a non-empty slice, then there's a bug somewhere in the heap code.
 func (pq *PriorityQueue) CheckValidity() []string {

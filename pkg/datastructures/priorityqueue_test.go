@@ -174,7 +174,44 @@ var _ = Describe("Priority queue", func() {
 		})
 	})
 
-	// remove
+	// has key
+	Describe("Has key and remove key", func() {
+		limit := 1000
+		randomKeys := make([]string, limit)
+		keyVals := map[string]interface{}{}
+		pq := NewPriorityQueue()
+		It("should say that every key we added is present", func() {
+			for i := 0; i < limit; i++ {
+				key := fmt.Sprintf("%d", rand.Int())
+				priority := rand.Int()
+				err := pq.Add(key, priority, i)
+				keyVals[key] = i
+				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
+				randomKeys[i] = key
+			}
+			Expect(pq.size).To(Equal(limit))
+			for i := 0; i < limit; i++ {
+				Expect(pq.HasKey(randomKeys[i])).To(BeTrue())
+			}
+		})
+		It("should allow us to remove every key, and get the values out that we put in", func() {
+			for i := 0; i < limit; i++ {
+				key := randomKeys[i]
+				elem, err := pq.Remove(key)
+				Expect(elem).To(Equal(keyVals[key]))
+				Expect(pq.HasKey(key)).To(BeFalse())
+				Expect(err).To(BeNil())
+				Expect(pq.CheckValidity()).To(Equal([]string{}))
+			}
+			Expect(pq.size).To(Equal(0))
+		})
+	})
+
+	// remove by key
+	Describe("Remove by key", func() {
+
+	})
 
 	// change key
 	Describe("Change priority", func() {
