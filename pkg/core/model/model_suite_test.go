@@ -19,20 +19,17 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// AllImages .....
-type AllImages struct {
-	Images []m.Image
-}
-
-// Apply .....
-func (a *AllImages) Apply(model *m.Model) {
-	for _, image := range a.Images {
-		model.AddImage(image, 0)
-	}
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunModelTests()
+	RunSpecs(t, "model suite")
 }

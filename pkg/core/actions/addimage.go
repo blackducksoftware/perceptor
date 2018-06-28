@@ -32,5 +32,5 @@ type AddImage struct {
 
 // Apply .....
 func (a *AddImage) Apply(model *m.Model) {
-	model.AddImage(a.Image)
+	model.AddImage(a.Image, 0)
 }

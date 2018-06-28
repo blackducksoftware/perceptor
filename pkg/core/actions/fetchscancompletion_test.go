@@ -31,7 +31,7 @@ import (
 
 func hubCheckModel() *m.Model {
 	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 2}, nil)
-	model.AddImage(image1)
+	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningHubScan)
 	return model
 }

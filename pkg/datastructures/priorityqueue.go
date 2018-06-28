@@ -47,6 +47,27 @@ func NewPriorityQueue() *PriorityQueue {
 	}
 }
 
+// Values .....
+func (pq *PriorityQueue) Values() []interface{} {
+	elems := make([]interface{}, pq.size)
+	for i := 0; i < pq.size; i++ {
+		elems[i] = pq.items[i].value
+	}
+	return elems
+}
+
+// Dump .....
+func (pq *PriorityQueue) Dump() []map[string]interface{} {
+	elems := make([]map[string]interface{}, pq.size)
+	for i := 0; i < pq.size; i++ {
+		elems[i] = map[string]interface{}{
+			"Key":      pq.items[i].key,
+			"Priority": pq.items[i].priority,
+		}
+	}
+	return elems
+}
+
 // DebugString should only be used for debugging.
 func (pq *PriorityQueue) DebugString() string {
 	items := make([]map[string]interface{}, len(pq.items))
@@ -104,6 +125,11 @@ func (pq *PriorityQueue) Pop() (interface{}, error) {
 	}
 	// done
 	return item.value, nil
+}
+
+// Size returns the number of elements in the queue.
+func (pq *PriorityQueue) Size() int {
+	return pq.size
 }
 
 // IsEmpty .....

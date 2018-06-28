@@ -48,7 +48,7 @@ func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
 // TestGetNextImage .....
 func TestGetNextImage(t *testing.T) {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1)
+	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 
 	var nextImage *m.Image
@@ -74,7 +74,7 @@ func TestGetNextImage(t *testing.T) {
 // TestGetNextImageHubInaccessible .....
 func TestGetNextImageHubInaccessible(t *testing.T) {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1)
+	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 	model.IsHubEnabled = false
 
