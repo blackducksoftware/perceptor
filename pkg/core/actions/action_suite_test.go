@@ -22,15 +22,19 @@ under the License.
 package actions
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-// AllImages doesn't remove pre-existing images
-func RunTestAllImages() {
-	It("should not remove pre-existing images", func() {
-		actual := createNewModel1()
-		(&AllImages{}).Apply(actual)
-		Expect(len(actual.Images)).To(Equal(2))
-	})
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunActionTests()
+	RunTestAddImageAction()
+	RunTestAddPodAction()
+	RunTestAllImages()
+	RunFetchScanCompletionTests()
+	RunFetchScanRefresh()
+	RunSpecs(t, "model suite")
 }

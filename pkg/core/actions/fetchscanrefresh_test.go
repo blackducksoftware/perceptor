@@ -23,10 +23,11 @@ package actions
 
 import (
 	"fmt"
-	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ImageScan {
@@ -54,62 +55,61 @@ func recheckModel(vulnCount int) *m.Model {
 	return model
 }
 
-// TestFetchScanRefreshError .....
-func TestFetchScanRefreshError(t *testing.T) {
-	vulnCount := 3
-	model := recheckModel(vulnCount)
-	hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
-	hrr.Apply(model)
+func RunFetchScanRefresh() {
+	Describe("FetchScanRefresh", func() {
+		It("error", func() {
+			vulnCount := 3
+			model := recheckModel(vulnCount)
+			hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
+			hrr.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanResults
-	expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
-	assertEqual(t, actual, expected)
-}
+			actual := model.Images[image1.Sha].ScanResults
+			expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanRefreshNotFound .....
-func TestFetchScanRefreshNotFound(t *testing.T) {
-	vulnCount := 3
-	model := recheckModel(vulnCount)
-	hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
-	hrr.Apply(model)
+		It("not found", func() {
+			vulnCount := 3
+			model := recheckModel(vulnCount)
+			hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
+			hrr.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanResults
-	expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
-	assertEqual(t, actual, expected)
-}
+			actual := model.Images[image1.Sha].ScanResults
+			expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanRefreshInProgress .....
-func TestFetchScanRefreshInProgress(t *testing.T) {
-	vulnCount := 3
-	model := recheckModel(vulnCount)
-	hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusInProgress), Err: nil}}
-	hrr.Apply(model)
+		It("in progress", func() {
+			vulnCount := 3
+			model := recheckModel(vulnCount)
+			hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusInProgress), Err: nil}}
+			hrr.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanResults
-	expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
-	assertEqual(t, actual, expected)
-}
+			actual := model.Images[image1.Sha].ScanResults
+			expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanRefreshFailed .....
-func TestFetchScanRefreshFailed(t *testing.T) {
-	vulnCount := 3
-	model := recheckModel(vulnCount)
-	hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(17, hub.ScanSummaryStatusFailure), Err: nil}}
-	hrr.Apply(model)
+		It("failed", func() {
+			vulnCount := 3
+			model := recheckModel(vulnCount)
+			hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(17, hub.ScanSummaryStatusFailure), Err: nil}}
+			hrr.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanResults
-	expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
-	assertEqual(t, actual, expected)
-}
+			actual := model.Images[image1.Sha].ScanResults
+			expected := imageScan(vulnCount, hub.ScanSummaryStatusSuccess)
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanRefreshSuccess .....
-func TestFetchScanRefreshSuccess(t *testing.T) {
-	vulnCount := 3
-	model := recheckModel(vulnCount)
-	hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(18, hub.ScanSummaryStatusSuccess), Err: nil}}
-	hrr.Apply(model)
+		It("success", func() {
+			vulnCount := 3
+			model := recheckModel(vulnCount)
+			hrr := FetchScanRefresh{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(18, hub.ScanSummaryStatusSuccess), Err: nil}}
+			hrr.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanResults
-	expected := imageScan(18, hub.ScanSummaryStatusSuccess)
-	assertEqual(t, actual, expected)
+			actual := model.Images[image1.Sha].ScanResults
+			expected := imageScan(18, hub.ScanSummaryStatusSuccess)
+			Expect(actual).To(Equal(expected))
+		})
+	})
 }

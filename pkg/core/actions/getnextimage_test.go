@@ -23,82 +23,75 @@ package actions
 
 import (
 	"sync"
-	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
 )
 
-// TestGetNextImageForScanningActionNoImageAvailable .....
-func TestGetNextImageForScanningActionNoImageAvailable(t *testing.T) {
-	// actual
-	var nextImage *m.Image
-	actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	(&GetNextImage{func(image *m.Image) {
-		nextImage = image
-	}}).Apply(actual)
-	// expected: front image removed from scan queue, status and time of image changed
-	expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+func RunGetNextImage() {
+	Describe("GetNextImage", func() {
+		It("no image available", func() {
+			// actual
+			var nextImage *m.Image
+			actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			(&GetNextImage{func(image *m.Image) {
+				nextImage = image
+			}}).Apply(actual)
+			// expected: front image removed from scan queue, status and time of image changed
+			expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 
-	assertEqual(t, nextImage, nil)
-	log.Infof("%+v, %+v", actual, expected)
-	// assertEqual(t, actual, expected)
-}
+			Expect(nextImage).To(BeNil())
+			log.Infof("%+v, %+v", actual, expected)
+			// assertEqual(t, actual, expected)
+		})
 
-// TestGetNextImage .....
-func TestGetNextImage(t *testing.T) {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1, 0)
-	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+		It("regular", func() {
+			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model.AddImage(image1, 0)
+			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 
-	var nextImage *m.Image
-	var wg sync.WaitGroup
-	wg.Add(1)
-	(&GetNextImage{func(image *m.Image) {
-		nextImage = image
-		wg.Done()
-	}}).Apply(model)
-	wg.Wait()
+			var nextImage *m.Image
+			var wg sync.WaitGroup
+			wg.Add(1)
+			(&GetNextImage{func(image *m.Image) {
+				nextImage = image
+				wg.Done()
+			}}).Apply(model)
+			wg.Wait()
 
-	if nextImage == nil {
-		t.Errorf("expected %+v, got nil", image1)
-	} else if *nextImage != image1 {
-		t.Errorf("expected %+v, got %+v", nextImage, image1)
-	}
+			Expect(nextImage).To(Equal(image1))
+			Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
+			Expect(model.Images[image1.Sha].ScanStatus).To(Equal(m.ScanStatusRunningScanClient))
+			// TODO expected: time of image changed
+		})
 
-	assertEqual(t, model.ImageScanQueue, []m.DockerImageSha{})
-	assertEqual(t, model.Images[image1.Sha].ScanStatus, m.ScanStatusRunningScanClient)
-	// TODO expected: time of image changed
-}
+		It("hub inacessible", func() {
+			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model.AddImage(image1, 0)
+			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+			model.IsHubEnabled = false
 
-// TestGetNextImageHubInaccessible .....
-func TestGetNextImageHubInaccessible(t *testing.T) {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1, 0)
-	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-	model.IsHubEnabled = false
+			var nextImage *m.Image
+			var wg sync.WaitGroup
+			wg.Add(1)
+			(&GetNextImage{func(image *m.Image) {
+				nextImage = image
+				wg.Done()
+			}}).Apply(model)
+			wg.Wait()
 
-	var nextImage *m.Image
-	var wg sync.WaitGroup
-	wg.Add(1)
-	(&GetNextImage{func(image *m.Image) {
-		nextImage = image
-		wg.Done()
-	}}).Apply(model)
-	wg.Wait()
+			Expect(nextImage).To(BeNil())
 
-	if nextImage != nil {
-		t.Errorf("expected nil, got %+v", nextImage)
-	}
-
-	model.IsHubEnabled = true
-	wg.Add(1)
-	(&GetNextImage{func(image *m.Image) {
-		nextImage = image
-		wg.Done()
-	}}).Apply(model)
-	wg.Wait()
-	if nextImage == nil {
-		t.Errorf("expected image, got nil")
-	}
+			model.IsHubEnabled = true
+			wg.Add(1)
+			(&GetNextImage{func(image *m.Image) {
+				nextImage = image
+				wg.Done()
+			}}).Apply(model)
+			wg.Wait()
+			Expect(nextImage).ToNot(BeNil())
+		})
+	})
 }
