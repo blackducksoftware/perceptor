@@ -93,14 +93,9 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 		}
 	}
 	// hub check queue
-	hubQueue := []string{}
-	for _, image := range model.ImageHubCheckQueue {
-		hubQueue = append(hubQueue, string(image))
-	}
-	// scan queue
-	scanQueue := []string{}
-	for _, image := range model.ImageScanQueue {
-		scanQueue = append(scanQueue, string(image))
+	hubQueue := make([]string, len(model.ImageHubCheckQueue))
+	for i, image := range model.ImageHubCheckQueue {
+		hubQueue[i] = string(image)
 	}
 	// return value
 	return &api.Model{
@@ -108,7 +103,7 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 		Images:             images,
 		HubVersion:         model.HubVersion,
 		ImageHubCheckQueue: hubQueue,
-		ImageScanQueue:     scanQueue,
+		ImageScanQueue:     model.ImageScanQueue.Dump(),
 		Config: &api.ModelConfig{
 			HubHost:             model.Config.HubHost,
 			HubUser:             model.Config.HubUser,

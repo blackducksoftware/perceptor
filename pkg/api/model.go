@@ -31,7 +31,7 @@ import (
 type Model struct {
 	Pods               map[string]*Pod
 	Images             map[string]*ModelImageInfo
-	ImageScanQueue     []string
+	ImageScanQueue     []map[string]interface{}
 	ImageHubCheckQueue []string
 	HubVersion         string
 	Config             *ModelConfig

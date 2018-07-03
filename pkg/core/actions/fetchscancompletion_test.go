@@ -23,81 +23,71 @@ package actions
 
 import (
 	"fmt"
-	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func hubCheckModel() *m.Model {
 	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 2}, nil)
-	model.AddImage(image1)
+	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningHubScan)
 	return model
 }
 
-// TestFetchScanCompletionError .....
-func TestFetchScanCompletionError(t *testing.T) {
-	model := hubCheckModel()
-	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
-	hc.Apply(model)
+func RunFetchScanCompletionTests() {
+	Describe("FetchScanCompletion", func() {
+		It("error handling", func() {
+			model := hubCheckModel()
+			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
+			hc.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusRunningHubScan
-	if actual != expected {
-		t.Errorf("expected %s, got %s", expected, actual)
-	}
-}
+			actual := model.Images[image1.Sha].ScanStatus
+			expected := m.ScanStatusRunningHubScan
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanCompletionNotFound .....
-func TestFetchScanCompletionNotFound(t *testing.T) {
-	model := hubCheckModel()
-	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
-	hc.Apply(model)
+		It("not found", func() {
+			model := hubCheckModel()
+			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
+			hc.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusRunningHubScan
-	if actual != expected {
-		t.Errorf("expected %s, got %s", expected, actual)
-	}
-}
+			actual := model.Images[image1.Sha].ScanStatus
+			expected := m.ScanStatusRunningHubScan
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanCompletionInProgress .....
-func TestFetchScanCompletionInProgress(t *testing.T) {
-	model := hubCheckModel()
-	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
-	hc.Apply(model)
+		It("in progress", func() {
+			model := hubCheckModel()
+			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
+			hc.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusRunningHubScan
-	if actual != expected {
-		t.Errorf("expected %s, got %s", expected, actual)
-	}
-}
+			actual := model.Images[image1.Sha].ScanStatus
+			expected := m.ScanStatusRunningHubScan
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanCompletionFailed .....
-func TestFetchScanCompletionFailed(t *testing.T) {
-	model := hubCheckModel()
-	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
-	hc.Apply(model)
+		It("failed", func() {
+			model := hubCheckModel()
+			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
+			hc.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusInQueue
-	if actual != expected {
-		t.Errorf("expected %s, got %s", expected, actual)
-	}
-}
+			actual := model.Images[image1.Sha].ScanStatus
+			expected := m.ScanStatusInQueue
+			Expect(actual).To(Equal(expected))
+		})
 
-// TestFetchScanCompletionSuccess .....
-func TestFetchScanCompletionSuccess(t *testing.T) {
-	model := hubCheckModel()
-	hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}
-	hc.Apply(model)
+		It("success", func() {
+			model := hubCheckModel()
+			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}
+			hc.Apply(model)
 
-	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusComplete
-	if actual != expected {
-		t.Errorf("expected %s, got %s", expected, actual)
-	}
-	assertEqual(t, model.Images[image1.Sha].ScanResults, imageScan(8, hub.ScanSummaryStatusSuccess))
+			actual := model.Images[image1.Sha].ScanStatus
+			expected := m.ScanStatusComplete
+			Expect(actual).To(Equal(expected))
+			Expect(model.Images[image1.Sha].ScanResults).To(Equal(imageScan(8, hub.ScanSummaryStatusSuccess)))
+		})
+	})
 }

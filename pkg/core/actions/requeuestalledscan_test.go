@@ -30,10 +30,10 @@ import (
 
 func requeueTestModel() *m.Model {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1)
+	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningScanClient)
-	model.AddImage(image2)
+	model.AddImage(image2, 0)
 	model.SetImageScanStatus(image2.Sha, m.ScanStatusRunningHubScan)
 	return model
 }

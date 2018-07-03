@@ -21,14 +21,16 @@ under the License.
 
 package actions
 
-import "testing"
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
 // AllImages doesn't remove pre-existing images
-// TestAllImages .....
-func TestAllImages(t *testing.T) {
-	actual := createNewModel1()
-	(&AllImages{}).Apply(actual)
-	if len(actual.Images) != 2 {
-		t.Errorf("expected 2 images, found %d", len(actual.Images))
-	}
+func RunTestAllImages() {
+	It("should not remove pre-existing images", func() {
+		actual := createNewModel1()
+		(&AllImages{}).Apply(actual)
+		Expect(len(actual.Images)).To(Equal(2))
+	})
 }

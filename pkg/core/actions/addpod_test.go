@@ -22,27 +22,28 @@ under the License.
 package actions
 
 import (
-	"testing"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestAddPodAction .....
-func TestAddPodAction(t *testing.T) {
-	// actual
-	actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
-	(&AddPod{testPod}).Apply(actual)
-	// expected (a bit hacky to get the times set up):
-	//  - pod gets added to .Pods
-	//  - all images within pod get added to .Images
-	//  - all new images get added to hub check queue
-	expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
-	expected.Pods[testPod.QualifiedName()] = testPod
-	imageInfo := m.NewImageInfo(testSha, "image1")
-	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
-	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
-	expected.Images[testSha] = imageInfo
-	expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
-	//
-	assertEqual(t, actual, expected)
+func RunTestAddPodAction() {
+	It("should add a pod and all the pod's containers' images", func() {
+		actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
+		(&AddPod{testPod}).Apply(actual)
+		// expected (a bit hacky to get the times set up):
+		//  - pod gets added to .Pods
+		//  - all images within pod get added to .Images
+		//  - all new images get added to hub check queue
+		expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
+		expected.ImagePriority[testImage.Sha] = 1
+		expected.Pods[testPod.QualifiedName()] = testPod
+		imageInfo := m.NewImageInfo(testSha, "image1")
+		imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
+		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
+		expected.Images[testSha] = imageInfo
+		expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
+		//
+		Expect(actual).To(Equal(&expected))
+	})
 }

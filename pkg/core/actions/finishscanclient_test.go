@@ -32,7 +32,7 @@ import (
 func TestScanClientFails(t *testing.T) {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
 	image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
-	model.AddImage(image)
+	model.AddImage(image, 0)
 	model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
 	model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
 	model.FinishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))

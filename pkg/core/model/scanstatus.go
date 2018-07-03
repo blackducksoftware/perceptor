@@ -24,7 +24,6 @@ package model
 import "fmt"
 
 // ScanStatus describes the state of an image in perceptor
-// ScanStatus .....
 type ScanStatus int
 
 // .....

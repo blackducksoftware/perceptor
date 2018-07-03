@@ -23,167 +23,148 @@ package model
 
 import (
 	"encoding/json"
-	"reflect"
-	"testing"
+	"sort"
 
+	ds "github.com/blackducksoftware/perceptor/pkg/datastructures"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
 )
 
-func assertEqual(t *testing.T, message string, actual interface{}, expected interface{}) {
-	if actual == nil && expected == nil {
-		return
-	}
-	if reflect.DeepEqual(actual, expected) {
-		return
-	}
-	// ?? can't compare []DockerImageSha with this ??
-	// if actual == expected {
-	// 	return
-	// }
-	actualBytes, err := json.Marshal(actual)
-	if err != nil {
-		t.Errorf("json serialization error: %s", err.Error())
-		return
-	}
-	expectedBytes, err := json.Marshal(expected)
-	if err != nil {
-		t.Errorf("json serialization error: %s", err.Error())
-		return
-	}
-	if string(actualBytes) == string(expectedBytes) {
-		return
-	}
-	t.Errorf("%s: expected \n%s, got \n%s", message, string(expectedBytes), string(actualBytes))
+func sortedValues(pq *ds.PriorityQueue) []interface{} {
+	vals := pq.Values()
+	sort.Slice(vals, func(i int, j int) bool {
+		return vals[i].(DockerImageSha) < vals[j].(DockerImageSha)
+	})
+	return vals
 }
 
-// TestModelJSONSerialization .....
-func TestModelJSONSerialization(t *testing.T) {
-	m := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)
-	jsonBytes, err := json.Marshal(m)
-	if err != nil {
-		t.Errorf("unabled to serialize model to json: %s", err.Error())
-	}
-	log.Infof("json bytes: %s", string(jsonBytes))
-}
+func RunModelTests() {
+	Describe("Model", func() {
 
-func removeItemModel() *Model {
-	model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
-	model.AddImage(image1)
-	model.AddImage(image2)
-	model.AddImage(image3)
-	return model
-}
-
-func removeScanItemModel() *Model {
-	model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
-	model.AddImage(image1)
-	model.AddImage(image2)
-	model.AddImage(image3)
-	model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
-	model.SetImageScanStatus(image2.Sha, ScanStatusInQueue)
-	model.SetImageScanStatus(image3.Sha, ScanStatusInQueue)
-	return model
-}
-
-// TestModelRemoveItemFromFrontOfHubCheckQueue .....
-func TestModelRemoveItemFromFrontOfHubCheckQueue(t *testing.T) {
-	model := removeItemModel()
-	model.removeImageFromHubCheckQueue(image1.Sha)
-	assertEqual(t, "remove item from front of hub check queue", model.ImageHubCheckQueue, []DockerImageSha{image2.Sha, image3.Sha})
-}
-
-// TestModelRemoveItemFromMiddleOfHubCheckQueue .....
-func TestModelRemoveItemFromMiddleOfHubCheckQueue(t *testing.T) {
-	model := removeItemModel()
-	model.removeImageFromHubCheckQueue(image2.Sha)
-	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{image1.Sha, image3.Sha})
-}
-
-// TestModelRemoveItemFromEndOfHubCheckQueue .....
-func TestModelRemoveItemFromEndOfHubCheckQueue(t *testing.T) {
-	model := removeItemModel()
-	model.removeImageFromHubCheckQueue(image3.Sha)
-	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{image1.Sha, image2.Sha})
-}
-
-// TestModelRemoveAllItemsFromHubCheckQueue .....
-func TestModelRemoveAllItemsFromHubCheckQueue(t *testing.T) {
-	model := removeItemModel()
-	model.removeImageFromHubCheckQueue(image1.Sha)
-	model.removeImageFromHubCheckQueue(image2.Sha)
-	model.removeImageFromHubCheckQueue(image3.Sha)
-	assertEqual(t, "", model.ImageHubCheckQueue, []DockerImageSha{})
-}
-
-// TestModelRemoveItemFromFrontOfScanQueue .....
-func TestModelRemoveItemFromFrontOfScanQueue(t *testing.T) {
-	model := removeScanItemModel()
-	model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
-	assertEqual(t, "remove from front of queue", model.ImageScanQueue, []DockerImageSha{image2.Sha, image3.Sha})
-}
-
-// TestModelRemoveItemFromMiddleOfScanQueue .....
-func TestModelRemoveItemFromMiddleOfScanQueue(t *testing.T) {
-	model := removeScanItemModel()
-	model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
-	assertEqual(t, "remove from middle of queue", model.ImageScanQueue, []DockerImageSha{image1.Sha, image3.Sha})
-}
-
-// TestModelRemoveItemFromEndOfScanQueue .....
-func TestModelRemoveItemFromEndOfScanQueue(t *testing.T) {
-	model := removeScanItemModel()
-	model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
-	assertEqual(t, "remove from end of queue", model.ImageScanQueue, []DockerImageSha{image1.Sha, image2.Sha})
-}
-
-// TestModelRemoveAllItemsFromScanQueue .....
-func TestModelRemoveAllItemsFromScanQueue(t *testing.T) {
-	model := removeScanItemModel()
-	model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
-	model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
-	model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
-	assertEqual(t, "remove all items", model.ImageScanQueue, []DockerImageSha{})
-}
-
-// TestModelRefreshQueueOperations .....
-func TestModelRefreshQueueOperations(t *testing.T) {
-	model := removeItemModel()
-	for _, image := range []Image{image1, image2, image3} {
-		model.SetImageScanStatus(image.Sha, ScanStatusComplete)
-		err := model.AddImageToRefreshQueue(image.Sha)
-		if err != nil {
-			t.Errorf("unable to add sha %s to image refresh queue: %s", image.Sha, err.Error())
+		removeItemModel := func() *Model {
+			model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
+			model.AddImage(image1, 0)
+			model.AddImage(image2, 0)
+			model.AddImage(image3, 0)
+			return model
 		}
-	}
-	assertEqual(t, "refresh queue: all items", model.ImageRefreshQueue, []DockerImageSha{image1.Sha, image2.Sha, image3.Sha})
 
-	image := model.GetNextImageFromRefreshQueue()
-	assertEqual(t, "next Image from refresh queue", image, image1)
+		removeScanItemModel := func() *Model {
+			model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
+			model.AddImage(image1, 0)
+			model.AddImage(image2, 0)
+			model.AddImage(image3, 0)
+			model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
+			model.SetImageScanStatus(image2.Sha, ScanStatusInQueue)
+			model.SetImageScanStatus(image3.Sha, ScanStatusInQueue)
+			return model
+		}
 
-	err := model.RemoveImageFromRefreshQueue(image2.Sha)
-	if err != nil {
-		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
-	}
-	assertEqual(t, "refresh queue: 1 and 3", model.ImageRefreshQueue, []DockerImageSha{image1.Sha, image3.Sha})
+		It("Model JSON Serialization", func() {
+			m := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)
+			jsonBytes, err := json.Marshal(m)
+			Expect(err).To(BeNil())
+			log.Infof("json bytes: %s", string(jsonBytes))
+		})
 
-	image = model.GetNextImageFromRefreshQueue()
-	assertEqual(t, "next Image from refresh queue", image, image1)
+		Describe("Hub check queue operations", func() {
+			It("TestModelRemoveItemFromFrontOfHubCheckQueue", func() {
+				model := removeItemModel()
+				model.removeImageFromHubCheckQueue(image1.Sha)
+				// "remove item from front of hub check queue"
+				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image2.Sha, image3.Sha}))
+			})
 
-	err = model.RemoveImageFromRefreshQueue(image1.Sha)
-	if err != nil {
-		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
-	}
-	assertEqual(t, "refresh queue: 3", model.ImageRefreshQueue, []DockerImageSha{image3.Sha})
+			It("TestModelRemoveItemFromMiddleOfHubCheckQueue", func() {
+				model := removeItemModel()
+				err := model.removeImageFromHubCheckQueue(image2.Sha)
+				Expect(err).To(BeNil())
+				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image3.Sha}))
+			})
 
-	image = model.GetNextImageFromRefreshQueue()
-	assertEqual(t, "next Image from refresh queue", image, image3)
+			It("TestModelRemoveItemFromEndOfHubCheckQueue", func() {
+				model := removeItemModel()
+				model.removeImageFromHubCheckQueue(image3.Sha)
+				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha}))
+			})
 
-	err = model.RemoveImageFromRefreshQueue(image3.Sha)
-	if err != nil {
-		t.Errorf("unable to remove sha %s from refresh queue: %s", image2.Sha, err.Error())
-	}
-	assertEqual(t, "refresh queue: 1 and 3", model.ImageRefreshQueue, []DockerImageSha{})
+			It("TestModelRemoveAllItemsFromHubCheckQueue", func() {
+				model := removeItemModel()
+				model.removeImageFromHubCheckQueue(image1.Sha)
+				model.removeImageFromHubCheckQueue(image2.Sha)
+				model.removeImageFromHubCheckQueue(image3.Sha)
+				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{}))
+			})
+		})
 
-	image = model.GetNextImageFromRefreshQueue()
-	assertEqual(t, "next Image from refresh queue", image, nil)
+		Describe("Image scan queue operations", func() {
+			It("TestModelRemoveItemFromFrontOfScanQueue", func() {
+				model := removeScanItemModel()
+				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image2.Sha, image3.Sha}))
+			})
+
+			It("TestModelRemoveItemFromMiddleOfScanQueue", func() {
+				model := removeScanItemModel()
+				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image3.Sha}))
+			})
+
+			It("TestModelRemoveItemFromEndOfScanQueue", func() {
+				model := removeScanItemModel()
+				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image2.Sha}))
+			})
+
+			It("TestModelRemoveAllItemsFromScanQueue", func() {
+				model := removeScanItemModel()
+				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{}))
+			})
+		})
+
+		Describe("Refresh queue operations", func() {
+			model := removeItemModel()
+			It("should add all 3 images to the refresh queue", func() {
+				for _, image := range []Image{image1, image2, image3} {
+					model.SetImageScanStatus(image.Sha, ScanStatusComplete)
+					err := model.AddImageToRefreshQueue(image.Sha)
+					Expect(err).To(BeNil())
+				}
+			})
+
+			It("should start out with all 3 images", func() {
+				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha, image3.Sha}))
+			})
+
+			It("should produce image1 next, but still leave all 3 in the queue", func() {
+				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image1))
+				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha, image3.Sha}))
+			})
+
+			It("should remove 2 from the queue, leaving behind 1 and 3", func() {
+				err := model.RemoveImageFromRefreshQueue(image2.Sha)
+				Expect(err).To(BeNil())
+				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image3.Sha}))
+				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image1))
+			})
+
+			It("should remove 1 from the queue, leaving behind 3", func() {
+				err := model.RemoveImageFromRefreshQueue(image1.Sha)
+				Expect(err).To(BeNil())
+				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image3.Sha}))
+				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image3))
+			})
+
+			It("should remove 3 from the queue, leaving behind nothing", func() {
+				err := model.RemoveImageFromRefreshQueue(image3.Sha)
+				Expect(err).To(BeNil())
+				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{}))
+				Expect(model.GetNextImageFromRefreshQueue()).To(BeNil())
+			})
+		})
+	})
 }

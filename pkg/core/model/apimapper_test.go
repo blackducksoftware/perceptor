@@ -29,36 +29,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var sha1 DockerImageSha
-var sha2 DockerImageSha
-var sha3 DockerImageSha
-var image1 Image
-var image2 Image
-var image3 Image
-var cont1 Container
-var cont2 Container
-var cont3 Container
-var pod1 Pod
-var pod2 Pod
-var pod3 Pod
-var pod4 Pod
-
-func init() {
-	sha1 = DockerImageSha("sha1")
+var (
+	sha1   = DockerImageSha("sha1")
 	image1 = *NewImage("image1", sha1)
-	sha2 = DockerImageSha("sha2")
+	sha2   = DockerImageSha("sha2")
 	image2 = *NewImage("image2", sha2)
-	sha3 = DockerImageSha("sha3")
+	sha3   = DockerImageSha("sha3")
 	image3 = *NewImage("image3", sha3)
-	cont1 = *NewContainer(image1, "cont1")
-	cont2 = *NewContainer(image2, "cont2")
-	cont3 = *NewContainer(image3, "cont3")
-	pod1 = *NewPod("pod1", "pod1uid", "ns1", []Container{cont1, cont2})
-	pod2 = *NewPod("pod2", "pod2uid", "ns1", []Container{cont1})
-	pod3 = *NewPod("pod3", "pod3uid", "ns3", []Container{cont3})
+	cont1  = *NewContainer(image1, "cont1")
+	cont2  = *NewContainer(image2, "cont2")
+	cont3  = *NewContainer(image3, "cont3")
+	pod1   = *NewPod("pod1", "pod1uid", "ns1", []Container{cont1, cont2})
+	pod2   = *NewPod("pod2", "pod2uid", "ns1", []Container{cont1})
+	pod3   = *NewPod("pod3", "pod3uid", "ns3", []Container{cont3})
 	// this is ridiculous, but let's create a pod with 0 containers
 	pod4 = *NewPod("pod4", "pod4uid", "ns4", []Container{})
-}
+)
 
 func createNewModel1() *Model {
 	model := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)

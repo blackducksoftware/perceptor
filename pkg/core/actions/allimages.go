@@ -33,6 +33,6 @@ type AllImages struct {
 // Apply .....
 func (a *AllImages) Apply(model *m.Model) {
 	for _, image := range a.Images {
-		model.AddImage(image)
+		model.AddImage(image, 0)
 	}
 }
