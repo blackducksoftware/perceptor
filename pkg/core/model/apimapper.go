@@ -30,7 +30,7 @@ import (
 
 // APIImageToCoreImage .....
 func APIImageToCoreImage(apiImage api.Image) *Image {
-	return NewImage(apiImage.Name, DockerImageSha(apiImage.Sha))
+	return NewImage(apiImage.Repository, apiImage.Tag, DockerImageSha(apiImage.Sha))
 }
 
 // APIContainerToCoreContainer .....
@@ -51,12 +51,10 @@ func APIPodToCorePod(apiPod api.Pod) *Pod {
 
 // CoreContainerToAPIContainer .....
 func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
+	image := coreContainer.Image
 	return &api.Container{
-		Image: api.Image{
-			Name: coreContainer.Image.Name,
-			Sha:  string(coreContainer.Image.Sha),
-		},
-		Name: coreContainer.Name,
+		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha)),
+		Name:  coreContainer.Name,
 	}
 }
 
@@ -84,8 +82,12 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 	// images
 	images := map[string]*api.ModelImageInfo{}
 	for imageSha, imageInfo := range model.Images {
+		repoTags := []*api.ModelRepoTag{}
+		for _, repoTag := range imageInfo.RepoTags {
+			repoTags = append(repoTags, &api.ModelRepoTag{Repository: repoTag.Repository, Tag: repoTag.Tag})
+		}
 		images[string(imageSha)] = &api.ModelImageInfo{
-			ImageNames:             imageInfo.ImageNames,
+			RepoTags:               repoTags,
 			ImageSha:               string(imageInfo.ImageSha),
 			ScanResults:            imageInfo.ScanResults,
 			ScanStatus:             imageInfo.ScanStatus.String(),
@@ -166,7 +168,8 @@ func (model *Model) ScanResults() api.ScanResults {
 		}
 		image := imageInfo.Image()
 		apiImage := api.ScannedImage{
-			Name:             image.HumanReadableName(),
+			Repository:       image.Repository,
+			Tag:              image.Tag,
 			Sha:              string(image.Sha),
 			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),

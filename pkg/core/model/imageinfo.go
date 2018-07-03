@@ -35,15 +35,15 @@ type ImageInfo struct {
 	TimeOfLastRefresh      time.Time
 	ScanResults            *hub.ImageScan
 	ImageSha               DockerImageSha
-	ImageNames             []string
+	RepoTags               []*RepoTag
 }
 
 // NewImageInfo .....
-func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
+func NewImageInfo(sha DockerImageSha, repoTag *RepoTag) *ImageInfo {
 	imageInfo := &ImageInfo{
 		ScanResults: nil,
 		ImageSha:    sha,
-		ImageNames:  []string{imageName},
+		RepoTags:    []*RepoTag{repoTag},
 	}
 	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
@@ -67,25 +67,26 @@ func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 
 // Image .....
 func (imageInfo *ImageInfo) Image() Image {
-	return *NewImage(imageInfo.FirstImageName(), imageInfo.ImageSha)
+	repoTag := imageInfo.FirstRepoTag()
+	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha)
 }
 
-// AddImageName .....
-func (imageInfo *ImageInfo) AddImageName(imageName string) {
-	if !arrayContains(imageInfo.ImageNames, imageName) {
-		imageInfo.ImageNames = append(imageInfo.ImageNames, imageName)
+// AddRepoTag .....
+func (imageInfo *ImageInfo) AddRepoTag(repoTag *RepoTag) {
+	if !arrayContains(imageInfo.RepoTags, repoTag) {
+		imageInfo.RepoTags = append(imageInfo.RepoTags, repoTag)
 	}
 }
 
-// FirstImageName .....
-func (imageInfo *ImageInfo) FirstImageName() string {
-	if len(imageInfo.ImageNames) == 0 {
-		panic(fmt.Errorf("expected at least 1 imageName, found 0"))
+// FirstRepoTag ...
+func (imageInfo *ImageInfo) FirstRepoTag() *RepoTag {
+	if len(imageInfo.RepoTags) == 0 {
+		panic(fmt.Errorf("expected at least 1 RepoTag, found 0"))
 	}
-	return imageInfo.ImageNames[0]
+	return imageInfo.RepoTags[0]
 }
 
-func arrayContains(array []string, value string) bool {
+func arrayContains(array []*RepoTag, value *RepoTag) bool {
 	for _, item := range array {
 		if item == value {
 			return true

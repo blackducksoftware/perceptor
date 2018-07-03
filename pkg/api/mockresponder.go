@@ -110,7 +110,8 @@ func (mr *MockResponder) GetScanResults() ScanResults {
 	}
 	for _, imageInfo := range mr.Images {
 		scannedImages = append(scannedImages, ScannedImage{
-			Name:             imageInfo.Image.Name,
+			Repository:       imageInfo.Image.Repository,
+			Tag:              imageInfo.Image.Tag,
 			ComponentsURL:    imageInfo.ComponentsURL,
 			OverallStatus:    imageInfo.OverallStatus,
 			PolicyViolations: imageInfo.PolicyViolations,
@@ -174,7 +175,7 @@ func (mr *MockResponder) GetNextImage() NextImage {
 		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
 		HubProjectVersionName: fmt.Sprintf("mock-perceptor-project-version-%d", mr.NextImageCounter),
 		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
-		PullSpec:              "abc/def/ghi",
+		Repository:            "abc/def/ghi",
 		Sha:                   "123abc456def"}
 	return NextImage{ImageSpec: &imageSpec}
 }

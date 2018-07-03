@@ -23,7 +23,8 @@ package api
 
 // ScannedImage .....
 type ScannedImage struct {
-	Name             string
+	Repository       string
+	Tag              string
 	Sha              string
 	PolicyViolations int
 	Vulnerabilities  int

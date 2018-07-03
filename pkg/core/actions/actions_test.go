@@ -46,11 +46,11 @@ var pod3 m.Pod
 
 func init() {
 	sha1 = m.DockerImageSha("sha1")
-	image1 = *m.NewImage("image1", sha1)
+	image1 = *m.NewImage("image1", "l", sha1)
 	sha2 = m.DockerImageSha("sha2")
-	image2 = *m.NewImage("image2", sha2)
+	image2 = *m.NewImage("image2", "l", sha2)
 	sha3 = m.DockerImageSha("sha3")
-	image3 = *m.NewImage("image3", sha3)
+	image3 = *m.NewImage("image3", "l", sha3)
 	cont1 = *m.NewContainer(image1, "cont1")
 	cont2 = *m.NewContainer(image2, "cont2")
 	cont3 = *m.NewContainer(image3, "cont3")
@@ -95,7 +95,7 @@ func assertEqual(t *testing.T, actual interface{}, expected interface{}) {
 		return
 	}
 	// t.Errorf("expected \n%+v, got \n%+v", expected, actual)
-	t.Errorf("expected \n%s, got \n%s", string(expectedBytes), string(actualBytes))
+	t.Errorf("\nexpected %s,\nactual   %s", string(expectedBytes), string(actualBytes))
 }
 
 // TestActionsImplementInterface .....
@@ -127,6 +127,6 @@ func processAction(nextAction Action) {
 }
 
 var testSha = m.DockerImageSha("sha1")
-var testImage = m.Image{Name: "image1", Sha: testSha}
+var testImage = m.Image{Repository: "image1", Tag: "l1", Sha: testSha}
 var testCont = m.Container{Image: testImage}
 var testPod = m.Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []m.Container{testCont}}

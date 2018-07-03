@@ -31,12 +31,12 @@ import (
 func TestAddImageAction(t *testing.T) {
 	// actual
 	actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	(&AddImage{testImage}).Apply(actual)
+	(&AddImage{Image: testImage}).Apply(actual)
 	// expected (a bit hacky to get the times set up):
 	//  - image gets added to .Images
 	//  - image gets added to hub check queue
 	expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	imageInfo := m.NewImageInfo(testSha, "image1")
+	imageInfo := m.NewImageInfo(testSha, &m.RepoTag{Repository: "image1", Tag: "l1"})
 	imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
 	imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 	expected.Images[testSha] = imageInfo
