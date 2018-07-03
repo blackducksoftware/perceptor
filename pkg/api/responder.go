@@ -30,17 +30,17 @@ type Responder interface {
 	GetModel() Model
 
 	// perceiver
-	AddPod(pod Pod)
-	UpdatePod(pod Pod)
-	DeletePod(qualifiedName string)
+	AddPod(pod Pod) error
+	UpdatePod(pod Pod) error
+	DeletePod(qualifiedName string) error
 	GetScanResults() ScanResults
-	AddImage(image Image)
-	UpdateAllPods(allPods AllPods)
-	UpdateAllImages(allImages AllImages)
+	AddImage(image Image) error
+	UpdateAllPods(allPods AllPods) error
+	UpdateAllImages(allImages AllImages) error
 
 	// scanner
 	GetNextImage() NextImage
-	PostFinishScan(job FinishedScanClientJob)
+	PostFinishScan(job FinishedScanClientJob) error
 
 	// internal use
 	PostConfig(config *PostConfig)
