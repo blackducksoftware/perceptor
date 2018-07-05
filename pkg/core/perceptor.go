@@ -100,8 +100,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 			case actions <- <-httpResponder.AllImagesChannel:
 			case job := <-httpResponder.PostFinishScanJobChannel:
 				actions <- job
-			case continuation := <-httpResponder.PostNextImageChannel:
-				actions <- &a.GetNextImage{Continuation: continuation}
+			case actions <- <-httpResponder.PostNextImageChannel:
 			case config := <-httpResponder.PostConfigChannel:
 				actions <- &a.SetConfig{
 					ConcurrentScanLimit:                 config.ConcurrentScanLimit,

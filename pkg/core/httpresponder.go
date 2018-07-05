@@ -24,7 +24,6 @@ package core
 import (
 	"fmt"
 	"net/http"
-	"sync"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
@@ -40,7 +39,7 @@ type HTTPResponder struct {
 	AddImageChannel            chan *a.AddImage
 	AllPodsChannel             chan *a.AllPods
 	AllImagesChannel           chan *a.AllImages
-	PostNextImageChannel       chan func(*model.Image)
+	PostNextImageChannel       chan *a.GetNextImage
 	PostFinishScanJobChannel   chan *a.FinishScanClient
 	PostConfigChannel          chan *api.PostConfig
 	ResetCircuitBreakerChannel chan bool
@@ -57,7 +56,7 @@ func NewHTTPResponder() *HTTPResponder {
 		AddImageChannel:            make(chan *a.AddImage),
 		AllPodsChannel:             make(chan *a.AllPods),
 		AllImagesChannel:           make(chan *a.AllImages),
-		PostNextImageChannel:       make(chan func(*model.Image)),
+		PostNextImageChannel:       make(chan *a.GetNextImage),
 		PostFinishScanJobChannel:   make(chan *a.FinishScanClient),
 		PostConfigChannel:          make(chan *api.PostConfig),
 		ResetCircuitBreakerChannel: make(chan bool),
@@ -161,27 +160,23 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 // GetNextImage .....
 func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	recordGetNextImage()
-	var wg sync.WaitGroup
-	var nextImage api.NextImage
-	wg.Add(1)
-	hr.PostNextImageChannel <- func(image *model.Image) {
-		imageString := "null"
-		var imageSpec *api.ImageSpec
-		if image != nil {
-			imageString = image.HumanReadableName()
-			imageSpec = api.NewImageSpec(
-				image.Name,
-				image.PullSpec(),
-				string(image.Sha),
-				image.HubProjectName(),
-				image.HubProjectVersionName(),
-				image.HubScanName())
-		}
-		nextImage = *api.NewNextImage(imageSpec)
-		log.Debugf("handled GET next image -- %s", imageString)
-		wg.Done()
+	get := a.NewGetNextImage()
+	hr.PostNextImageChannel <- get
+	image := <-get.Done
+	imageString := "null"
+	var imageSpec *api.ImageSpec
+	if image != nil {
+		imageString = image.HumanReadableName()
+		imageSpec = api.NewImageSpec(
+			image.Name,
+			image.PullSpec(),
+			string(image.Sha),
+			image.HubProjectName(),
+			image.HubProjectVersionName(),
+			image.HubScanName())
 	}
-	wg.Wait()
+	nextImage := *api.NewNextImage(imageSpec)
+	log.Debugf("handled GET next image -- %s", imageString)
 	return nextImage
 }
 
