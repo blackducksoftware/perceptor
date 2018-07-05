@@ -7,7 +7,7 @@ Perceptor is an API server and event handler for consuming, storing, and queuein
 # Perceptor core
 
 This maintains a model which is essentially a join of the pods and images currently running in the system,
-and the information relating to those images from the hub.
+with the information relating to those images from the hub.
 
 It contains business logic for deciding when and what to scan, and provides a REST API for perceivers
 and scanners to communicate with it.
