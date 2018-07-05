@@ -36,5 +36,6 @@ func TestModel(t *testing.T) {
 	RunTestAllImages()
 	RunFetchScanCompletionTests()
 	RunFetchScanRefresh()
+	RunTestGetFullScanResults()
 	RunSpecs(t, "model suite")
 }

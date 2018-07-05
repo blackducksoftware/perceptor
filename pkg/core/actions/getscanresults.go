@@ -28,11 +28,17 @@ import (
 
 // GetScanResults .....
 type GetScanResults struct {
-	Continuation func(results api.ScanResults)
+	Done chan api.ScanResults
+}
+
+func NewGetScanResults() *GetScanResults {
+	return &GetScanResults{Done: make(chan api.ScanResults)}
 }
 
 // Apply .....
 func (g *GetScanResults) Apply(model *m.Model) {
-	scanResults := model.ScanResults()
-	go g.Continuation(scanResults)
+	scanResults := ScanResults(model)
+	go func() {
+		g.Done <- scanResults
+	}()
 }

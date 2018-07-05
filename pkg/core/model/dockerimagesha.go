@@ -21,5 +21,15 @@ under the License.
 
 package model
 
+import "fmt"
+
 // DockerImageSha .....
 type DockerImageSha string
+
+// NewDockerImageSha ensures that the sha is 64 characters.
+func NewDockerImageSha(sha string) (DockerImageSha, error) {
+	if len(sha) != 64 {
+		return DockerImageSha(""), fmt.Errorf("invalid sha, expected 64 characters but found %d from %s", len(sha), sha)
+	}
+	return DockerImageSha(sha), nil
+}

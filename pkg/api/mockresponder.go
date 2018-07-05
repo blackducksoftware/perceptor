@@ -92,10 +92,9 @@ func (mr *MockResponder) UpdatePod(pod Pod) error {
 }
 
 // DeletePod .....
-func (mr *MockResponder) DeletePod(qualifiedName string) error {
+func (mr *MockResponder) DeletePod(qualifiedName string) {
 	log.Infof("delete pod: %s", qualifiedName)
 	delete(mr.Pods, qualifiedName)
-	return nil
 }
 
 // GetScanResults .....

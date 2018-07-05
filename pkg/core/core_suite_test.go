@@ -19,34 +19,17 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package core
 
 import (
-	"net/http"
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// Responder .....
-type Responder interface {
-	GetModel() Model
-
-	// perceiver
-	AddPod(pod Pod) error
-	UpdatePod(pod Pod) error
-	DeletePod(qualifiedName string)
-	GetScanResults() ScanResults
-	AddImage(image Image) error
-	UpdateAllPods(allPods AllPods) error
-	UpdateAllImages(allImages AllImages) error
-
-	// scanner
-	GetNextImage() NextImage
-	PostFinishScan(job FinishedScanClientJob) error
-
-	// internal use
-	PostConfig(config *PostConfig)
-	PostCommand(commands *PostCommand)
-
-	// errors
-	NotFound(w http.ResponseWriter, r *http.Request)
-	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunTestPodOverallStatus()
+	RunSpecs(t, "core suite")
 }

@@ -92,18 +92,12 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 	go func() {
 		for {
 			select {
-			case pod := <-httpResponder.AddPodChannel:
-				actions <- &a.AddPod{Pod: pod}
-			case pod := <-httpResponder.UpdatePodChannel:
-				actions <- &a.UpdatePod{Pod: pod}
-			case podName := <-httpResponder.DeletePodChannel:
-				actions <- &a.DeletePod{PodName: podName}
-			case image := <-httpResponder.AddImageChannel:
-				actions <- &a.AddImage{Image: image}
-			case pods := <-httpResponder.AllPodsChannel:
-				actions <- &a.AllPods{Pods: pods}
-			case images := <-httpResponder.AllImagesChannel:
-				actions <- &a.AllImages{Images: images}
+			case actions <- <-httpResponder.AddPodChannel:
+			case actions <- <-httpResponder.UpdatePodChannel:
+			case actions <- <-httpResponder.DeletePodChannel:
+			case actions <- <-httpResponder.AddImageChannel:
+			case actions <- <-httpResponder.AllPodsChannel:
+			case actions <- <-httpResponder.AllImagesChannel:
 			case job := <-httpResponder.PostFinishScanJobChannel:
 				actions <- job
 			case continuation := <-httpResponder.PostNextImageChannel:
@@ -116,20 +110,18 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					ImageRefreshThresholdSeconds:        config.ImageRefreshThresholdSeconds,
 					EnqueueImagesForRefreshPauseSeconds: config.EnqueueImagesForRefreshPauseSeconds,
 				}
-			case continuation := <-httpResponder.GetModelChannel:
-				actions <- &a.GetModel{Continuation: func(apiModel api.Model) {
-					cbModel := hubClient.Model()
-					apiModel.HubCircuitBreaker = &api.ModelCircuitBreaker{
-						ConsecutiveFailures: cbModel.ConsecutiveFailures,
-						NextCheckTime:       cbModel.NextCheckTime,
-						State:               cbModel.State.String(),
-					}
-					continuation(apiModel)
-				}}
-			case continuation := <-httpResponder.GetScanResultsChannel:
-				actions <- &a.GetScanResults{Continuation: continuation}
-			case action := <-routineTaskManager.actions:
-				actions <- action
+			case get := <-httpResponder.GetModelChannel:
+				// TODO wow, this is such a huge hack.  Root cause: circuit breaker model lives
+				// outside of the main model.
+				cbModel := hubClient.Model()
+				get.HubCircuitBreaker = &api.ModelCircuitBreaker{
+					ConsecutiveFailures: cbModel.ConsecutiveFailures,
+					NextCheckTime:       cbModel.NextCheckTime,
+					State:               cbModel.State.String(),
+				}
+				actions <- get
+			case actions <- <-httpResponder.GetScanResultsChannel:
+			case actions <- <-routineTaskManager.actions:
 			case isEnabled := <-hubClient.IsEnabled():
 				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:

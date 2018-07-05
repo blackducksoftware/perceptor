@@ -19,34 +19,28 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package actions
 
 import (
-	"net/http"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// Responder .....
-type Responder interface {
-	GetModel() Model
-
-	// perceiver
-	AddPod(pod Pod) error
-	UpdatePod(pod Pod) error
-	DeletePod(qualifiedName string)
-	GetScanResults() ScanResults
-	AddImage(image Image) error
-	UpdateAllPods(allPods AllPods) error
-	UpdateAllImages(allImages AllImages) error
-
-	// scanner
-	GetNextImage() NextImage
-	PostFinishScan(job FinishedScanClientJob) error
-
-	// internal use
-	PostConfig(config *PostConfig)
-	PostCommand(commands *PostCommand)
-
-	// errors
-	NotFound(w http.ResponseWriter, r *http.Request)
-	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
+func RunTestGetFullScanResults() {
+	Describe("test get full scan results", func() {
+		model := createNewModel1()
+		scanResults := ScanResults(model)
+		It("should produce the right number of pods", func() {
+			Expect(len(scanResults.Pods)).To(Equal(1))
+		})
+		It("should produce pods with the right data", func() {
+			Expect(scanResults.Pods[0].Name).To(Equal("pod2"))
+		})
+		It("should produce the right number of images", func() {
+			Expect(len(scanResults.Images)).To(Equal(1))
+		})
+		It("should produce the right number of policy violations", func() {
+			Expect(scanResults.Images[0].PolicyViolations).To(Equal(3))
+		})
+	})
 }
