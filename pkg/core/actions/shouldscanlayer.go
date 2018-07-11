@@ -30,15 +30,33 @@ import (
 // ShouldScanLayer .....
 type ShouldScanLayer struct {
 	Layer   string
-	Success chan *bool
+	Success chan bool
 	Err     chan error
 }
 
 func NewShouldScanLayer(layer string) *ShouldScanLayer {
-	return &ShouldScanLayer{Layer: layer, Success: make(chan *bool), Err: make(chan error)}
+	return &ShouldScanLayer{Layer: layer, Success: make(chan bool), Err: make(chan error)}
 }
 
 // Apply .....
 func (g *ShouldScanLayer) Apply(model *m.Model) {
-	g.Err <- fmt.Errorf("TODO -- unimplemented")
+	// ScanStatus:
+	// unknown -> error
+	// not scanned -> yes
+	// complete -> no
+	// running scan client -> no
+	// running hub scan -> no
+	layerInfo, ok := model.Layers[g.Layer]
+	if !ok {
+		g.Err <- fmt.Errorf("layer %s not found", g.Layer)
+		return
+	}
+	switch layerInfo.ScanStatus {
+	case m.ScanStatusUnknown:
+		g.Err <- fmt.Errorf("layer %s status unknown", g.Layer)
+	case m.ScanStatusNotScanned:
+		g.Success <- true
+	default:
+		g.Success <- false
+	}
 }
