@@ -27,7 +27,7 @@ import "time"
 type FetcherInterface interface {
 	Login() error
 	HubVersion() string
-	FetchScanFromImage(image ImageInterface) (*ImageScan, error)
+	FetchScanFromImage(scanNameSearchString string) (*ScanResults, error)
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
 	Model() *FetcherModel
