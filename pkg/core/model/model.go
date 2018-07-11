@@ -96,7 +96,7 @@ func (model *Model) AddImage(image Image, priority int) {
 	}
 }
 
-// image state transitions
+// layer state transitions
 
 func (model *Model) setLayerScanStatus(sha string, newScanStatus ScanStatus) error {
 	layerInfo, ok := model.Layers[sha]
@@ -177,8 +177,8 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
 
 // "Public" methods
 
-// SetImageScanStatus .....
-func (model *Model) SetImageScanStatus(sha string, newScanStatus ScanStatus) {
+// SetLayerScanStatus .....
+func (model *Model) SetLayerScanStatus(sha string, newScanStatus ScanStatus) {
 	err := model.setLayerScanStatus(sha, newScanStatus)
 	if err != nil {
 		layerInfo, ok := model.Layers[sha]
@@ -186,7 +186,7 @@ func (model *Model) SetImageScanStatus(sha string, newScanStatus ScanStatus) {
 		if ok {
 			statusString = layerInfo.ScanStatus.String()
 		}
-		log.Errorf("unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
+		log.Errorf("unable to transition layer state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
 	}
 }
 

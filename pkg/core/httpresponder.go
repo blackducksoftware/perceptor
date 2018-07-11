@@ -33,14 +33,19 @@ import (
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	AddPodChannel              chan *a.AddPod
-	UpdatePodChannel           chan *a.UpdatePod
-	DeletePodChannel           chan *a.DeletePod
-	AddImageChannel            chan *a.AddImage
-	AllPodsChannel             chan *a.AllPods
-	AllImagesChannel           chan *a.AllImages
-	PostNextImageChannel       chan *a.GetNextImage
-	PostFinishScanJobChannel   chan *a.FinishScanClient
+	// perceiver
+	AddPodChannel    chan *a.AddPod
+	UpdatePodChannel chan *a.UpdatePod
+	DeletePodChannel chan *a.DeletePod
+	AddImageChannel  chan *a.AddImage
+	AllPodsChannel   chan *a.AllPods
+	AllImagesChannel chan *a.AllImages
+	// scaner
+	PostNextImageChannel     chan *a.GetNextImage
+	PostFinishScanJobChannel chan *a.FinishScanClient
+	PostImageLayersChannel   chan *a.ImageLayers
+	ShouldScanLayerChannel   chan *a.ShouldScanLayer
+	// internal use
 	PostConfigChannel          chan *api.PostConfig
 	ResetCircuitBreakerChannel chan bool
 	GetModelChannel            chan *a.GetModel
@@ -58,6 +63,8 @@ func NewHTTPResponder() *HTTPResponder {
 		AllImagesChannel:           make(chan *a.AllImages),
 		PostNextImageChannel:       make(chan *a.GetNextImage),
 		PostFinishScanJobChannel:   make(chan *a.FinishScanClient),
+		PostImageLayersChannel:     make(chan *a.ImageLayers),
+		ShouldScanLayerChannel:     make(chan *a.ShouldScanLayer),
 		PostConfigChannel:          make(chan *api.PostConfig),
 		ResetCircuitBreakerChannel: make(chan bool),
 		GetModelChannel:            make(chan *a.GetModel),
@@ -157,6 +164,8 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 	return <-get.Done
 }
 
+// Scanner methods:
+
 // GetNextImage .....
 func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	recordGetNextImage()
@@ -189,10 +198,28 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 	} else {
 		err = fmt.Errorf(job.Err)
 	}
-	image := model.NewImage(job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha))
-	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
+	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Layer: job.Layer, Err: err}
 	log.Debugf("handled finished scan job -- %v", job)
 	return nil
+}
+
+func (hr *HTTPResponder) PostImageLayers(imageLayers api.ImageLayers) error {
+	recordPostImageLayers()
+	action := a.NewImageLayers(imageLayers.ImageSpec.Sha, imageLayers.Layers)
+	hr.PostImageLayersChannel <- action
+	return <-action.Done
+}
+
+func (hr *HTTPResponder) ShouldScanLayer(layer api.LayerScanRequest) (*api.LayerScanResponse, error) {
+	recordShouldScanLayer()
+	action := a.NewShouldScanLayer(layer.Layer)
+	hr.ShouldScanLayerChannel <- action
+	select {
+	case shouldScan := <-action.Success:
+		return &api.LayerScanResponse{Layer: layer.Layer, ShouldScan: shouldScan}, nil
+	case err := <-action.Err:
+		return nil, err
+	}
 }
 
 // internal use

@@ -114,16 +114,16 @@ func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {
 	action := func() {
 		var wg sync.WaitGroup
 		wg.Add(1)
-		var image *model.Image
-		rtm.actions <- &actions.CheckScanInitial{Continuation: func(i *model.Image) {
-			image = i
+		var layer *string
+		rtm.actions <- &actions.CheckScanInitial{Continuation: func(l *string) {
+			layer = l
 			wg.Done()
 		}}
 		wg.Wait()
 
-		if image != nil {
-			scan, err := rtm.hubClient.FetchScanFromImage(*image)
-			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+		if layer != nil {
+			scan, err := rtm.hubClient.FetchScanFromImage(*layer)
+			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubScan{Sha: *layer, Scan: scan, Err: err}}
 		}
 	}
 	return NewScheduler(rtm.Timings.CheckHubThrottle, rtm.stop, action)
@@ -133,13 +133,13 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 	log.Info("starting to poll hub for scan completion")
 	return NewScheduler(rtm.Timings.CheckHubForCompletedScansPause, rtm.stop, func() {
 		log.Debug("checking hub for completion of running hub scans")
-		rtm.actions <- &actions.CheckScansCompletion{Continuation: func(images *[]model.Image) {
-			if images == nil {
+		rtm.actions <- &actions.CheckScansCompletion{Continuation: func(layers *[]string) {
+			if layers == nil {
 				return
 			}
-			for _, image := range *images {
-				scan, err := rtm.hubClient.FetchScanFromImage(image)
-				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
+			for _, layer := range *layers {
+				scan, err := rtm.hubClient.FetchScanFromImage(layer)
+				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubScan{Sha: layer, Scan: scan, Err: err}}
 				time.Sleep(rtm.GetTimings().CheckHubThrottle)
 			}
 		}}
@@ -166,11 +166,11 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 
 		var wg sync.WaitGroup
 		wg.Add(1)
-		rtm.actions <- &actions.CheckScanRefresh{Continuation: func(image *model.Image) {
-			if image != nil {
-				log.Debugf("refreshing image %s", image.PullSpec())
-				scan, err := rtm.hubClient.FetchScanFromImage(*image)
-				rtm.actions <- &actions.FetchScanRefresh{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
+		rtm.actions <- &actions.CheckScanRefresh{Continuation: func(layer *string) {
+			if layer != nil {
+				log.Debugf("refreshing layer %s", layer)
+				scan, err := rtm.hubClient.FetchScanFromImage(*layer)
+				rtm.actions <- &actions.FetchScanRefresh{Scan: &model.HubScan{Sha: *layer, Scan: scan, Err: err}}
 			}
 			wg.Done()
 		}}
@@ -181,7 +181,7 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *Scheduler {
 	return NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
 		log.Debug("enqueueing images in need of refreshing")
-		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
+		rtm.actions <- &actions.EnqueueLayersNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
 	})
 }
 

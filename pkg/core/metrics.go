@@ -55,8 +55,7 @@ var statusHistogram *prometheus.GaugeVec
 func recordModelMetrics(modelMetrics *model.Metrics) {
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
-		model.ScanStatusInHubCheckQueue,
-		model.ScanStatusInQueue,
+		model.ScanStatusNotScanned,
 		model.ScanStatusRunningScanClient,
 		model.ScanStatusRunningHubScan,
 		model.ScanStatusComplete}
@@ -141,6 +140,14 @@ func recordGetNextImage() {
 
 func recordPostFinishedScan() {
 	handledHTTPRequest.With(prometheus.Labels{"path": "finishedscan", "method": "POST", "code": "200"}).Inc()
+}
+
+func recordPostImageLayers() {
+	handledHTTPRequest.With(prometheus.Labels{"path": "imagelayers", "method": "POST", "code": "200"}).Inc()
+}
+
+func recordShouldScanLayer() {
+	handledHTTPRequest.With(prometheus.Labels{"path": "shouldscanlayer", "method": "POST", "code": "200"}).Inc()
 }
 
 func recordGetScanResults() {

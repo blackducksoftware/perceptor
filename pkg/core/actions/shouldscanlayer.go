@@ -19,11 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package actions
 
-// FinishedScanClientJob .....
-type FinishedScanClientJob struct {
-	Layer     string
-	ImageSpec ImageSpec
-	Err       string
+import (
+	"fmt"
+
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
+
+// ShouldScanLayer .....
+type ShouldScanLayer struct {
+	Layer   string
+	Success chan *bool
+	Err     chan error
+}
+
+func NewShouldScanLayer(layer string) *ShouldScanLayer {
+	return &ShouldScanLayer{Layer: layer, Success: make(chan *bool), Err: make(chan error)}
+}
+
+// Apply .....
+func (g *ShouldScanLayer) Apply(model *m.Model) {
+	g.Err <- fmt.Errorf("TODO -- unimplemented")
 }
