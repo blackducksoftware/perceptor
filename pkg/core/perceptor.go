@@ -98,8 +98,9 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 			case actions <- <-httpResponder.AddImageChannel:
 			case actions <- <-httpResponder.AllPodsChannel:
 			case actions <- <-httpResponder.AllImagesChannel:
-			case job := <-httpResponder.PostFinishScanJobChannel:
-				actions <- job
+			case actions <- <-httpResponder.ShouldScanLayerChannel:
+			case actions <- <-httpResponder.PostImageLayersChannel:
+			case actions <- <-httpResponder.PostFinishScanJobChannel:
 			case actions <- <-httpResponder.PostNextImageChannel:
 			case config := <-httpResponder.PostConfigChannel:
 				actions <- &a.SetConfig{
