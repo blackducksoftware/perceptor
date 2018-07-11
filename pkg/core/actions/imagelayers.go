@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
 // ImageLayers .....
@@ -40,5 +41,13 @@ func NewImageLayers(imageSha string, layers []string) *ImageLayers {
 
 // Apply .....
 func (g *ImageLayers) Apply(model *m.Model) {
+	for _, layer := range g.Layers {
+		_, ok := model.Layers[layer]
+		if ok {
+			log.Infof("skipping layer %s, already present", layer)
+			continue
+		}
+		model.Layers[layer] = m.NewLayerInfo(m.DockerImageSha(g.ImageSha))
+	}
 	g.Done <- fmt.Errorf("TODO -- unimplemented")
 }
