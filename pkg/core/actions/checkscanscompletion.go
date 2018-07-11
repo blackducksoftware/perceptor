@@ -27,7 +27,7 @@ import (
 
 // CheckScansCompletion .....
 type CheckScansCompletion struct {
-	Continuation func(images *[]m.Image)
+	Continuation func(layers *[]string)
 }
 
 // Apply .....

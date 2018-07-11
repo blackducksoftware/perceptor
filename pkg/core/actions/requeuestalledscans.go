@@ -34,15 +34,16 @@ type RequeueStalledScans struct {
 
 // Apply .....
 func (r *RequeueStalledScans) Apply(model *m.Model) {
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case m.ScanStatusRunningScanClient:
-			if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
-				recordRequeueStalledScan(imageInfo.ScanStatus.String())
-				model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
-			}
-		default:
-			// nothing to do
-		}
-	}
+	// TODO
+	// for _, imageInfo := range model.Images {
+	// 	switch imageInfo.ScanStatus {
+	// 	case m.ScanStatusRunningScanClient:
+	// 		if imageInfo.TimeInCurrentScanStatus() > r.StalledScanClientTimeout {
+	// 			recordRequeueStalledScan(imageInfo.ScanStatus.String())
+	// 			model.SetImageScanStatus(imageInfo.ImageSha, m.ScanStatusInQueue)
+	// 		}
+	// 	default:
+	// 		// nothing to do
+	// 	}
+	// }
 }

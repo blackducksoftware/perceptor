@@ -29,7 +29,7 @@ import (
 
 // FetchScanInitial .....
 type FetchScanInitial struct {
-	Scan *m.HubImageScan
+	Scan *m.HubScan
 }
 
 // Apply .....
@@ -37,21 +37,21 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 	scan := h.Scan
 
 	// case -1: image mysteriousy gone from model
-	imageInfo, ok := model.Images[scan.Sha]
+	layerInfo, ok := model.Layers[scan.Sha]
 	if !ok {
-		log.Errorf("expected to already have sha %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have sha %s, but did not", scan.Sha)
 		return
 	}
 
 	// case 0: image surprisingly has different status
-	if imageInfo.ScanStatus != m.ScanStatusInHubCheckQueue {
-		log.Warnf("ignoring hub check results for sha %s, invalid status (expected InHubCheckQueue, found %s)", string(scan.Sha), imageInfo.ScanStatus)
+	if layerInfo.ScanStatus != m.ScanStatusUnknown {
+		log.Warnf("ignoring hub check results for sha %s, invalid status (expected Unknown, found %s)", scan.Sha, layerInfo.ScanStatus)
 		return
 	}
 
 	// case 1: error trying to access the hub code location.  Don't change the status.
 	if scan.Err != nil {
-		log.Errorf("check image in hub -- unable to fetch image scan for sha %s: %s", scan.Sha, scan.Err.Error())
+		log.Errorf("check image in hub -- unable to fetch layer scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}
 
@@ -62,23 +62,23 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 	//       shown up in the hub yet.  TODO is there anything we can do in this case?
 	//       For now, we'll just ignore this case.
 	if scan.Scan == nil {
-		log.Infof("check image in hub -- unable to find image scan for sha %s, found nil", scan.Sha)
-		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		log.Infof("check image in hub -- unable to find layer scan for sha %s, found nil", scan.Sha)
+		model.SetLayerScanStatus(scan.Sha, m.ScanStatusNotScanned)
 		return
 	}
 
 	// case 3: found hub code location, and it's complete
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
-		log.Infof("check image in hub -- found finished image scan for sha %s: %+v", scan.Sha, *scan)
-		model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
-		imageInfo.SetScanResults(scan.Scan)
+		log.Infof("check image in hub -- found finished layer scan for sha %s: %+v", scan.Sha, *scan)
+		model.SetLayerScanStatus(scan.Sha, m.ScanStatusComplete)
+		layerInfo.SetScanResults(scan.Scan)
 		return
 	}
 
 	// case 4: found hub code location, and it failed
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
-		log.Infof("check image in hub -- found failed image scan for sha %s: %+v", scan.Sha, *scan)
-		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
+		log.Infof("check image in hub -- found failed layer scan for sha %s: %+v", scan.Sha, *scan)
+		model.SetLayerScanStatus(scan.Sha, m.ScanStatusNotScanned)
 		return
 	}
 
@@ -91,5 +91,5 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 	//   there's a problem, it'll automatically get rescheduled by the regular
 	//   job that cleans up stalled scans.
 	log.Infof("check image in hub -- found running scan for sha %s: %+v", scan.Sha, *scan)
-	model.SetImageScanStatus(scan.Sha, m.ScanStatusRunningHubScan)
+	model.SetLayerScanStatus(scan.Sha, m.ScanStatusRunningHubScan)
 }

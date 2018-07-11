@@ -29,7 +29,7 @@ import (
 
 // FetchScanCompletion .....
 type FetchScanCompletion struct {
-	Scan *m.HubImageScan
+	Scan *m.HubScan
 }
 
 // Apply .....
@@ -44,30 +44,30 @@ func (h *FetchScanCompletion) Apply(model *m.Model) {
 
 	// case 2: nil
 	if scan.Scan == nil {
-		log.Debugf("found nil checking hub for completed scan for image %s", string(scan.Sha))
+		log.Debugf("found nil checking hub for completed scan for image %s", scan.Sha)
 		return
 	}
 
 	// case 3: found it, and it's not done
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
-		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		log.Debugf("found running scan in hub for image %s: %+v", scan.Sha, scan.Scan)
 		return
 	}
 
-	// case 4: found it, and it failed.  Put it back in the scan queue
-	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
-		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
-		return
-	}
-
-	// case 5: image mysteriously gone from model
-	imageInfo, ok := model.Images[scan.Sha]
+	// case 4: layer mysteriously gone from model
+	layerInfo, ok := model.Layers[scan.Sha]
 	if !ok {
-		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have image %s, but did not", scan.Sha)
+		return
+	}
+
+	// case 5: found it, and it failed.  Oops.
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		model.SetLayerScanStatus(scan.Sha, m.ScanStatusNotScanned)
 		return
 	}
 
 	// case 6: found it, and it's done
-	imageInfo.SetScanResults(scan.Scan)
-	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
+	layerInfo.SetScanResults(scan.Scan)
+	model.SetLayerScanStatus(scan.Sha, m.ScanStatusComplete)
 }

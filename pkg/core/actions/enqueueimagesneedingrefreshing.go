@@ -28,36 +28,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// EnqueueImagesNeedingRefreshing .....
-type EnqueueImagesNeedingRefreshing struct {
+// EnqueueLayersNeedingRefreshing .....
+type EnqueueLayersNeedingRefreshing struct {
 	RefreshThresholdDuration time.Duration
 }
 
 // Apply .....
-func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
-	for sha, imageInfo := range model.Images {
-		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
+func (e *EnqueueLayersNeedingRefreshing) Apply(model *m.Model) {
+	for sha, layerInfo := range model.Layers {
+		isComplete := layerInfo.ScanStatus == m.ScanStatusComplete
 		if !isComplete {
 			log.Debugf("not enqueueing %s: not complete", sha)
 			continue
 		}
 
-		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
+		_, isInRefreshQueue := model.LayerRefreshQueueSet[sha]
 		if isInRefreshQueue {
 			log.Debugf("not enqueueing %s: already in refresh queue", sha)
 			continue
 		}
 
-		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
+		hasBeenRefreshedRecently := time.Now().Sub(layerInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
 		if hasBeenRefreshedRecently {
 			log.Debugf("not enqueueing %s: has been refreshed recently", sha)
 			continue
 		}
 
-		err := model.AddImageToRefreshQueue(sha)
+		err := model.AddLayerToRefreshQueue(sha)
 		if err != nil {
 			log.Error(err.Error())
-			recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
+			recordError("EnqueueLayersNeedingRefreshing", "unable to add layer to refresh queue")
 		}
 	}
 }

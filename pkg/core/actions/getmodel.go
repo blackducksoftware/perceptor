@@ -82,25 +82,37 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 	// images
 	images := map[string]*api.ModelImageInfo{}
 	for imageSha, imageInfo := range model.Images {
+		layers := []string{}
+		for layerSha := range imageInfo.Layers {
+			layers = append(layers, layerSha)
+		}
 		images[string(imageSha)] = &api.ModelImageInfo{
-			ImageNames:             imageInfo.ImageNames,
-			ImageSha:               string(imageInfo.ImageSha),
-			ScanResults:            imageInfo.ScanResults,
-			ScanStatus:             imageInfo.ScanStatus.String(),
-			TimeOfLastStatusChange: imageInfo.TimeOfLastStatusChange.String(),
+			ImageNames: imageInfo.ImageNames,
+			ImageSha:   string(imageInfo.ImageSha),
+			Layers:     layers,
+		}
+	}
+	layers := map[string]*api.ModelLayerInfo{}
+	for layerSha, layerInfo := range model.Layers {
+		layers[layerSha] = &api.ModelLayerInfo{
+			ImageSha:               string(layerInfo.ImageSha),
+			ScanResults:            layerInfo.ScanResults,
+			ScanStatus:             layerInfo.ScanStatus.String(),
+			TimeOfLastStatusChange: layerInfo.TimeOfLastStatusChange.String(),
 		}
 	}
 	// hub check queue
-	hubQueue := make([]string, len(model.ImageHubCheckQueue))
-	for i, image := range model.ImageHubCheckQueue {
+	hubQueue := make([]string, len(model.LayerHubCheckQueue))
+	for i, image := range model.LayerHubCheckQueue {
 		hubQueue[i] = string(image)
 	}
 	// return value
 	return &api.Model{
 		Pods:               pods,
 		Images:             images,
+		Layers:             layers,
 		HubVersion:         model.HubVersion,
-		ImageHubCheckQueue: hubQueue,
+		LayerHubCheckQueue: hubQueue,
 		ImageScanQueue:     model.ImageScanQueue.Dump(),
 		Config: &api.ModelConfig{
 			HubHost:             model.Config.HubHost,
@@ -149,24 +161,25 @@ func ScanResults(model *m.Model) api.ScanResults {
 
 	// images
 	images := []api.ScannedImage{}
-	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus != m.ScanStatusComplete {
-			continue
-		}
-		if imageInfo.ScanResults == nil {
-			log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
-			continue
-		}
-		image := imageInfo.Image()
-		apiImage := api.ScannedImage{
-			Name:             image.HumanReadableName(),
-			Sha:              string(image.Sha),
-			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
-			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
-			OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
-			ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
-		images = append(images, apiImage)
-	}
+	// for sha, imageInfo := range model.Images {
+	// 	TODO
+	// 	if imageInfo.ScanStatus != m.ScanStatusComplete {
+	// 		continue
+	// 	}
+	// 	if imageInfo.ScanResults == nil {
+	// 		log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
+	// 		continue
+	// 	}
+	// 	image := imageInfo.Image()
+	// 	apiImage := api.ScannedImage{
+	// 		Name:             image.HumanReadableName(),
+	// 		Sha:              string(image.Sha),
+	// 		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
+	// 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
+	// 		OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
+	// 		ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
+	// 	images = append(images, apiImage)
+	// }
 
 	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
 }

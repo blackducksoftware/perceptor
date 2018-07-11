@@ -28,12 +28,12 @@ import (
 
 // CheckScanRefresh .....
 type CheckScanRefresh struct {
-	Continuation func(image *m.Image)
+	Continuation func(layer *string)
 }
 
 // Apply .....
 func (g *CheckScanRefresh) Apply(model *m.Model) {
-	log.Debugf("looking for next image to refresh in the hub")
-	image := model.GetNextImageFromRefreshQueue()
-	go g.Continuation(image)
+	log.Debugf("looking for next layer to refresh in the hub")
+	layer := model.GetNextLayerFromRefreshQueue()
+	go g.Continuation(layer)
 }

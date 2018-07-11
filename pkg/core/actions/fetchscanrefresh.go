@@ -29,7 +29,7 @@ import (
 
 // FetchScanRefresh .....
 type FetchScanRefresh struct {
-	Scan *m.HubImageScan
+	Scan *m.HubScan
 }
 
 // Apply .....
@@ -42,14 +42,14 @@ func (h *FetchScanRefresh) Apply(model *m.Model) {
 		return
 	}
 
-	// case 1: image mysteriously gone from model
-	imageInfo, ok := model.Images[scan.Sha]
+	// case 1: layer mysteriously gone from model
+	layerInfo, ok := model.Layers[scan.Sha]
 	if !ok {
-		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have layer %s, but did not", scan.Sha)
 		return
 	}
 
-	err := model.RemoveImageFromRefreshQueue(scan.Sha)
+	err := model.RemoveLayerFromRefreshQueue(scan.Sha)
 	if err != nil {
 		log.Errorf("unable to remove %s from refresh queue: %s", scan.Sha, err.Error())
 		// no need to return -- this should only happen if it wasn't in the refresh
@@ -70,7 +70,7 @@ func (h *FetchScanRefresh) Apply(model *m.Model) {
 		return
 	}
 
-	// 4. successfully found project: update the image results
+	// 4. successfully found project: update the layer results
 	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
-	imageInfo.SetScanResults(scan.Scan)
+	layerInfo.SetScanResults(scan.Scan)
 }
