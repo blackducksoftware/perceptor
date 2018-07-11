@@ -1,0 +1,11 @@
+{
+	"HubHost": "",
+	"HubUser": "",
+	"HubUserPasswordEnvVar": "",
+	"HubClientTimeoutMilliseconds": 1000,
+	"HubPort": 443,
+	"ConcurrentScanLimit": 2,
+	"UseMockMode": true,
+	"Port": 3001,
+	"LogLevel": "debug"
+}
