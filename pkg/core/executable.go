@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -65,9 +64,12 @@ func RunPerceptor(configPath string) {
 	http.Handle("/metrics", prometheus.Handler())
 
 	if config.UseMockMode {
-		responder := api.NewMockResponder()
-		api.SetupHTTPServer(responder)
-		log.Info("instantiated responder in mock mode")
+		perceptor, err := NewMockedPerceptor()
+		if err != nil {
+			log.Errorf("unable to instantiate mocked perceptor: %s", err.Error())
+			panic(err)
+		}
+		log.Infof("instantiated responder in mock mode: %+v", perceptor)
 	} else {
 		perceptor, err := NewPerceptor(config)
 		if err != nil {
