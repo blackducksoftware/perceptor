@@ -84,13 +84,11 @@ func (image Image) HubScanNameSearchString() string {
 }
 
 // HumanReadableName returns a nice, easy to read string
-// HumanReadableName .....
 func (image *Image) HumanReadableName() string {
 	return image.Name
 }
 
 // PullSpec combines Name with the image sha and should be pullable by Docker
-// PullSpec .....
 func (image *Image) PullSpec() string {
 	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
 }

@@ -23,46 +23,23 @@ package model
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 // ImageInfo .....
 type ImageInfo struct {
-	ScanStatus             ScanStatus
-	TimeOfLastStatusChange time.Time
-	TimeOfLastRefresh      time.Time
-	ScanResults            *hub.ImageScan
-	ImageSha               DockerImageSha
-	ImageNames             []string
+	ImageSha   DockerImageSha
+	ImageNames []string
+	Layers     map[string]bool
 }
 
 // NewImageInfo .....
 func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 	imageInfo := &ImageInfo{
-		ScanResults: nil,
-		ImageSha:    sha,
-		ImageNames:  []string{imageName},
+		ImageSha:   sha,
+		ImageNames: []string{imageName},
+		Layers:     nil,
 	}
-	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
-}
-
-func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
-	imageInfo.ScanStatus = newStatus
-	imageInfo.TimeOfLastStatusChange = time.Now()
-}
-
-// SetScanResults .....
-func (imageInfo *ImageInfo) SetScanResults(results *hub.ImageScan) {
-	imageInfo.ScanResults = results
-	imageInfo.TimeOfLastRefresh = time.Now()
-}
-
-// TimeInCurrentScanStatus .....
-func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
-	return time.Now().Sub(imageInfo.TimeOfLastStatusChange)
 }
 
 // Image .....

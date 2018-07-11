@@ -23,14 +23,13 @@ package model
 
 import "fmt"
 
-// ScanStatus describes the state of an image in perceptor
+// ScanStatus describes the state of a scan
 type ScanStatus int
 
 // .....
 const (
 	ScanStatusUnknown           ScanStatus = iota
-	ScanStatusInHubCheckQueue   ScanStatus = iota
-	ScanStatusInQueue           ScanStatus = iota
+	ScanStatusNotScanned        ScanStatus = iota
 	ScanStatusRunningScanClient ScanStatus = iota
 	ScanStatusRunningHubScan    ScanStatus = iota
 	ScanStatusComplete          ScanStatus = iota
@@ -41,10 +40,8 @@ func (status ScanStatus) String() string {
 	switch status {
 	case ScanStatusUnknown:
 		return "ScanStatusUnknown"
-	case ScanStatusInHubCheckQueue:
-		return "ScanStatusInHubCheckQueue"
-	case ScanStatusInQueue:
-		return "ScanStatusInQueue"
+	case ScanStatusNotScanned:
+		return "ScanStatusNotScanned"
 	case ScanStatusRunningScanClient:
 		return "ScanStatusRunningScanClient"
 	case ScanStatusRunningHubScan:
@@ -68,25 +65,20 @@ func (status ScanStatus) MarshalText() (text []byte, err error) {
 
 var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
 	ScanStatusUnknown: {
-		ScanStatusInHubCheckQueue: true,
-		ScanStatusRunningHubScan:  true,
-	},
-	ScanStatusInHubCheckQueue: {
-		ScanStatusInQueue:        true,
+		ScanStatusNotScanned:     true,
 		ScanStatusRunningHubScan: true,
-		ScanStatusComplete:       true,
 	},
-	ScanStatusInQueue: {
+	ScanStatusNotScanned: {
 		ScanStatusRunningScanClient: true,
 		ScanStatusRunningHubScan:    true,
 	},
 	ScanStatusRunningScanClient: {
-		ScanStatusInQueue:        true,
+		ScanStatusNotScanned:     true,
 		ScanStatusRunningHubScan: true,
 	},
 	ScanStatusRunningHubScan: {
-		ScanStatusInQueue:  true,
-		ScanStatusComplete: true,
+		ScanStatusNotScanned: true,
+		ScanStatusComplete:   true,
 	},
 	// we never expect to transition FROM complete
 	ScanStatusComplete: {},
