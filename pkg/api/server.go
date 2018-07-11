@@ -202,6 +202,61 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 
+	http.HandleFunc("/imagelayers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			var imageLayers ImageLayers
+			err = json.Unmarshal(body, &imageLayers)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			err = responder.PostImageLayers(imageLayers)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+			} else {
+				fmt.Fprint(w, "")
+			}
+		} else {
+			responder.NotFound(w, r)
+		}
+	})
+
+	http.HandleFunc("/shouldscanlayer", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			var request LayerScanRequest
+			err = json.Unmarshal(body, &request)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			response, err := responder.ShouldScanLayer(request)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			jsonBytes, err := json.MarshalIndent(response, "", "  ")
+			if err != nil {
+				responder.Error(w, r, err, 500)
+				return
+			}
+			header := w.Header()
+			header.Set(http.CanonicalHeaderKey("content-type"), "application/json")
+			fmt.Fprint(w, string(jsonBytes))
+		} else {
+			responder.NotFound(w, r)
+		}
+	})
+
 	http.HandleFunc("/finishedscan", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)

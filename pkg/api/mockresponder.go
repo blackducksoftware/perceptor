@@ -184,6 +184,14 @@ func (mr *MockResponder) GetNextImage() NextImage {
 	return NextImage{ImageSpec: &imageSpec}
 }
 
+func (mr *MockResponder) PostImageLayers(imageLayers ImageLayers) error {
+	return nil
+}
+
+func (mr *MockResponder) ShouldScanLayer(layer LayerScanRequest) (*LayerScanResponse, error) {
+	return nil, nil
+}
+
 // PostFinishScan .....
 func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) error {
 	log.Infof("finished scan job: %+v", job)

@@ -21,34 +21,13 @@ under the License.
 
 package api
 
-import (
-	"net/http"
-)
+// ImageLayers .....
+type ImageLayers struct {
+	ImageSpec ImageSpec
+	Layers    []string
+}
 
-// Responder .....
-type Responder interface {
-	GetModel() Model
-
-	// perceiver
-	AddPod(pod Pod) error
-	UpdatePod(pod Pod) error
-	DeletePod(qualifiedName string)
-	GetScanResults() ScanResults
-	AddImage(image Image) error
-	UpdateAllPods(allPods AllPods) error
-	UpdateAllImages(allImages AllImages) error
-
-	// scanner
-	GetNextImage() NextImage
-	PostImageLayers(imageLayers ImageLayers) error
-	ShouldScanLayer(layer LayerScanRequest) (*LayerScanResponse, error)
-	PostFinishScan(job FinishedScanClientJob) error
-
-	// internal use
-	PostConfig(config *PostConfig)
-	PostCommand(commands *PostCommand)
-
-	// errors
-	NotFound(w http.ResponseWriter, r *http.Request)
-	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
+// NewImageLayers .....
+func NewImageLayers(imageSpec ImageSpec, layers []string) *ImageLayers {
+	return &ImageLayers{ImageSpec: imageSpec, Layers: layers}
 }
