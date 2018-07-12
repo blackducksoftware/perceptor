@@ -291,9 +291,10 @@ func (model *Model) RemoveLayerFromRefreshQueue(sha string) error {
 func (model *Model) FinishRunningScanClient(sha string, scanClientError error) {
 	_, ok := model.Layers[sha]
 
-	// if we don't have this sha already, let's add it to the model
+	// TODO if we don't have this sha already ... bail out?
 	if !ok {
-		log.Warnf("finish running scan client -- expected to already have layer %s, but did not", sha)
+		log.Errorf("finish running scan client -- expected to already have layer %s, but did not", sha)
+		return
 	}
 
 	scanStatus := ScanStatusRunningHubScan

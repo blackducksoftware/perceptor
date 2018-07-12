@@ -41,13 +41,20 @@ func NewImageLayers(imageSha string, layers []string) *ImageLayers {
 
 // Apply .....
 func (g *ImageLayers) Apply(model *m.Model) {
+	// TODO if image not present .... ?
+	imageSha := m.DockerImageSha(g.ImageSha)
+	if _, ok := model.Images[imageSha]; !ok {
+		g.Done <- fmt.Errorf("cannot add layers, image %s not found", g.ImageSha)
+		return
+		// model.Images[imageSha] = m.NewImageInfo(sha, imageName)
+	}
 	for _, layer := range g.Layers {
 		_, ok := model.Layers[layer]
 		if ok {
 			log.Infof("skipping layer %s, already present", layer)
 			continue
 		}
-		model.Layers[layer] = m.NewLayerInfo(m.DockerImageSha(g.ImageSha))
+		model.Layers[layer] = m.NewLayerInfo(imageSha)
 	}
-	g.Done <- fmt.Errorf("TODO -- unimplemented")
+	g.Done <- nil
 }
