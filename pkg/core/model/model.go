@@ -52,6 +52,7 @@ func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
 		Images:               make(map[DockerImageSha]*ImageInfo),
+		Layers:               make(map[string]*LayerInfo),
 		ImageScanQueue:       ds.NewPriorityQueue(),
 		ImagePriority:        map[DockerImageSha]int{},
 		LayerHubCheckQueue:   []string{},
@@ -92,8 +93,8 @@ func (model *Model) AddPod(newPod Pod) {
 func (model *Model) AddImage(image Image, priority int) {
 	added := model.createImage(image)
 	if added {
-		model.addImageToScanQueue(image.Sha)
 		model.ImagePriority[image.Sha] = priority
+		model.addImageToScanQueue(image.Sha)
 	}
 }
 
