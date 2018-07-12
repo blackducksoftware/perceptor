@@ -92,16 +92,26 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 	go func() {
 		for {
 			select {
-			case actions <- <-httpResponder.AddPodChannel:
-			case actions <- <-httpResponder.UpdatePodChannel:
-			case actions <- <-httpResponder.DeletePodChannel:
-			case actions <- <-httpResponder.AddImageChannel:
-			case actions <- <-httpResponder.AllPodsChannel:
-			case actions <- <-httpResponder.AllImagesChannel:
-			case actions <- <-httpResponder.ShouldScanLayerChannel:
-			case actions <- <-httpResponder.PostImageLayersChannel:
-			case actions <- <-httpResponder.PostFinishScanJobChannel:
-			case actions <- <-httpResponder.PostNextImageChannel:
+			case a := <-httpResponder.AddPodChannel:
+				actions <- a
+			case a := <-httpResponder.UpdatePodChannel:
+				actions <- a
+			case a := <-httpResponder.DeletePodChannel:
+				actions <- a
+			case a := <-httpResponder.AddImageChannel:
+				actions <- a
+			case a := <-httpResponder.AllPodsChannel:
+				actions <- a
+			case a := <-httpResponder.AllImagesChannel:
+				actions <- a
+			case a := <-httpResponder.ShouldScanLayerChannel:
+				actions <- a
+			case a := <-httpResponder.PostImageLayersChannel:
+				actions <- a
+			case a := <-httpResponder.PostFinishScanJobChannel:
+				actions <- a
+			case a := <-httpResponder.PostNextImageChannel:
+				actions <- a
 			case config := <-httpResponder.PostConfigChannel:
 				actions <- &a.SetConfig{
 					ConcurrentScanLimit:                 config.ConcurrentScanLimit,
@@ -120,8 +130,10 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					State:               cbModel.State.String(),
 				}
 				actions <- get
-			case actions <- <-httpResponder.GetScanResultsChannel:
-			case actions <- <-routineTaskManager.actions:
+			case a := <-httpResponder.GetScanResultsChannel:
+				actions <- a
+			case a := <-routineTaskManager.actions:
+				actions <- a
 			case isEnabled := <-hubClient.IsEnabled():
 				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:

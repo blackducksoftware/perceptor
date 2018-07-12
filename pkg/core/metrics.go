@@ -53,56 +53,56 @@ var imageVulnerabilitiesGauge *prometheus.GaugeVec
 var statusHistogram *prometheus.GaugeVec
 
 func recordModelMetrics(modelMetrics *model.Metrics) {
-	keys := []model.ScanStatus{
-		model.ScanStatusUnknown,
-		model.ScanStatusNotScanned,
-		model.ScanStatusRunningScanClient,
-		model.ScanStatusRunningHubScan,
-		model.ScanStatusComplete}
-	for _, key := range keys {
-		val := modelMetrics.ScanStatusCounts[key]
-		status := fmt.Sprintf("image_status_%s", key.String())
-		statusGauge.With(prometheus.Labels{"name": status}).Set(float64(val))
-	}
-
-	statusGauge.With(prometheus.Labels{"name": "number_of_pods"}).Set(float64(modelMetrics.NumberOfPods))
-	statusGauge.With(prometheus.Labels{"name": "number_of_images"}).Set(float64(modelMetrics.NumberOfImages))
-
-	// number of containers per pod (as a histgram, but not a prometheus histogram ???)
-	for numberOfContainers, numberOfPods := range modelMetrics.ContainerCounts {
-		strCount := fmt.Sprintf("%d", numberOfContainers)
-		statusHistogram.With(prometheus.Labels{"name": "containers_per_pod", "count": strCount}).Set(float64(numberOfPods))
-	}
-
-	// number of times each image is referenced from a pod's container
-	for numberOfReferences, occurences := range modelMetrics.ImageCountHistogram {
-		strCount := fmt.Sprintf("%d", numberOfReferences)
-		statusHistogram.With(prometheus.Labels{"name": "references_per_image", "count": strCount}).Set(float64(occurences))
-	}
-
-	for podStatus, count := range modelMetrics.PodStatus {
-		podStatusGauge.With(prometheus.Labels{statusLabel: podStatus}).Set(float64(count))
-	}
-	for podVulnerabilities, count := range modelMetrics.PodVulnerabilities {
-		value := fmt.Sprintf("%d", podVulnerabilities)
-		podVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
-	}
-	for podPolicyViolations, count := range modelMetrics.PodPolicyViolations {
-		value := fmt.Sprintf("%d", podPolicyViolations)
-		podPolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
-	}
-
-	for imageStatus, count := range modelMetrics.ImageStatus {
-		imageStatusGauge.With(prometheus.Labels{statusLabel: imageStatus}).Set(float64(count))
-	}
-	for imageVulnerabilities, count := range modelMetrics.ImageVulnerabilities {
-		value := fmt.Sprintf("%d", imageVulnerabilities)
-		imageVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
-	}
-	for imagePolicyViolations, count := range modelMetrics.ImagePolicyViolations {
-		value := fmt.Sprintf("%d", imagePolicyViolations)
-		imagePolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
-	}
+	// keys := []model.ScanStatus{
+	// 	model.ScanStatusUnknown,
+	// 	model.ScanStatusNotScanned,
+	// 	model.ScanStatusRunningScanClient,
+	// 	model.ScanStatusRunningHubScan,
+	// 	model.ScanStatusComplete}
+	// for _, key := range keys {
+	// 	val := modelMetrics.ScanStatusCounts[key]
+	// 	status := fmt.Sprintf("image_status_%s", key.String())
+	// 	statusGauge.With(prometheus.Labels{"name": status}).Set(float64(val))
+	// }
+	//
+	// statusGauge.With(prometheus.Labels{"name": "number_of_pods"}).Set(float64(modelMetrics.NumberOfPods))
+	// statusGauge.With(prometheus.Labels{"name": "number_of_images"}).Set(float64(modelMetrics.NumberOfImages))
+	//
+	// // number of containers per pod (as a histgram, but not a prometheus histogram ???)
+	// for numberOfContainers, numberOfPods := range modelMetrics.ContainerCounts {
+	// 	strCount := fmt.Sprintf("%d", numberOfContainers)
+	// 	statusHistogram.With(prometheus.Labels{"name": "containers_per_pod", "count": strCount}).Set(float64(numberOfPods))
+	// }
+	//
+	// // number of times each image is referenced from a pod's container
+	// for numberOfReferences, occurences := range modelMetrics.ImageCountHistogram {
+	// 	strCount := fmt.Sprintf("%d", numberOfReferences)
+	// 	statusHistogram.With(prometheus.Labels{"name": "references_per_image", "count": strCount}).Set(float64(occurences))
+	// }
+	//
+	// for podStatus, count := range modelMetrics.PodStatus {
+	// 	podStatusGauge.With(prometheus.Labels{statusLabel: podStatus}).Set(float64(count))
+	// }
+	// for podVulnerabilities, count := range modelMetrics.PodVulnerabilities {
+	// 	value := fmt.Sprintf("%d", podVulnerabilities)
+	// 	podVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
+	// }
+	// for podPolicyViolations, count := range modelMetrics.PodPolicyViolations {
+	// 	value := fmt.Sprintf("%d", podPolicyViolations)
+	// 	podPolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
+	// }
+	//
+	// for imageStatus, count := range modelMetrics.ImageStatus {
+	// 	imageStatusGauge.With(prometheus.Labels{statusLabel: imageStatus}).Set(float64(count))
+	// }
+	// for imageVulnerabilities, count := range modelMetrics.ImageVulnerabilities {
+	// 	value := fmt.Sprintf("%d", imageVulnerabilities)
+	// 	imageVulnerabilitiesGauge.With(prometheus.Labels{vulnerabilitiesLabel: value}).Set(float64(count))
+	// }
+	// for imagePolicyViolations, count := range modelMetrics.ImagePolicyViolations {
+	// 	value := fmt.Sprintf("%d", imagePolicyViolations)
+	// 	imagePolicyViolationsGauge.With(prometheus.Labels{policyViolationsLabel: value}).Set(float64(count))
+	// }
 
 	// TODO
 	// number of images without a pod pointing to them
