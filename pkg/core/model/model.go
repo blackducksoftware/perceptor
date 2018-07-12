@@ -92,6 +92,7 @@ func (model *Model) AddPod(newPod Pod) {
 func (model *Model) AddImage(image Image, priority int) {
 	added := model.createImage(image)
 	if added {
+		model.addImageToScanQueue(image.Sha)
 		model.ImagePriority[image.Sha] = priority
 	}
 }
