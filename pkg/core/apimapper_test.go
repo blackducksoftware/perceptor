@@ -29,18 +29,26 @@ import (
 )
 
 var (
-	sha1   = m.DockerImageSha("sha1")
-	image1 = *m.NewImage("image1", sha1)
-	sha2   = m.DockerImageSha("sha2")
-	image2 = *m.NewImage("image2", sha2)
-	sha3   = m.DockerImageSha("sha3")
-	image3 = *m.NewImage("image3", sha3)
-	cont1  = *m.NewContainer(image1, "cont1")
-	cont2  = *m.NewContainer(image2, "cont2")
-	cont3  = *m.NewContainer(image3, "cont3")
-	pod1   = *m.NewPod("pod1", "pod1uid", "ns1", []m.Container{cont1, cont2})
-	pod2   = *m.NewPod("pod2", "pod2uid", "ns1", []m.Container{cont1})
-	pod3   = *m.NewPod("pod3", "pod3uid", "ns3", []m.Container{cont3})
+	layer1  = "abcdef1234567890"
+	layer2  = "0987654321fedcba"
+	layer3  = "aaaaaaaaaaaaaaaa"
+	layer4  = "ababababcdcdcdcd"
+	layers1 = []string{layer1}
+	layers2 = []string{layer2, layer1}
+	layers3 = []string{layer3, layer1}
+	layers4 = []string{layer4, layer2}
+	sha1    = m.DockerImageSha("sha1")
+	image1  = *m.NewImage("image1", sha1)
+	sha2    = m.DockerImageSha("sha2")
+	image2  = *m.NewImage("image2", sha2)
+	sha3    = m.DockerImageSha("sha3")
+	image3  = *m.NewImage("image3", sha3)
+	cont1   = *m.NewContainer(image1, "cont1")
+	cont2   = *m.NewContainer(image2, "cont2")
+	cont3   = *m.NewContainer(image3, "cont3")
+	pod1    = *m.NewPod("pod1", "pod1uid", "ns1", []m.Container{cont1, cont2})
+	pod2    = *m.NewPod("pod2", "pod2uid", "ns1", []m.Container{cont1})
+	pod3    = *m.NewPod("pod3", "pod3uid", "ns3", []m.Container{cont3})
 	// this is ridiculous, but let's create a pod with 0 containers
 	pod4 = *m.NewPod("pod4", "pod4uid", "ns4", []m.Container{})
 )
@@ -49,6 +57,8 @@ func createNewModel1() *m.Model {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
+	model.SetLayersForImage(sha1, layers1)
+	model.FinishRunningScanClient(sha, scanClientError)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
 	model.Images[sha1].SetScanResults(&hub.ImageScan{
 		PolicyStatus: hub.PolicyStatus{

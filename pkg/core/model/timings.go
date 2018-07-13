@@ -35,7 +35,7 @@ type Timings struct {
 
 	RefreshImagePause time.Duration
 
-	EnqueueImagesForRefreshPause time.Duration
+	EnqueueLayersForRefreshPause time.Duration
 	RefreshThresholdDuration     time.Duration
 
 	ModelMetricsPause time.Duration
@@ -50,8 +50,8 @@ var DefaultTimings = &Timings{
 	CheckHubThrottle:               1 * time.Second,
 	CheckForStalledScansPause:      1 * time.Minute,
 	StalledScanClientTimeout:       2 * time.Hour,
-	RefreshImagePause:              1 * time.Second,
-	EnqueueImagesForRefreshPause:   5 * time.Minute,
+	RefreshImagePause:              1 * time.Minute,
+	EnqueueLayersForRefreshPause:   5 * time.Minute,
 	RefreshThresholdDuration:       30 * time.Minute,
 	ModelMetricsPause:              15 * time.Second,
 	HubReloginPause:                30 * time.Minute,

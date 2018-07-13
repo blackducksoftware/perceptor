@@ -34,7 +34,7 @@ type SetConfig struct {
 	HubClientTimeoutMilliseconds        *int
 	LogLevel                            *string
 	ImageRefreshThresholdSeconds        *int
-	EnqueueImagesForRefreshPauseSeconds *int
+	EnqueueLayersForRefreshPauseSeconds *int
 }
 
 // Apply .....
@@ -61,8 +61,8 @@ func (s *SetConfig) Apply(model *m.Model) {
 	if s.ImageRefreshThresholdSeconds != nil {
 		model.Timings.RefreshThresholdDuration = time.Duration(*s.ImageRefreshThresholdSeconds) * time.Second
 	}
-	if s.EnqueueImagesForRefreshPauseSeconds != nil {
-		seconds := time.Duration(*s.EnqueueImagesForRefreshPauseSeconds)
-		model.Timings.EnqueueImagesForRefreshPause = seconds * time.Second
+	if s.EnqueueLayersForRefreshPauseSeconds != nil {
+		seconds := time.Duration(*s.EnqueueLayersForRefreshPauseSeconds)
+		model.Timings.EnqueueLayersForRefreshPause = seconds * time.Second
 	}
 }

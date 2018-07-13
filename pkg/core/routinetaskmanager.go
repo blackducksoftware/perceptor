@@ -61,7 +61,9 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	}
 	rtm.InitialHubCheckScheduler = rtm.startHubInitialScanChecking()
 	rtm.HubScanCompletionScheduler = rtm.startPollingHubForScanCompletion()
-	rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
+	// TODO how does this interact with scanners, given that they might be waiting for
+	// a long period of time for other scans to finish in the hub?
+	// rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
 	rtm.ModelMetricsScheduler = rtm.startGeneratingModelMetrics()
 	rtm.HubScanRefreshScheduler = rtm.startCheckingForUpdatesForCompletedScans()
 	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
@@ -82,7 +84,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
 				rtm.HubScanRefreshScheduler.SetDelay(newTimings.RefreshImagePause)
 				rtm.ReloginToHubScheduler.SetDelay(newTimings.HubReloginPause)
-				rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueImagesForRefreshPause)
+				rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueLayersForRefreshPause)
 			}
 		}
 	}()
@@ -122,7 +124,7 @@ func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {
 		wg.Wait()
 
 		if layer != nil {
-			scan, err := rtm.hubClient.FetchScanFromImage(*layer)
+			scan, err := rtm.hubClient.FetchScan(*layer)
 			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubScan{Sha: *layer, Scan: scan, Err: err}}
 		}
 	}
@@ -138,7 +140,7 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 				return
 			}
 			for _, layer := range *layers {
-				scan, err := rtm.hubClient.FetchScanFromImage(layer)
+				scan, err := rtm.hubClient.FetchScan(layer)
 				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubScan{Sha: layer, Scan: scan, Err: err}}
 				time.Sleep(rtm.GetTimings().CheckHubThrottle)
 			}
@@ -146,13 +148,13 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 	})
 }
 
-func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *Scheduler {
-	log.Info("starting checking for stalled scans")
-	return NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
-		log.Debug("checking for stalled scans")
-		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
-	})
-}
+// func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *Scheduler {
+// 	log.Info("starting checking for stalled scans")
+// 	return NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
+// 		log.Debug("checking for stalled scans")
+// 		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
+// 	})
+// }
 
 func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *Scheduler {
 	return NewScheduler(rtm.Timings.ModelMetricsPause, rtm.stop, func() {
@@ -169,7 +171,7 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 		rtm.actions <- &actions.CheckScanRefresh{Continuation: func(layer *string) {
 			if layer != nil {
 				log.Debugf("refreshing layer %s", layer)
-				scan, err := rtm.hubClient.FetchScanFromImage(*layer)
+				scan, err := rtm.hubClient.FetchScan(*layer)
 				rtm.actions <- &actions.FetchScanRefresh{Scan: &model.HubScan{Sha: *layer, Scan: scan, Err: err}}
 			}
 			wg.Done()
@@ -179,7 +181,7 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 }
 
 func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *Scheduler {
-	return NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
+	return NewScheduler(rtm.Timings.EnqueueLayersForRefreshPause, rtm.stop, func() {
 		log.Debug("enqueueing images in need of refreshing")
 		rtm.actions <- &actions.EnqueueLayersNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
 	})

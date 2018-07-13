@@ -71,7 +71,7 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 }
 
 // FetchScanFromImage .....
-func (hub *MockHub) FetchScanFromImage(scanNameSearchString string) (*ScanResults, error) {
+func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error) {
 	return nil, nil
 }
 

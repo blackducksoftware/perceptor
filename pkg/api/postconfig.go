@@ -27,5 +27,5 @@ type PostConfig struct {
 	HubClientTimeoutMilliseconds        *int
 	LogLevel                            *string
 	ImageRefreshThresholdSeconds        *int
-	EnqueueImagesForRefreshPauseSeconds *int
+	EnqueueLayersForRefreshPauseSeconds *int
 }

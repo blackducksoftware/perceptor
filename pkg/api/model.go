@@ -78,7 +78,7 @@ type ModelTimings struct {
 	CheckForStalledScansPause      ModelTime
 	StalledScanClientTimeout       ModelTime
 	RefreshImagePause              ModelTime
-	EnqueueImagesForRefreshPause   ModelTime
+	EnqueueLayersForRefreshPause   ModelTime
 	RefreshThresholdDuration       ModelTime
 	ModelMetricsPause              ModelTime
 	HubReloginPause                ModelTime

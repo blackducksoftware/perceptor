@@ -150,7 +150,7 @@ func (hf *Fetcher) HubVersion() string {
 //  - multiple code locations with a matching name
 //  - multiple scan summaries for a code location
 //  - zero scan summaries for a code location
-func (hf *Fetcher) FetchScanFromImage(scanNameSearchString string) (*ScanResults, error) {
+func (hf *Fetcher) FetchScan(scanNameSearchString string) (*ScanResults, error) {
 	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(scanNameSearchString)
 
 	if err != nil {

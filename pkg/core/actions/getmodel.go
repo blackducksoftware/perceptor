@@ -126,7 +126,7 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 			CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
 			CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
 			CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
-			EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
+			EnqueueLayersForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueLayersForRefreshPause),
 			HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
 			HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
 			ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),

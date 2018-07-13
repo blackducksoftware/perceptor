@@ -118,7 +118,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					HubClientTimeoutMilliseconds:        config.HubClientTimeoutMilliseconds,
 					LogLevel:                            config.LogLevel,
 					ImageRefreshThresholdSeconds:        config.ImageRefreshThresholdSeconds,
-					EnqueueImagesForRefreshPauseSeconds: config.EnqueueImagesForRefreshPauseSeconds,
+					EnqueueLayersForRefreshPauseSeconds: config.EnqueueLayersForRefreshPauseSeconds,
 				}
 			case get := <-httpResponder.GetModelChannel:
 				// TODO wow, this is such a huge hack.  Root cause: circuit breaker model lives
@@ -157,7 +157,7 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		CheckForStalledScansPause:      model.DefaultTimings.CheckForStalledScansPause,
 		CheckHubForCompletedScansPause: model.DefaultTimings.CheckHubForCompletedScansPause,
 		CheckHubThrottle:               model.DefaultTimings.CheckHubThrottle,
-		EnqueueImagesForRefreshPause:   model.DefaultTimings.EnqueueImagesForRefreshPause,
+		EnqueueLayersForRefreshPause:   model.DefaultTimings.EnqueueLayersForRefreshPause,
 		HubReloginPause:                model.DefaultTimings.HubReloginPause,
 		ModelMetricsPause:              model.DefaultTimings.ModelMetricsPause,
 		RefreshImagePause:              model.DefaultTimings.RefreshImagePause,
