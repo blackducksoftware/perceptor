@@ -103,15 +103,15 @@ func RunTestPodOverallStatus() {
 			Expect(err).To(BeNil())
 			Expect(scan2.PolicyViolations).To(Equal(3))
 			Expect(scan2.Vulnerabilities).To(Equal(0))
-			Expect(scan2.OverallStatus).To(Equal("IN_VIOLATION"))
+			Expect(scan2.OverallStatus).To(Equal(hub.PolicyStatusTypeInViolation))
 		})
 
 		It("should get the right results for pod 3", func() {
 			scan3, err := model.ScanResultsForPod(pod3.QualifiedName())
 			Expect(err).To(BeNil())
-			Expect(scan3.PolicyViolations).To(Equal(0))
+			Expect(scan3.PolicyViolations).To(Equal(3))
 			Expect(scan3.Vulnerabilities).To(Equal(0))
-			Expect(scan3.OverallStatus).To(Equal("NOT_IN_VIOLATION"))
+			Expect(scan3.OverallStatus).To(Equal(hub.PolicyStatusTypeInViolation))
 		})
 
 		It("should get the right results for pod 4", func() {
@@ -119,7 +119,7 @@ func RunTestPodOverallStatus() {
 			Expect(err).To(BeNil())
 			Expect(scan4.PolicyViolations).To(Equal(0))
 			Expect(scan4.Vulnerabilities).To(Equal(0))
-			Expect(scan4.OverallStatus).To(Equal("NOT_IN_VIOLATION"))
+			Expect(scan4.OverallStatus).To(Equal(hub.PolicyStatusTypeNotInViolation))
 		})
 
 		It("should get the right results for image 1", func() {
@@ -139,9 +139,9 @@ func RunTestPodOverallStatus() {
 		It("should get the right results for image 3", func() {
 			imageScan3, err := model.ScanResultsForImage(image3.Sha)
 			Expect(err).To(BeNil())
-			Expect(imageScan3.PolicyViolations).To(Equal(0))
+			Expect(imageScan3.PolicyViolations).To(Equal(3))
 			Expect(imageScan3.Vulnerabilities).To(Equal(0))
-			Expect(imageScan3.OverallStatus).To(Equal(hub.PolicyStatusTypeNotInViolation))
+			Expect(imageScan3.OverallStatus).To(Equal(hub.PolicyStatusTypeInViolation))
 		})
 	})
 }
