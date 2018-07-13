@@ -30,12 +30,14 @@ import (
 
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunActionTests()
-	RunTestAddImageAction()
-	RunTestAddPodAction()
-	RunTestAllImages()
-	RunFetchScanCompletionTests()
-	RunFetchScanRefresh()
-	RunTestGetFullScanResults()
+	// RunActionTests()
+	// RunTestAddImageAction()
+	// RunTestAddPodAction()
+	// RunTestAllImages()
+	// RunFetchScanCompletionTests()
+	// RunFetchScanRefresh()
+	// RunTestGetFullScanResults()
+	RunShouldScanLayer()
+	// RunTestEnqueueLayersNeedingRefreshing()
 	RunSpecs(t, "model suite")
 }

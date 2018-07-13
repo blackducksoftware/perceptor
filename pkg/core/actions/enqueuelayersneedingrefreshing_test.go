@@ -22,25 +22,24 @@ under the License.
 package actions
 
 import (
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestEnqueueImagesNewScan .....
-func TestEnqueueImagesNewScan(t *testing.T) {
-	actual := createNewModel1()
-	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
-	if len(actual.ImageRefreshQueue) != 0 {
-		t.Errorf("expected 0 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
-	}
-}
+func RunTestEnqueueLayersNeedingRefreshing() {
+	Describe("enqueue layers needing refreshing", func() {
+		It("should not enqueue layers that have recently been scanned", func() {
+			actual := createNewModel1()
+			(&EnqueueLayersNeedingRefreshing{30 * time.Second}).Apply(actual)
+			Expect(actual.LayerRefreshQueue).To(Equal([]string{}))
+		})
 
-// TestEnqueueImagesOldScan .....
-func TestEnqueueImagesOldScan(t *testing.T) {
-	actual := createNewModel1()
-	actual.Images[image1.Sha].TimeOfLastRefresh = time.Now().Add(-45 * time.Second)
-	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
-	if len(actual.ImageRefreshQueue) != 1 {
-		t.Errorf("expected 1 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
-	}
+		It("should enqueue layes that have *not* recently been updated", func() {
+			actual := createNewModel1()
+			(&EnqueueLayersNeedingRefreshing{30 * time.Second}).Apply(actual)
+			Expect(actual.LayerRefreshQueue).To(Equal([]string{layer1}))
+		})
+	})
 }

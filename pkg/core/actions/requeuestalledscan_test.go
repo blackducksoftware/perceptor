@@ -21,39 +21,39 @@ under the License.
 
 package actions
 
-import (
-	"testing"
-	"time"
-
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-)
-
-func requeueTestModel() *m.Model {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-	model.AddImage(image1, 0)
-	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningScanClient)
-	model.AddImage(image2, 0)
-	model.SetImageScanStatus(image2.Sha, m.ScanStatusRunningHubScan)
-	return model
-}
-
-// TestRequeueStalledScanClientScans .....
-func TestRequeueStalledScanClientScans(t *testing.T) {
-	model := requeueTestModel()
-
-	if model.Images[image1.Sha].ScanStatus != m.ScanStatusRunningScanClient {
-		t.Errorf("expected scan to be in hub, is actually %s", model.Images[image1.Sha].ScanStatus)
-		return
-	}
-
-	r := RequeueStalledScans{StalledScanClientTimeout: 1 * time.Nanosecond}
-	r.Apply(model)
-
-	for _, sha := range []m.DockerImageSha{image1.Sha} {
-		actual := model.Images[sha].ScanStatus
-		if actual != m.ScanStatusInQueue {
-			t.Errorf("expected scan %s to be in queue, is actually %s", sha, actual)
-		}
-	}
-}
+// import (
+// 	"testing"
+// 	"time"
+//
+// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+// )
+//
+// func requeueTestModel() *m.Model {
+// 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+// 	model.AddImage(image1, 0)
+// 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+// 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningScanClient)
+// 	model.AddImage(image2, 0)
+// 	model.SetImageScanStatus(image2.Sha, m.ScanStatusRunningHubScan)
+// 	return model
+// }
+//
+// // TestRequeueStalledScanClientScans .....
+// func TestRequeueStalledScanClientScans(t *testing.T) {
+// 	model := requeueTestModel()
+//
+// 	if model.Images[image1.Sha].ScanStatus != m.ScanStatusRunningScanClient {
+// 		t.Errorf("expected scan to be in hub, is actually %s", model.Images[image1.Sha].ScanStatus)
+// 		return
+// 	}
+//
+// 	r := RequeueStalledScans{StalledScanClientTimeout: 1 * time.Nanosecond}
+// 	r.Apply(model)
+//
+// 	for _, sha := range []m.DockerImageSha{image1.Sha} {
+// 		actual := model.Images[sha].ScanStatus
+// 		if actual != m.ScanStatusInQueue {
+// 			t.Errorf("expected scan %s to be in queue, is actually %s", sha, actual)
+// 		}
+// 	}
+// }

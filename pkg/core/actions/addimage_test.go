@@ -37,10 +37,7 @@ func RunTestAddImageAction() {
 		expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 		expected.ImagePriority[testImage.Sha] = 0
 		imageInfo := m.NewImageInfo(testSha, "image1")
-		imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
-		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 		expected.Images[testSha] = imageInfo
-		expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
 		//
 		Expect(actual).To(Equal(&expected))
 	})

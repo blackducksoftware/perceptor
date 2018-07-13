@@ -25,27 +25,24 @@ import (
 	"reflect"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	sha1   = m.DockerImageSha("sha1")
-	image1 = *m.NewImage("image1", sha1)
-	sha2   = m.DockerImageSha("sha2")
-	image2 = *m.NewImage("image2", sha2)
-	sha3   = m.DockerImageSha("sha3")
-	image3 = *m.NewImage("image3", sha3)
-	cont1  = *m.NewContainer(image1, "cont1")
-	cont2  = *m.NewContainer(image2, "cont2")
-	cont3  = *m.NewContainer(image3, "cont3")
-	pod1   = *m.NewPod("pod1", "pod1uid", "ns1", []m.Container{cont1, cont2})
-	pod2   = *m.NewPod("pod2", "pod2uid", "ns1", []m.Container{cont1})
-	pod3   = *m.NewPod("pod3", "pod3uid", "ns3", []m.Container{cont3})
-)
-
-var (
+	layer1    = "1234567890abcdef"
+	sha1      = m.DockerImageSha("sha1")
+	image1    = *m.NewImage("image1", sha1)
+	sha2      = m.DockerImageSha("sha2")
+	image2    = *m.NewImage("image2", sha2)
+	sha3      = m.DockerImageSha("sha3")
+	image3    = *m.NewImage("image3", sha3)
+	cont1     = *m.NewContainer(image1, "cont1")
+	cont2     = *m.NewContainer(image2, "cont2")
+	cont3     = *m.NewContainer(image3, "cont3")
+	pod1      = *m.NewPod("pod1", "pod1uid", "ns1", []m.Container{cont1, cont2})
+	pod2      = *m.NewPod("pod2", "pod2uid", "ns1", []m.Container{cont1})
+	pod3      = *m.NewPod("pod3", "pod3uid", "ns3", []m.Container{cont3})
 	testSha   = m.DockerImageSha("sha1")
 	testImage = m.Image{Name: "image1", Sha: testSha}
 	testCont  = m.Container{Image: testImage}
@@ -56,11 +53,11 @@ func createNewModel1() *m.Model {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
-	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].SetScanResults(&hub.ImageScan{
-		PolicyStatus: hub.PolicyStatus{
-			OverallStatus:                hub.PolicyStatusTypeInViolation,
-			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
+	// TODO add some layers
+	// model.Images[sha1].SetScanResults(&hub.ImageScan{
+	// 	PolicyStatus: hub.PolicyStatus{
+	// 		OverallStatus:                hub.PolicyStatusTypeInViolation,
+	// 		ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	return model
 }
 

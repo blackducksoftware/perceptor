@@ -22,10 +22,7 @@ under the License.
 package actions
 
 import (
-	"fmt"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
 // ImageLayers .....
@@ -41,20 +38,6 @@ func NewImageLayers(imageSha string, layers []string) *ImageLayers {
 
 // Apply .....
 func (g *ImageLayers) Apply(model *m.Model) {
-	// TODO if image not present .... ?
-	imageSha := m.DockerImageSha(g.ImageSha)
-	if _, ok := model.Images[imageSha]; !ok {
-		g.Done <- fmt.Errorf("cannot add layers, image %s not found", g.ImageSha)
-		return
-		// model.Images[imageSha] = m.NewImageInfo(sha, imageName)
-	}
-	for _, layer := range g.Layers {
-		_, ok := model.Layers[layer]
-		if ok {
-			log.Infof("skipping layer %s, already present", layer)
-			continue
-		}
-		model.Layers[layer] = m.NewLayerInfo(imageSha)
-	}
-	g.Done <- nil
+	err := model.SetLayersForImage(m.DockerImageSha(g.ImageSha), g.Layers)
+	g.Done <- err
 }
