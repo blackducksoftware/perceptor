@@ -22,16 +22,24 @@ under the License.
 package model
 
 import (
-	"testing"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-func TestModel(t *testing.T) {
-	RegisterFailHandler(Fail)
-	// TODO
-	// RunModelTests()
-	RunTestShouldScanLayerAnswer()
-	RunSpecs(t, "model suite")
+func RunTestShouldScanLayerAnswer() {
+	Describe("should scan layer answer", func() {
+		It("should serialize", func() {
+			jsonBytes, err := json.Marshal(ShouldScanLayerAnswerWait)
+			Expect(err).To(BeNil())
+			Expect(string(jsonBytes)).To(Equal("\"ShouldScanLayerAnswerWait\""))
+		})
+		It("should deserialize", func() {
+			var answer ShouldScanLayerAnswer
+			err := json.Unmarshal([]byte("\"ShouldScanLayerAnswerWait\""), &answer)
+			Expect(err).To(BeNil())
+			Expect(answer).To(Equal(ShouldScanLayerAnswerWait))
+		})
+	})
 }

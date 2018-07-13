@@ -216,7 +216,7 @@ func (hr *HTTPResponder) ShouldScanLayer(layer api.LayerScanRequest) (*api.Layer
 	hr.ShouldScanLayerChannel <- action
 	select {
 	case shouldScan := <-action.Success:
-		return &api.LayerScanResponse{Layer: layer.Layer, ShouldScan: shouldScan}, nil
+		return &api.LayerScanResponse{Layer: layer.Layer, ShouldScanAnswer: shouldScan.String()}, nil
 	case err := <-action.Err:
 		return nil, err
 	}

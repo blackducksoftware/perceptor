@@ -23,11 +23,11 @@ package api
 
 // LayerScanResponse .....
 type LayerScanResponse struct {
-	Layer      string
-	ShouldScan bool
+	Layer            string
+	ShouldScanAnswer string
 }
 
 // NewLayerScanResponse .....
-func NewLayerScanResponse(layer string, shouldScan bool) *LayerScanResponse {
-	return &LayerScanResponse{Layer: layer, ShouldScan: shouldScan}
+func NewLayerScanResponse(layer string, shouldScanAnswer string) *LayerScanResponse {
+	return &LayerScanResponse{Layer: layer, ShouldScanAnswer: shouldScanAnswer}
 }

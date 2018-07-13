@@ -228,6 +228,33 @@ func (model *Model) GetNextLayerFromHubCheckQueue() *string {
 }
 
 // GetNextImageFromScanQueue .....
+func (model *Model) ShouldScanLayer(layer string) (ShouldScanLayerAnswer, error) {
+	layerInfo, ok := model.Layers[layer]
+	if !ok {
+		return ShouldScanLayerAnswerNo, fmt.Errorf("layer %s not found", layer)
+	}
+
+	if !model.IsHubEnabled {
+		log.Debugf("Hub not enabled, can't start a new scan")
+		return ShouldScanLayerAnswerWait, nil
+	}
+
+	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
+		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
+		return ShouldScanLayerAnswerWait, nil
+	}
+
+	switch layerInfo.ScanStatus {
+	case ScanStatusUnknown:
+		return ShouldScanLayerAnswerDontKnow, nil
+	case ScanStatusNotScanned:
+		return ShouldScanLayerAnswerYes, nil
+	default:
+		return ShouldScanLayerAnswerNo, nil
+	}
+}
+
+// GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
 	if !model.IsHubEnabled {
 		log.Debugf("Hub not enabled, can't start a new scan")

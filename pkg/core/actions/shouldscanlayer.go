@@ -22,41 +22,27 @@ under the License.
 package actions
 
 import (
-	"fmt"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
 // ShouldScanLayer .....
 type ShouldScanLayer struct {
 	Layer   string
-	Success chan bool
+	Success chan m.ShouldScanLayerAnswer
 	Err     chan error
 }
 
+// NewShouldScanLayer ...
 func NewShouldScanLayer(layer string) *ShouldScanLayer {
-	return &ShouldScanLayer{Layer: layer, Success: make(chan bool), Err: make(chan error)}
+	return &ShouldScanLayer{Layer: layer, Success: make(chan m.ShouldScanLayerAnswer), Err: make(chan error)}
 }
 
 // Apply .....
 func (g *ShouldScanLayer) Apply(model *m.Model) {
-	// ScanStatus:
-	// unknown -> error
-	// not scanned -> yes
-	// complete -> no
-	// running scan client -> no
-	// running hub scan -> no
-	layerInfo, ok := model.Layers[g.Layer]
-	if !ok {
-		g.Err <- fmt.Errorf("layer %s not found", g.Layer)
-		return
-	}
-	switch layerInfo.ScanStatus {
-	case m.ScanStatusUnknown:
-		g.Err <- fmt.Errorf("layer %s status unknown", g.Layer)
-	case m.ScanStatusNotScanned:
-		g.Success <- true
-	default:
-		g.Success <- false
+	answer, err := model.ShouldScanLayer(g.Layer)
+	if err != nil {
+		g.Err <- err
+	} else {
+		g.Success <- answer
 	}
 }
