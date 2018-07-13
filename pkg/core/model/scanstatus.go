@@ -67,6 +67,7 @@ var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
 	ScanStatusUnknown: {
 		ScanStatusNotScanned:     true,
 		ScanStatusRunningHubScan: true,
+		ScanStatusComplete:       true,
 	},
 	ScanStatusNotScanned: {
 		ScanStatusRunningScanClient: true,

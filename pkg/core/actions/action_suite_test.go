@@ -35,7 +35,7 @@ func TestModel(t *testing.T) {
 	// RunTestAddPodAction()
 	// RunTestAllImages()
 	// RunFetchScanCompletionTests()
-	// RunFetchScanRefresh()
+	RunFetchScanRefresh()
 	RunTestGetFullScanResults()
 	RunShouldScanLayer()
 	RunTestScanClientFails()
