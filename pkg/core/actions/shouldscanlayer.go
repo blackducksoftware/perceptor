@@ -28,13 +28,13 @@ import (
 // ShouldScanLayer .....
 type ShouldScanLayer struct {
 	Layer   string
-	Success chan m.ShouldScanLayerAnswer
+	Success chan m.ShouldScanLayer
 	Err     chan error
 }
 
 // NewShouldScanLayer ...
 func NewShouldScanLayer(layer string) *ShouldScanLayer {
-	return &ShouldScanLayer{Layer: layer, Success: make(chan m.ShouldScanLayerAnswer), Err: make(chan error)}
+	return &ShouldScanLayer{Layer: layer, Success: make(chan m.ShouldScanLayer), Err: make(chan error)}
 }
 
 // Apply .....

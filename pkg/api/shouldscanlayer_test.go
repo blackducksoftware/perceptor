@@ -21,13 +21,25 @@ under the License.
 
 package api
 
-// LayerScanResponse .....
-type LayerScanResponse struct {
-	Layer      string
-	ShouldScan ShouldScanLayer
-}
+import (
+	"encoding/json"
 
-// NewLayerScanResponse .....
-func NewLayerScanResponse(layer string, shouldScan ShouldScanLayer) *LayerScanResponse {
-	return &LayerScanResponse{Layer: layer, ShouldScan: shouldScan}
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func RunTestShouldScanLayer() {
+	Describe("should scan layer answer", func() {
+		It("should serialize", func() {
+			jsonBytes, err := json.Marshal(ShouldScanLayerWait)
+			Expect(err).To(BeNil())
+			Expect(string(jsonBytes)).To(Equal("\"ShouldScanLayerWait\""))
+		})
+		It("should deserialize", func() {
+			var answer ShouldScanLayer
+			err := json.Unmarshal([]byte("\"ShouldScanLayerWait\""), &answer)
+			Expect(err).To(BeNil())
+			Expect(answer).To(Equal(ShouldScanLayerWait))
+		})
+	})
 }

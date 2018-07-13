@@ -21,13 +21,15 @@ under the License.
 
 package api
 
-// LayerScanResponse .....
-type LayerScanResponse struct {
-	Layer      string
-	ShouldScan ShouldScanLayer
-}
+import (
+	"testing"
 
-// NewLayerScanResponse .....
-func NewLayerScanResponse(layer string, shouldScan ShouldScanLayer) *LayerScanResponse {
-	return &LayerScanResponse{Layer: layer, ShouldScan: shouldScan}
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunTestShouldScanLayer()
+	RunSpecs(t, "model suite")
 }

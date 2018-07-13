@@ -39,7 +39,7 @@ func RunShouldScanLayer() {
 				action.Apply(actual)
 			}()
 			var err error
-			var s m.ShouldScanLayerAnswer
+			var s m.ShouldScanLayer
 			select {
 			case e := <-action.Err:
 				err = e
@@ -47,7 +47,7 @@ func RunShouldScanLayer() {
 				s = shouldScan
 			}
 			Expect(err).To(BeNil())
-			Expect(s).To(Equal(m.ShouldScanLayerAnswerYes))
+			Expect(s).To(Equal(m.ShouldScanLayerYes))
 		})
 
 		It("should say no if the layer has already been scanned", func() {
@@ -58,7 +58,7 @@ func RunShouldScanLayer() {
 				action.Apply(actual)
 			}()
 			var err error
-			var s m.ShouldScanLayerAnswer
+			var s m.ShouldScanLayer
 			select {
 			case e := <-action.Err:
 				err = e
@@ -66,7 +66,7 @@ func RunShouldScanLayer() {
 				s = shouldScan
 			}
 			Expect(err).To(BeNil())
-			Expect(s).To(Equal(m.ShouldScanLayerAnswerNo))
+			Expect(s).To(Equal(m.ShouldScanLayerNo))
 		})
 
 		It("should say wait if the number of concurrent scans already equals the limit", func() {
@@ -78,7 +78,7 @@ func RunShouldScanLayer() {
 				action.Apply(actual)
 			}()
 			var err error
-			var s m.ShouldScanLayerAnswer
+			var s m.ShouldScanLayer
 			select {
 			case e := <-action.Err:
 				err = e
@@ -86,10 +86,10 @@ func RunShouldScanLayer() {
 				s = shouldScan
 			}
 			Expect(err).To(BeNil())
-			Expect(s).To(Equal(m.ShouldScanLayerAnswerWait))
+			Expect(s).To(Equal(m.ShouldScanLayerWait))
 		})
 
-		It("should say 'don't know' if the layer has not been checked in the hub", func() {
+		It("should say 'wait' if the layer has not been checked in the hub", func() {
 			actual := createNewModel1()
 			actual.SetLayersForImage(image1.Sha, []string{layer1})
 			actual.Layers[layer1].ScanStatus = m.ScanStatusUnknown
@@ -97,7 +97,7 @@ func RunShouldScanLayer() {
 				action.Apply(actual)
 			}()
 			var err error
-			var s m.ShouldScanLayerAnswer
+			var s m.ShouldScanLayer
 			select {
 			case e := <-action.Err:
 				err = e
@@ -105,7 +105,7 @@ func RunShouldScanLayer() {
 				s = shouldScan
 			}
 			Expect(err).To(BeNil())
-			Expect(s).To(Equal(m.ShouldScanLayerAnswerDontKnow))
+			Expect(s).To(Equal(m.ShouldScanLayerWait))
 		})
 
 		It("should report an error if the layer is not present", func() {
@@ -114,7 +114,7 @@ func RunShouldScanLayer() {
 				action.Apply(actual)
 			}()
 			var err error
-			// var s m.ShouldScanLayerAnswer
+			// var s m.ShouldScanLayer
 			select {
 			case e := <-action.Err:
 				err = e

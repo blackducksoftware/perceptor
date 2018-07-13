@@ -32,6 +32,5 @@ func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
 	// TODO
 	// RunModelTests()
-	RunTestShouldScanLayerAnswer()
 	RunSpecs(t, "model suite")
 }

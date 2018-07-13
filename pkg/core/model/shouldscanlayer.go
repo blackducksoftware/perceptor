@@ -21,25 +21,12 @@ under the License.
 
 package model
 
-import (
-	"encoding/json"
+// ShouldScanLayer .....
+type ShouldScanLayer int
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+// .....
+const (
+	ShouldScanLayerNo   ShouldScanLayer = iota
+	ShouldScanLayerYes  ShouldScanLayer = iota
+	ShouldScanLayerWait ShouldScanLayer = iota
 )
-
-func RunTestShouldScanLayerAnswer() {
-	Describe("should scan layer answer", func() {
-		It("should serialize", func() {
-			jsonBytes, err := json.Marshal(ShouldScanLayerAnswerWait)
-			Expect(err).To(BeNil())
-			Expect(string(jsonBytes)).To(Equal("\"ShouldScanLayerAnswerWait\""))
-		})
-		It("should deserialize", func() {
-			var answer ShouldScanLayerAnswer
-			err := json.Unmarshal([]byte("\"ShouldScanLayerAnswerWait\""), &answer)
-			Expect(err).To(BeNil())
-			Expect(answer).To(Equal(ShouldScanLayerAnswerWait))
-		})
-	})
-}
