@@ -139,7 +139,7 @@ func (hf *Fetcher) HubVersion() string {
 // 	return scanNames, nil
 // }
 
-// FetchScanFromImage finds an ScanResults by starting from a code location,
+// FetchScan finds an ScanResults by starting from a code location,
 // and following links from there.
 // It returns:
 //  - nil, if there's no code location with a matching name

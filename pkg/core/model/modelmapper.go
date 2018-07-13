@@ -99,7 +99,7 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ScanResults, error
 	return scan, nil
 }
 
-// ScanResultsForImage .....
+// ScanResultsForLayer .....
 func (model *Model) ScanResultsForLayer(sha string) (*ScanResults, error) {
 	layerInfo, ok := model.Layers[sha]
 	if !ok {

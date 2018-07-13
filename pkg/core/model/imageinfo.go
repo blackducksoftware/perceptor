@@ -44,6 +44,8 @@ func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 	return imageInfo
 }
 
+// SetLayers returns an error if layers have already been set, and succeeds otherwise.
+// It ignores duplicate layers.
 func (imageInfo *ImageInfo) SetLayers(layers []string) error {
 	if imageInfo.Layers != nil {
 		return fmt.Errorf("cannot set layers for image %s, already set (have %d, %d attempted to be added)", imageInfo.ImageSha, len(imageInfo.Layers), len(layers))

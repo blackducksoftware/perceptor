@@ -184,10 +184,12 @@ func (mr *MockResponder) GetNextImage() NextImage {
 	return NextImage{ImageSpec: &imageSpec}
 }
 
+// PostImageLayers ...
 func (mr *MockResponder) PostImageLayers(imageLayers ImageLayers) error {
 	return nil
 }
 
+// ShouldScanLayer ...
 func (mr *MockResponder) ShouldScanLayer(layer LayerScanRequest) (*LayerScanResponse, error) {
 	return nil, nil
 }

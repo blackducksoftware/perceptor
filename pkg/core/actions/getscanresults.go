@@ -31,6 +31,7 @@ type GetScanResults struct {
 	Done chan api.ScanResults
 }
 
+// NewGetScanResults ...
 func NewGetScanResults() *GetScanResults {
 	return &GetScanResults{Done: make(chan api.ScanResults)}
 }

@@ -203,6 +203,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 	return nil
 }
 
+// PostImageLayers ...
 func (hr *HTTPResponder) PostImageLayers(imageLayers api.ImageLayers) error {
 	recordPostImageLayers()
 	action := a.NewImageLayers(imageLayers.ImageSpec.Sha, imageLayers.Layers)
@@ -210,6 +211,7 @@ func (hr *HTTPResponder) PostImageLayers(imageLayers api.ImageLayers) error {
 	return <-action.Done
 }
 
+// ShouldScanLayer ...
 func (hr *HTTPResponder) ShouldScanLayer(layer api.LayerScanRequest) (*api.LayerScanResponse, error) {
 	recordShouldScanLayer()
 	action := a.NewShouldScanLayer(layer.Layer)

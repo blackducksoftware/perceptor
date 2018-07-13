@@ -32,6 +32,7 @@ type ImageLayers struct {
 	Done     chan error
 }
 
+// NewImageLayers ...
 func NewImageLayers(imageSha string, layers []string) *ImageLayers {
 	return &ImageLayers{ImageSha: imageSha, Layers: layers, Done: make(chan error)}
 }

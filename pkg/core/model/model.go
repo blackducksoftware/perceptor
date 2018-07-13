@@ -178,6 +178,7 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
 
 // "Public" methods
 
+// SetLayersForImage ...
 func (model *Model) SetLayersForImage(imageSha DockerImageSha, layers []string) error {
 	// TODO if image not present, could add ...
 	imageInfo, ok := model.Images[imageSha]
@@ -226,7 +227,7 @@ func (model *Model) GetNextLayerFromHubCheckQueue() *string {
 	return &first
 }
 
-// GetNextImageFromScanQueue .....
+// ShouldScanLayer .....
 func (model *Model) ShouldScanLayer(layer string) (ShouldScanLayer, error) {
 	layerInfo, ok := model.Layers[layer]
 	if !ok {
@@ -319,7 +320,7 @@ func (model *Model) GetNextLayerFromRefreshQueue() *string {
 	return &first
 }
 
-// RemoveImageFromRefreshQueue .....
+// RemoveLayerFromRefreshQueue .....
 func (model *Model) RemoveLayerFromRefreshQueue(sha string) error {
 	index := -1
 	for i := 0; i < len(model.LayerRefreshQueue); i++ {
