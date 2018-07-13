@@ -29,7 +29,7 @@ import (
 func RunTestGetFullScanResults() {
 	Describe("test get full scan results", func() {
 		model := createNewModel1()
-		scanResults := ScanResults(model)
+		scanResults := scanResults(model)
 		It("should produce the right number of pods", func() {
 			Expect(len(scanResults.Pods)).To(Equal(1))
 		})

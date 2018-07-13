@@ -36,8 +36,9 @@ func RunTestEnqueueLayersNeedingRefreshing() {
 			Expect(actual.LayerRefreshQueue).To(Equal([]string{}))
 		})
 
-		It("should enqueue layes that have *not* recently been updated", func() {
+		It("should enqueue layers that have *not* recently been updated", func() {
 			actual := createNewModel1()
+			actual.Layers[layer1].TimeOfLastRefresh = time.Now().Add(-5 * time.Hour)
 			(&EnqueueLayersNeedingRefreshing{30 * time.Second}).Apply(actual)
 			Expect(actual.LayerRefreshQueue).To(Equal([]string{layer1}))
 		})

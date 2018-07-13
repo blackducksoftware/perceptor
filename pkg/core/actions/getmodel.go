@@ -24,7 +24,6 @@ package actions
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
 )
 
 // GetModel .....
@@ -135,51 +134,4 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 			StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
 		},
 	}
-}
-
-// ScanResults .....
-func ScanResults(model *m.Model) api.ScanResults {
-	// pods
-	pods := []api.ScannedPod{}
-	for podName, pod := range model.Pods {
-		podScan, err := model.ScanResultsForPod(podName)
-		if err != nil {
-			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
-			continue
-		}
-		if podScan == nil {
-			log.Debugf("image scans not complete for pod %s, skipping (pod info: %+v)", podName, pod)
-			continue
-		}
-		pods = append(pods, api.ScannedPod{
-			Namespace:        pod.Namespace,
-			Name:             pod.Name,
-			PolicyViolations: podScan.PolicyViolations,
-			Vulnerabilities:  podScan.Vulnerabilities,
-			OverallStatus:    podScan.OverallStatus.String()})
-	}
-
-	// images
-	images := []api.ScannedImage{}
-	// for sha, imageInfo := range model.Images {
-	// 	TODO
-	// 	if imageInfo.ScanStatus != m.ScanStatusComplete {
-	// 		continue
-	// 	}
-	// 	if imageInfo.ScanResults == nil {
-	// 		log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
-	// 		continue
-	// 	}
-	// 	image := imageInfo.Image()
-	// 	apiImage := api.ScannedImage{
-	// 		Name:             image.HumanReadableName(),
-	// 		Sha:              string(image.Sha),
-	// 		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
-	// 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
-	// 		OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
-	// 		ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
-	// 	images = append(images, apiImage)
-	// }
-
-	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
 }

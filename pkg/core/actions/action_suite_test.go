@@ -36,8 +36,9 @@ func TestModel(t *testing.T) {
 	// RunTestAllImages()
 	// RunFetchScanCompletionTests()
 	// RunFetchScanRefresh()
-	// RunTestGetFullScanResults()
+	RunTestGetFullScanResults()
 	RunShouldScanLayer()
-	// RunTestEnqueueLayersNeedingRefreshing()
+	RunTestScanClientFails()
+	RunTestEnqueueLayersNeedingRefreshing()
 	RunSpecs(t, "model suite")
 }

@@ -110,15 +110,16 @@ func RunShouldScanLayer() {
 
 		It("should report an error if the layer is not present", func() {
 			actual := createNewModel1()
+			a := NewShouldScanLayer(layer2)
 			go func() {
-				action.Apply(actual)
+				a.Apply(actual)
 			}()
 			var err error
 			// var s m.ShouldScanLayer
 			select {
-			case e := <-action.Err:
+			case e := <-a.Err:
 				err = e
-			case _ = <-action.Success:
+			case _ = <-a.Success:
 				// s = shouldScan
 			}
 			Expect(err).ToNot(BeNil())

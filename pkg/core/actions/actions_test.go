@@ -25,12 +25,16 @@ import (
 	"reflect"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	layer1    = "1234567890abcdef"
+	layer1    = "abcdef1234567890"
+	layer2    = "0987654321fedcba"
+	layers1   = []string{layer1}
+	layers2   = []string{layer2, layer1}
 	sha1      = m.DockerImageSha("sha1")
 	image1    = *m.NewImage("image1", sha1)
 	sha2      = m.DockerImageSha("sha2")
@@ -53,11 +57,13 @@ func createNewModel1() *m.Model {
 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
-	// TODO add some layers
-	// model.Images[sha1].SetScanResults(&hub.ImageScan{
-	// 	PolicyStatus: hub.PolicyStatus{
-	// 		OverallStatus:                hub.PolicyStatusTypeInViolation,
-	// 		ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
+	model.SetLayersForImage(image1.Sha, layers1)
+	model.SetLayerScanStatus(layer1, m.ScanStatusRunningHubScan)
+	model.SetLayerScanStatus(layer1, m.ScanStatusComplete)
+	model.Layers[layer1].SetScanResults(&hub.ScanResults{
+		PolicyStatus: hub.PolicyStatus{
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	return model
 }
 

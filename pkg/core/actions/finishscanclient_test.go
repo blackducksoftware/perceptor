@@ -21,29 +21,31 @@ under the License.
 
 package actions
 
-import "testing"
+import (
+	"fmt"
 
-// "testing"
-//
-// m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-// TestScanClientFails .....
-func TestScanClientFails(t *testing.T) {
-	// model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
-	// image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
-	// model.AddImage(image, 0)
-	// model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
-	// model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
-	// model.FinishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
-	//
-	// if model.Images[image.Sha].ScanStatus != m.ScanStatusInQueue {
-	// 	t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
-	// 	t.Fail()
-	// }
-	//
-	// nextImage := model.GetNextImageFromScanQueue()
-	// if image != *nextImage {
-	// 	t.Logf("expected nextImage of %v, got %v", image, nextImage)
-	// 	t.Fail()
-	// }
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
+
+func RunTestScanClientFails() {
+	Describe("finish scan client", func() {
+		It("should handle failure", func() {
+			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
+			model.AddImage(image1, 0)
+			err := model.SetLayersForImage(image1.Sha, layers1)
+			Expect(err).To(BeNil())
+			err = model.SetLayerScanStatus(layer1, m.ScanStatusNotScanned)
+			Expect(err).To(BeNil())
+			err = model.SetLayerScanStatus(layer1, m.ScanStatusRunningScanClient)
+			Expect(err).To(BeNil())
+			model.FinishRunningScanClient(layer1, fmt.Errorf("oops, unable to run scan client"))
+			Expect(model.Layers[layer1].ScanStatus).To(Equal(m.ScanStatusNotScanned))
+		})
+		It("should handle success", func() {
+
+		})
+	})
 }

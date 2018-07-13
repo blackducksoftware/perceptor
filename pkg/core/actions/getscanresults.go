@@ -24,6 +24,7 @@ package actions
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetScanResults .....
@@ -38,8 +39,55 @@ func NewGetScanResults() *GetScanResults {
 
 // Apply .....
 func (g *GetScanResults) Apply(model *m.Model) {
-	scanResults := ScanResults(model)
+	scanResults := scanResults(model)
 	go func() {
 		g.Done <- scanResults
 	}()
+}
+
+func scanResults(model *m.Model) api.ScanResults {
+	// pods
+	pods := []api.ScannedPod{}
+	for podName, pod := range model.Pods {
+		podScan, err := model.ScanResultsForPod(podName)
+		if err != nil {
+			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
+			continue
+		}
+		if podScan == nil {
+			log.Debugf("image scans not complete for pod %s, skipping (pod info: %+v)", podName, pod)
+			continue
+		}
+		pods = append(pods, api.ScannedPod{
+			Namespace:        pod.Namespace,
+			Name:             pod.Name,
+			PolicyViolations: podScan.PolicyViolations,
+			Vulnerabilities:  podScan.Vulnerabilities,
+			OverallStatus:    podScan.OverallStatus.String()})
+	}
+
+	// images
+	images := []api.ScannedImage{}
+	for sha, imageInfo := range model.Images {
+		imageScan, err := model.ScanResultsForImage(sha)
+		if err != nil {
+			log.Errorf("unable to retrieve scan results for Pod %s: %s", sha, err.Error())
+			continue
+		}
+		if imageScan == nil {
+			log.Debugf("layer scans not complete for image %s, skipping", sha)
+			continue
+		}
+		image := imageInfo.Image()
+		apiImage := api.ScannedImage{
+			Name:             image.HumanReadableName(),
+			Sha:              string(image.Sha),
+			PolicyViolations: imageScan.PolicyViolations,
+			Vulnerabilities:  imageScan.Vulnerabilities,
+			OverallStatus:    imageScan.OverallStatus.String(),
+			ComponentsURL:    "TODO -- this is no longer possible to implement.  was imageInfo.ScanResults.ComponentsHref"}
+		images = append(images, apiImage)
+	}
+
+	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
 }

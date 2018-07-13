@@ -204,7 +204,7 @@ func (model *Model) SetLayersForImage(imageSha DockerImageSha, layers []string) 
 }
 
 // SetLayerScanStatus .....
-func (model *Model) SetLayerScanStatus(sha string, newScanStatus ScanStatus) {
+func (model *Model) SetLayerScanStatus(sha string, newScanStatus ScanStatus) error {
 	err := model.setLayerScanStatus(sha, newScanStatus)
 	if err != nil {
 		layerInfo, ok := model.Layers[sha]
@@ -214,6 +214,7 @@ func (model *Model) SetLayerScanStatus(sha string, newScanStatus ScanStatus) {
 		}
 		log.Errorf("unable to transition layer state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
 	}
+	return err
 }
 
 // GetNextLayerFromHubCheckQueue .....
