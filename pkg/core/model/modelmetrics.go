@@ -29,9 +29,14 @@ type Metrics struct {
 	ContainerCounts       map[int]int
 	ImageCountHistogram   map[int]int
 	PodStatus             map[string]int
-	ImageStatus           map[string]int
 	PodPolicyViolations   map[int]int
-	ImagePolicyViolations map[int]int
 	PodVulnerabilities    map[int]int
+	ImageStatus           map[string]int
+	ImagePolicyViolations map[int]int
 	ImageVulnerabilities  map[int]int
+	LayerStatus           map[string]int
+	LayerPolicyViolations map[int]int
+	LayerVulnerabilities  map[int]int
+	LayersPerImage        map[int]int
+	ImagesPerLayer        map[int]int
 }

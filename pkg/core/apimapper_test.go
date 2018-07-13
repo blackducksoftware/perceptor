@@ -58,9 +58,9 @@ func createNewModel1() *m.Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.SetLayersForImage(sha1, layers1)
-	model.FinishRunningScanClient(sha, scanClientError)
-	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].SetScanResults(&hub.ImageScan{
+	model.FinishRunningScanClient(layer1, nil)
+	model.Layers[layer1].ScanStatus = m.ScanStatusComplete
+	model.Layers[layer1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
 			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
@@ -73,13 +73,15 @@ func createNewModel2() *m.Model {
 	model.AddPod(pod2)
 	model.AddPod(pod3)
 	model.AddPod(pod4)
-	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].SetScanResults(&hub.ImageScan{
+	model.SetLayersForImage(image1.Sha, layers1)
+	model.SetLayersForImage(image3.Sha, layers3)
+	model.Layers[layer1].ScanStatus = m.ScanStatusComplete
+	model.Layers[layer1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
 			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
-	model.Images[sha3].ScanStatus = m.ScanStatusComplete
-	model.Images[sha3].SetScanResults(&hub.ImageScan{
+	model.Layers[layer3].ScanStatus = m.ScanStatusComplete
+	model.Layers[layer3].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus: hub.PolicyStatusTypeNotInViolation,
 		},

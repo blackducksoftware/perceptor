@@ -156,7 +156,7 @@ func ScanResults(model *m.Model) api.ScanResults {
 			Name:             pod.Name,
 			PolicyViolations: podScan.PolicyViolations,
 			Vulnerabilities:  podScan.Vulnerabilities,
-			OverallStatus:    podScan.OverallStatus})
+			OverallStatus:    podScan.OverallStatus.String()})
 	}
 
 	// images
