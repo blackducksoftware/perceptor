@@ -23,6 +23,8 @@ package model
 
 import (
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ImageInfo .....
@@ -40,6 +42,21 @@ func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 		Layers:     nil,
 	}
 	return imageInfo
+}
+
+func (imageInfo *ImageInfo) SetLayers(layers []string) error {
+	if imageInfo.Layers != nil {
+		return fmt.Errorf("cannot set layers for image %s, already set (have %d, %d attempted to be added)", imageInfo.ImageSha, len(imageInfo.Layers), len(layers))
+	}
+	layerSet := map[string]bool{}
+	for _, layer := range layers {
+		if layerSet[layer] {
+			log.Warnf("ignoring duplicate layer %s from %+v", layer, layers)
+		}
+		layerSet[layer] = true
+	}
+	imageInfo.Layers = layerSet
+	return nil
 }
 
 // Image .....

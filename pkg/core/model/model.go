@@ -179,6 +179,30 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
 
 // "Public" methods
 
+func (model *Model) SetLayersForImage(imageSha DockerImageSha, layers []string) error {
+	// TODO if image not present, could add ...
+	imageInfo, ok := model.Images[imageSha]
+	if !ok {
+		return fmt.Errorf("cannot add layers, image %s not found", imageSha)
+	}
+	// add layers to image
+	err := imageInfo.SetLayers(layers)
+	if err != nil {
+		return err
+	}
+	// add layers to global scope
+	for _, layer := range layers {
+		_, ok := model.Layers[layer]
+		if ok {
+			log.Infof("skipping layer %s, already present", layer)
+			continue
+		}
+		model.Layers[layer] = NewLayerInfo(imageSha)
+	}
+	// done
+	return nil
+}
+
 // SetLayerScanStatus .....
 func (model *Model) SetLayerScanStatus(sha string, newScanStatus ScanStatus) {
 	err := model.setLayerScanStatus(sha, newScanStatus)
