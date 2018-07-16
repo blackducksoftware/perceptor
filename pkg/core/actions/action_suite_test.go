@@ -42,6 +42,7 @@ func TestModel(t *testing.T) {
 	RunFinishScanClientTests()
 	RunGetNextImageTests()
 	RunGetScanResultsTests()
+	RunImageLayersTests()
 	RunShouldScanLayerTests()
 	RunSpecs(t, "model suite")
 }
