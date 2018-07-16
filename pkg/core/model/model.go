@@ -140,6 +140,16 @@ func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 	return results
 }
 
+func (model *Model) addLayer(layer string, imageSha DockerImageSha) error {
+	_, ok := model.Layers[layer]
+	if ok {
+		log.Debugf("skipping addition of layer %s, already present", layer)
+		return nil
+	}
+	model.Layers[layer] = NewLayerInfo(imageSha)
+	return model.addLayerToHubCheckQueue(layer)
+}
+
 // Adding and removing from scan queues.  These are "unsafe" calls and should
 // only be called by methods that have already checked all the error conditions
 // (things are in the right state, things that are expected to be present are
@@ -192,12 +202,10 @@ func (model *Model) SetLayersForImage(imageSha DockerImageSha, layers []string) 
 	}
 	// add layers to global scope
 	for _, layer := range layers {
-		_, ok := model.Layers[layer]
-		if ok {
-			log.Infof("skipping layer %s, already present", layer)
-			continue
+		err = model.addLayer(layer, imageSha)
+		if err != nil {
+			return err
 		}
-		model.Layers[layer] = NewLayerInfo(imageSha)
 	}
 	// done
 	return nil
