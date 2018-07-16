@@ -30,11 +30,11 @@ import (
 
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
-	// RunActionTests()
-	// RunTestAddImageAction()
-	// RunTestAddPodAction()
-	// RunTestAllImages()
-	// RunFetchScanCompletionTests()
+	RunActionTests()
+	RunTestAddImageAction()
+	RunTestAddPodAction()
+	RunTestAllImages()
+	RunFetchScanCompletionTests()
 	RunFetchScanRefresh()
 	RunTestGetFullScanResults()
 	RunShouldScanLayer()

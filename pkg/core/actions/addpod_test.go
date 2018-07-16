@@ -36,7 +36,7 @@ func RunTestAddPodAction() {
 		//  - all images within pod get added to .Images
 		//  - all new images get added to hub check queue
 		expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
-		expected.ImagePriority[testImage.Sha] = 1
+		expected.AddImage(testImage, 1)
 		expected.Pods[testPod.QualifiedName()] = testPod
 		imageInfo := m.NewImageInfo(testSha, "image1")
 		expected.Images[testSha] = imageInfo

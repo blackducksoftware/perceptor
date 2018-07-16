@@ -35,7 +35,7 @@ func RunTestAddImageAction() {
 		//  - image gets added to .Images
 		//  - image gets added to hub check queue
 		expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-		expected.ImagePriority[testImage.Sha] = 0
+		expected.AddImage(testImage, 0)
 		imageInfo := m.NewImageInfo(testSha, "image1")
 		expected.Images[testSha] = imageInfo
 		//
