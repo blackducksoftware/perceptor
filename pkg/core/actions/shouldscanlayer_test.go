@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunShouldScanLayer() {
+func RunShouldScanLayerTests() {
 	Describe("should scan layer", func() {
 		action := NewShouldScanLayer(layer1)
 

@@ -30,7 +30,7 @@ import (
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-func RunTestScanClientFails() {
+func RunFinishScanClientTests() {
 	Describe("finish scan client", func() {
 		It("should handle failure", func() {
 			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
@@ -45,7 +45,7 @@ func RunTestScanClientFails() {
 			Expect(model.Layers[layer1].ScanStatus).To(Equal(m.ScanStatusNotScanned))
 		})
 		It("should handle success", func() {
-
+			// TODO
 		})
 	})
 }

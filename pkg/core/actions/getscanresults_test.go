@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunTestGetFullScanResults() {
+func RunGetScanResultsTests() {
 	Describe("test get full scan results", func() {
 		model := createNewModel1()
 		scanResults := scanResults(model)

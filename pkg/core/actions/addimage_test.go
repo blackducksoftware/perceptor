@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunTestAddImageAction() {
+func RunAddImageActionTests() {
 	It("should add an image", func() {
 		actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 		(&AddImage{testImage}).Apply(actual)

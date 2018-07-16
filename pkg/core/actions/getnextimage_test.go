@@ -28,7 +28,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RunGetNextImage() {
+func RunGetNextImageTests() {
 	Describe("GetNextImage", func() {
 		It("no image available", func() {
 			// actual
@@ -46,38 +46,37 @@ func RunGetNextImage() {
 			// assertEqual(t, actual, expected)
 		})
 
-		// It("regular", func() {
-		// 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-		// 	model.AddImage(image1, 0)
-		// 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-		//
-		// 	get := NewGetNextImage()
-		// 	go func() { get.Apply(model) }()
-		// 	nextImage := <-get.Done
-		//
-		// 	Expect(nextImage).To(Equal(image1))
-		// 	Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
-		// 	Expect(model.Images[image1.Sha].ScanStatus).To(Equal(m.ScanStatusRunningScanClient))
-		// 	// TODO expected: time of image changed
-		// })
+		It("regular", func() {
+			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model.AddImage(image1, 0)
+			model.SetLayersForImage(image1.Sha, layers1)
 
-		// It("hub inacessible", func() {
-		// 	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-		// 	model.AddImage(image1, 0)
-		// 	model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-		// 	model.IsHubEnabled = false
-		//
-		// 	get := NewGetNextImage()
-		// 	go func() { get.Apply(model) }()
-		// 	nextImage := <-get.Done
-		//
-		// 	Expect(nextImage).To(BeNil())
-		//
-		// 	model.IsHubEnabled = true
-		// 	get = NewGetNextImage()
-		// 	go func() { get.Apply(model) }()
-		// 	nextImage = <-get.Done
-		// 	Expect(nextImage).ToNot(BeNil())
-		// })
+			get := NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage := <-get.Done
+
+			Expect(nextImage).To(Equal(&image1))
+			Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
+			// TODO expected: time of image changed
+		})
+
+		It("hub inacessible", func() {
+			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model.AddImage(image1, 0)
+			model.SetLayersForImage(image1.Sha, layers1)
+			model.IsHubEnabled = false
+
+			get := NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage := <-get.Done
+
+			Expect(nextImage).To(BeNil())
+
+			model.IsHubEnabled = true
+			get = NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage = <-get.Done
+			Expect(nextImage).ToNot(BeNil())
+		})
 	})
 }

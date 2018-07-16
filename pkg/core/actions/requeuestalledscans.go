@@ -34,7 +34,7 @@ type RequeueStalledScans struct {
 
 // Apply .....
 func (r *RequeueStalledScans) Apply(model *m.Model) {
-	// TODO
+	// TODO should this be re-enabled, or deleted?
 	// for _, imageInfo := range model.Images {
 	// 	switch imageInfo.ScanStatus {
 	// 	case m.ScanStatusRunningScanClient:

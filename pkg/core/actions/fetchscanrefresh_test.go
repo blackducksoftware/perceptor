@@ -60,7 +60,7 @@ func recheckModel(vulnCount int) *m.Model {
 	return model
 }
 
-func RunFetchScanRefresh() {
+func RunFetchScanRefreshTests() {
 	Describe("FetchScanRefresh", func() {
 		It("handles errors", func() {
 			vulnCount := 3

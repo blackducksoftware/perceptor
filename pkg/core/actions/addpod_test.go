@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunTestAddPodAction() {
+func RunAddPodActionTests() {
 	It("should add a pod and all the pod's containers' images", func() {
 		actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
 		(&AddPod{testPod}).Apply(actual)

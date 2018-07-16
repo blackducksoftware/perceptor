@@ -26,8 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// AllImages doesn't remove pre-existing images
-func RunTestAllImages() {
+func RunAllImagesTests() {
 	It("should not remove pre-existing images", func() {
 		actual := createNewModel1()
 		(&AllImages{}).Apply(actual)

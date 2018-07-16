@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunTestEnqueueLayersNeedingRefreshing() {
+func RunEnqueueLayersNeedingRefreshingTests() {
 	Describe("enqueue layers needing refreshing", func() {
 		It("should not enqueue layers that have recently been scanned", func() {
 			actual := createNewModel1()

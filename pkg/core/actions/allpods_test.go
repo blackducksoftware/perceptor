@@ -21,14 +21,18 @@ under the License.
 
 package actions
 
-import "testing"
+import (
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
-// AllPods does remove pre-existing pods
-// TestAllPods .....
-func TestAllPods(t *testing.T) {
-	actual := createNewModel1()
-	(&AllPods{}).Apply(actual)
-	if len(actual.Pods) != 0 {
-		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
-	}
+func RunAllPodsTests() {
+	Describe("all pods", func() {
+		It("removes all pods, completely replacing them", func() {
+			actual := createNewModel1()
+			(&AllPods{}).Apply(actual)
+			Expect(actual.Pods).To(Equal(map[string]m.Pod{}))
+		})
+	})
 }
