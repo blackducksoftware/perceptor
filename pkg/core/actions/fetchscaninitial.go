@@ -43,15 +43,20 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 		return
 	}
 
-	// case 0: image surprisingly has different status
-	if layerInfo.ScanStatus != m.ScanStatusUnknown {
-		log.Warnf("ignoring hub check results for sha %s, invalid status (expected Unknown, found %s)", scan.Sha, layerInfo.ScanStatus)
+	// case 0: error trying to access the hub code location.  Don't change the status.
+	if scan.Err != nil {
+		log.Errorf("check image in hub -- unable to fetch layer scan for sha %s: %s", scan.Sha, scan.Err.Error())
 		return
 	}
 
-	// case 1: error trying to access the hub code location.  Don't change the status.
-	if scan.Err != nil {
-		log.Errorf("check image in hub -- unable to fetch layer scan for sha %s: %s", scan.Sha, scan.Err.Error())
+	err := model.RemoveLayerFromHubCheckQueue(scan.Sha)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	// case 1: image surprisingly has different status
+	if layerInfo.ScanStatus != m.ScanStatusUnknown {
+		log.Warnf("ignoring hub check results for sha %s, invalid status (expected Unknown, found %s)", scan.Sha, layerInfo.ScanStatus)
 		return
 	}
 

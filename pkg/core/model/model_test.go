@@ -94,29 +94,29 @@ func RunModelTests() {
 		Describe("Hub check queue operations", func() {
 			It("TestModelRemoveItemFromFrontOfHubCheckQueue", func() {
 				model := removeItemModel()
-				model.removeLayerFromHubCheckQueue(layer1)
+				model.RemoveLayerFromHubCheckQueue(layer1)
 				// "remove item from front of hub check queue"
 				Expect(model.LayerHubCheckQueue).To(Equal([]string{layer2, layer3}))
 			})
 
 			It("TestModelRemoveItemFromMiddleOfHubCheckQueue", func() {
 				model := removeItemModel()
-				err := model.removeLayerFromHubCheckQueue(layer2)
+				err := model.RemoveLayerFromHubCheckQueue(layer2)
 				Expect(err).To(BeNil())
 				Expect(model.LayerHubCheckQueue).To(Equal([]string{layer1, layer3}))
 			})
 
 			It("TestModelRemoveItemFromEndOfHubCheckQueue", func() {
 				model := removeItemModel()
-				model.removeLayerFromHubCheckQueue(layer3)
+				model.RemoveLayerFromHubCheckQueue(layer3)
 				Expect(model.LayerHubCheckQueue).To(Equal([]string{layer1, layer2}))
 			})
 
 			It("TestModelRemoveAllItemsFromHubCheckQueue", func() {
 				model := removeItemModel()
-				model.removeLayerFromHubCheckQueue(layer1)
-				model.removeLayerFromHubCheckQueue(layer2)
-				model.removeLayerFromHubCheckQueue(layer3)
+				model.RemoveLayerFromHubCheckQueue(layer1)
+				model.RemoveLayerFromHubCheckQueue(layer2)
+				model.RemoveLayerFromHubCheckQueue(layer3)
 				Expect(model.LayerHubCheckQueue).To(Equal([]string{}))
 			})
 		})
