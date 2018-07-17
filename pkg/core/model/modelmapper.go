@@ -150,7 +150,7 @@ func (model *Model) Metrics() *Metrics {
 		}
 	}
 
-	// number of containers per pod (as a histgram, but not a prometheus histogram ???)
+	// number of containers per pod (as a histogram, but not a prometheus histogram ???)
 	containerCounts := make(map[int]int)
 	for _, pod := range model.Pods {
 		containerCounts[len(pod.Containers)]++

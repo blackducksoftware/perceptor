@@ -45,8 +45,8 @@ type RoutineTaskManager struct {
 	HubScanRefreshScheduler          *Scheduler
 	EnqueueImagesForRefreshScheduler *Scheduler
 	ModelMetricsScheduler            *Scheduler
-	StalledScanClientScheduler       *Scheduler
-	ReloginToHubScheduler            *Scheduler
+	//StalledScanClientScheduler       *Scheduler
+	ReloginToHubScheduler *Scheduler
 }
 
 // NewRoutineTaskManager ...
@@ -80,7 +80,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 				rtm.Timings = &newTimings
 				rtm.InitialHubCheckScheduler.SetDelay(newTimings.CheckHubThrottle)
 				rtm.HubScanCompletionScheduler.SetDelay(newTimings.CheckHubForCompletedScansPause)
-				rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
+				// rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
 				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
 				rtm.HubScanRefreshScheduler.SetDelay(newTimings.RefreshImagePause)
 				rtm.ReloginToHubScheduler.SetDelay(newTimings.HubReloginPause)
