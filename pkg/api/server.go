@@ -227,7 +227,7 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/shouldscanlayer", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				responder.Error(w, r, err, 400)
