@@ -160,6 +160,7 @@ func (model *Model) addLayerToHubCheckQueue(sha string) error {
 	return nil
 }
 
+// RemoveLayerFromHubCheckQueue ...
 func (model *Model) RemoveLayerFromHubCheckQueue(sha string) error {
 	index := -1
 	for i := 0; i < len(model.LayerHubCheckQueue); i++ {
