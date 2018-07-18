@@ -372,7 +372,7 @@ func (model *Model) InProgressHubScans() *([]Image) {
 }
 
 // ScanResultsForPod .....
-func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
+func (model *Model) ScanResultsForPod(podName string) (*Scan, error) {
 	pod, ok := model.Pods[podName]
 	if !ok {
 		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
@@ -397,15 +397,15 @@ func (model *Model) ScanResultsForPod(podName string) (*PodScan, error) {
 			overallStatus = imageScanOverallStatus
 		}
 	}
-	podScan := &PodScan{
-		OverallStatus:    overallStatus.String(),
+	podScan := &Scan{
+		OverallStatus:    overallStatus,
 		PolicyViolations: policyViolationCount,
 		Vulnerabilities:  vulnerabilityCount}
 	return podScan, nil
 }
 
 // ScanResultsForImage .....
-func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) {
+func (model *Model) ScanResultsForImage(sha DockerImageSha) (*Scan, error) {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
 		return nil, fmt.Errorf("could not find image of sha %s in cache", sha)
@@ -418,7 +418,7 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*ImageScan, error) 
 		return nil, fmt.Errorf("model inconsistency: could not find scan results for completed image %s", sha)
 	}
 
-	imageScan := &ImageScan{
+	imageScan := &Scan{
 		OverallStatus:    imageInfo.ScanResults.OverallStatus(),
 		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
@@ -461,7 +461,7 @@ func (model *Model) Metrics() *Metrics {
 			continue
 		}
 		if podScan != nil {
-			podStatus[podScan.OverallStatus]++
+			podStatus[podScan.OverallStatus.String()]++
 			podPolicyViolations[podScan.PolicyViolations]++
 			podVulnerabilities[podScan.Vulnerabilities]++
 		} else {

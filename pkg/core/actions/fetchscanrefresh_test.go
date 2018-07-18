@@ -30,8 +30,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ImageScan {
-	return &hub.ImageScan{
+func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ScanResults {
+	return &hub.ScanResults{
 		ScanSummaries: []hub.ScanSummary{{
 			Status: status,
 		}},

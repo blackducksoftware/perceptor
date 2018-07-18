@@ -78,7 +78,7 @@ func (hr *HTTPResponder) AddPod(apiPod api.Pod) error {
 	if err != nil {
 		return err
 	}
-	action := &a.AddPod{*pod}
+	action := &a.AddPod{Pod: *pod}
 	hr.AddPodChannel <- action
 	log.Debugf("handled add pod %s -- %s", pod.UID, pod.QualifiedName())
 	return nil
@@ -87,7 +87,7 @@ func (hr *HTTPResponder) AddPod(apiPod api.Pod) error {
 // DeletePod .....
 func (hr *HTTPResponder) DeletePod(qualifiedName string) {
 	recordDeletePod()
-	hr.DeletePodChannel <- &a.DeletePod{qualifiedName}
+	hr.DeletePodChannel <- &a.DeletePod{PodName: qualifiedName}
 	log.Debugf("handled delete pod %s", qualifiedName)
 }
 
@@ -98,7 +98,7 @@ func (hr *HTTPResponder) UpdatePod(apiPod api.Pod) error {
 	if err != nil {
 		return err
 	}
-	hr.UpdatePodChannel <- &a.UpdatePod{*pod}
+	hr.UpdatePodChannel <- &a.UpdatePod{Pod: *pod}
 	log.Debugf("handled update pod %s -- %s", pod.UID, pod.QualifiedName())
 	return nil
 }
@@ -110,7 +110,7 @@ func (hr *HTTPResponder) AddImage(apiImage api.Image) error {
 	if err != nil {
 		return err
 	}
-	hr.AddImageChannel <- &a.AddImage{*image}
+	hr.AddImageChannel <- &a.AddImage{Image: *image}
 	log.Debugf("handled add image %s", image.PullSpec())
 	return nil
 }
@@ -126,7 +126,7 @@ func (hr *HTTPResponder) UpdateAllPods(allPods api.AllPods) error {
 		}
 		pods = append(pods, *pod)
 	}
-	hr.AllPodsChannel <- &a.AllPods{pods}
+	hr.AllPodsChannel <- &a.AllPods{Pods: pods}
 	log.Debugf("handled update all pods -- %d pods", len(allPods.Pods))
 	return nil
 }
@@ -142,7 +142,7 @@ func (hr *HTTPResponder) UpdateAllImages(allImages api.AllImages) error {
 		}
 		images = append(images, *image)
 	}
-	hr.AllImagesChannel <- &a.AllImages{images}
+	hr.AllImagesChannel <- &a.AllImages{Images: images}
 	log.Debugf("handled update all images -- %d images", len(allImages.Images))
 	return nil
 }

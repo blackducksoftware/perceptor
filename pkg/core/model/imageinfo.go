@@ -33,7 +33,7 @@ type ImageInfo struct {
 	ScanStatus             ScanStatus
 	TimeOfLastStatusChange time.Time
 	TimeOfLastRefresh      time.Time
-	ScanResults            *hub.ImageScan
+	ScanResults            *hub.ScanResults
 	ImageSha               DockerImageSha
 	ImageNames             []string
 }
@@ -55,7 +55,7 @@ func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 }
 
 // SetScanResults .....
-func (imageInfo *ImageInfo) SetScanResults(results *hub.ImageScan) {
+func (imageInfo *ImageInfo) SetScanResults(results *hub.ScanResults) {
 	imageInfo.ScanResults = results
 	imageInfo.TimeOfLastRefresh = time.Now()
 }

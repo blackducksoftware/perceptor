@@ -50,7 +50,7 @@ func createNewModel1() *m.Model {
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].SetScanResults(&hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
 			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
@@ -64,12 +64,12 @@ func createNewModel2() *m.Model {
 	model.AddPod(pod3)
 	model.AddPod(pod4)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
-	model.Images[sha1].SetScanResults(&hub.ImageScan{
+	model.Images[sha1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
 			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
 	model.Images[sha3].ScanStatus = m.ScanStatusComplete
-	model.Images[sha3].SetScanResults(&hub.ImageScan{
+	model.Images[sha3].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus: hub.PolicyStatusTypeNotInViolation,
 		},
@@ -91,7 +91,7 @@ func RunTestPodOverallStatus() {
 			Expect(err).To(BeNil())
 			Expect(scan2.PolicyViolations).To(Equal(3))
 			Expect(scan2.Vulnerabilities).To(Equal(0))
-			Expect(scan2.OverallStatus).To(Equal("IN_VIOLATION"))
+			Expect(scan2.OverallStatus).To(Equal(hub.PolicyStatusTypeInViolation))
 		})
 
 		It("should get the right results for pod 3", func() {
@@ -99,7 +99,7 @@ func RunTestPodOverallStatus() {
 			Expect(err).To(BeNil())
 			Expect(scan3.PolicyViolations).To(Equal(0))
 			Expect(scan3.Vulnerabilities).To(Equal(0))
-			Expect(scan3.OverallStatus).To(Equal("NOT_IN_VIOLATION"))
+			Expect(scan3.OverallStatus).To(Equal(hub.PolicyStatusTypeNotInViolation))
 		})
 
 		It("should get the right results for pod 4", func() {
@@ -107,7 +107,7 @@ func RunTestPodOverallStatus() {
 			Expect(err).To(BeNil())
 			Expect(scan4.PolicyViolations).To(Equal(0))
 			Expect(scan4.Vulnerabilities).To(Equal(0))
-			Expect(scan4.OverallStatus).To(Equal("NOT_IN_VIOLATION"))
+			Expect(scan4.OverallStatus).To(Equal(hub.PolicyStatusTypeNotInViolation))
 		})
 
 		It("should get the right results for image 1", func() {

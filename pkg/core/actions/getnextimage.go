@@ -31,6 +31,7 @@ type GetNextImage struct {
 	Done chan *m.Image
 }
 
+// NewGetNextImage ...
 func NewGetNextImage() *GetNextImage {
 	return &GetNextImage{Done: make(chan *m.Image)}
 }
