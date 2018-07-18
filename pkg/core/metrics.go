@@ -55,7 +55,6 @@ var statusHistogram *prometheus.GaugeVec
 func recordModelMetrics(modelMetrics *model.Metrics) {
 	keys := []model.ScanStatus{
 		model.ScanStatusUnknown,
-		model.ScanStatusInHubCheckQueue,
 		model.ScanStatusInQueue,
 		model.ScanStatusRunningScanClient,
 		model.ScanStatusRunningHubScan,

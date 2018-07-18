@@ -48,35 +48,6 @@ type Fetcher struct {
 	hubScanPoller   *util.Scheduler
 }
 
-// ResetCircuitBreaker ...
-func (hf *Fetcher) ResetCircuitBreaker() {
-	hf.circuitBreaker.Reset()
-}
-
-// Model ...
-func (hf *Fetcher) Model() *FetcherModel {
-	return &FetcherModel{
-		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
-		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
-		State:               hf.circuitBreaker.State,
-	}
-}
-
-// IsEnabled returns whether the fetcher is currently enabled
-// example: the circuit breaker is disabled -> the fetcher is disabled
-func (hf *Fetcher) IsEnabled() <-chan bool {
-	return hf.circuitBreaker.IsEnabledChannel
-}
-
-// Login .....
-func (hf *Fetcher) Login() error {
-	start := time.Now()
-	err := hf.client.Login(hf.username, hf.password)
-	recordHubResponse("login", err == nil)
-	recordHubResponseTime("login", time.Now().Sub(start))
-	return err
-}
-
 func (hf *Fetcher) fetchHubVersion() error {
 	start := time.Now()
 	currentVersion, err := hf.client.CurrentVersion()
@@ -125,6 +96,35 @@ func NewFetcher(username string, password string, host string, port int, timeout
 	return &hf, nil
 }
 
+// ResetCircuitBreaker ...
+func (hf *Fetcher) ResetCircuitBreaker() {
+	hf.circuitBreaker.Reset()
+}
+
+// Model ...
+func (hf *Fetcher) Model() *FetcherModel {
+	return &FetcherModel{
+		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
+		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
+		State:               hf.circuitBreaker.State,
+	}
+}
+
+// IsEnabled returns whether the fetcher is currently enabled
+// example: the circuit breaker is disabled -> the fetcher is disabled
+func (hf *Fetcher) IsEnabled() <-chan bool {
+	return hf.circuitBreaker.IsEnabledChannel
+}
+
+// Login .....
+func (hf *Fetcher) Login() error {
+	start := time.Now()
+	err := hf.client.Login(hf.username, hf.password)
+	recordHubResponse("login", err == nil)
+	recordHubResponseTime("login", time.Now().Sub(start))
+	return err
+}
+
 // SetTimeout ...
 func (hf *Fetcher) SetTimeout(timeout time.Duration) {
 	hf.client.SetTimeout(timeout)
@@ -146,18 +146,6 @@ func (hf *Fetcher) fetchScans() {
 		}
 	}
 }
-
-// func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
-// 	codeLocationList, err := hf.circuitBreaker.ListAllCodeLocations()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	scanNames := make([]string, len(codeLocationList.Items))
-// 	for i, cl := range codeLocationList.Items {
-// 		scanNames[i] = cl.Name
-// 	}
-// 	return scanNames, nil
-// }
 
 // FetchScan finds ScanResults by starting from a code location,
 // and following links from there.
@@ -301,5 +289,13 @@ func (hf *Fetcher) ScanDidFinish() <-chan *ScanResults {
 }
 
 func (hf *Fetcher) GetAllCodeLocations() ([]string, error) {
-	return nil, fmt.Errorf("TODO -- unimplemented")
+	clList, err := hf.circuitBreaker.ListAllCodeLocations()
+	if err != nil {
+		return nil, err
+	}
+	codeLocationNames := make([]string, len(clList.Items))
+	for i, cl := range clList.Items {
+		codeLocationNames[i] = cl.Name
+	}
+	return codeLocationNames, nil
 }

@@ -44,6 +44,7 @@ type HTTPResponder struct {
 	PostConfigChannel          chan *api.PostConfig
 	ResetCircuitBreakerChannel chan bool
 	GetModelChannel            chan *a.GetModel
+	SetHubsChannel             chan *a.SetHubs
 	GetScanResultsChannel      chan *a.GetScanResults
 }
 
@@ -61,6 +62,7 @@ func NewHTTPResponder() *HTTPResponder {
 		PostConfigChannel:          make(chan *api.PostConfig),
 		ResetCircuitBreakerChannel: make(chan bool),
 		GetModelChannel:            make(chan *a.GetModel),
+		SetHubsChannel:             make(chan *a.SetHubs),
 		GetScanResultsChannel:      make(chan *a.GetScanResults)}
 }
 
@@ -193,6 +195,13 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
 	log.Debugf("handled finished scan job -- %v", job)
 	return nil
+}
+
+// hubs
+
+func (hr *HTTPResponder) SetHubs(hubs api.Hubs) {
+	log.Infof("set hubs -- %+v", hubs)
+	hr.SetHubsChannel <- &a.SetHubs{Hubs: hubs.Hubs}
 }
 
 // internal use

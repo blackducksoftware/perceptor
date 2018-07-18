@@ -44,23 +44,24 @@ const (
 // It grabs the scan results from the hub and adds them to its model.
 // It publishes vulnerabilities that the cluster can find out about.
 type Perceptor struct {
-	hubClient          hub.FetcherInterface
 	httpResponder      *HTTPResponder
 	reducer            *reducer
 	routineTaskManager *RoutineTaskManager
+	hubs               map[string]hub.FetcherInterface
 	// channels
 	actions chan a.Action
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
-func NewMockedPerceptor() (*Perceptor, error) {
-	mockConfig := Config{
-		HubHost:             "mock host",
-		HubUser:             "mock user",
-		ConcurrentScanLimit: 2,
-	}
-	return newPerceptorHelper(hub.NewMockHub("mock hub version"), &mockConfig), nil
-}
+// TODO
+// func NewMockedPerceptor() (*Perceptor, error) {
+// 	mockConfig := Config{
+// 		HubHost:             "mock host",
+// 		HubUser:             "mock user",
+// 		ConcurrentScanLimit: 2,
+// 	}
+// 	return newPerceptorHelper(hub.NewMockHub("mock hub version"), &mockConfig), nil
+// }
 
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(config *Config) (*Perceptor, error) {
@@ -70,18 +71,10 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	stop := make(chan struct{})
-	hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop)
-	if err != nil {
-		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
-		return nil, err
-	}
-
-	return newPerceptorHelper(hubClient, config), nil
+	return newPerceptorHelper(config), nil
 }
 
-func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Perceptor {
+func newPerceptorHelper(config *Config) *Perceptor {
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
@@ -129,6 +122,28 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					State:               cbModel.State.String(),
 				}
 				actions <- get
+			case a := <-httpResponder.SetHubsChannel:
+				// delete hubs
+				for hubURL, fetcher := range hubFetchers {
+					if _, ok := a.Hubs[hubURL]; !ok {
+						// TODO delete this hub fetcher
+					}
+				}
+				// create hubs
+				for hubURL, _ := range a.Hubs {
+					if _, ok := hubFetchers[hubURL]; !ok {
+						// TODO create a new hub fetcher
+						stop := make(chan struct{})
+						hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
+						hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop)
+						if err != nil {
+							panic("TODO handle this intelligently")
+							log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
+							//return nil, err
+						}
+					}
+				}
+				actions <- a
 			case a := <-httpResponder.GetScanResultsChannel:
 				actions <- a
 			case a := <-routineTaskManager.actions:
@@ -177,7 +192,6 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 
 	// 6. perceptor
 	perceptor := Perceptor{
-		hubClient:          hubClient,
 		httpResponder:      httpResponder,
 		reducer:            reducer,
 		routineTaskManager: routineTaskManager,

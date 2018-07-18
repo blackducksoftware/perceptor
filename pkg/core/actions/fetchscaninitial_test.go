@@ -42,7 +42,7 @@ func TestFetchScanInitialError(t *testing.T) {
 	ihc.Apply(model)
 
 	actual := model.Images[image1.Sha].ScanStatus
-	expected := m.ScanStatusInHubCheckQueue
+	expected := m.ScanStatusUnknown
 	if actual != expected {
 		t.Errorf("expected %s, found %s", expected, actual)
 	}

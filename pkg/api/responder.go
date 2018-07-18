@@ -38,6 +38,9 @@ type Responder interface {
 	UpdateAllPods(allPods AllPods) error
 	UpdateAllImages(allImages AllImages) error
 
+	// hubs
+	SetHubs(hubs Hubs)
+
 	// scanner
 	GetNextImage() NextImage
 	PostFinishScan(job FinishedScanClientJob) error

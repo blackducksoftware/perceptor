@@ -29,7 +29,6 @@ import (
 
 // Config contains all configuration for Perceptor
 type Config struct {
-	HubHost                      string
 	HubUser                      string
 	HubUserPasswordEnvVar        string
 	HubClientTimeoutMilliseconds int

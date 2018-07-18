@@ -85,36 +85,6 @@ func RunModelTests() {
 			log.Infof("json bytes: %s", string(jsonBytes))
 		})
 
-		Describe("Hub check queue operations", func() {
-			It("TestModelRemoveItemFromFrontOfHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image1.Sha)
-				// "remove item from front of hub check queue"
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image2.Sha, image3.Sha}))
-			})
-
-			It("TestModelRemoveItemFromMiddleOfHubCheckQueue", func() {
-				model := removeItemModel()
-				err := model.removeImageFromHubCheckQueue(image2.Sha)
-				Expect(err).To(BeNil())
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image3.Sha}))
-			})
-
-			It("TestModelRemoveItemFromEndOfHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image3.Sha)
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha}))
-			})
-
-			It("TestModelRemoveAllItemsFromHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image1.Sha)
-				model.removeImageFromHubCheckQueue(image2.Sha)
-				model.removeImageFromHubCheckQueue(image3.Sha)
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{}))
-			})
-		})
-
 		Describe("Image scan queue operations", func() {
 			It("TestModelRemoveItemFromFrontOfScanQueue", func() {
 				model := removeScanItemModel()

@@ -44,8 +44,8 @@ func (h *FetchScanInitial) Apply(model *m.Model) {
 	}
 
 	// case 0: image surprisingly has different status
-	if imageInfo.ScanStatus != m.ScanStatusInHubCheckQueue {
-		log.Warnf("ignoring hub check results for sha %s, invalid status (expected InHubCheckQueue, found %s)", string(scan.Sha), imageInfo.ScanStatus)
+	if imageInfo.ScanStatus != m.ScanStatusUnknown {
+		log.Warnf("ignoring hub check results for sha %s, invalid status (expected Unknown, found %s)", string(scan.Sha), imageInfo.ScanStatus)
 		return
 	}
 

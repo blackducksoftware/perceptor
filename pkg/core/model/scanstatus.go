@@ -29,7 +29,6 @@ type ScanStatus int
 // .....
 const (
 	ScanStatusUnknown           ScanStatus = iota
-	ScanStatusInHubCheckQueue   ScanStatus = iota
 	ScanStatusInQueue           ScanStatus = iota
 	ScanStatusRunningScanClient ScanStatus = iota
 	ScanStatusRunningHubScan    ScanStatus = iota
@@ -41,8 +40,6 @@ func (status ScanStatus) String() string {
 	switch status {
 	case ScanStatusUnknown:
 		return "ScanStatusUnknown"
-	case ScanStatusInHubCheckQueue:
-		return "ScanStatusInHubCheckQueue"
 	case ScanStatusInQueue:
 		return "ScanStatusInQueue"
 	case ScanStatusRunningScanClient:
@@ -68,10 +65,6 @@ func (status ScanStatus) MarshalText() (text []byte, err error) {
 
 var legalTransitions = map[ScanStatus]map[ScanStatus]bool{
 	ScanStatusUnknown: {
-		ScanStatusInHubCheckQueue: true,
-		ScanStatusRunningHubScan:  true,
-	},
-	ScanStatusInHubCheckQueue: {
 		ScanStatusInQueue:        true,
 		ScanStatusRunningHubScan: true,
 		ScanStatusComplete:       true,

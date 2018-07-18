@@ -74,7 +74,6 @@ func RunActionTests() {
 			processAction(&AllPods{})
 			processAction(&GetNextImage{})
 			processAction(&FinishScanClient{})
-			processAction(&CheckScanInitial{})
 			processAction(&FetchScanInitial{})
 			processAction(&FetchScanCompletion{})
 			processAction(&RequeueStalledScans{})

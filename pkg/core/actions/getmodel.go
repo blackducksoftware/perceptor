@@ -90,20 +90,13 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 			TimeOfLastStatusChange: imageInfo.TimeOfLastStatusChange.String(),
 		}
 	}
-	// hub check queue
-	hubQueue := make([]string, len(model.ImageHubCheckQueue))
-	for i, image := range model.ImageHubCheckQueue {
-		hubQueue[i] = string(image)
-	}
 	// return value
 	return &api.Model{
-		Pods:               pods,
-		Images:             images,
-		HubVersion:         model.HubVersion,
-		ImageHubCheckQueue: hubQueue,
-		ImageScanQueue:     model.ImageScanQueue.Dump(),
+		Pods:           pods,
+		Images:         images,
+		HubVersion:     model.HubVersion,
+		ImageScanQueue: model.ImageScanQueue.Dump(),
 		Config: &api.ModelConfig{
-			HubHost:             model.Config.HubHost,
 			HubUser:             model.Config.HubUser,
 			HubPort:             model.Config.HubPort,
 			LogLevel:            model.Config.LogLevel,

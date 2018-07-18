@@ -37,7 +37,6 @@ type Model struct {
 	Images               map[DockerImageSha]*ImageInfo
 	ImageScanQueue       *util.PriorityQueue
 	ImagePriority        map[DockerImageSha]int
-	ImageHubCheckQueue   []DockerImageSha
 	ImageRefreshQueue    []DockerImageSha
 	ImageRefreshQueueSet map[DockerImageSha]bool
 	HubVersion           string
@@ -53,7 +52,6 @@ func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 		Images:               make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue:       util.NewPriorityQueue(),
 		ImagePriority:        map[DockerImageSha]int{},
-		ImageHubCheckQueue:   []DockerImageSha{},
 		ImageRefreshQueue:    []DockerImageSha{},
 		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
 		HubVersion:           hubVersion,
@@ -92,7 +90,6 @@ func (model *Model) AddImage(image Image, priority int) {
 	added := model.createImage(image)
 	if added {
 		model.ImagePriority[image.Sha] = priority
-		model.SetImageScanStatus(image.Sha, ScanStatusInHubCheckQueue)
 	}
 }
 
@@ -100,8 +97,6 @@ func (model *Model) AddImage(image Image, priority int) {
 
 func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
 	switch state {
-	case ScanStatusInHubCheckQueue:
-		return model.removeImageFromHubCheckQueue(sha)
 	case ScanStatusInQueue:
 		return model.removeImageFromScanQueue(sha)
 	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
@@ -113,8 +108,6 @@ func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
 
 func (model *Model) enterState(sha DockerImageSha, state ScanStatus) error {
 	switch state {
-	case ScanStatusInHubCheckQueue:
-		return model.addImageToHubCheckQueue(sha)
 	case ScanStatusInQueue:
 		return model.addImageToScanQueue(sha)
 	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
@@ -172,27 +165,6 @@ func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 // (things are in the right state, things that are expected to be present are
 // actually present, etc.)
 
-func (model *Model) addImageToHubCheckQueue(sha DockerImageSha) error {
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, sha)
-	return nil
-}
-
-func (model *Model) removeImageFromHubCheckQueue(sha DockerImageSha) error {
-	index := -1
-	for i := 0; i < len(model.ImageHubCheckQueue); i++ {
-		if model.ImageHubCheckQueue[i] == sha {
-			index = i
-			break
-		}
-	}
-	if index < 0 {
-		return fmt.Errorf("unable to remove sha %s from hub check queue, not found", string(sha))
-	}
-
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue[:index], model.ImageHubCheckQueue[index+1:]...)
-	return nil
-}
-
 func (model *Model) addImageToScanQueue(sha DockerImageSha) error {
 	priority := model.ImagePriority[sha]
 	return model.ImageScanQueue.Add(string(sha), priority, sha)
@@ -216,19 +188,6 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 		}
 		log.Errorf("unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
 	}
-}
-
-// GetNextImageFromHubCheckQueue .....
-func (model *Model) GetNextImageFromHubCheckQueue() *Image {
-	if len(model.ImageHubCheckQueue) == 0 {
-		log.Debug("hub check queue empty")
-		return nil
-	}
-
-	first := model.ImageHubCheckQueue[0]
-	image := model.unsafeGet(first).Image()
-
-	return &image
 }
 
 // GetNextImageFromScanQueue .....
@@ -423,87 +382,4 @@ func (model *Model) ScanResultsForImage(sha DockerImageSha) (*Scan, error) {
 		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
 	return imageScan, nil
-}
-
-// Metrics .....
-func (model *Model) Metrics() *Metrics {
-	// number of images in each status
-	statusCounts := make(map[ScanStatus]int)
-	for _, imageResults := range model.Images {
-		statusCounts[imageResults.ScanStatus]++
-	}
-
-	// number of containers per pod (as a histgram, but not a prometheus histogram ???)
-	containerCounts := make(map[int]int)
-	for _, pod := range model.Pods {
-		containerCounts[len(pod.Containers)]++
-	}
-
-	// number of times each image is referenced from a pod's container
-	imageCounts := make(map[Image]int)
-	for _, pod := range model.Pods {
-		for _, cont := range pod.Containers {
-			imageCounts[cont.Image]++
-		}
-	}
-	imageCountHistogram := make(map[int]int)
-	for _, count := range imageCounts {
-		imageCountHistogram[count]++
-	}
-
-	podStatus := map[string]int{}
-	podPolicyViolations := map[int]int{}
-	podVulnerabilities := map[int]int{}
-	for podName := range model.Pods {
-		podScan, err := model.ScanResultsForPod(podName)
-		if err != nil {
-			log.Errorf("unable to get scan results for pod %s: %s", podName, err.Error())
-			continue
-		}
-		if podScan != nil {
-			podStatus[podScan.OverallStatus.String()]++
-			podPolicyViolations[podScan.PolicyViolations]++
-			podVulnerabilities[podScan.Vulnerabilities]++
-		} else {
-			podStatus["Unknown"]++
-			podPolicyViolations[-1]++
-			podVulnerabilities[-1]++
-		}
-	}
-
-	imageStatus := map[string]int{}
-	imagePolicyViolations := map[int]int{}
-	imageVulnerabilities := map[int]int{}
-	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus == ScanStatusComplete {
-			imageScan := imageInfo.ScanResults
-			if imageScan == nil {
-				log.Errorf("found nil scan results for completed image %s", sha)
-				continue
-			}
-			imageStatus[imageScan.OverallStatus().String()]++
-			imagePolicyViolations[imageScan.PolicyViolationCount()]++
-			imageVulnerabilities[imageScan.VulnerabilityCount()]++
-		} else {
-			imageStatus["Unknown"]++
-			imagePolicyViolations[-1]++
-			imageVulnerabilities[-1]++
-		}
-	}
-
-	// TODO
-	// number of images without a pod pointing to them
-	return &Metrics{
-		ScanStatusCounts:      statusCounts,
-		NumberOfImages:        len(model.Images),
-		NumberOfPods:          len(model.Pods),
-		ContainerCounts:       containerCounts,
-		ImageCountHistogram:   imageCountHistogram,
-		PodStatus:             podStatus,
-		ImageStatus:           imageStatus,
-		PodPolicyViolations:   podPolicyViolations,
-		ImagePolicyViolations: imagePolicyViolations,
-		PodVulnerabilities:    podVulnerabilities,
-		ImageVulnerabilities:  imageVulnerabilities,
-	}
 }

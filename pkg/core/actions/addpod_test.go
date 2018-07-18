@@ -39,10 +39,8 @@ func RunTestAddPodAction() {
 		expected.ImagePriority[testImage.Sha] = 1
 		expected.Pods[testPod.QualifiedName()] = testPod
 		imageInfo := m.NewImageInfo(testSha, "image1")
-		imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
 		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 		expected.Images[testSha] = imageInfo
-		expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
 		//
 		Expect(actual).To(Equal(&expected))
 	})

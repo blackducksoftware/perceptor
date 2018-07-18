@@ -23,7 +23,6 @@ package core
 
 import (
 	"sync"
-	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/core/actions"
 	"github.com/blackducksoftware/perceptor/pkg/core/model"
@@ -41,9 +40,6 @@ type RoutineTaskManager struct {
 	hubClient    hub.FetcherInterface
 	Timings      *model.Timings
 	// routine tasks
-	InitialHubCheckScheduler         *util.Scheduler
-	HubScanCompletionScheduler       *util.Scheduler
-	HubScanRefreshScheduler          *util.Scheduler
 	EnqueueImagesForRefreshScheduler *util.Scheduler
 	ModelMetricsScheduler            *util.Scheduler
 	StalledScanClientScheduler       *util.Scheduler
@@ -60,11 +56,8 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 		hubClient:    hubClient,
 		Timings:      timings,
 	}
-	rtm.InitialHubCheckScheduler = rtm.startHubInitialScanChecking()
-	rtm.HubScanCompletionScheduler = rtm.startPollingHubForScanCompletion()
 	rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
 	rtm.ModelMetricsScheduler = rtm.startGeneratingModelMetrics()
-	rtm.HubScanRefreshScheduler = rtm.startCheckingForUpdatesForCompletedScans()
 	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
 	rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
 	go func() {
@@ -77,11 +70,8 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 				go continuation(timings)
 			case newTimings := <-rtm.writeTimings:
 				rtm.Timings = &newTimings
-				rtm.InitialHubCheckScheduler.SetDelay(newTimings.CheckHubThrottle)
-				rtm.HubScanCompletionScheduler.SetDelay(newTimings.CheckHubForCompletedScansPause)
 				rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
 				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
-				rtm.HubScanRefreshScheduler.SetDelay(newTimings.RefreshImagePause)
 				rtm.ReloginToHubScheduler.SetDelay(newTimings.HubReloginPause)
 				rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueImagesForRefreshPause)
 			}
@@ -92,6 +82,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 
 // SetTimings sets the timings in a threadsafe way
 func (rtm *RoutineTaskManager) SetTimings(newTimings model.Timings) {
+	// TODO the next 3 lines should be moved into the for/select loop
 	if newTimings.HubClientTimeout != rtm.Timings.HubClientTimeout {
 		rtm.hubClient.SetTimeout(newTimings.HubClientTimeout)
 	}
@@ -111,42 +102,6 @@ func (rtm *RoutineTaskManager) GetTimings() model.Timings {
 	return timings
 }
 
-func (rtm *RoutineTaskManager) startHubInitialScanChecking() *util.Scheduler {
-	action := func() {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		var image *model.Image
-		rtm.actions <- &actions.CheckScanInitial{Continuation: func(i *model.Image) {
-			image = i
-			wg.Done()
-		}}
-		wg.Wait()
-
-		if image != nil {
-			scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
-			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
-		}
-	}
-	return util.NewScheduler(rtm.Timings.CheckHubThrottle, rtm.stop, action)
-}
-
-func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *util.Scheduler {
-	log.Info("starting to poll hub for scan completion")
-	return util.NewScheduler(rtm.Timings.CheckHubForCompletedScansPause, rtm.stop, func() {
-		log.Debug("checking hub for completion of running hub scans")
-		rtm.actions <- &actions.CheckScansCompletion{Continuation: func(images *[]model.Image) {
-			if images == nil {
-				return
-			}
-			for _, image := range *images {
-				scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
-				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
-				time.Sleep(rtm.GetTimings().CheckHubThrottle)
-			}
-		}}
-	})
-}
-
 func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Scheduler {
 	log.Info("starting checking for stalled scans")
 	return util.NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
@@ -158,24 +113,6 @@ func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Sc
 func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Scheduler {
 	return util.NewScheduler(rtm.Timings.ModelMetricsPause, rtm.stop, func() {
 		rtm.actions <- &actions.GetMetrics{Continuation: recordModelMetrics}
-	})
-}
-
-func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.RefreshImagePause, rtm.stop, func() {
-		log.Debug("requesting completed scans for rechecking hub")
-
-		var wg sync.WaitGroup
-		wg.Add(1)
-		rtm.actions <- &actions.CheckScanRefresh{Continuation: func(image *model.Image) {
-			if image != nil {
-				log.Debugf("refreshing image %s", image.PullSpec())
-				scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
-				rtm.actions <- &actions.FetchScanRefresh{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
-			}
-			wg.Done()
-		}}
-		wg.Wait()
 	})
 }
 

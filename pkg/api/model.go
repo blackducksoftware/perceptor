@@ -29,14 +29,13 @@ import (
 
 // Model .....
 type Model struct {
-	Pods               map[string]*Pod
-	Images             map[string]*ModelImageInfo
-	ImageScanQueue     []map[string]interface{}
-	ImageHubCheckQueue []string
-	HubVersion         string
-	Config             *ModelConfig
-	Timings            *ModelTimings
-	HubCircuitBreaker  *ModelCircuitBreaker
+	Pods              map[string]*Pod
+	Images            map[string]*ModelImageInfo
+	ImageScanQueue    []map[string]interface{}
+	HubVersion        string
+	Config            *ModelConfig
+	Timings           *ModelTimings
+	HubCircuitBreaker *ModelCircuitBreaker
 }
 
 // ModelConfig .....
