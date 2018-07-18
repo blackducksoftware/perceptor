@@ -24,6 +24,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
@@ -69,7 +70,9 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
+	stop := make(chan struct{})
+	hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop)
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err

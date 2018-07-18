@@ -24,6 +24,7 @@ package hub
 // ScanResults models the results that we expect to get from the hub after
 // scanning a docker image.
 type ScanResults struct {
+	ScanName                         string
 	RiskProfile                      RiskProfile
 	PolicyStatus                     PolicyStatus
 	ScanSummaries                    []ScanSummary

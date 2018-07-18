@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"reflect"
 
-	ds "github.com/blackducksoftware/perceptor/pkg/datastructures"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
+	util "github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +35,7 @@ type Model struct {
 	// Pods is a map of qualified name ("<namespace>/<name>") to pod
 	Pods                 map[string]Pod
 	Images               map[DockerImageSha]*ImageInfo
-	ImageScanQueue       *ds.PriorityQueue
+	ImageScanQueue       *util.PriorityQueue
 	ImagePriority        map[DockerImageSha]int
 	ImageHubCheckQueue   []DockerImageSha
 	ImageRefreshQueue    []DockerImageSha
@@ -51,7 +51,7 @@ func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
 	return &Model{
 		Pods:                 make(map[string]Pod),
 		Images:               make(map[DockerImageSha]*ImageInfo),
-		ImageScanQueue:       ds.NewPriorityQueue(),
+		ImageScanQueue:       util.NewPriorityQueue(),
 		ImagePriority:        map[DockerImageSha]int{},
 		ImageHubCheckQueue:   []DockerImageSha{},
 		ImageRefreshQueue:    []DockerImageSha{},

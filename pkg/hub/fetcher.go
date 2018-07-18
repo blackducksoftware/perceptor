@@ -27,6 +27,7 @@ import (
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/hub-client-go/hubclient"
+	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,12 +37,15 @@ const (
 
 // Fetcher .....
 type Fetcher struct {
-	client         *hubclient.Client
-	circuitBreaker *CircuitBreaker
-	hubVersion     string
-	username       string
-	password       string
-	baseURL        string
+	client          *hubclient.Client
+	circuitBreaker  *CircuitBreaker
+	hubVersion      string
+	username        string
+	password        string
+	baseURL         string
+	inProgressScans map[string]bool
+	finishScan      chan *ScanResults
+	hubScanPoller   *util.Scheduler
 }
 
 // ResetCircuitBreaker ...
@@ -93,19 +97,23 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, hubHost string, hubPort int, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
-	baseURL := fmt.Sprintf("https://%s:%d", hubHost, hubPort)
-	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
+func NewFetcher(username string, password string, host string, port int, timeout time.Duration, checkHubPause time.Duration, stop <-chan struct{}) (*Fetcher, error) {
+	baseURL := fmt.Sprintf("https://%s:%d", host, port)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, timeout)
 	if err != nil {
 		return nil, err
 	}
 	hf := Fetcher{
-		client:         client,
-		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
-		username:       username,
-		password:       password,
-		baseURL:        baseURL}
+		client:          client,
+		circuitBreaker:  NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
+		username:        username,
+		password:        password,
+		baseURL:         baseURL,
+		inProgressScans: map[string]bool{},
+		finishScan:      make(chan *ScanResults)}
+	hf.hubScanPoller = util.NewScheduler(checkHubPause, stop, func() {
+		hf.fetchScans()
+	})
 	err = hf.Login()
 	if err != nil {
 		return nil, err
@@ -125,6 +133,18 @@ func (hf *Fetcher) SetTimeout(timeout time.Duration) {
 // HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
+}
+
+func (hf *Fetcher) fetchScans() {
+	for scanNameSearchString := range hf.inProgressScans {
+		scanResults, err := hf.fetchScan(scanNameSearchString)
+		if (err == nil) && (scanResults.ScanSummaryStatus() != ScanSummaryStatusInProgress) {
+			hf.finishScan <- scanResults
+			delete(hf.inProgressScans, scanNameSearchString)
+		} else if err != nil {
+			log.Errorf("unable to fetch scan for %s: %s", scanNameSearchString, err.Error())
+		}
+	}
 }
 
 // func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
@@ -150,7 +170,7 @@ func (hf *Fetcher) HubVersion() string {
 //  - multiple code locations with a matching name
 //  - multiple scan summaries for a code location
 //  - zero scan summaries for a code location
-func (hf *Fetcher) FetchScan(scanNameSearchString string) (*ScanResults, error) {
+func (hf *Fetcher) fetchScan(scanNameSearchString string) (*ScanResults, error) {
 	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(scanNameSearchString)
 
 	if err != nil {
@@ -253,6 +273,7 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 	}
 
 	scan := ScanResults{
+		ScanName:              scanNameSearchString,
 		RiskProfile:           *mappedRiskProfile,
 		PolicyStatus:          *mappedPolicyStatus,
 		ComponentsHref:        componentsLink.Href,
@@ -265,4 +286,20 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 	}
 
 	return &scan, nil
+}
+
+func (hf *Fetcher) AddScan(scanNameSearchString string) {
+	hf.inProgressScans[scanNameSearchString] = true
+}
+
+func (hf *Fetcher) ScansInProgress() []string {
+	panic("unimplemented!  maybe remove this")
+}
+
+func (hf *Fetcher) ScanDidFinish() <-chan *ScanResults {
+	return hf.finishScan
+}
+
+func (hf *Fetcher) GetAllCodeLocations() ([]string, error) {
+	return nil, fmt.Errorf("TODO -- unimplemented")
 }

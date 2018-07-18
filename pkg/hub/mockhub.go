@@ -65,13 +65,23 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-// FetchProjectByName .....
-func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
-	return nil, nil
+// AddScan ...
+func (hub *MockHub) AddScan(scanNameSearchString string) {
+	// nothing to do
 }
 
-// FetchScan .....
-func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error) {
+// ScansInProgress ...
+func (hub *MockHub) ScansInProgress() []string {
+	return nil
+}
+
+// ScanDidFinish ...
+func (hub *MockHub) ScanDidFinish() <-chan *ScanResults {
+	return nil
+}
+
+// GetAllCodeLocations ...
+func (hub *MockHub) GetAllCodeLocations() ([]string, error) {
 	return nil, nil
 }
 
