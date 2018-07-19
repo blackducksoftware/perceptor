@@ -23,20 +23,24 @@ package model
 
 import "fmt"
 
+// Hub ...
 type Hub struct {
 	URL             string
 	Images          map[DockerImageSha]bool
 	InProgressScans map[DockerImageSha]bool
 }
 
+// NewHub ...
 func NewHub(url string) *Hub {
 	return &Hub{URL: url, Images: map[DockerImageSha]bool{}, InProgressScans: map[DockerImageSha]bool{}}
 }
 
+// InProgressScanCount ...
 func (h *Hub) InProgressScanCount() int {
 	return len(h.InProgressScans)
 }
 
+// AddImage ...
 func (h *Hub) AddImage(sha DockerImageSha) error {
 	if _, ok := h.Images[sha]; ok {
 		return fmt.Errorf("image %s already present", sha)
@@ -45,8 +49,18 @@ func (h *Hub) AddImage(sha DockerImageSha) error {
 	return nil
 }
 
-// func (h *Hub) RemoveImage(sha DockerImageSha) error {}
+// RemoveImage ...
+func (h *Hub) RemoveImage(sha DockerImageSha) error {
+	if _, ok := h.Images[sha]; !ok {
+		return fmt.Errorf("image %s not present", sha)
+	}
+	delete(h.Images, sha)
+	// we don't care if 'sha' is in InProgressScans or not
+	delete(h.InProgressScans, sha)
+	return nil
+}
 
+// StartScanningImage ...
 func (h *Hub) StartScanningImage(sha DockerImageSha) error {
 	if _, ok := h.Images[sha]; !ok {
 		return fmt.Errorf("image %s not found", sha)
@@ -58,6 +72,7 @@ func (h *Hub) StartScanningImage(sha DockerImageSha) error {
 	return nil
 }
 
+// ScanDidFinish ...
 func (h *Hub) ScanDidFinish(sha DockerImageSha) error {
 	if _, ok := h.Images[sha]; !ok {
 		return fmt.Errorf("image %s not found", sha)

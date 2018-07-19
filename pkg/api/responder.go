@@ -42,7 +42,7 @@ type Responder interface {
 	SetHubs(hubs Hubs)
 
 	// scanner
-	GetNextImage() NextImage
+	GetNextImage() (*NextImage, error)
 	PostFinishScan(job FinishedScanClientJob) error
 
 	// internal use

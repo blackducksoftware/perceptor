@@ -177,7 +177,7 @@ func (mr *MockResponder) UpdateAllImages(allImages AllImages) error {
 // scanner
 
 // GetNextImage .....
-func (mr *MockResponder) GetNextImage() NextImage {
+func (mr *MockResponder) GetNextImage() (*NextImage, error) {
 	mr.NextImageCounter++
 	imageSpec := ImageSpec{
 		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
@@ -185,7 +185,7 @@ func (mr *MockResponder) GetNextImage() NextImage {
 		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
 		PullSpec:              "abc/def/ghi",
 		Sha:                   "123abc456def"}
-	return NextImage{ImageSpec: &imageSpec}
+	return &NextImage{ImageSpec: &imageSpec}, nil
 }
 
 // PostFinishScan .....

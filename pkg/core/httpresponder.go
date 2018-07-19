@@ -160,26 +160,34 @@ func (hr *HTTPResponder) GetScanResults() api.ScanResults {
 }
 
 // GetNextImage .....
-func (hr *HTTPResponder) GetNextImage() api.NextImage {
+func (hr *HTTPResponder) GetNextImage() (*api.NextImage, error) {
 	recordGetNextImage()
 	get := a.NewGetNextImage()
 	hr.PostNextImageChannel <- get
-	image := <-get.Done
+	var assignment *model.HubImageAssignment = nil
+	select {
+	case a := <-get.Done:
+		assignment = a
+	case e := <-get.Error:
+		return nil, e
+	}
 	imageString := "null"
 	var imageSpec *api.ImageSpec
-	if image != nil {
+	if assignment != nil {
+		image := assignment.Image
 		imageString = image.HumanReadableName()
 		imageSpec = api.NewImageSpec(
 			image.Name,
 			image.PullSpec(),
 			string(image.Sha),
+			assignment.HubURL,
 			image.HubProjectName(),
 			image.HubProjectVersionName(),
 			image.HubScanName())
 	}
-	nextImage := *api.NewNextImage(imageSpec)
+	nextImage := api.NewNextImage(imageSpec)
 	log.Debugf("handled GET next image -- %s", imageString)
-	return nextImage
+	return nextImage, nil
 }
 
 // PostFinishScan .....
@@ -192,7 +200,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 		err = fmt.Errorf(job.Err)
 	}
 	image := model.NewImage(job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha))
-	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
+	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, HubURL: job.ImageSpec.HubURL, Err: err}
 	log.Debugf("handled finished scan job -- %v", job)
 	return nil
 }

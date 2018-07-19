@@ -207,7 +207,7 @@ func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
 	}
 
 	if assignedHub == nil {
-		log.Warnf("no available hub found -- %+v", model.HubImageAssignments)
+		log.Debugf("no available hub found -- %+v", model.HubImageAssignments)
 		return nil, nil
 	}
 
@@ -231,20 +231,16 @@ func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
 	}
 	sha := imageInfo.ImageSha
 
-	if imageInfo.isAssignedHub() {
-		err := fmt.Errorf("expected image %s not to be assigned to hub; was assigned to %s", sha, imageInfo.HubURL)
-		log.Error(err.Error())
-		return nil, err
-	}
-
-	err = assignedHub.AddImage(sha)
+	err = model.assignImageToHub(sha, assignedHub.URL)
 	if err != nil {
 		return nil, err
 	}
+
 	err = assignedHub.StartScanningImage(sha)
 	if err != nil {
 		return nil, err
 	}
+
 	image := imageInfo.Image()
 	return &HubImageAssignment{HubURL: assignedHub.URL, Image: &image}, nil
 }
@@ -303,22 +299,35 @@ func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
 // }
 
 // FinishRunningScanClient .....
-func (model *Model) FinishRunningScanClient(image *Image, scanClientError error) {
+func (model *Model) FinishRunningScanClient(image *Image, hubURL string, scanClientError error) {
 	_, ok := model.Images[image.Sha]
 
-	// if we don't have this sha already, let's add it to the model,
-	// but *NOT* to the scan queue
+	// if we don't have this sha already, let's drop it.  Hub recovery will handle finding it again.
 	if !ok {
 		log.Warnf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
-		_ = model.createImage(*image)
+		return
+	}
+
+	hub, ok := model.HubImageAssignments[hubURL]
+	if !ok {
+		log.Warnf("finish running scan client -- expected to already have hub %s, but did not", hubURL)
+		return
 	}
 
 	scanStatus := ScanStatusRunningHubScan
 	if scanClientError != nil {
+		err := model.unassignImageFromHub(image.Sha, hubURL)
+		if err != nil {
+			log.Error(err.Error())
+		}
 		scanStatus = ScanStatusInQueue
 		log.Errorf("error running scan client -- %s", scanClientError.Error())
+	} else {
+		err := hub.ScanDidFinish(image.Sha)
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
-
 	model.SetImageScanStatus(image.Sha, scanStatus)
 }
 
@@ -338,6 +347,42 @@ func (model *Model) InProgressHubScans() *([]Image) {
 
 // hubs
 
+func (model *Model) assignImageToHub(sha DockerImageSha, hubURL string) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("image %s not present", sha)
+	}
+	hub, ok := model.HubImageAssignments[hubURL]
+	if !ok {
+		return fmt.Errorf("hub URL %s not present", hubURL)
+	}
+	err := hub.AddImage(sha)
+	if err != nil {
+		return err
+	}
+	err = imageInfo.setHubURL(hubURL)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (model *Model) unassignImageFromHub(sha DockerImageSha, hubURL string) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("image %s not present", sha)
+	}
+	hub, ok := model.HubImageAssignments[hubURL]
+	if !ok {
+		return fmt.Errorf("hub URL %s not present", hubURL)
+	}
+	err := hub.RemoveImage(sha)
+	if err != nil {
+		return err
+	}
+	return imageInfo.removeHubURL()
+}
+
 func (model *Model) addHub(hubURL string) error {
 	_, ok := model.HubImageAssignments[hubURL]
 	if ok {
@@ -354,11 +399,8 @@ func (model *Model) deleteHub(hubURL string) error {
 	}
 	// 1. remove all image assignments to this hub
 	for sha := range hub.Images {
-		imageInfo, ok := model.Images[sha]
-		if !ok {
-			return fmt.Errorf("cannot remove Hub URL from image %s: not found", sha)
-		}
-		if err := imageInfo.removeHubURL(); err != nil {
+		err := model.unassignImageFromHub(sha, hubURL)
+		if err != nil {
 			return err
 		}
 	}
