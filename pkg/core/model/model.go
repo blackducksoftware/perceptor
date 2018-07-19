@@ -36,11 +36,12 @@ type Model struct {
 	Images         map[DockerImageSha]*ImageInfo
 	ImageScanQueue *util.PriorityQueue
 	ImagePriority  map[DockerImageSha]int
+	// map of HubURL to a set of image SHAs
+	HubImageAssignments map[string]*Hub
 	// ImageRefreshQueue    []DockerImageSha
 	// ImageRefreshQueueSet map[DockerImageSha]bool
-	Config       *Config
-	Timings      *Timings
-	IsHubEnabled bool
+	Config  *Config
+	Timings *Timings
 }
 
 // NewModel .....
@@ -52,9 +53,9 @@ func NewModel(config *Config, timings *Timings) *Model {
 		ImagePriority:  map[DockerImageSha]int{},
 		// ImageRefreshQueue:    []DockerImageSha{},
 		// ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		Config:       config,
-		Timings:      timings,
-		IsHubEnabled: true,
+		HubImageAssignments: map[string]*Hub{},
+		Config:              config,
+		Timings:             timings,
 	}
 }
 
@@ -188,37 +189,64 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 }
 
 // GetNextImageFromScanQueue .....
-func (model *Model) GetNextImageFromScanQueue() *Image {
-	if !model.IsHubEnabled {
-		log.Debugf("Hub not enabled, can't start a new scan")
-		return nil
-	}
-
-	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
-		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
-		return nil
-	}
-
+func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
+	// 1. preliminaries
 	if model.ImageScanQueue.IsEmpty() {
 		log.Debug("scan queue empty, can't start a new scan")
-		return nil
+		return nil, nil
 	}
+
+	// 2. find a hub
+
+	var assignedHub *Hub = nil
+	for _, hub := range model.HubImageAssignments {
+		if hub.InProgressScanCount() < model.Config.ConcurrentScanLimit {
+			assignedHub = hub
+			break
+		}
+	}
+
+	if assignedHub == nil {
+		log.Warnf("no available hub found -- %+v", model.HubImageAssignments)
+		return nil, nil
+	}
+
+	// 3. find an image
 
 	first, err := model.ImageScanQueue.Pop()
 	if err != nil {
 		log.Errorf("unable to get next image from scan queue: %s", err.Error())
-		return nil
+		return nil, err
 	}
 
+	var imageInfo *ImageInfo
 	switch sha := first.(type) {
 	case DockerImageSha:
-		image := model.unsafeGet(sha).Image()
+		imageInfo = model.unsafeGet(sha)
 		model.SetImageScanStatus(sha, ScanStatusRunningScanClient)
-		return &image
 	default:
-		log.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
-		return nil
+		err := fmt.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
+		log.Error(err.Error())
+		return nil, err
 	}
+	sha := imageInfo.ImageSha
+
+	if imageInfo.isAssignedHub() {
+		err := fmt.Errorf("expected image %s not to be assigned to hub; was assigned to %s", sha, imageInfo.HubURL)
+		log.Error(err.Error())
+		return nil, err
+	}
+
+	err = assignedHub.AddImage(sha)
+	if err != nil {
+		return nil, err
+	}
+	err = assignedHub.StartScanningImage(sha)
+	if err != nil {
+		return nil, err
+	}
+	image := imageInfo.Image()
+	return &HubImageAssignment{HubURL: assignedHub.URL, Image: &image}, nil
 }
 
 // // AddImageToRefreshQueue .....
@@ -296,25 +324,6 @@ func (model *Model) FinishRunningScanClient(image *Image, scanClientError error)
 
 // additional methods
 
-// InProgressScans .....
-func (model *Model) InProgressScans() []DockerImageSha {
-	inProgressShas := []DockerImageSha{}
-	for sha, results := range model.Images {
-		switch results.ScanStatus {
-		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			inProgressShas = append(inProgressShas, sha)
-		default:
-			break
-		}
-	}
-	return inProgressShas
-}
-
-// InProgressScanCount .....
-func (model *Model) InProgressScanCount() int {
-	return len(model.InProgressScans())
-}
-
 // InProgressHubScans .....
 func (model *Model) InProgressHubScans() *([]Image) {
 	inProgressHubScans := []Image{}
@@ -325,4 +334,67 @@ func (model *Model) InProgressHubScans() *([]Image) {
 		}
 	}
 	return &inProgressHubScans
+}
+
+// hubs
+
+func (model *Model) addHub(hubURL string) error {
+	_, ok := model.HubImageAssignments[hubURL]
+	if ok {
+		return fmt.Errorf("cannot add hub %s: already present", hubURL)
+	}
+	model.HubImageAssignments[hubURL] = NewHub(hubURL)
+	return nil
+}
+
+func (model *Model) deleteHub(hubURL string) error {
+	hub, ok := model.HubImageAssignments[hubURL]
+	if !ok {
+		return fmt.Errorf("cannot delete hub %s: not found", hubURL)
+	}
+	// 1. remove all image assignments to this hub
+	for sha := range hub.Images {
+		imageInfo, ok := model.Images[sha]
+		if !ok {
+			return fmt.Errorf("cannot remove Hub URL from image %s: not found", sha)
+		}
+		if err := imageInfo.removeHubURL(); err != nil {
+			return err
+		}
+	}
+	// 2. remove this hub
+	delete(model.HubImageAssignments, hubURL)
+	// 3. done
+	return nil
+}
+
+// SetHubs ...
+func (model *Model) SetHubs(hubURLs []string) error {
+	newHubURLs := map[string]bool{}
+	for _, hubURL := range hubURLs {
+		newHubURLs[hubURL] = true
+	}
+	// delete hubs
+	hubsToDelete := []string{}
+	for hubURL := range model.HubImageAssignments {
+		if _, ok := newHubURLs[hubURL]; !ok {
+			hubsToDelete = append(hubsToDelete, hubURL)
+		}
+	}
+	for _, hubURL := range hubsToDelete {
+		err := model.deleteHub(hubURL)
+		if err != nil {
+			return err
+		}
+	}
+	// create hubs
+	for hubURL := range newHubURLs {
+		if _, ok := model.HubImageAssignments[hubURL]; !ok {
+			err := model.addHub(hubURL)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

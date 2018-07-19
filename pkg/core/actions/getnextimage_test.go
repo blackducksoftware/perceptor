@@ -28,7 +28,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RunGetNextImage() {
+func RunGetNextImageTests() {
 	Describe("GetNextImage", func() {
 		It("no image available", func() {
 			// actual
@@ -49,23 +49,31 @@ func RunGetNextImage() {
 		It("regular", func() {
 			model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 			model.AddImage(image1, 0)
+			Expect(model.SetHubs([]string{"abc"})).To(BeNil())
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-
+			assignment := &m.HubImageAssignment{HubURL: "abc", Image: &image1}
 			get := NewGetNextImage()
 			go func() { get.Apply(model) }()
-			nextImage := <-get.Done
+			var nextAssignment *m.HubImageAssignment
+			var err error
+			select {
+			case a := <-get.Done:
+				nextAssignment = a
+			case e := <-get.Error:
+				err = e
+			}
 
-			Expect(nextImage).To(Equal(image1))
+			Expect(err).To(BeNil())
+			Expect(nextAssignment).To(Equal(assignment))
 			Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
 			Expect(model.Images[image1.Sha].ScanStatus).To(Equal(m.ScanStatusRunningScanClient))
 			// TODO expected: time of image changed
 		})
 
-		It("hub inacessible", func() {
+		It("no hubs, or all hubs inacessible", func() {
 			model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 			model.AddImage(image1, 0)
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-			model.IsHubEnabled = false
 
 			get := NewGetNextImage()
 			go func() { get.Apply(model) }()
@@ -73,11 +81,10 @@ func RunGetNextImage() {
 
 			Expect(nextImage).To(BeNil())
 
-			model.IsHubEnabled = true
 			get = NewGetNextImage()
 			go func() { get.Apply(model) }()
 			nextImage = <-get.Done
-			Expect(nextImage).ToNot(BeNil())
+			Expect(nextImage).To(BeNil())
 		})
 	})
 }

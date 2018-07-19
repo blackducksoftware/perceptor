@@ -31,6 +31,8 @@ import (
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunActionTests()
+	RunFinishScanClientTest()
+	RunGetNextImageTests()
 	RunTestAddImageAction()
 	RunTestAddPodAction()
 	RunTestAllImages()

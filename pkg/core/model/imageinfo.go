@@ -36,6 +36,7 @@ type ImageInfo struct {
 	ScanResults            *hub.ScanResults
 	ImageSha               DockerImageSha
 	ImageNames             []string
+	HubURL                 string
 }
 
 // NewImageInfo .....
@@ -47,6 +48,26 @@ func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 	}
 	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
+}
+
+func (imageInfo *ImageInfo) setHubURL(hubURL string) error {
+	if imageInfo.HubURL != "" {
+		return fmt.Errorf("Hub URL already set to %s", imageInfo.HubURL)
+	}
+	imageInfo.HubURL = hubURL
+	return nil
+}
+
+func (imageInfo *ImageInfo) removeHubURL() error {
+	if imageInfo.HubURL == "" {
+		return fmt.Errorf("hub URL not set")
+	}
+	imageInfo.HubURL = ""
+	return nil
+}
+
+func (imageInfo *ImageInfo) isAssignedHub() bool {
+	return imageInfo.HubURL != ""
 }
 
 func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {

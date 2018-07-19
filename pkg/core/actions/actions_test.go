@@ -107,7 +107,7 @@ func RunActionTests() {
 			processAction(&CheckScansCompletion{})
 			// processAction(&FetchScanRefresh{})
 			// processAction(&CheckScanRefresh{})
-			processAction(&SetIsHubEnabled{})
+			//processAction(&SetIsHubEnabled{})
 		})
 	})
 }

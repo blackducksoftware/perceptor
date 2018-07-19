@@ -19,19 +19,9 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
-// TODO have this work for any hub
-// import (
-// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-// )
-//
-// // SetIsHubEnabled .....
-// type SetIsHubEnabled struct {
-// 	IsEnabled bool
-// }
-//
-// // Apply .....
-// func (s *SetIsHubEnabled) Apply(model *m.Model) {
-// 	model.IsHubEnabled = s.IsEnabled
-// }
+type HubImageAssignment struct {
+	Image  *Image
+	HubURL string
+}
