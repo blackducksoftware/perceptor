@@ -21,56 +21,56 @@ under the License.
 
 package actions
 
-import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
-	log "github.com/sirupsen/logrus"
-)
-
-// FetchScanRefresh .....
-type FetchScanRefresh struct {
-	Scan *m.HubImageScan
-}
-
-// Apply .....
-func (h *FetchScanRefresh) Apply(model *m.Model) {
-	scan := h.Scan
-
-	// case 0: unable to fetch scan results
-	if scan.Err != nil {
-		log.Errorf("unable to fetch updated scan results for sha %s: %s", scan.Sha, scan.Err.Error())
-		return
-	}
-
-	// case 1: image mysteriously gone from model
-	imageInfo, ok := model.Images[scan.Sha]
-	if !ok {
-		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
-		return
-	}
-
-	err := model.RemoveImageFromRefreshQueue(scan.Sha)
-	if err != nil {
-		log.Errorf("unable to remove %s from refresh queue: %s", scan.Sha, err.Error())
-		// no need to return -- this should only happen if it wasn't in the refresh
-		// queue already
-	}
-
-	// 2. successfully hit hub, but didn't find code location
-	//   not sure why this would happen -- we should ALWAYS find the hub code location
-	//   unless something else deleted it
-	if scan.Scan == nil {
-		log.Errorf("unable to fetch updated scan results for sha %s: got nil", scan.Sha)
-		return
-	}
-
-	// 3. scan is not done or is failure -- not sure why this would happen
-	if scan.Scan.ScanSummaryStatus() != hub.ScanSummaryStatusSuccess {
-		log.Errorf("found scan for sha %s in status %s, expected completed scan", scan.Sha, scan.Scan.ScanSummaryStatus())
-		return
-	}
-
-	// 4. successfully found project: update the image results
-	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
-	imageInfo.SetScanResults(scan.Scan)
-}
+// import (
+// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+// 	"github.com/blackducksoftware/perceptor/pkg/hub"
+// 	log "github.com/sirupsen/logrus"
+// )
+//
+// // FetchScanRefresh .....
+// type FetchScanRefresh struct {
+// 	Scan *m.HubImageScan
+// }
+//
+// // Apply .....
+// func (h *FetchScanRefresh) Apply(model *m.Model) {
+// 	scan := h.Scan
+//
+// 	// case 0: unable to fetch scan results
+// 	if scan.Err != nil {
+// 		log.Errorf("unable to fetch updated scan results for sha %s: %s", scan.Sha, scan.Err.Error())
+// 		return
+// 	}
+//
+// 	// case 1: image mysteriously gone from model
+// 	imageInfo, ok := model.Images[scan.Sha]
+// 	if !ok {
+// 		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
+// 		return
+// 	}
+//
+// 	err := model.RemoveImageFromRefreshQueue(scan.Sha)
+// 	if err != nil {
+// 		log.Errorf("unable to remove %s from refresh queue: %s", scan.Sha, err.Error())
+// 		// no need to return -- this should only happen if it wasn't in the refresh
+// 		// queue already
+// 	}
+//
+// 	// 2. successfully hit hub, but didn't find code location
+// 	//   not sure why this would happen -- we should ALWAYS find the hub code location
+// 	//   unless something else deleted it
+// 	if scan.Scan == nil {
+// 		log.Errorf("unable to fetch updated scan results for sha %s: got nil", scan.Sha)
+// 		return
+// 	}
+//
+// 	// 3. scan is not done or is failure -- not sure why this would happen
+// 	if scan.Scan.ScanSummaryStatus() != hub.ScanSummaryStatusSuccess {
+// 		log.Errorf("found scan for sha %s in status %s, expected completed scan", scan.Sha, scan.Scan.ScanSummaryStatus())
+// 		return
+// 	}
+//
+// 	// 4. successfully found project: update the image results
+// 	log.Infof("received results for hub rechecking for sha %s: %+v", scan.Sha, scan.Scan)
+// 	imageInfo.SetScanResults(scan.Scan)
+// }

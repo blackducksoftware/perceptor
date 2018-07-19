@@ -94,7 +94,6 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 	return &api.Model{
 		Pods:           pods,
 		Images:         images,
-		HubVersion:     model.HubVersion,
 		ImageScanQueue: model.ImageScanQueue.Dump(),
 		Config: &api.ModelConfig{
 			HubUser:             model.Config.HubUser,
@@ -123,7 +122,7 @@ func ScanResults(model *m.Model) api.ScanResults {
 	// pods
 	pods := []api.ScannedPod{}
 	for podName, pod := range model.Pods {
-		podScan, err := model.ScanResultsForPod(podName)
+		podScan, err := ScanResultsForPod(model, podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
 			continue
@@ -161,5 +160,5 @@ func ScanResults(model *m.Model) api.ScanResults {
 		images = append(images, apiImage)
 	}
 
-	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
+	return *api.NewScanResults(pods, images)
 }

@@ -19,17 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package api
+package actions
 
-// ScanResults .....
-type ScanResults struct {
-	Pods   []ScannedPod
-	Images []ScannedImage
+import (
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
+
+// SetHubs .....
+type SetHubs struct {
+	HubURLs []string
 }
 
-// NewScanResults .....
-func NewScanResults(pods []ScannedPod, images []ScannedImage) *ScanResults {
-	return &ScanResults{
-		Pods:   pods,
-		Images: images}
+// Apply .....
+func (s *SetHubs) Apply(model *m.Model) {
+	panic("TODO -- unimplemented")
 }

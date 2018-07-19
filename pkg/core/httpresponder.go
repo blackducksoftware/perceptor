@@ -201,7 +201,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 
 func (hr *HTTPResponder) SetHubs(hubs api.Hubs) {
 	log.Infof("set hubs -- %+v", hubs)
-	hr.SetHubsChannel <- &a.SetHubs{Hubs: hubs.Hubs}
+	hr.SetHubsChannel <- &a.SetHubs{HubURLs: hubs.HubURLs}
 }
 
 // internal use

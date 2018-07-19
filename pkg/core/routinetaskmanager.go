@@ -26,9 +26,7 @@ import (
 
 	"github.com/blackducksoftware/perceptor/pkg/core/actions"
 	"github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	"github.com/blackducksoftware/perceptor/pkg/util"
-	log "github.com/sirupsen/logrus"
 )
 
 // RoutineTaskManager manages routine tasks
@@ -37,29 +35,27 @@ type RoutineTaskManager struct {
 	stop         <-chan struct{}
 	readTimings  chan func(model.Timings)
 	writeTimings chan model.Timings
-	hubClient    hub.FetcherInterface
-	Timings      *model.Timings
+	//	hubClient    hub.FetcherInterface
+	Timings *model.Timings
 	// routine tasks
-	EnqueueImagesForRefreshScheduler *util.Scheduler
-	ModelMetricsScheduler            *util.Scheduler
-	StalledScanClientScheduler       *util.Scheduler
-	ReloginToHubScheduler            *util.Scheduler
+	//	EnqueueImagesForRefreshScheduler *util.Scheduler
+	ModelMetricsScheduler *util.Scheduler
+	//	StalledScanClientScheduler       *util.Scheduler
 }
 
 // NewRoutineTaskManager ...
-func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface, timings *model.Timings) *RoutineTaskManager {
+func NewRoutineTaskManager(stop <-chan struct{}, timings *model.Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
 		actions:      make(chan actions.Action),
 		stop:         stop,
 		readTimings:  make(chan func(model.Timings)),
 		writeTimings: make(chan model.Timings),
-		hubClient:    hubClient,
-		Timings:      timings,
+		//hubClient:    hubClient,
+		Timings: timings,
 	}
-	rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
+	// rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
 	rtm.ModelMetricsScheduler = rtm.startGeneratingModelMetrics()
-	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
-	rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
+	// rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
 	go func() {
 		for {
 			select {
@@ -70,10 +66,9 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 				go continuation(timings)
 			case newTimings := <-rtm.writeTimings:
 				rtm.Timings = &newTimings
-				rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
+				// rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
 				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
-				rtm.ReloginToHubScheduler.SetDelay(newTimings.HubReloginPause)
-				rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueImagesForRefreshPause)
+				// rtm.EnqueueImagesForRefreshScheduler.SetDelay(newTimings.EnqueueImagesForRefreshPause)
 			}
 		}
 	}()
@@ -82,10 +77,6 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 
 // SetTimings sets the timings in a threadsafe way
 func (rtm *RoutineTaskManager) SetTimings(newTimings model.Timings) {
-	// TODO the next 3 lines should be moved into the for/select loop
-	if newTimings.HubClientTimeout != rtm.Timings.HubClientTimeout {
-		rtm.hubClient.SetTimeout(newTimings.HubClientTimeout)
-	}
 	rtm.writeTimings <- newTimings
 }
 
@@ -102,13 +93,13 @@ func (rtm *RoutineTaskManager) GetTimings() model.Timings {
 	return timings
 }
 
-func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Scheduler {
-	log.Info("starting checking for stalled scans")
-	return util.NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
-		log.Debug("checking for stalled scans")
-		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
-	})
-}
+// func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Scheduler {
+// 	log.Info("starting checking for stalled scans")
+// 	return util.NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
+// 		log.Debug("checking for stalled scans")
+// 		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
+// 	})
+// }
 
 func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Scheduler {
 	return util.NewScheduler(rtm.Timings.ModelMetricsPause, rtm.stop, func() {
@@ -116,19 +107,9 @@ func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Scheduler {
 	})
 }
 
-func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
-		log.Debug("enqueueing images in need of refreshing")
-		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
-	})
-}
-
-func (rtm *RoutineTaskManager) startReloggingInToHub() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.HubReloginPause, rtm.stop, func() {
-		err := rtm.hubClient.Login()
-		if err != nil {
-			log.Errorf("unable to re-login to hub: %s", err.Error())
-		}
-		log.Infof("successfully re-logged in to hub")
-	})
-}
+// func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *util.Scheduler {
+// 	return util.NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
+// 		log.Debug("enqueueing images in need of refreshing")
+// 		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
+// 	})
+// }

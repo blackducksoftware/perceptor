@@ -30,7 +30,7 @@ import (
 )
 
 func initialCheckModel() *m.Model {
-	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 3}, nil)
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddImage(image1, 0)
 	return model
 }

@@ -71,17 +71,19 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	return newPerceptorHelper(config), nil
+	return newPerceptorHelper(config, hubPassword), nil
 }
 
-func newPerceptorHelper(config *Config) *Perceptor {
+func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
 
 	// 2. routine task manager
 	stop := make(chan struct{})
-	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
+	routineTaskManager := NewRoutineTaskManager(stop, model.DefaultTimings)
+
+	hubFetchers := map[string]hub.FetcherInterface{}
 
 	// 3. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
@@ -115,27 +117,39 @@ func newPerceptorHelper(config *Config) *Perceptor {
 			case get := <-httpResponder.GetModelChannel:
 				// TODO wow, this is such a huge hack.  Root cause: circuit breaker model lives
 				// outside of the main model.
-				cbModel := hubClient.Model()
-				get.HubCircuitBreaker = &api.ModelCircuitBreaker{
-					ConsecutiveFailures: cbModel.ConsecutiveFailures,
-					NextCheckTime:       cbModel.NextCheckTime,
-					State:               cbModel.State.String(),
-				}
+				// TODO extend this to handle ALL hubs
+				// cbModel := hubClient.Model()
+				// get.HubCircuitBreaker = &api.ModelCircuitBreaker{
+				// 	ConsecutiveFailures: cbModel.ConsecutiveFailures,
+				// 	NextCheckTime:       cbModel.NextCheckTime,
+				// 	State:               cbModel.State.String(),
+				// }
 				actions <- get
 			case a := <-httpResponder.SetHubsChannel:
 				// delete hubs
-				for hubURL, fetcher := range hubFetchers {
-					if _, ok := a.Hubs[hubURL]; !ok {
-						// TODO delete this hub fetcher
+				newHubURLs := map[string]bool{}
+				for _, hubURL := range a.HubURLs {
+					newHubURLs[hubURL] = true
+				}
+				hubsToDelete := []string{}
+				for hubURL := range hubFetchers {
+					if _, ok := newHubURLs[hubURL]; !ok {
+						hubsToDelete = append(hubsToDelete, hubURL)
 					}
 				}
+				for _, hubURL := range hubsToDelete {
+					// TODO do we need to call a .Stop() method?  Will things leak if we don't?
+					// hubFetchers[hubURL].Stop()
+					delete(hubFetchers, hubURL)
+				}
 				// create hubs
-				for hubURL, _ := range a.Hubs {
+				for hubURL := range newHubURLs {
 					if _, ok := hubFetchers[hubURL]; !ok {
 						// TODO create a new hub fetcher
-						stop := make(chan struct{})
 						hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
-						hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop)
+						reloginPause := model.DefaultTimings.HubReloginPause
+						hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, hubURL, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop, reloginPause)
+						hubFetchers[hubURL] = hubClient
 						if err != nil {
 							panic("TODO handle this intelligently")
 							log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
@@ -148,17 +162,18 @@ func newPerceptorHelper(config *Config) *Perceptor {
 				actions <- a
 			case a := <-routineTaskManager.actions:
 				actions <- a
-			case isEnabled := <-hubClient.IsEnabled():
-				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
+			// case isEnabled := <-hubClient.IsEnabled():
+			// 	log.Warnf("TODO -- read isEnabled from hub managers")
+			// actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:
-				hubClient.ResetCircuitBreaker()
+				log.Warnf("TODO -- enable/disable circuit breaker per hub")
+				// hubClient.ResetCircuitBreaker()
 			}
 		}
 	}()
 
 	// 4. now for the reducer
 	modelConfig := &model.Config{
-		HubHost:               config.HubHost,
 		HubPort:               config.HubPort,
 		HubUser:               config.HubUser,
 		HubUserPasswordEnvVar: config.HubUserPasswordEnvVar,
@@ -178,7 +193,7 @@ func newPerceptorHelper(config *Config) *Perceptor {
 		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
 		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
+	reducer := newReducer(model.NewModel(modelConfig, timings), actions)
 
 	// 5. connect reducer notifications to routine task manager
 	go func() {
@@ -196,6 +211,7 @@ func newPerceptorHelper(config *Config) *Perceptor {
 		reducer:            reducer,
 		routineTaskManager: routineTaskManager,
 		actions:            actions,
+		hubs:               hubFetchers,
 	}
 
 	// 7. done

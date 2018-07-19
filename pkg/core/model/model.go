@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	util "github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,31 +32,29 @@ import (
 // Model is the root of the core model
 type Model struct {
 	// Pods is a map of qualified name ("<namespace>/<name>") to pod
-	Pods                 map[string]Pod
-	Images               map[DockerImageSha]*ImageInfo
-	ImageScanQueue       *util.PriorityQueue
-	ImagePriority        map[DockerImageSha]int
-	ImageRefreshQueue    []DockerImageSha
-	ImageRefreshQueueSet map[DockerImageSha]bool
-	HubVersion           string
-	Config               *Config
-	Timings              *Timings
-	IsHubEnabled         bool
+	Pods           map[string]Pod
+	Images         map[DockerImageSha]*ImageInfo
+	ImageScanQueue *util.PriorityQueue
+	ImagePriority  map[DockerImageSha]int
+	// ImageRefreshQueue    []DockerImageSha
+	// ImageRefreshQueueSet map[DockerImageSha]bool
+	Config       *Config
+	Timings      *Timings
+	IsHubEnabled bool
 }
 
 // NewModel .....
-func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
+func NewModel(config *Config, timings *Timings) *Model {
 	return &Model{
-		Pods:                 make(map[string]Pod),
-		Images:               make(map[DockerImageSha]*ImageInfo),
-		ImageScanQueue:       util.NewPriorityQueue(),
-		ImagePriority:        map[DockerImageSha]int{},
-		ImageRefreshQueue:    []DockerImageSha{},
-		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		HubVersion:           hubVersion,
-		Config:               config,
-		Timings:              timings,
-		IsHubEnabled:         true,
+		Pods:           make(map[string]Pod),
+		Images:         make(map[DockerImageSha]*ImageInfo),
+		ImageScanQueue: util.NewPriorityQueue(),
+		ImagePriority:  map[DockerImageSha]int{},
+		// ImageRefreshQueue:    []DockerImageSha{},
+		// ImageRefreshQueueSet: make(map[DockerImageSha]bool),
+		Config:       config,
+		Timings:      timings,
+		IsHubEnabled: true,
 	}
 }
 
@@ -224,58 +221,58 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 	}
 }
 
-// AddImageToRefreshQueue .....
-func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("expected to already have image %s, but did not", string(sha))
-	}
-
-	if imageInfo.ScanStatus != ScanStatusComplete {
-		return fmt.Errorf("unable to refresh image %s, scan status is %s", string(sha), imageInfo.ScanStatus.String())
-	}
-
-	// if it's already in the refresh queue, don't add it again
-	_, ok = model.ImageRefreshQueueSet[sha]
-	if ok {
-		return fmt.Errorf("unable to add image %s to refresh queue, already in queue", string(sha))
-	}
-
-	model.ImageRefreshQueue = append(model.ImageRefreshQueue, sha)
-	model.ImageRefreshQueueSet[sha] = false
-	return nil
-}
-
-// GetNextImageFromRefreshQueue .....
-func (model *Model) GetNextImageFromRefreshQueue() *Image {
-	if len(model.ImageRefreshQueue) == 0 {
-		log.Debug("refresh queue empty")
-		return nil
-	}
-
-	first := model.ImageRefreshQueue[0]
-	image := model.unsafeGet(first).Image()
-
-	return &image
-}
-
-// RemoveImageFromRefreshQueue .....
-func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
-	index := -1
-	for i := 0; i < len(model.ImageRefreshQueue); i++ {
-		if model.ImageRefreshQueue[i] == sha {
-			index = i
-			break
-		}
-	}
-	if index < 0 {
-		return fmt.Errorf("unable to remove sha %s from refresh queue, not found", string(sha))
-	}
-
-	model.ImageRefreshQueue = append(model.ImageRefreshQueue[:index], model.ImageRefreshQueue[index+1:]...)
-	delete(model.ImageRefreshQueueSet, sha)
-	return nil
-}
+// // AddImageToRefreshQueue .....
+// func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
+// 	imageInfo, ok := model.Images[sha]
+// 	if !ok {
+// 		return fmt.Errorf("expected to already have image %s, but did not", string(sha))
+// 	}
+//
+// 	if imageInfo.ScanStatus != ScanStatusComplete {
+// 		return fmt.Errorf("unable to refresh image %s, scan status is %s", string(sha), imageInfo.ScanStatus.String())
+// 	}
+//
+// 	// if it's already in the refresh queue, don't add it again
+// 	_, ok = model.ImageRefreshQueueSet[sha]
+// 	if ok {
+// 		return fmt.Errorf("unable to add image %s to refresh queue, already in queue", string(sha))
+// 	}
+//
+// 	model.ImageRefreshQueue = append(model.ImageRefreshQueue, sha)
+// 	model.ImageRefreshQueueSet[sha] = false
+// 	return nil
+// }
+//
+// // GetNextImageFromRefreshQueue .....
+// func (model *Model) GetNextImageFromRefreshQueue() *Image {
+// 	if len(model.ImageRefreshQueue) == 0 {
+// 		log.Debug("refresh queue empty")
+// 		return nil
+// 	}
+//
+// 	first := model.ImageRefreshQueue[0]
+// 	image := model.unsafeGet(first).Image()
+//
+// 	return &image
+// }
+//
+// // RemoveImageFromRefreshQueue .....
+// func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
+// 	index := -1
+// 	for i := 0; i < len(model.ImageRefreshQueue); i++ {
+// 		if model.ImageRefreshQueue[i] == sha {
+// 			index = i
+// 			break
+// 		}
+// 	}
+// 	if index < 0 {
+// 		return fmt.Errorf("unable to remove sha %s from refresh queue, not found", string(sha))
+// 	}
+//
+// 	model.ImageRefreshQueue = append(model.ImageRefreshQueue[:index], model.ImageRefreshQueue[index+1:]...)
+// 	delete(model.ImageRefreshQueueSet, sha)
+// 	return nil
+// }
 
 // FinishRunningScanClient .....
 func (model *Model) FinishRunningScanClient(image *Image, scanClientError error) {
@@ -328,58 +325,4 @@ func (model *Model) InProgressHubScans() *([]Image) {
 		}
 	}
 	return &inProgressHubScans
-}
-
-// ScanResultsForPod .....
-func (model *Model) ScanResultsForPod(podName string) (*Scan, error) {
-	pod, ok := model.Pods[podName]
-	if !ok {
-		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
-	}
-
-	overallStatus := hub.PolicyStatusTypeNotInViolation
-	policyViolationCount := 0
-	vulnerabilityCount := 0
-	for _, container := range pod.Containers {
-		imageScan, err := model.ScanResultsForImage(container.Image.Sha)
-		if err != nil {
-			log.Errorf("unable to get scan results for image %s: %s", container.Image.Sha, err.Error())
-			return nil, err
-		}
-		if imageScan == nil {
-			return nil, nil
-		}
-		policyViolationCount += imageScan.PolicyViolations
-		vulnerabilityCount += imageScan.Vulnerabilities
-		imageScanOverallStatus := imageScan.OverallStatus
-		if imageScanOverallStatus != hub.PolicyStatusTypeNotInViolation {
-			overallStatus = imageScanOverallStatus
-		}
-	}
-	podScan := &Scan{
-		OverallStatus:    overallStatus,
-		PolicyViolations: policyViolationCount,
-		Vulnerabilities:  vulnerabilityCount}
-	return podScan, nil
-}
-
-// ScanResultsForImage .....
-func (model *Model) ScanResultsForImage(sha DockerImageSha) (*Scan, error) {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return nil, fmt.Errorf("could not find image of sha %s in cache", sha)
-	}
-
-	if imageInfo.ScanStatus != ScanStatusComplete {
-		return nil, nil
-	}
-	if imageInfo.ScanResults == nil {
-		return nil, fmt.Errorf("model inconsistency: could not find scan results for completed image %s", sha)
-	}
-
-	imageScan := &Scan{
-		OverallStatus:    imageInfo.ScanResults.OverallStatus(),
-		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
-		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
-	return imageScan, nil
 }

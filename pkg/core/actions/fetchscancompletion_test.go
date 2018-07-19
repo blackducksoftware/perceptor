@@ -31,10 +31,27 @@ import (
 )
 
 func hubCheckModel() *m.Model {
-	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 2}, nil)
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 2}, nil)
 	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningHubScan)
 	return model
+}
+
+func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ScanResults {
+	return &hub.ScanResults{
+		ScanSummaries: []hub.ScanSummary{{
+			Status: status,
+		}},
+		RiskProfile: hub.RiskProfile{
+			Categories: map[hub.RiskProfileCategory]hub.RiskProfileStatusCounts{
+				hub.RiskProfileCategoryVulnerability: {
+					StatusCounts: map[hub.RiskProfileStatus]int{
+						hub.RiskProfileStatusHigh: vulnerabilityCount,
+					},
+				},
+			},
+		},
+	}
 }
 
 func RunFetchScanCompletionTests() {

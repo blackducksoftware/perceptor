@@ -32,14 +32,14 @@ func RunGetNextImage() {
 	Describe("GetNextImage", func() {
 		It("no image available", func() {
 			// actual
-			actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			actual := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 			get := NewGetNextImage()
 			go func() {
 				get.Apply(actual)
 			}()
 			nextImage := <-get.Done
 			// expected: front image removed from scan queue, status and time of image changed
-			expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			expected := *m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 
 			Expect(nextImage).To(BeNil())
 			log.Infof("%+v, %+v", actual, expected)
@@ -47,7 +47,7 @@ func RunGetNextImage() {
 		})
 
 		It("regular", func() {
-			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 			model.AddImage(image1, 0)
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 
@@ -62,7 +62,7 @@ func RunGetNextImage() {
 		})
 
 		It("hub inacessible", func() {
-			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 			model.AddImage(image1, 0)
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 			model.IsHubEnabled = false

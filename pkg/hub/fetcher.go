@@ -46,6 +46,8 @@ type Fetcher struct {
 	inProgressScans map[string]bool
 	finishScan      chan *ScanResults
 	hubScanPoller   *util.Scheduler
+	reloginPause    time.Duration
+	stop            <-chan struct{}
 }
 
 func (hf *Fetcher) fetchHubVersion() error {
@@ -68,7 +70,7 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, host string, port int, timeout time.Duration, checkHubPause time.Duration, stop <-chan struct{}) (*Fetcher, error) {
+func NewFetcher(username string, password string, host string, port int, timeout time.Duration, checkHubPause time.Duration, stop <-chan struct{}, reloginPause time.Duration) (*Fetcher, error) {
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, timeout)
 	if err != nil {
@@ -81,11 +83,13 @@ func NewFetcher(username string, password string, host string, port int, timeout
 		password:        password,
 		baseURL:         baseURL,
 		inProgressScans: map[string]bool{},
-		finishScan:      make(chan *ScanResults)}
+		finishScan:      make(chan *ScanResults),
+		reloginPause:    reloginPause,
+		stop:            stop}
 	hf.hubScanPoller = util.NewScheduler(checkHubPause, stop, func() {
 		hf.fetchScans()
 	})
-	err = hf.Login()
+	err = hf.login()
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +120,22 @@ func (hf *Fetcher) IsEnabled() <-chan bool {
 	return hf.circuitBreaker.IsEnabledChannel
 }
 
-// Login .....
-func (hf *Fetcher) Login() error {
+func (hf *Fetcher) startReloggingInToHub() *util.Scheduler {
+	return util.NewScheduler(hf.reloginPause, hf.stop, func() {
+		_ = hf.login()
+	})
+}
+
+func (hf *Fetcher) login() error {
 	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)
 	recordHubResponse("login", err == nil)
 	recordHubResponseTime("login", time.Now().Sub(start))
+	if err != nil {
+		log.Errorf("unable to re-login to hub: %s", err.Error())
+	} else {
+		log.Infof("successfully re-logged in to hub")
+	}
 	return err
 }
 

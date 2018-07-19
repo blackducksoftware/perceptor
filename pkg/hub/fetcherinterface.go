@@ -39,7 +39,6 @@ type FetcherInterface interface {
 	// RefreshScansInProgress() []string
 	// ScanRefreshDidFinish() <-chan *ScanResults
 	// knobs
-	Login() error
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
 	// state querying

@@ -43,6 +43,8 @@ var (
 	pod1   = *m.NewPod("pod1", "pod1uid", "ns1", []m.Container{cont1, cont2})
 	pod2   = *m.NewPod("pod2", "pod2uid", "ns1", []m.Container{cont1})
 	pod3   = *m.NewPod("pod3", "pod3uid", "ns3", []m.Container{cont3})
+	// this is ridiculous, but let's create a pod with 0 containers
+	pod4 = *m.NewPod("pod4", "pod4uid", "ns4", []m.Container{})
 )
 
 var (
@@ -53,7 +55,7 @@ var (
 )
 
 func createNewModel1() *m.Model {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
 	model.AddPod(pod1)
 	model.AddPod(pod2)
 	model.Images[sha1].ScanStatus = m.ScanStatusComplete
@@ -61,6 +63,26 @@ func createNewModel1() *m.Model {
 		PolicyStatus: hub.PolicyStatus{
 			OverallStatus:                hub.PolicyStatusTypeInViolation,
 			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
+	return model
+}
+
+func createNewModel2() *m.Model {
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 3}, nil)
+	model.AddPod(pod1)
+	model.AddPod(pod2)
+	model.AddPod(pod3)
+	model.AddPod(pod4)
+	model.Images[sha1].ScanStatus = m.ScanStatusComplete
+	model.Images[sha1].SetScanResults(&hub.ScanResults{
+		PolicyStatus: hub.PolicyStatus{
+			OverallStatus:                hub.PolicyStatusTypeInViolation,
+			ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{hub.PolicyStatusTypeInViolation: 3}}})
+	model.Images[sha3].ScanStatus = m.ScanStatusComplete
+	model.Images[sha3].SetScanResults(&hub.ScanResults{
+		PolicyStatus: hub.PolicyStatus{
+			OverallStatus: hub.PolicyStatusTypeNotInViolation,
+		},
+	})
 	return model
 }
 
@@ -83,8 +105,8 @@ func RunActionTests() {
 			processAction(&GetMetrics{})
 			processAction(&GetScanResults{})
 			processAction(&CheckScansCompletion{})
-			processAction(&FetchScanRefresh{})
-			processAction(&CheckScanRefresh{})
+			// processAction(&FetchScanRefresh{})
+			// processAction(&CheckScanRefresh{})
 			processAction(&SetIsHubEnabled{})
 		})
 	})
