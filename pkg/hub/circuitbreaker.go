@@ -29,6 +29,8 @@ import (
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 )
 
+var cache *HubCache
+
 // CircuitBreaker .....
 type CircuitBreaker struct {
 	Client              ClientInterface
@@ -49,6 +51,7 @@ func NewCircuitBreaker(maxBackoffDuration time.Duration, client ClientInterface)
 		IsEnabledChannel:    make(chan bool),
 	}
 	cb.setState(CircuitBreakerStateEnabled)
+	cache = &HubCache{}
 	return cb
 }
 
@@ -148,6 +151,9 @@ func (cb *CircuitBreaker) setNextCheckTime() {
 
 // ListCodeLocations ...
 func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
+	if cache.ListCodeLocations(codeLocationName) != nil {
+		return cache.ListCodeLocations(codeLocationName), nil
+	}
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
 	}
@@ -166,6 +172,10 @@ func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.Co
 
 // GetProjectVersion ...
 func (cb *CircuitBreaker) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
+	if cache.GetProjectVersion(link) != nil {
+		return cache.GetProjectVersion(link), nil
+	}
+
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project version: circuit breaker disabled")
 	}
@@ -183,6 +193,10 @@ func (cb *CircuitBreaker) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.P
 
 // GetProject ...
 func (cb *CircuitBreaker) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
+	if cache.GetProject(link) != nil {
+		return cache.GetProject(link), nil
+	}
+
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project: circuit breaker disabled")
 	}
@@ -200,6 +214,10 @@ func (cb *CircuitBreaker) GetProject(link hubapi.ResourceLink) (*hubapi.Project,
 
 // GetProjectVersionRiskProfile ...
 func (cb *CircuitBreaker) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
+	if cache.GetProjectVersionRiskProfile(link) != nil {
+		return cache.GetProjectVersionRiskProfile(link), nil
+	}
+
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project version risk profile: circuit breaker disabled")
 	}
@@ -217,6 +235,10 @@ func (cb *CircuitBreaker) GetProjectVersionRiskProfile(link hubapi.ResourceLink)
 
 // GetProjectVersionPolicyStatus ...
 func (cb *CircuitBreaker) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
+	if cache.GetProjectVersionPolicyStatus(link) != nil {
+		return cache.GetProjectVersionPolicyStatus(link), nil
+	}
+
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch project version policy status: circuit breaker disabled")
 	}
@@ -234,6 +256,9 @@ func (cb *CircuitBreaker) GetProjectVersionPolicyStatus(link hubapi.ResourceLink
 
 // ListScanSummaries ...
 func (cb *CircuitBreaker) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
+	if cache.ListScanSummaries(link) != nil {
+		return cache.ListScanSummaries(link), nil
+	}
 	if !cb.isAbleToIssueRequest() {
 		return nil, fmt.Errorf("unable to fetch scan summary list: circuit breaker disabled")
 	}
