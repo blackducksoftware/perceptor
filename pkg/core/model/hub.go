@@ -28,11 +28,12 @@ type Hub struct {
 	URL             string
 	Images          map[DockerImageSha]bool
 	InProgressScans map[DockerImageSha]bool
+	IsEnabled       bool
 }
 
 // NewHub ...
 func NewHub(url string) *Hub {
-	return &Hub{URL: url, Images: map[DockerImageSha]bool{}, InProgressScans: map[DockerImageSha]bool{}}
+	return &Hub{URL: url, Images: map[DockerImageSha]bool{}, InProgressScans: map[DockerImageSha]bool{}, IsEnabled: true}
 }
 
 // InProgressScanCount ...
@@ -82,4 +83,8 @@ func (h *Hub) ScanDidFinish(sha DockerImageSha) error {
 	}
 	delete(h.InProgressScans, sha)
 	return nil
+}
+
+func (h *Hub) SetEnabled(isEnabled bool) {
+	h.IsEnabled = isEnabled
 }

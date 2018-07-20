@@ -460,3 +460,12 @@ func (model *Model) SetHubs(hubURLs []string) error {
 	}()
 	return nil
 }
+
+func (model *Model) SetIsHubEnabled(hubURL string, isEnabled bool) error {
+	hub, ok := model.HubImageAssignments[hubURL]
+	if !ok {
+		return fmt.Errorf("hub %s not found", hubURL)
+	}
+	hub.SetEnabled(isEnabled)
+	return nil
+}
