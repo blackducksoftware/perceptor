@@ -126,37 +126,6 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 				// }
 				actions <- get
 			case a := <-httpResponder.SetHubsChannel:
-				// delete hubs
-				newHubURLs := map[string]bool{}
-				for _, hubURL := range a.HubURLs {
-					newHubURLs[hubURL] = true
-				}
-				hubsToDelete := []string{}
-				for hubURL := range hubFetchers {
-					if _, ok := newHubURLs[hubURL]; !ok {
-						hubsToDelete = append(hubsToDelete, hubURL)
-					}
-				}
-				for _, hubURL := range hubsToDelete {
-					// TODO do we need to call a .Stop() method?  Will things leak if we don't?
-					// hubFetchers[hubURL].Stop()
-					delete(hubFetchers, hubURL)
-				}
-				// create hubs
-				for hubURL := range newHubURLs {
-					if _, ok := hubFetchers[hubURL]; !ok {
-						// TODO create a new hub fetcher
-						hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
-						reloginPause := model.DefaultTimings.HubReloginPause
-						hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, hubURL, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop, reloginPause)
-						hubFetchers[hubURL] = hubClient
-						if err != nil {
-							panic("TODO handle this intelligently")
-							log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
-							//return nil, err
-						}
-					}
-				}
 				actions <- a
 			case a := <-httpResponder.GetScanResultsChannel:
 				actions <- a
@@ -193,7 +162,37 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
 		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(modelConfig, timings), actions)
+	coreModel := model.NewModel(modelConfig, timings)
+	reducer := newReducer(coreModel, actions)
+	go func() {
+		updates := coreModel.Updates()
+		for {
+			next := <-updates
+			switch u := next.(type) {
+			case *model.StartScan:
+				break
+			case *model.CreateHub:
+				if _, ok := hubFetchers[u.HubURL]; !ok {
+					hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
+					reloginPause := model.DefaultTimings.HubReloginPause
+					hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, u.HubURL, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop, reloginPause)
+					if err != nil {
+						panic("TODO handle this intelligently")
+						log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
+					}
+					hubFetchers[u.HubURL] = hubClient
+				} else {
+					panic("TODO handle intelligently")
+				}
+			case *model.DeleteHub:
+				// TODO do we need to call a .Stop() method?  Will things leak if we don't?
+				// hubFetchers[hubURL].Stop()
+				delete(hubFetchers, u.HubURL)
+			default:
+				panic("unexpected type ")
+			}
+		}
+	}()
 
 	// 5. connect reducer notifications to routine task manager
 	go func() {

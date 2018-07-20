@@ -42,6 +42,7 @@ type Model struct {
 	// ImageRefreshQueueSet map[DockerImageSha]bool
 	Config  *Config
 	Timings *Timings
+	updates chan Update
 }
 
 // NewModel .....
@@ -56,7 +57,13 @@ func NewModel(config *Config, timings *Timings) *Model {
 		HubImageAssignments: map[string]*Hub{},
 		Config:              config,
 		Timings:             timings,
+		updates:             make(chan Update),
 	}
+}
+
+// Updates ...
+func (model *Model) Updates() <-chan Update {
+	return model.updates
 }
 
 // DeletePod removes the record of a pod, but does not affect images.
@@ -242,7 +249,11 @@ func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
 	}
 
 	image := imageInfo.Image()
-	return &HubImageAssignment{HubURL: assignedHub.URL, Image: &image}, nil
+	assignment := &HubImageAssignment{HubURL: assignedHub.URL, Image: &image}
+	go func() {
+		model.updates <- &StartScan{Assignment: assignment}
+	}()
+	return assignment, nil
 }
 
 // // AddImageToRefreshQueue .....
@@ -438,5 +449,14 @@ func (model *Model) SetHubs(hubURLs []string) error {
 			}
 		}
 	}
+	// updates
+	go func() {
+		for _, deleteHubURL := range hubsToDelete {
+			model.updates <- &DeleteHub{HubURL: deleteHubURL}
+		}
+		for createHubURL := range newHubURLs {
+			model.updates <- &CreateHub{HubURL: createHubURL}
+		}
+	}()
 	return nil
 }
