@@ -66,7 +66,7 @@ func (hub *MockHub) startRandomScanFinishing() {
 }
 
 // AddScan ...
-func (hub *MockHub) AddScan(scanNameSearchString string) {
+func (hub *MockHub) AddScan(scanName string) {
 	// nothing to do
 }
 

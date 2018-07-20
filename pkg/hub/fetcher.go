@@ -36,6 +36,7 @@ const (
 )
 
 // Fetcher .....
+// TODO treat this like an actor; give it thread safety
 type Fetcher struct {
 	client          *hubclient.Client
 	circuitBreaker  *CircuitBreaker

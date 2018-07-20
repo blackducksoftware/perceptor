@@ -24,6 +24,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
@@ -170,7 +171,12 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 			next := <-updates
 			switch u := next.(type) {
 			case *model.StartScan:
-				break
+				hubClient, ok := hubFetchers[u.Assignment.HubURL]
+				if !ok {
+					log.Errorf("unable to find hub %s", u.Assignment.HubURL)
+					break
+				}
+				hubClient.AddScan(u.Assignment.Image.HubScanName())
 			case *model.CreateHub:
 				if _, ok := hubFetchers[u.HubURL]; !ok {
 					hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
@@ -204,7 +210,7 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 				// hubFetchers[hubURL].Stop()
 				delete(hubFetchers, u.HubURL)
 			default:
-				panic("unexpected type ")
+				panic(fmt.Errorf("unexpected update type: %s", reflect.TypeOf(u)))
 			}
 		}
 	}()

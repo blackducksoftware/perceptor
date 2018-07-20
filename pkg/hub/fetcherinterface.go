@@ -31,11 +31,11 @@ type FetcherInterface interface {
 	// core functionality
 	IsEnabled() <-chan bool
 	// scans
-	AddScan(scanNameSearchString string)
+	AddScan(scanName string)
 	ScansInProgress() []string
 	ScanDidFinish() <-chan *HubImageScan
 	// scan refresh TODO
-	// RefreshScan(scanNameSearchString string)
+	// RefreshScan(scanName string)
 	// RefreshScansInProgress() []string
 	// ScanRefreshDidFinish() <-chan *ScanResults
 	// knobs
