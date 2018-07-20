@@ -22,39 +22,14 @@ under the License.
 package core
 
 import (
-	"time"
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// Scheduler periodically executes `action`, with a pause of `delay` between
-// invocations, and stops when receiving an event on `stop`.
-type Scheduler struct {
-	delay  time.Duration
-	stop   <-chan struct{}
-	action func()
-}
-
-// NewScheduler ...
-func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
-	scheduler := &Scheduler{delay: delay, stop: stop, action: action}
-	go scheduler.start()
-	return scheduler
-}
-
-func (scheduler *Scheduler) start() {
-	timer := time.NewTimer(scheduler.delay)
-	for {
-		select {
-		case <-scheduler.stop:
-			timer.Stop()
-			return
-		case <-timer.C:
-			scheduler.action()
-			timer = time.NewTimer(scheduler.delay)
-		}
-	}
-}
-
-// SetDelay sets the delay
-func (scheduler *Scheduler) SetDelay(delay time.Duration) {
-	scheduler.delay = delay
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	// TODO add some tests
+	RunSpecs(t, "core suite")
 }

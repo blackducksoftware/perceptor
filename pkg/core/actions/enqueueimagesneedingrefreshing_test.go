@@ -21,26 +21,27 @@ under the License.
 
 package actions
 
-import (
-	"testing"
-	"time"
-)
-
-// TestEnqueueImagesNewScan .....
-func TestEnqueueImagesNewScan(t *testing.T) {
-	actual := createNewModel1()
-	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
-	if len(actual.ImageRefreshQueue) != 0 {
-		t.Errorf("expected 0 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
-	}
-}
-
-// TestEnqueueImagesOldScan .....
-func TestEnqueueImagesOldScan(t *testing.T) {
-	actual := createNewModel1()
-	actual.Images[image1.Sha].TimeOfLastRefresh = time.Now().Add(-45 * time.Second)
-	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
-	if len(actual.ImageRefreshQueue) != 1 {
-		t.Errorf("expected 1 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
-	}
-}
+//
+// import (
+// 	"testing"
+// 	"time"
+// )
+//
+// // TestEnqueueImagesNewScan .....
+// func TestEnqueueImagesNewScan(t *testing.T) {
+// 	actual := createNewModel1()
+// 	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
+// 	if len(actual.ImageRefreshQueue) != 0 {
+// 		t.Errorf("expected 0 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
+// 	}
+// }
+//
+// // TestEnqueueImagesOldScan .....
+// func TestEnqueueImagesOldScan(t *testing.T) {
+// 	actual := createNewModel1()
+// 	actual.Images[image1.Sha].TimeOfLastRefresh = time.Now().Add(-45 * time.Second)
+// 	(&EnqueueImagesNeedingRefreshing{30 * time.Second}).Apply(actual)
+// 	if len(actual.ImageRefreshQueue) != 1 {
+// 		t.Errorf("expected 1 images in refresh queue, found %d", len(actual.ImageRefreshQueue))
+// 	}
+// }

@@ -27,6 +27,7 @@ import (
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/hub-client-go/hubclient"
+	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,42 +36,19 @@ const (
 )
 
 // Fetcher .....
+// TODO treat this like an actor; give it thread safety
 type Fetcher struct {
-	client         *hubclient.Client
-	circuitBreaker *CircuitBreaker
-	hubVersion     string
-	username       string
-	password       string
-	baseURL        string
-}
-
-// ResetCircuitBreaker ...
-func (hf *Fetcher) ResetCircuitBreaker() {
-	hf.circuitBreaker.Reset()
-}
-
-// Model ...
-func (hf *Fetcher) Model() *FetcherModel {
-	return &FetcherModel{
-		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
-		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
-		State:               hf.circuitBreaker.State,
-	}
-}
-
-// IsEnabled returns whether the fetcher is currently enabled
-// example: the circuit breaker is disabled -> the fetcher is disabled
-func (hf *Fetcher) IsEnabled() <-chan bool {
-	return hf.circuitBreaker.IsEnabledChannel
-}
-
-// Login .....
-func (hf *Fetcher) Login() error {
-	start := time.Now()
-	err := hf.client.Login(hf.username, hf.password)
-	recordHubResponse("login", err == nil)
-	recordHubResponseTime("login", time.Now().Sub(start))
-	return err
+	client          *hubclient.Client
+	circuitBreaker  *CircuitBreaker
+	hubVersion      string
+	username        string
+	password        string
+	baseURL         string
+	inProgressScans map[string]bool
+	finishScan      chan *HubImageScan
+	hubScanPoller   *util.Scheduler
+	reloginPause    time.Duration
+	stop            <-chan struct{}
 }
 
 func (hf *Fetcher) fetchHubVersion() error {
@@ -93,20 +71,26 @@ func (hf *Fetcher) fetchHubVersion() error {
 //  - unable to instantiate an API client
 //  - unable to sign in to the Hub
 //  - unable to get hub version from the Hub
-func NewFetcher(username string, password string, hubHost string, hubPort int, hubClientTimeoutMilliseconds int) (*Fetcher, error) {
-	baseURL := fmt.Sprintf("https://%s:%d", hubHost, hubPort)
-	hubClientTimeout := time.Millisecond * time.Duration(hubClientTimeoutMilliseconds)
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
+func NewFetcher(username string, password string, host string, port int, timeout time.Duration, checkHubPause time.Duration, stop <-chan struct{}, reloginPause time.Duration) (*Fetcher, error) {
+	baseURL := fmt.Sprintf("https://%s:%d", host, port)
+	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, timeout)
 	if err != nil {
 		return nil, err
 	}
 	hf := Fetcher{
-		client:         client,
-		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
-		username:       username,
-		password:       password,
-		baseURL:        baseURL}
-	err = hf.Login()
+		client:          client,
+		circuitBreaker:  NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
+		username:        username,
+		password:        password,
+		baseURL:         baseURL,
+		inProgressScans: map[string]bool{},
+		finishScan:      make(chan *HubImageScan),
+		reloginPause:    reloginPause,
+		stop:            stop}
+	hf.hubScanPoller = util.NewScheduler(checkHubPause, stop, func() {
+		hf.fetchScans()
+	})
+	err = hf.login()
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +99,45 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 		return nil, err
 	}
 	return &hf, nil
+}
+
+// ResetCircuitBreaker ...
+func (hf *Fetcher) ResetCircuitBreaker() {
+	hf.circuitBreaker.Reset()
+}
+
+// Model ...
+func (hf *Fetcher) Model() *FetcherModel {
+	return &FetcherModel{
+		ConsecutiveFailures: hf.circuitBreaker.ConsecutiveFailures,
+		NextCheckTime:       hf.circuitBreaker.NextCheckTime,
+		State:               hf.circuitBreaker.State,
+	}
+}
+
+// IsEnabled returns whether the fetcher is currently enabled
+// example: the circuit breaker is disabled -> the fetcher is disabled
+func (hf *Fetcher) IsEnabled() <-chan bool {
+	return hf.circuitBreaker.IsEnabledChannel
+}
+
+func (hf *Fetcher) startReloggingInToHub() *util.Scheduler {
+	return util.NewScheduler(hf.reloginPause, hf.stop, func() {
+		_ = hf.login()
+	})
+}
+
+func (hf *Fetcher) login() error {
+	start := time.Now()
+	err := hf.client.Login(hf.username, hf.password)
+	recordHubResponse("login", err == nil)
+	recordHubResponseTime("login", time.Now().Sub(start))
+	if err != nil {
+		log.Errorf("unable to re-login to hub: %s", err.Error())
+	} else {
+		log.Infof("successfully re-logged in to hub")
+	}
+	return err
 }
 
 // SetTimeout ...
@@ -127,31 +150,31 @@ func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
 
-// func (hf *Fetcher) FetchAllScanNames() ([]string, error) {
-// 	codeLocationList, err := hf.circuitBreaker.ListAllCodeLocations()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	scanNames := make([]string, len(codeLocationList.Items))
-// 	for i, cl := range codeLocationList.Items {
-// 		scanNames[i] = cl.Name
-// 	}
-// 	return scanNames, nil
-// }
+func (hf *Fetcher) fetchScans() {
+	for scanName := range hf.inProgressScans {
+		scanResults, err := hf.fetchScan(scanName)
+		if (err == nil) && (scanResults.ScanSummaryStatus() != ScanSummaryStatusInProgress) {
+			hf.finishScan <- &HubImageScan{ScanName: scanName, Scan: scanResults}
+			delete(hf.inProgressScans, scanName)
+		} else if err != nil {
+			log.Errorf("unable to fetch scan for %s: %s", scanName, err.Error())
+		}
+	}
+}
 
-// FetchScanFromImage finds an ImageScan by starting from a code location,
+// FetchScan finds ScanResults by starting from a code location,
 // and following links from there.
 // It returns:
 //  - nil, if there's no code location with a matching name
 //  - nil, if there's 0 scan summaries for the code location
 //  - an error, if there were any HTTP problems or link problems
-//  - an ImageScan, but possibly with garbage data, in all other cases
+//  - an ScanResults, but possibly with garbage data, in all other cases
 // Weird cases to watch out for:
 //  - multiple code locations with a matching name
 //  - multiple scan summaries for a code location
 //  - zero scan summaries for a code location
-func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
-	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(image.HubScanNameSearchString())
+func (hf *Fetcher) fetchScan(scanName string) (*ScanResults, error) {
+	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(scanName)
 
 	if err != nil {
 		log.Errorf("error fetching code location list: %v", err)
@@ -166,14 +189,14 @@ func (hf *Fetcher) FetchScanFromImage(image ImageInterface) (*ImageScan, error) 
 		recordHubData("codeLocations", true) // good to go
 	default:
 		recordHubData("codeLocations", false)
-		log.Warnf("expected 1 code location matching name search string %s, found %d", image.HubScanNameSearchString(), len(codeLocations))
+		log.Warnf("expected 1 code location matching name search string %s, found %d", scanName, len(codeLocations))
 	}
 
 	codeLocation := codeLocations[0]
-	return hf.fetchImageScanUsingCodeLocation(codeLocation, image)
+	return hf.fetchScanResultsUsingCodeLocation(codeLocation, scanName)
 }
 
-func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocation, image ImageInterface) (*ImageScan, error) {
+func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLocation, scanName string) (*ScanResults, error) {
 	versionLink, err := codeLocation.GetProjectVersionLink()
 	if err != nil {
 		log.Errorf("unable to get project version link: %s", err.Error())
@@ -234,7 +257,7 @@ func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocat
 		recordHubData("scan summaries", true) // good to go, continue
 	default:
 		recordHubData("scan summaries", false)
-		log.Warnf("expected to find one scan summary for code location %s, found %d", image.HubScanNameSearchString(), len(scanSummariesList.Items))
+		log.Warnf("expected to find one scan summary for code location %s, found %d", scanName, len(scanSummariesList.Items))
 	}
 
 	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
@@ -252,7 +275,8 @@ func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocat
 		scanSummaries[i] = *NewScanSummaryFromHub(scanSummary)
 	}
 
-	scan := ImageScan{
+	scan := ScanResults{
+		ScanName:              scanName,
 		RiskProfile:           *mappedRiskProfile,
 		PolicyStatus:          *mappedPolicyStatus,
 		ComponentsHref:        componentsLink.Href,
@@ -265,4 +289,37 @@ func (hf *Fetcher) fetchImageScanUsingCodeLocation(codeLocation hubapi.CodeLocat
 	}
 
 	return &scan, nil
+}
+
+// AddScan ...
+func (hf *Fetcher) AddScan(scanName string) {
+	hf.inProgressScans[scanName] = true
+}
+
+// ScansInProgress ...
+func (hf *Fetcher) ScansInProgress() []string {
+	panic("unimplemented!  maybe remove this")
+}
+
+// ScanDidFinish ...
+func (hf *Fetcher) ScanDidFinish() <-chan *HubImageScan {
+	return hf.finishScan
+}
+
+// GetAllCodeLocations ...
+func (hf *Fetcher) GetAllCodeLocations() ([]string, error) {
+	clList, err := hf.circuitBreaker.ListAllCodeLocations()
+	if err != nil {
+		return nil, err
+	}
+	codeLocationNames := make([]string, len(clList.Items))
+	for i, cl := range clList.Items {
+		codeLocationNames[i] = cl.Name
+	}
+	return codeLocationNames, nil
+}
+
+// HubURL ...
+func (hf *Fetcher) HubURL() string {
+	return hf.baseURL
 }

@@ -33,9 +33,10 @@ type ImageInfo struct {
 	ScanStatus             ScanStatus
 	TimeOfLastStatusChange time.Time
 	TimeOfLastRefresh      time.Time
-	ScanResults            *hub.ImageScan
+	ScanResults            *hub.ScanResults
 	ImageSha               DockerImageSha
 	ImageNames             []string
+	HubURL                 string
 }
 
 // NewImageInfo .....
@@ -49,13 +50,33 @@ func NewImageInfo(sha DockerImageSha, imageName string) *ImageInfo {
 	return imageInfo
 }
 
+func (imageInfo *ImageInfo) setHubURL(hubURL string) error {
+	if imageInfo.HubURL != "" {
+		return fmt.Errorf("Hub URL already set to %s", imageInfo.HubURL)
+	}
+	imageInfo.HubURL = hubURL
+	return nil
+}
+
+func (imageInfo *ImageInfo) removeHubURL() error {
+	if imageInfo.HubURL == "" {
+		return fmt.Errorf("hub URL not set")
+	}
+	imageInfo.HubURL = ""
+	return nil
+}
+
+func (imageInfo *ImageInfo) isAssignedHub() bool {
+	return imageInfo.HubURL != ""
+}
+
 func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 	imageInfo.ScanStatus = newStatus
 	imageInfo.TimeOfLastStatusChange = time.Now()
 }
 
 // SetScanResults .....
-func (imageInfo *ImageInfo) SetScanResults(results *hub.ImageScan) {
+func (imageInfo *ImageInfo) SetScanResults(results *hub.ScanResults) {
 	imageInfo.ScanResults = results
 	imageInfo.TimeOfLastRefresh = time.Now()
 }

@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package util
 
 import (
 	"fmt"
@@ -100,6 +100,21 @@ var _ = Describe("Priority queue", func() {
 		It("isEmpty", func() {
 			Expect(pq.IsEmpty()).To(Equal(true))
 			Expect(pq.CheckValidity()).To(Equal([]string{}))
+		})
+	})
+
+	Describe("Clean up", func() {
+		pq := newPriorityQueueWithInitialCapacity(5)
+		It("should handle popping when backing slice is full, and clean up correctly", func() {
+			pq.Add("abc", 1, 14)
+			pq.Add("def", 5, 100)
+			pq.Add("ghi", 3, 39)
+			pq.Add("jkl", 2, 82)
+			pq.Add("mno", 4, 107)
+			val, err := pq.Pop()
+			Expect(err).To(BeNil())
+			Expect(val).To(Equal(100))
+			Expect(pq.items[4]).To(BeNil())
 		})
 	})
 

@@ -65,28 +65,35 @@ func (mr *MockResponder) GetModel() Model {
 	return Model{}
 }
 
+// SetHubs ...
+func (mr *MockResponder) SetHubs(hubs Hubs) {
+	// TODO
+}
+
 // perceiver
 
 // AddPod .....
-func (mr *MockResponder) AddPod(pod Pod) {
+func (mr *MockResponder) AddPod(pod Pod) error {
 	log.Infof("add pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 	_, ok := mr.Pods[qualifiedName]
 	if ok {
-		return
+		return nil
 	}
 
 	mr.Pods[qualifiedName] = pod
 	for _, cont := range pod.Containers {
 		mr.AddImage(cont.Image)
 	}
+	return nil
 }
 
 // UpdatePod .....
-func (mr *MockResponder) UpdatePod(pod Pod) {
+func (mr *MockResponder) UpdatePod(pod Pod) error {
 	log.Infof("update pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 	mr.Pods[qualifiedName] = pod
+	return nil
 }
 
 // DeletePod .....
@@ -124,10 +131,10 @@ func (mr *MockResponder) GetScanResults() ScanResults {
 }
 
 // AddImage .....
-func (mr *MockResponder) AddImage(image Image) {
+func (mr *MockResponder) AddImage(image Image) error {
 	_, ok := mr.Images[image.Sha]
 	if ok {
-		return
+		return nil
 	}
 
 	log.Infof("add image: %+v", image)
@@ -145,30 +152,33 @@ func (mr *MockResponder) AddImage(image Image) {
 		OverallStatus:    overallStatus,
 		PolicyViolations: policyViolations,
 		Vulnerabilities:  vulnerabilities}
+	return nil
 }
 
 // UpdateAllPods .....
-func (mr *MockResponder) UpdateAllPods(allPods AllPods) {
+func (mr *MockResponder) UpdateAllPods(allPods AllPods) error {
 	log.Infof("update all pods: %+v", allPods)
 	mr.Pods = map[string]Pod{}
 	for _, pod := range allPods.Pods {
 		mr.AddPod(pod)
 	}
+	return nil
 }
 
 // UpdateAllImages .....
-func (mr *MockResponder) UpdateAllImages(allImages AllImages) {
+func (mr *MockResponder) UpdateAllImages(allImages AllImages) error {
 	log.Infof("update all images: %+v", allImages)
 	mr.Images = map[string]ImageInfo{}
 	for _, image := range allImages.Images {
 		mr.AddImage(image)
 	}
+	return nil
 }
 
 // scanner
 
 // GetNextImage .....
-func (mr *MockResponder) GetNextImage() NextImage {
+func (mr *MockResponder) GetNextImage() (*NextImage, error) {
 	mr.NextImageCounter++
 	imageSpec := ImageSpec{
 		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
@@ -176,12 +186,13 @@ func (mr *MockResponder) GetNextImage() NextImage {
 		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
 		PullSpec:              "abc/def/ghi",
 		Sha:                   "123abc456def"}
-	return NextImage{ImageSpec: &imageSpec}
+	return &NextImage{ImageSpec: &imageSpec}, nil
 }
 
 // PostFinishScan .....
-func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) {
+func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) error {
 	log.Infof("finished scan job: %+v", job)
+	return nil
 }
 
 // internal use

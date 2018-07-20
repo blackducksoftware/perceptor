@@ -19,14 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package hub
 
-// Config ...
-type Config struct {
-	HubUser               string
-	HubUserPasswordEnvVar string
-	HubPort               int
-	Port                  int
-	LogLevel              string
-	ConcurrentScanLimit   int
+// HubImageScan .....
+type HubImageScan struct {
+	ScanName string
+	Scan     *ScanResults
 }

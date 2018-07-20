@@ -23,28 +23,29 @@ package actions
 
 import (
 	"fmt"
-	"testing"
 
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestScanClientFails .....
-func TestScanClientFails(t *testing.T) {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
-	image := *m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
-	model.AddImage(image, 0)
-	model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
-	model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
-	model.FinishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
+func RunFinishScanClientTest() {
+	Describe("finish scan client", func() {
+		model := m.NewModel(&m.Config{ConcurrentScanLimit: 1}, nil)
+		It("should handle failure", func() {
+			image := m.NewImage("abc", m.DockerImageSha("23bcf2dae3"))
+			assignment := &m.HubImageAssignment{HubURL: "abc", Image: image}
+			model.SetHubs([]string{"abc"})
+			model.AddImage(*image, 0)
+			model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
+			model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
+			model.FinishRunningScanClient(image, "abc", fmt.Errorf("oops, unable to run scan client"))
 
-	if model.Images[image.Sha].ScanStatus != m.ScanStatusInQueue {
-		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
-		t.Fail()
-	}
+			Expect(model.Images[image.Sha].ScanStatus).To(Equal(m.ScanStatusInQueue))
 
-	nextImage := model.GetNextImageFromScanQueue()
-	if image != *nextImage {
-		t.Logf("expected nextImage of %v, got %v", image, nextImage)
-		t.Fail()
-	}
+			nextAssignment, err := model.GetNextImageFromScanQueue()
+			Expect(err).To(BeNil())
+			Expect(nextAssignment).To(Equal(assignment))
+		})
+	})
 }

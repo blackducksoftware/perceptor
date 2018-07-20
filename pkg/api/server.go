@@ -188,15 +188,19 @@ func SetupHTTPServer(responder Responder) {
 	// for providing data to scanners
 	http.HandleFunc("/nextimage", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			nextImage := responder.GetNextImage()
+			nextImage, err := responder.GetNextImage()
+			if err != nil {
+				responder.Error(w, r, err, 500)
+				return
+			}
 			jsonBytes, err := json.MarshalIndent(nextImage, "", "  ")
 			if err != nil {
 				responder.Error(w, r, err, 500)
-			} else {
-				header := w.Header()
-				header.Set(http.CanonicalHeaderKey("content-type"), "application/json")
-				fmt.Fprint(w, string(jsonBytes))
+				return
 			}
+			header := w.Header()
+			header.Set(http.CanonicalHeaderKey("content-type"), "application/json")
+			fmt.Fprint(w, string(jsonBytes))
 		} else {
 			responder.NotFound(w, r)
 		}

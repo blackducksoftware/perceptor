@@ -31,10 +31,13 @@ import (
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunActionTests()
+	RunFinishScanClientTest()
+	RunGetNextImageTests()
 	RunTestAddImageAction()
 	RunTestAddPodAction()
 	RunTestAllImages()
-	RunFetchScanCompletionTests()
-	RunFetchScanRefresh()
+	RunHubScanDidFinishTests()
+	// RunFetchScanRefresh()
+	RunTestGetFullScanResults()
 	RunSpecs(t, "model suite")
 }

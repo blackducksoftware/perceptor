@@ -21,19 +21,19 @@ under the License.
 
 package actions
 
-import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
-)
-
-// CheckScanRefresh .....
-type CheckScanRefresh struct {
-	Continuation func(image *m.Image)
-}
-
-// Apply .....
-func (g *CheckScanRefresh) Apply(model *m.Model) {
-	log.Debugf("looking for next image to refresh in the hub")
-	image := model.GetNextImageFromRefreshQueue()
-	go g.Continuation(image)
-}
+// import (
+// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+// 	log "github.com/sirupsen/logrus"
+// )
+//
+// // CheckScanRefresh .....
+// type CheckScanRefresh struct {
+// 	Continuation func(image *m.Image)
+// }
+//
+// // Apply .....
+// func (g *CheckScanRefresh) Apply(model *m.Model) {
+// 	log.Debugf("looking for next image to refresh in the hub")
+// 	image := model.GetNextImageFromRefreshQueue()
+// 	go g.Continuation(image)
+// }

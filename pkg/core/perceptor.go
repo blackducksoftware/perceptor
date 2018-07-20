@@ -24,6 +24,8 @@ package core
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
@@ -43,23 +45,24 @@ const (
 // It grabs the scan results from the hub and adds them to its model.
 // It publishes vulnerabilities that the cluster can find out about.
 type Perceptor struct {
-	hubClient          hub.FetcherInterface
 	httpResponder      *HTTPResponder
 	reducer            *reducer
 	routineTaskManager *RoutineTaskManager
+	hubs               map[string]hub.FetcherInterface
 	// channels
 	actions chan a.Action
 }
 
 // NewMockedPerceptor creates a Perceptor which uses a mock hub
-func NewMockedPerceptor() (*Perceptor, error) {
-	mockConfig := Config{
-		HubHost:             "mock host",
-		HubUser:             "mock user",
-		ConcurrentScanLimit: 2,
-	}
-	return newPerceptorHelper(hub.NewMockHub("mock hub version"), &mockConfig), nil
-}
+// TODO
+// func NewMockedPerceptor() (*Perceptor, error) {
+// 	mockConfig := Config{
+// 		HubHost:             "mock host",
+// 		HubUser:             "mock user",
+// 		ConcurrentScanLimit: 2,
+// 	}
+// 	return newPerceptorHelper(hub.NewMockHub("mock hub version"), &mockConfig), nil
+// }
 
 // NewPerceptor creates a Perceptor using a real hub client.
 func NewPerceptor(config *Config) (*Perceptor, error) {
@@ -69,45 +72,41 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
-	if err != nil {
-		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
-		return nil, err
-	}
-
-	return newPerceptorHelper(hubClient, config), nil
+	return newPerceptorHelper(config, hubPassword), nil
 }
 
-func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Perceptor {
+func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 	// 1. http responder
 	httpResponder := NewHTTPResponder()
 	api.SetupHTTPServer(httpResponder)
 
 	// 2. routine task manager
 	stop := make(chan struct{})
-	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
+	routineTaskManager := NewRoutineTaskManager(stop, model.DefaultTimings)
+
+	hubFetchers := map[string]hub.FetcherInterface{}
 
 	// 3. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
 	go func() {
 		for {
 			select {
-			case pod := <-httpResponder.AddPodChannel:
-				actions <- &a.AddPod{Pod: pod}
-			case pod := <-httpResponder.UpdatePodChannel:
-				actions <- &a.UpdatePod{Pod: pod}
-			case podName := <-httpResponder.DeletePodChannel:
-				actions <- &a.DeletePod{PodName: podName}
-			case image := <-httpResponder.AddImageChannel:
-				actions <- &a.AddImage{Image: image}
-			case pods := <-httpResponder.AllPodsChannel:
-				actions <- &a.AllPods{Pods: pods}
-			case images := <-httpResponder.AllImagesChannel:
-				actions <- &a.AllImages{Images: images}
-			case job := <-httpResponder.PostFinishScanJobChannel:
-				actions <- job
-			case continuation := <-httpResponder.PostNextImageChannel:
-				actions <- &a.GetNextImage{Continuation: continuation}
+			case a := <-httpResponder.AddPodChannel:
+				actions <- a
+			case a := <-httpResponder.UpdatePodChannel:
+				actions <- a
+			case a := <-httpResponder.DeletePodChannel:
+				actions <- a
+			case a := <-httpResponder.AddImageChannel:
+				actions <- a
+			case a := <-httpResponder.AllPodsChannel:
+				actions <- a
+			case a := <-httpResponder.AllImagesChannel:
+				actions <- a
+			case a := <-httpResponder.PostFinishScanJobChannel:
+				actions <- a
+			case a := <-httpResponder.PostNextImageChannel:
+				actions <- a
 			case config := <-httpResponder.PostConfigChannel:
 				actions <- &a.SetConfig{
 					ConcurrentScanLimit:                 config.ConcurrentScanLimit,
@@ -116,31 +115,35 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 					ImageRefreshThresholdSeconds:        config.ImageRefreshThresholdSeconds,
 					EnqueueImagesForRefreshPauseSeconds: config.EnqueueImagesForRefreshPauseSeconds,
 				}
-			case continuation := <-httpResponder.GetModelChannel:
-				actions <- &a.GetModel{Continuation: func(apiModel api.Model) {
-					cbModel := hubClient.Model()
-					apiModel.HubCircuitBreaker = &api.ModelCircuitBreaker{
-						ConsecutiveFailures: cbModel.ConsecutiveFailures,
-						NextCheckTime:       cbModel.NextCheckTime,
-						State:               cbModel.State.String(),
-					}
-					continuation(apiModel)
-				}}
-			case continuation := <-httpResponder.GetScanResultsChannel:
-				actions <- &a.GetScanResults{Continuation: continuation}
-			case action := <-routineTaskManager.actions:
-				actions <- action
-			case isEnabled := <-hubClient.IsEnabled():
-				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
+			case get := <-httpResponder.GetModelChannel:
+				// TODO wow, this is such a huge hack.  Root cause: circuit breaker model lives
+				// outside of the main model.
+				// TODO extend this to handle ALL hubs
+				// cbModel := hubClient.Model()
+				// get.HubCircuitBreaker = &api.ModelCircuitBreaker{
+				// 	ConsecutiveFailures: cbModel.ConsecutiveFailures,
+				// 	NextCheckTime:       cbModel.NextCheckTime,
+				// 	State:               cbModel.State.String(),
+				// }
+				actions <- get
+			case a := <-httpResponder.SetHubsChannel:
+				actions <- a
+			case a := <-httpResponder.GetScanResultsChannel:
+				actions <- a
+			case a := <-routineTaskManager.actions:
+				actions <- a
+			// case isEnabled := <-hubClient.IsEnabled():
+			// 	log.Warnf("TODO -- read isEnabled from hub managers")
+			// actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:
-				hubClient.ResetCircuitBreaker()
+				log.Warnf("TODO -- enable/disable circuit breaker per hub")
+				// hubClient.ResetCircuitBreaker()
 			}
 		}
 	}()
 
 	// 4. now for the reducer
 	modelConfig := &model.Config{
-		HubHost:               config.HubHost,
 		HubPort:               config.HubPort,
 		HubUser:               config.HubUser,
 		HubUserPasswordEnvVar: config.HubUserPasswordEnvVar,
@@ -160,7 +163,57 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
 		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
+	coreModel := model.NewModel(modelConfig, timings)
+	reducer := newReducer(coreModel, actions)
+	go func() {
+		updates := coreModel.Updates()
+		for {
+			next := <-updates
+			switch u := next.(type) {
+			case *model.StartScan:
+				hubClient, ok := hubFetchers[u.Assignment.HubURL]
+				if !ok {
+					log.Errorf("unable to find hub %s", u.Assignment.HubURL)
+					break
+				}
+				hubClient.AddScan(u.Assignment.Image.HubScanName())
+			case *model.CreateHub:
+				if _, ok := hubFetchers[u.HubURL]; !ok {
+					hubClientTimeout := time.Millisecond * time.Duration(config.HubClientTimeoutMilliseconds)
+					reloginPause := model.DefaultTimings.HubReloginPause
+					hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, u.HubURL, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop, reloginPause)
+					if err != nil {
+						log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
+						panic("TODO handle this intelligently")
+					}
+					// TODO need to check what's in the hub as soon as we start using it, to decide
+					// what's already in it
+					// This API call may take longer, and so may require an extra-long timeout
+					go func() {
+						isEnabledCh := hubClient.IsEnabled()
+						scanDidFinishCh := hubClient.ScanDidFinish()
+						for {
+							select {
+							case isEnabled := <-isEnabledCh:
+								actions <- &a.SetIsHubEnabled{HubURL: u.HubURL, IsEnabled: isEnabled}
+							case scanResults := <-scanDidFinishCh:
+								actions <- &a.HubScanDidFinish{HubURL: u.HubURL, Scan: scanResults}
+							}
+						}
+					}()
+					hubFetchers[u.HubURL] = hubClient
+				} else {
+					panic("TODO handle intelligently")
+				}
+			case *model.DeleteHub:
+				// TODO do we need to call a .Stop() method?  Will things leak if we don't?
+				// hubFetchers[hubURL].Stop()
+				delete(hubFetchers, u.HubURL)
+			default:
+				panic(fmt.Errorf("unexpected update type: %s", reflect.TypeOf(u)))
+			}
+		}
+	}()
 
 	// 5. connect reducer notifications to routine task manager
 	go func() {
@@ -174,11 +227,11 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 
 	// 6. perceptor
 	perceptor := Perceptor{
-		hubClient:          hubClient,
 		httpResponder:      httpResponder,
 		reducer:            reducer,
 		routineTaskManager: routineTaskManager,
 		actions:            actions,
+		hubs:               hubFetchers,
 	}
 
 	// 7. done

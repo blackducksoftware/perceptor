@@ -26,17 +26,19 @@ type ImageSpec struct {
 	ImageName             string
 	PullSpec              string
 	Sha                   string
+	HubURL                string
 	HubProjectName        string
 	HubProjectVersionName string
 	HubScanName           string
 }
 
 // NewImageSpec .....
-func NewImageSpec(imageName string, pullSpec string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
+func NewImageSpec(imageName string, pullSpec string, sha string, hubURL string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
 	return &ImageSpec{
 		ImageName:             imageName,
 		PullSpec:              pullSpec,
 		Sha:                   sha,
+		HubURL:                hubURL,
 		HubProjectName:        hubProjectName,
 		HubProjectVersionName: hubProjectVersionName,
 		HubScanName:           hubScanName}

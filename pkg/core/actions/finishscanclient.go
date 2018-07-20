@@ -28,13 +28,14 @@ import (
 
 // FinishScanClient .....
 type FinishScanClient struct {
-	Image *m.Image
-	Err   error
+	Image  *m.Image
+	HubURL string
+	Err    error
 }
 
 // Apply .....
 func (f *FinishScanClient) Apply(model *m.Model) {
 	newModel := model
 	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == nil, f.Image.Sha)
-	newModel.FinishRunningScanClient(f.Image, f.Err)
+	newModel.FinishRunningScanClient(f.Image, f.HubURL, f.Err)
 }

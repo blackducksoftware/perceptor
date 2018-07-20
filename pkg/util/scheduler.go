@@ -19,33 +19,42 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package util
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
+	"time"
 )
 
-// GetNextImage .....
-type GetNextImage struct {
-	Done  chan *m.HubImageAssignment
-	Error chan error
+// Scheduler periodically executes `action`, with a pause of `delay` between
+// invocations, and stops when receiving an event on `stop`.
+type Scheduler struct {
+	delay  time.Duration
+	stop   <-chan struct{}
+	action func()
 }
 
-// NewGetNextImage ...
-func NewGetNextImage() *GetNextImage {
-	return &GetNextImage{Done: make(chan *m.HubImageAssignment), Error: make(chan error)}
+// NewScheduler ...
+func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
+	scheduler := &Scheduler{delay: delay, stop: stop, action: action}
+	go scheduler.start()
+	return scheduler
 }
 
-// Apply .....
-func (g *GetNextImage) Apply(model *m.Model) {
-	log.Debugf("looking for next image to scan")
-	imageAssignment, err := model.GetNextImageFromScanQueue()
-	go func() {
-		if err == nil {
-			g.Done <- imageAssignment
-		} else {
-			g.Error <- err
+func (scheduler *Scheduler) start() {
+	timer := time.NewTimer(scheduler.delay)
+	for {
+		select {
+		case <-scheduler.stop:
+			timer.Stop()
+			return
+		case <-timer.C:
+			scheduler.action()
+			timer = time.NewTimer(scheduler.delay)
 		}
-	}()
+	}
+}
+
+// SetDelay sets the delay
+func (scheduler *Scheduler) SetDelay(delay time.Duration) {
+	scheduler.delay = delay
 }

@@ -19,16 +19,14 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package api
 
-import (
-	"testing"
+// Hubs ...
+type Hubs struct {
+	HubURLs []string
+}
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
-
-func TestPerceptor(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "core suite")
+// NewHubs .....
+func NewHubs(hubURLs []string) *Hubs {
+	return &Hubs{HubURLs: hubURLs}
 }

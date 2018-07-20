@@ -65,13 +65,23 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-// FetchProjectByName .....
-func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
-	return nil, nil
+// AddScan ...
+func (hub *MockHub) AddScan(scanName string) {
+	// nothing to do
 }
 
-// FetchScanFromImage .....
-func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
+// ScansInProgress ...
+func (hub *MockHub) ScansInProgress() []string {
+	return nil
+}
+
+// ScanDidFinish ...
+func (hub *MockHub) ScanDidFinish() <-chan *HubImageScan {
+	return nil
+}
+
+// GetAllCodeLocations ...
+func (hub *MockHub) GetAllCodeLocations() ([]string, error) {
 	return nil, nil
 }
 
@@ -103,4 +113,9 @@ func (hub *MockHub) ResetCircuitBreaker() {
 // IsEnabled ...
 func (hub *MockHub) IsEnabled() <-chan bool {
 	return make(<-chan bool)
+}
+
+// HubURL ...
+func (hub *MockHub) HubURL() string {
+	return "???"
 }

@@ -27,47 +27,39 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// FetchScanCompletion .....
-type FetchScanCompletion struct {
-	Scan *m.HubImageScan
+// HubScanDidFinish .....
+type HubScanDidFinish struct {
+	HubURL string
+	Scan   *hub.HubImageScan
 }
 
 // Apply .....
-func (h *FetchScanCompletion) Apply(model *m.Model) {
+func (h *HubScanDidFinish) Apply(model *m.Model) {
 	scan := h.Scan
 
-	// case 1: error
-	if scan.Err != nil {
-		log.Errorf("error checking hub for completed scan for sha %s: %s", scan.Sha, scan.Err.Error())
-		return
-	}
-
-	// case 2: nil
-	if scan.Scan == nil {
-		log.Debugf("found nil checking hub for completed scan for image %s", string(scan.Sha))
-		return
-	}
-
-	// case 3: found it, and it's not done
+	// case 0: in progress. shouldn't happen
 	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
-		log.Debugf("found running scan in hub for image %s: %+v", string(scan.Sha), scan.Scan)
+		log.Errorf("unexpected scan status in progress.  expected failure or success")
 		return
 	}
 
-	// case 4: found it, and it failed.  Put it back in the scan queue
-	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
-		model.SetImageScanStatus(scan.Sha, m.ScanStatusInQueue)
-		return
-	}
+	sha := m.DockerImageSha(scan.ScanName)
 
-	// case 5: image mysteriously gone from model
-	imageInfo, ok := model.Images[scan.Sha]
+	// case 1: image mysteriously gone from model
+	imageInfo, ok := model.Images[sha]
 	if !ok {
-		log.Errorf("expected to already have image %s, but did not", string(scan.Sha))
+		log.Errorf("expected to already have image %s, but did not", scan.ScanName)
 		return
 	}
 
-	// case 6: found it, and it's done
+	// case 2: failed.  Put it back in the scan queue
+	if scan.Scan.ScanSummaryStatus() == hub.ScanSummaryStatusFailure {
+		// TODO unassign it from its hub
+		model.SetImageScanStatus(sha, m.ScanStatusInQueue)
+		return
+	}
+
+	// case 3: success
 	imageInfo.SetScanResults(scan.Scan)
-	model.SetImageScanStatus(scan.Sha, m.ScanStatusComplete)
+	model.SetImageScanStatus(sha, m.ScanStatusComplete)
 }

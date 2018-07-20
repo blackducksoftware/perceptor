@@ -19,15 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package actions
 
 import (
-	"github.com/blackducksoftware/perceptor/pkg/hub"
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
-// HubImageScan .....
-type HubImageScan struct {
-	Sha  DockerImageSha
-	Scan *hub.ImageScan
-	Err  error
+// SetHubs .....
+type SetHubs struct {
+	HubURLs []string
+}
+
+// Apply .....
+func (s *SetHubs) Apply(model *m.Model) {
+	panic("TODO -- unimplemented")
 }

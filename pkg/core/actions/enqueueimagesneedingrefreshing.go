@@ -21,43 +21,43 @@ under the License.
 
 package actions
 
-import (
-	"time"
-
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	log "github.com/sirupsen/logrus"
-)
-
-// EnqueueImagesNeedingRefreshing .....
-type EnqueueImagesNeedingRefreshing struct {
-	RefreshThresholdDuration time.Duration
-}
-
-// Apply .....
-func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
-	for sha, imageInfo := range model.Images {
-		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
-		if !isComplete {
-			log.Debugf("not enqueueing %s: not complete", sha)
-			continue
-		}
-
-		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
-		if isInRefreshQueue {
-			log.Debugf("not enqueueing %s: already in refresh queue", sha)
-			continue
-		}
-
-		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
-		if hasBeenRefreshedRecently {
-			log.Debugf("not enqueueing %s: has been refreshed recently", sha)
-			continue
-		}
-
-		err := model.AddImageToRefreshQueue(sha)
-		if err != nil {
-			log.Error(err.Error())
-			recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
-		}
-	}
-}
+// import (
+// 	"time"
+//
+// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+// 	log "github.com/sirupsen/logrus"
+// )
+//
+// // EnqueueImagesNeedingRefreshing .....
+// type EnqueueImagesNeedingRefreshing struct {
+// 	RefreshThresholdDuration time.Duration
+// }
+//
+// // Apply .....
+// func (e *EnqueueImagesNeedingRefreshing) Apply(model *m.Model) {
+// 	for sha, imageInfo := range model.Images {
+// 		isComplete := imageInfo.ScanStatus == m.ScanStatusComplete
+// 		if !isComplete {
+// 			log.Debugf("not enqueueing %s: not complete", sha)
+// 			continue
+// 		}
+//
+// 		_, isInRefreshQueue := model.ImageRefreshQueueSet[sha]
+// 		if isInRefreshQueue {
+// 			log.Debugf("not enqueueing %s: already in refresh queue", sha)
+// 			continue
+// 		}
+//
+// 		hasBeenRefreshedRecently := time.Now().Sub(imageInfo.TimeOfLastRefresh) < e.RefreshThresholdDuration
+// 		if hasBeenRefreshedRecently {
+// 			log.Debugf("not enqueueing %s: has been refreshed recently", sha)
+// 			continue
+// 		}
+//
+// 		err := model.AddImageToRefreshQueue(sha)
+// 		if err != nil {
+// 			log.Error(err.Error())
+// 			recordError("EnqueueImagesNeedingRefreshing", "unable to add image to refresh queue")
+// 		}
+// 	}
+// }

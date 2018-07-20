@@ -22,8 +22,6 @@ under the License.
 package actions
 
 import (
-	"fmt"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
@@ -31,17 +29,34 @@ import (
 )
 
 func hubCheckModel() *m.Model {
-	model := m.NewModel("abc", &m.Config{ConcurrentScanLimit: 2}, nil)
+	model := m.NewModel(&m.Config{ConcurrentScanLimit: 2}, nil)
 	model.AddImage(image1, 0)
 	model.SetImageScanStatus(image1.Sha, m.ScanStatusRunningHubScan)
 	return model
 }
 
-func RunFetchScanCompletionTests() {
-	Describe("FetchScanCompletion", func() {
+func imageScan(vulnerabilityCount int, status hub.ScanSummaryStatus) *hub.ScanResults {
+	return &hub.ScanResults{
+		ScanSummaries: []hub.ScanSummary{{
+			Status: status,
+		}},
+		RiskProfile: hub.RiskProfile{
+			Categories: map[hub.RiskProfileCategory]hub.RiskProfileStatusCounts{
+				hub.RiskProfileCategoryVulnerability: {
+					StatusCounts: map[hub.RiskProfileStatus]int{
+						hub.RiskProfileStatusHigh: vulnerabilityCount,
+					},
+				},
+			},
+		},
+	}
+}
+
+func RunHubScanDidFinishTests() {
+	Describe("HubScanDidFinish", func() {
 		It("error handling", func() {
 			model := hubCheckModel()
-			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: fmt.Errorf("")}}
+			hc := HubScanDidFinish{Scan: &hub.HubImageScan{ScanName: string(image1.Sha), Scan: nil}}
 			hc.Apply(model)
 
 			actual := model.Images[image1.Sha].ScanStatus
@@ -51,7 +66,7 @@ func RunFetchScanCompletionTests() {
 
 		It("not found", func() {
 			model := hubCheckModel()
-			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: nil, Err: nil}}
+			hc := HubScanDidFinish{Scan: &hub.HubImageScan{ScanName: string(image1.Sha), Scan: nil}}
 			hc.Apply(model)
 
 			actual := model.Images[image1.Sha].ScanStatus
@@ -61,7 +76,7 @@ func RunFetchScanCompletionTests() {
 
 		It("in progress", func() {
 			model := hubCheckModel()
-			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusInProgress), Err: nil}}
+			hc := HubScanDidFinish{Scan: &hub.HubImageScan{ScanName: string(image1.Sha), Scan: imageScan(0, hub.ScanSummaryStatusInProgress)}}
 			hc.Apply(model)
 
 			actual := model.Images[image1.Sha].ScanStatus
@@ -71,7 +86,7 @@ func RunFetchScanCompletionTests() {
 
 		It("failed", func() {
 			model := hubCheckModel()
-			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(0, hub.ScanSummaryStatusFailure), Err: nil}}
+			hc := HubScanDidFinish{Scan: &hub.HubImageScan{ScanName: string(image1.Sha), Scan: imageScan(0, hub.ScanSummaryStatusFailure)}}
 			hc.Apply(model)
 
 			actual := model.Images[image1.Sha].ScanStatus
@@ -81,7 +96,7 @@ func RunFetchScanCompletionTests() {
 
 		It("success", func() {
 			model := hubCheckModel()
-			hc := FetchScanCompletion{Scan: &m.HubImageScan{Sha: image1.Sha, Scan: imageScan(8, hub.ScanSummaryStatusSuccess), Err: nil}}
+			hc := HubScanDidFinish{Scan: &hub.HubImageScan{ScanName: string(image1.Sha), Scan: imageScan(8, hub.ScanSummaryStatusSuccess)}}
 			hc.Apply(model)
 
 			actual := model.Images[image1.Sha].ScanStatus

@@ -21,12 +21,10 @@ under the License.
 
 package model
 
-// Config ...
-type Config struct {
-	HubUser               string
-	HubUserPasswordEnvVar string
-	HubPort               int
-	Port                  int
-	LogLevel              string
-	ConcurrentScanLimit   int
+// StartScan ...
+type StartScan struct {
+	Assignment *HubImageAssignment
 }
+
+// UpdateMarker ...
+func (s *StartScan) UpdateMarker() {}

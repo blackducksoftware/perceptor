@@ -21,12 +21,7 @@ under the License.
 
 package model
 
-// Config ...
-type Config struct {
-	HubUser               string
-	HubUserPasswordEnvVar string
-	HubPort               int
-	Port                  int
-	LogLevel              string
-	ConcurrentScanLimit   int
+// Update is a marker interface
+type Update interface {
+	UpdateMarker()
 }

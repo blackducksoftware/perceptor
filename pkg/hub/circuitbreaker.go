@@ -129,22 +129,22 @@ func (cb *CircuitBreaker) setNextCheckTime() {
 	cb.NextCheckTime = &nextCheckTime
 }
 
-// // ListAllCodeLocations ...
-// func (cb *CircuitBreaker) ListAllCodeLocations() (*hubapi.CodeLocationList, error) {
-// 	if !cb.isAbleToIssueRequest() {
-// 		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
-// 	}
-// 	start := time.Now()
-// 	val, err := cb.Client.ListAllCodeLocations(nil)
-// 	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
-// 	recordHubResponse("allCodeLocations", err == nil)
-// 	if err == nil {
-// 		cb.success()
-// 	} else {
-// 		cb.failure()
-// 	}
-// 	return val, err
-// }
+// ListAllCodeLocations ...
+func (cb *CircuitBreaker) ListAllCodeLocations() (*hubapi.CodeLocationList, error) {
+	if !cb.isAbleToIssueRequest() {
+		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
+	}
+	start := time.Now()
+	val, err := cb.Client.ListAllCodeLocations(nil)
+	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
+	recordHubResponse("allCodeLocations", err == nil)
+	if err == nil {
+		cb.success()
+	} else {
+		cb.failure()
+	}
+	return val, err
+}
 
 // ListCodeLocations ...
 func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
@@ -154,8 +154,8 @@ func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.Co
 	queryString := fmt.Sprintf("name:%s", codeLocationName)
 	start := time.Now()
 	val, err := cb.Client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
-	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
-	recordHubResponse("allCodeLocations", err == nil)
+	recordHubResponseTime("allCodeLocationsFiltered", time.Now().Sub(start))
+	recordHubResponse("allCodeLocationsFiltered", err == nil)
 	if err == nil {
 		cb.success()
 	} else {

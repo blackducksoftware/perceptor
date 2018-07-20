@@ -27,10 +27,11 @@ import (
 
 // SetIsHubEnabled .....
 type SetIsHubEnabled struct {
+	HubURL    string
 	IsEnabled bool
 }
 
 // Apply .....
 func (s *SetIsHubEnabled) Apply(model *m.Model) {
-	model.IsHubEnabled = s.IsEnabled
+	model.SetIsHubEnabled(s.HubURL, s.IsEnabled)
 }
