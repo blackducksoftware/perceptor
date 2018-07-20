@@ -205,7 +205,7 @@ func (model *Model) GetNextImageFromScanQueue() (*HubImageAssignment, error) {
 
 	// 2. find a hub
 
-	var assignedHub *Hub = nil
+	var assignedHub *Hub
 	for _, hub := range model.HubImageAssignments {
 		if hub.InProgressScanCount() < model.Config.ConcurrentScanLimit {
 			assignedHub = hub

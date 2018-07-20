@@ -21,8 +21,10 @@ under the License.
 
 package model
 
+// StartScan ...
 type StartScan struct {
 	Assignment *HubImageAssignment
 }
 
+// UpdateMarker ...
 func (s *StartScan) UpdateMarker() {}

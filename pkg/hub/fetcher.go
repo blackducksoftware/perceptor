@@ -290,18 +290,22 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 	return &scan, nil
 }
 
+// AddScan ...
 func (hf *Fetcher) AddScan(scanNameSearchString string) {
 	hf.inProgressScans[scanNameSearchString] = true
 }
 
+// ScansInProgress ...
 func (hf *Fetcher) ScansInProgress() []string {
 	panic("unimplemented!  maybe remove this")
 }
 
+// ScanDidFinish ...
 func (hf *Fetcher) ScanDidFinish() <-chan *ScanResults {
 	return hf.finishScan
 }
 
+// GetAllCodeLocations ...
 func (hf *Fetcher) GetAllCodeLocations() ([]string, error) {
 	clList, err := hf.circuitBreaker.ListAllCodeLocations()
 	if err != nil {

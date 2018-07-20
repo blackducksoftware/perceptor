@@ -65,6 +65,7 @@ func (mr *MockResponder) GetModel() Model {
 	return Model{}
 }
 
+// SetHubs ...
 func (mr *MockResponder) SetHubs(hubs Hubs) {
 	// TODO
 }

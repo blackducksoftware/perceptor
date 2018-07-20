@@ -21,6 +21,7 @@ under the License.
 
 package model
 
+// HubImageAssignment ...
 type HubImageAssignment struct {
 	Image  *Image
 	HubURL string

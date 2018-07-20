@@ -164,7 +164,7 @@ func (hr *HTTPResponder) GetNextImage() (*api.NextImage, error) {
 	recordGetNextImage()
 	get := a.NewGetNextImage()
 	hr.PostNextImageChannel <- get
-	var assignment *model.HubImageAssignment = nil
+	var assignment *model.HubImageAssignment
 	select {
 	case a := <-get.Done:
 		assignment = a
@@ -207,6 +207,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 
 // hubs
 
+// SetHubs ...
 func (hr *HTTPResponder) SetHubs(hubs api.Hubs) {
 	log.Infof("set hubs -- %+v", hubs)
 	hr.SetHubsChannel <- &a.SetHubs{HubURLs: hubs.HubURLs}

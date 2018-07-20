@@ -21,8 +21,10 @@ under the License.
 
 package model
 
+// DeleteHub ...
 type DeleteHub struct {
 	HubURL string
 }
 
+// UpdateMarker ...
 func (dh *DeleteHub) UpdateMarker() {}

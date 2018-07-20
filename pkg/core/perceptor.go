@@ -177,8 +177,8 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 					reloginPause := model.DefaultTimings.HubReloginPause
 					hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, u.HubURL, config.HubPort, hubClientTimeout, model.DefaultTimings.CheckHubForCompletedScansPause, stop, reloginPause)
 					if err != nil {
-						panic("TODO handle this intelligently")
 						log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
+						panic("TODO handle this intelligently")
 					}
 					hubFetchers[u.HubURL] = hubClient
 				} else {

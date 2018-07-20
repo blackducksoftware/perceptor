@@ -21,8 +21,10 @@ under the License.
 
 package model
 
+// CreateHub ...
 type CreateHub struct {
 	HubURL string
 }
 
+// UpdateMarker ...
 func (ch *CreateHub) UpdateMarker() {}
