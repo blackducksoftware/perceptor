@@ -21,27 +21,8 @@ under the License.
 
 package hub
 
-import "time"
-
-// FetcherInterface .....
-type FetcherInterface interface {
-	// startup
-	HubVersion() string
-	GetAllCodeLocations() ([]string, error)
-	// core functionality
-	IsEnabled() <-chan bool
-	// scans
-	AddScan(scanNameSearchString string)
-	ScansInProgress() []string
-	ScanDidFinish() <-chan *HubImageScan
-	// scan refresh TODO
-	// RefreshScan(scanNameSearchString string)
-	// RefreshScansInProgress() []string
-	// ScanRefreshDidFinish() <-chan *ScanResults
-	// knobs
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	// state querying
-	Model() *FetcherModel
-	HubURL() string
+// HubImageScan .....
+type HubImageScan struct {
+	ScanName string
+	Scan     *ScanResults
 }

@@ -21,17 +21,17 @@ under the License.
 
 package actions
 
-// TODO have this work for any hub
-// import (
-// 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-// )
-//
-// // SetIsHubEnabled .....
-// type SetIsHubEnabled struct {
-// 	IsEnabled bool
-// }
-//
-// // Apply .....
-// func (s *SetIsHubEnabled) Apply(model *m.Model) {
-// 	model.IsHubEnabled = s.IsEnabled
-// }
+import (
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
+
+// SetIsHubEnabled .....
+type SetIsHubEnabled struct {
+	HubURL    string
+	IsEnabled bool
+}
+
+// Apply .....
+func (s *SetIsHubEnabled) Apply(model *m.Model) {
+	model.SetIsHubEnabled(s.HubURL, s.IsEnabled)
+}

@@ -76,7 +76,7 @@ func (hub *MockHub) ScansInProgress() []string {
 }
 
 // ScanDidFinish ...
-func (hub *MockHub) ScanDidFinish() <-chan *ScanResults {
+func (hub *MockHub) ScanDidFinish() <-chan *HubImageScan {
 	return nil
 }
 
@@ -113,4 +113,9 @@ func (hub *MockHub) ResetCircuitBreaker() {
 // IsEnabled ...
 func (hub *MockHub) IsEnabled() <-chan bool {
 	return make(<-chan bool)
+}
+
+// HubURL ...
+func (hub *MockHub) HubURL() string {
+	return "???"
 }

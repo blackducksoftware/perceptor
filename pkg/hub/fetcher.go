@@ -44,7 +44,7 @@ type Fetcher struct {
 	password        string
 	baseURL         string
 	inProgressScans map[string]bool
-	finishScan      chan *ScanResults
+	finishScan      chan *HubImageScan
 	hubScanPoller   *util.Scheduler
 	reloginPause    time.Duration
 	stop            <-chan struct{}
@@ -83,7 +83,7 @@ func NewFetcher(username string, password string, host string, port int, timeout
 		password:        password,
 		baseURL:         baseURL,
 		inProgressScans: map[string]bool{},
-		finishScan:      make(chan *ScanResults),
+		finishScan:      make(chan *HubImageScan),
 		reloginPause:    reloginPause,
 		stop:            stop}
 	hf.hubScanPoller = util.NewScheduler(checkHubPause, stop, func() {
@@ -150,13 +150,13 @@ func (hf *Fetcher) HubVersion() string {
 }
 
 func (hf *Fetcher) fetchScans() {
-	for scanNameSearchString := range hf.inProgressScans {
-		scanResults, err := hf.fetchScan(scanNameSearchString)
+	for scanName := range hf.inProgressScans {
+		scanResults, err := hf.fetchScan(scanName)
 		if (err == nil) && (scanResults.ScanSummaryStatus() != ScanSummaryStatusInProgress) {
-			hf.finishScan <- scanResults
-			delete(hf.inProgressScans, scanNameSearchString)
+			hf.finishScan <- &HubImageScan{ScanName: scanName, Scan: scanResults}
+			delete(hf.inProgressScans, scanName)
 		} else if err != nil {
-			log.Errorf("unable to fetch scan for %s: %s", scanNameSearchString, err.Error())
+			log.Errorf("unable to fetch scan for %s: %s", scanName, err.Error())
 		}
 	}
 }
@@ -172,8 +172,8 @@ func (hf *Fetcher) fetchScans() {
 //  - multiple code locations with a matching name
 //  - multiple scan summaries for a code location
 //  - zero scan summaries for a code location
-func (hf *Fetcher) fetchScan(scanNameSearchString string) (*ScanResults, error) {
-	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(scanNameSearchString)
+func (hf *Fetcher) fetchScan(scanName string) (*ScanResults, error) {
+	codeLocationList, err := hf.circuitBreaker.ListCodeLocations(scanName)
 
 	if err != nil {
 		log.Errorf("error fetching code location list: %v", err)
@@ -188,14 +188,14 @@ func (hf *Fetcher) fetchScan(scanNameSearchString string) (*ScanResults, error) 
 		recordHubData("codeLocations", true) // good to go
 	default:
 		recordHubData("codeLocations", false)
-		log.Warnf("expected 1 code location matching name search string %s, found %d", scanNameSearchString, len(codeLocations))
+		log.Warnf("expected 1 code location matching name search string %s, found %d", scanName, len(codeLocations))
 	}
 
 	codeLocation := codeLocations[0]
-	return hf.fetchScanResultsUsingCodeLocation(codeLocation, scanNameSearchString)
+	return hf.fetchScanResultsUsingCodeLocation(codeLocation, scanName)
 }
 
-func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLocation, scanNameSearchString string) (*ScanResults, error) {
+func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLocation, scanName string) (*ScanResults, error) {
 	versionLink, err := codeLocation.GetProjectVersionLink()
 	if err != nil {
 		log.Errorf("unable to get project version link: %s", err.Error())
@@ -256,7 +256,7 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 		recordHubData("scan summaries", true) // good to go, continue
 	default:
 		recordHubData("scan summaries", false)
-		log.Warnf("expected to find one scan summary for code location %s, found %d", scanNameSearchString, len(scanSummariesList.Items))
+		log.Warnf("expected to find one scan summary for code location %s, found %d", scanName, len(scanSummariesList.Items))
 	}
 
 	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
@@ -275,7 +275,7 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 	}
 
 	scan := ScanResults{
-		ScanName:              scanNameSearchString,
+		ScanName:              scanName,
 		RiskProfile:           *mappedRiskProfile,
 		PolicyStatus:          *mappedPolicyStatus,
 		ComponentsHref:        componentsLink.Href,
@@ -291,8 +291,8 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 }
 
 // AddScan ...
-func (hf *Fetcher) AddScan(scanNameSearchString string) {
-	hf.inProgressScans[scanNameSearchString] = true
+func (hf *Fetcher) AddScan(scanName string) {
+	hf.inProgressScans[scanName] = true
 }
 
 // ScansInProgress ...
@@ -301,7 +301,7 @@ func (hf *Fetcher) ScansInProgress() []string {
 }
 
 // ScanDidFinish ...
-func (hf *Fetcher) ScanDidFinish() <-chan *ScanResults {
+func (hf *Fetcher) ScanDidFinish() <-chan *HubImageScan {
 	return hf.finishScan
 }
 
@@ -316,4 +316,9 @@ func (hf *Fetcher) GetAllCodeLocations() ([]string, error) {
 		codeLocationNames[i] = cl.Name
 	}
 	return codeLocationNames, nil
+}
+
+// HubURL ...
+func (hf *Fetcher) HubURL() string {
+	return hf.baseURL
 }

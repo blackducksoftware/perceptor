@@ -180,6 +180,21 @@ func newPerceptorHelper(config *Config, hubPassword string) *Perceptor {
 						log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 						panic("TODO handle this intelligently")
 					}
+					// TODO need to check what's in the hub as soon as we start using it, to decide
+					// what's already in it
+					// This API call may take longer, and so may require an extra-long timeout
+					go func() {
+						isEnabledCh := hubClient.IsEnabled()
+						scanDidFinishCh := hubClient.ScanDidFinish()
+						for {
+							select {
+							case isEnabled := <-isEnabledCh:
+								actions <- &a.SetIsHubEnabled{HubURL: u.HubURL, IsEnabled: isEnabled}
+							case scanResults := <-scanDidFinishCh:
+								actions <- &a.HubScanDidFinish{HubURL: u.HubURL, Scan: scanResults}
+							}
+						}
+					}()
 					hubFetchers[u.HubURL] = hubClient
 				} else {
 					panic("TODO handle intelligently")

@@ -36,7 +36,7 @@ func TestModel(t *testing.T) {
 	RunTestAddImageAction()
 	RunTestAddPodAction()
 	RunTestAllImages()
-	RunFetchScanCompletionTests()
+	RunHubScanDidFinishTests()
 	// RunFetchScanRefresh()
 	RunTestGetFullScanResults()
 	RunSpecs(t, "model suite")
