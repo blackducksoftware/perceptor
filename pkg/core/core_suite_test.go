@@ -30,6 +30,5 @@ import (
 
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunTestPodOverallStatus()
 	RunSpecs(t, "core suite")
 }

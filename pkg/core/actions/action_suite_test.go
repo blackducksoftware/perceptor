@@ -37,5 +37,6 @@ func TestModel(t *testing.T) {
 	RunFetchScanCompletionTests()
 	RunFetchScanRefresh()
 	RunTestGetFullScanResults()
+	RunTestPodOverallStatus()
 	RunSpecs(t, "model suite")
 }

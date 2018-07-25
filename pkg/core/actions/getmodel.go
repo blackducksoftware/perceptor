@@ -130,7 +130,7 @@ func ScanResults(model *m.Model) api.ScanResults {
 	// pods
 	pods := []api.ScannedPod{}
 	for podName, pod := range model.Pods {
-		podScan, err := model.ScanResultsForPod(podName)
+		podScan, err := scanResultsForPod(model, podName)
 		if err != nil {
 			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
 			continue
