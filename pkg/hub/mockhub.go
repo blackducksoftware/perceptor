@@ -70,8 +70,8 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
 }
 
-// FetchScanFromImage .....
-func (hub *MockHub) FetchScanFromImage(image ImageInterface) (*ImageScan, error) {
+// FetchScan .....
+func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error) {
 	return nil, nil
 }
 

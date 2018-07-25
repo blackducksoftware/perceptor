@@ -41,8 +41,12 @@ type PriorityQueue struct {
 
 // NewPriorityQueue .....
 func NewPriorityQueue() *PriorityQueue {
+	return newPriorityQueueWithInitialCapacity(10)
+}
+
+func newPriorityQueueWithInitialCapacity(capacity int) *PriorityQueue {
 	return &PriorityQueue{
-		items:      make([]*node, 10),
+		items:      make([]*node, capacity),
 		keyToIndex: map[string]int{},
 		size:       0,
 	}
@@ -115,11 +119,11 @@ func (pq *PriorityQueue) Pop() (interface{}, error) {
 	item := pq.items[0]
 	// clean up
 	delete(pq.keyToIndex, item.key)
-	pq.items[pq.size] = nil
 	pq.size--
+	last := pq.items[pq.size]
+	pq.items[pq.size] = nil
 	// restore heap property
 	if pq.size > 0 {
-		last := pq.items[pq.size]
 		pq.items[0] = last
 		pq.keyToIndex[last.key] = 0
 		pq.siftDown(0)

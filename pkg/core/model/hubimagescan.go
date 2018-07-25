@@ -28,6 +28,6 @@ import (
 // HubImageScan .....
 type HubImageScan struct {
 	Sha  DockerImageSha
-	Scan *hub.ImageScan
+	Scan *hub.ScanResults
 	Err  error
 }

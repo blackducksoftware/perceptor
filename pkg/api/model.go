@@ -87,7 +87,7 @@ type ModelTimings struct {
 type ModelImageInfo struct {
 	ScanStatus             string
 	TimeOfLastStatusChange string
-	ScanResults            *hub.ImageScan
+	ScanResults            *hub.ScanResults
 	ImageSha               string
 	ImageNames             []string
 }

@@ -22,8 +22,6 @@ under the License.
 package actions
 
 import (
-	"sync"
-
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,11 +32,12 @@ func RunGetNextImage() {
 	Describe("GetNextImage", func() {
 		It("no image available", func() {
 			// actual
-			var nextImage *m.Image
 			actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-			(&GetNextImage{func(image *m.Image) {
-				nextImage = image
-			}}).Apply(actual)
+			get := NewGetNextImage()
+			go func() {
+				get.Apply(actual)
+			}()
+			nextImage := <-get.Done
 			// expected: front image removed from scan queue, status and time of image changed
 			expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
 
@@ -52,14 +51,9 @@ func RunGetNextImage() {
 			model.AddImage(image1, 0)
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 
-			var nextImage *m.Image
-			var wg sync.WaitGroup
-			wg.Add(1)
-			(&GetNextImage{func(image *m.Image) {
-				nextImage = image
-				wg.Done()
-			}}).Apply(model)
-			wg.Wait()
+			get := NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage := <-get.Done
 
 			Expect(nextImage).To(Equal(image1))
 			Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
@@ -73,24 +67,16 @@ func RunGetNextImage() {
 			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
 			model.IsHubEnabled = false
 
-			var nextImage *m.Image
-			var wg sync.WaitGroup
-			wg.Add(1)
-			(&GetNextImage{func(image *m.Image) {
-				nextImage = image
-				wg.Done()
-			}}).Apply(model)
-			wg.Wait()
+			get := NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage := <-get.Done
 
 			Expect(nextImage).To(BeNil())
 
 			model.IsHubEnabled = true
-			wg.Add(1)
-			(&GetNextImage{func(image *m.Image) {
-				nextImage = image
-				wg.Done()
-			}}).Apply(model)
-			wg.Wait()
+			get = NewGetNextImage()
+			go func() { get.Apply(model) }()
+			nextImage = <-get.Done
 			Expect(nextImage).ToNot(BeNil())
 		})
 	})

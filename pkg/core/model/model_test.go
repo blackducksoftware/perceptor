@@ -31,6 +31,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	sha1   = DockerImageSha("sha1")
+	image1 = *NewImage("image1", sha1)
+	sha2   = DockerImageSha("sha2")
+	image2 = *NewImage("image2", sha2)
+	sha3   = DockerImageSha("sha3")
+	image3 = *NewImage("image3", sha3)
+	cont1  = *NewContainer(image1, "cont1")
+	cont2  = *NewContainer(image2, "cont2")
+	cont3  = *NewContainer(image3, "cont3")
+	pod1   = *NewPod("pod1", "pod1uid", "ns1", []Container{cont1, cont2})
+	pod2   = *NewPod("pod2", "pod2uid", "ns1", []Container{cont1})
+	pod3   = *NewPod("pod3", "pod3uid", "ns3", []Container{cont3})
+	// this is ridiculous, but let's create a pod with 0 containers
+	pod4 = *NewPod("pod4", "pod4uid", "ns4", []Container{})
+)
+
 func sortedValues(pq *ds.PriorityQueue) []interface{} {
 	vals := pq.Values()
 	sort.Slice(vals, func(i int, j int) bool {

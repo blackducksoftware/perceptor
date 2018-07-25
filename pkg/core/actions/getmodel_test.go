@@ -19,11 +19,28 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package actions
 
-// PodScan .....
-type PodScan struct {
-	OverallStatus    string
-	PolicyViolations int
-	Vulnerabilities  int
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func RunTestGetFullScanResults() {
+	Describe("test get full scan results", func() {
+		model := createNewModel1()
+		scanResults := ScanResults(model)
+		It("should produce the right number of pods", func() {
+			Expect(len(scanResults.Pods)).To(Equal(1))
+		})
+		It("should produce pods with the right data", func() {
+			Expect(scanResults.Pods[0].Name).To(Equal("pod2"))
+		})
+		It("should produce the right number of images", func() {
+			Expect(len(scanResults.Images)).To(Equal(1))
+		})
+		It("should produce the right number of policy violations", func() {
+			Expect(scanResults.Images[0].PolicyViolations).To(Equal(3))
+		})
+	})
 }

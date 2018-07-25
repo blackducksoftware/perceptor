@@ -21,9 +21,9 @@ under the License.
 
 package hub
 
-// ImageScan models the results that we expect to get from the hub after
+// ScanResults models the results that we expect to get from the hub after
 // scanning a docker image.
-type ImageScan struct {
+type ScanResults struct {
 	RiskProfile                      RiskProfile
 	PolicyStatus                     PolicyStatus
 	ScanSummaries                    []ScanSummary
@@ -43,7 +43,7 @@ type ImageScan struct {
 // TODO: weird corner cases:
 //  - no scan summaries ... ? should that be inprogress, or error?
 //    or should we just assume that we'll always have at least 1?
-func (scan *ImageScan) ScanSummaryStatus() ScanSummaryStatus {
+func (scan *ScanResults) ScanSummaryStatus() ScanSummaryStatus {
 	inProgress := false
 	for _, scanSummary := range scan.ScanSummaries {
 		switch scanSummary.Status {
@@ -62,16 +62,16 @@ func (scan *ImageScan) ScanSummaryStatus() ScanSummaryStatus {
 }
 
 // VulnerabilityCount .....
-func (scan *ImageScan) VulnerabilityCount() int {
+func (scan *ScanResults) VulnerabilityCount() int {
 	return scan.RiskProfile.HighRiskVulnerabilityCount()
 }
 
 // PolicyViolationCount .....
-func (scan *ImageScan) PolicyViolationCount() int {
+func (scan *ScanResults) PolicyViolationCount() int {
 	return scan.PolicyStatus.ViolationCount()
 }
 
 // OverallStatus .....
-func (scan *ImageScan) OverallStatus() PolicyStatusType {
+func (scan *ScanResults) OverallStatus() PolicyStatusType {
 	return scan.PolicyStatus.OverallStatus
 }
