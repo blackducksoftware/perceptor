@@ -166,7 +166,7 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	imageString := "null"
 	var imageSpec *api.ImageSpec
 	if image != nil {
-		imageString = image.HumanReadableName()
+		imageString = image.PullSpec()
 		imageSpec = api.NewImageSpec(
 			image.Name,
 			image.PullSpec(),

@@ -159,7 +159,7 @@ func ScanResults(model *m.Model) api.ScanResults {
 		}
 		image := imageInfo.Image()
 		apiImage := api.ScannedImage{
-			Name:             image.HumanReadableName(),
+			Name:             image.Name,
 			Sha:              string(image.Sha),
 			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),

@@ -148,9 +148,9 @@ func (model *Model) createImage(image Image) bool {
 	if !hasImage {
 		newInfo := NewImageInfo(image.Sha, image.Name)
 		model.Images[image.Sha] = newInfo
-		log.Debugf("added image %s to model", image.HumanReadableName())
+		log.Debugf("added image %s to model", image.PullSpec())
 	} else {
-		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
+		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
 	}
 	return !hasImage
 }
