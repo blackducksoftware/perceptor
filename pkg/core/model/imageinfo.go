@@ -71,7 +71,7 @@ func (imageInfo *ImageInfo) Image() Image {
 	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha)
 }
 
-// AddImageName .....
+// AddRepoTag .....
 func (imageInfo *ImageInfo) AddRepoTag(repoTag *RepoTag) {
 	if !arrayContains(imageInfo.RepoTags, repoTag) {
 		imageInfo.RepoTags = append(imageInfo.RepoTags, repoTag)
