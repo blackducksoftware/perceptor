@@ -22,14 +22,52 @@ under the License.
 package api
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// TestMockResponderImplementsInterface .....
-func TestMockResponderImplementsInterface(t *testing.T) {
-	consumeResponder(NewMockResponder())
+func RunMockResponderTests() {
+	Describe("mock responder", func() {
+		It("implements responder interface", func() {
+			consumeResponder(NewMockResponder())
+		})
+		It("data", func() {
+			mr := NewMockResponder()
+			repo1 := "repo1"
+			tag1 := "tag1"
+			sha1 := "sha1"
+			repo2 := "repo2"
+			tag2 := "tag2"
+			sha2 := "sha2"
+			err := mr.AddImage(Image{Repository: repo1, Tag: tag1, Sha: sha1})
+			Expect(err).To(BeNil())
+			err = mr.AddPod(Pod{
+				Containers: []Container{
+					{
+						Image: Image{Repository: repo1, Sha: sha1, Tag: tag1},
+						Name:  "cont1",
+					},
+					{
+						Image: Image{repo2, tag2, sha2},
+						Name:  "cont2",
+					},
+				},
+				Name:      "pod1",
+				Namespace: "ns1",
+				UID:       "uid1",
+			})
+			Expect(err).To(BeNil())
+			scanResults := mr.GetScanResults()
+			Expect(scanResults.Images[0].Repository).To(Equal(repo1))
+			Expect(scanResults.Images[0].Tag).To(Equal(tag1))
+			Expect(scanResults.Images[0].Sha).To(Equal(sha1))
+			Expect(scanResults.Images[1].Repository).To(Equal(repo2))
+			Expect(scanResults.Images[1].Tag).To(Equal(tag2))
+			Expect(scanResults.Images[1].Sha).To(Equal(sha2))
+		})
+	})
 }
 
 func consumeResponder(r Responder) {

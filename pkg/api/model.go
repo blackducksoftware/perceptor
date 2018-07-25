@@ -89,7 +89,13 @@ type ModelImageInfo struct {
 	TimeOfLastStatusChange string
 	ScanResults            *hub.ScanResults
 	ImageSha               string
-	ImageNames             []string
+	RepoTags               []*ModelRepoTag
+}
+
+// ModelRepoTag ...
+type ModelRepoTag struct {
+	Repository string
+	Tag        string
 }
 
 // ModelCircuitBreaker ...

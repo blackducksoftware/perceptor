@@ -122,7 +122,7 @@ func (rtm *RoutineTaskManager) startHubInitialScanChecking() *Scheduler {
 		wg.Wait()
 
 		if image != nil {
-			scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
+			scan, err := rtm.hubClient.FetchScan(image.HubScanName())
 			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 		}
 	}
@@ -138,7 +138,7 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *Scheduler {
 				return
 			}
 			for _, image := range *images {
-				scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
+				scan, err := rtm.hubClient.FetchScan(image.HubScanName())
 				rtm.actions <- &actions.FetchScanCompletion{Scan: &model.HubImageScan{Sha: image.Sha, Scan: scan, Err: err}}
 				time.Sleep(rtm.GetTimings().CheckHubThrottle)
 			}
@@ -169,7 +169,7 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *Sched
 		rtm.actions <- &actions.CheckScanRefresh{Continuation: func(image *model.Image) {
 			if image != nil {
 				log.Debugf("refreshing image %s", image.PullSpec())
-				scan, err := rtm.hubClient.FetchScan(image.HubScanNameSearchString())
+				scan, err := rtm.hubClient.FetchScan(image.HubScanName())
 				rtm.actions <- &actions.FetchScanRefresh{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 			}
 			wg.Done()
