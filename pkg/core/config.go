@@ -34,6 +34,8 @@ type Config struct {
 	HubUserPasswordEnvVar        string
 	HubClientTimeoutMilliseconds int
 	HubPort                      int
+	PruneOrphanedImages          bool
+	ImagePrunePauseMinutes       int
 	ConcurrentScanLimit          int
 	UseMockMode                  bool
 	Port                         int

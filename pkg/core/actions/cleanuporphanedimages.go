@@ -19,18 +19,21 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package actions
 
-import "time"
+import (
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+)
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() string
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	IsEnabled() <-chan bool
+// CleanUpOrphanedImages .....
+type CleanUpOrphanedImages struct {
+	CompletedImages chan []*m.Image
+}
+
+// Apply .....
+func (c *CleanUpOrphanedImages) Apply(model *m.Model) {
+	// 1. immediately delete any orphaned images in the scan queue or status unknown
+	// TODO
+	// 2. get a list of completed images for further processing
+	c.CompletedImages <- []*m.Image{} // TODO
 }

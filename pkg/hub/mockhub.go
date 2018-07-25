@@ -70,6 +70,11 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
 }
 
+// DeleteScan ...
+func (hub *MockHub) DeleteScan(scanName string) error {
+	return nil
+}
+
 // FetchScan .....
 func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error) {
 	return nil, nil
