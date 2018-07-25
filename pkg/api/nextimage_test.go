@@ -23,21 +23,19 @@ package api
 
 import (
 	"encoding/json"
-	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestImageJSON .....
-func TestImageJSON(t *testing.T) {
-	jsonString := `{"ImageSpec":{"PullSpec": "", "Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5", "HubProjectName":"", "HubProjectVersionName":"", "HubScanName":""}}`
-	var nextImage NextImage
-	err := json.Unmarshal([]byte(jsonString), &nextImage)
-	if err != nil {
-		t.Errorf("unable to parse %s as JSON: %v", jsonString, err)
-		t.Fail()
-		return
-	}
-	expectedName := "04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5"
-	if nextImage.ImageSpec.Sha != expectedName {
-		t.Errorf("expected name of %s, got %s", expectedName, nextImage.ImageSpec.Sha)
-	}
+func RunNextImageTests() {
+	Describe("NameImage", func() {
+		It("unmarshal JSON", func() {
+			jsonString := `{"ImageSpec":{"PullSpec": "", "Sha":"04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5", "HubProjectName":"", "HubProjectVersionName":"", "HubScanName":""}}`
+			var nextImage NextImage
+			err := json.Unmarshal([]byte(jsonString), &nextImage)
+			Expect(err).To(BeNil())
+			Expect(nextImage.ImageSpec.Sha).To(Equal("04bb619150cd99cfb21e76429c7a5c2f4545775b07456cb6b9c866c8aff9f9e5"))
+		})
+	})
 }

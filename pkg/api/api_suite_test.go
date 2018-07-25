@@ -31,5 +31,7 @@ import (
 func TestApi(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunMockResponderTests()
+	RunModelTests()
+	RunNextImageTests()
 	RunSpecs(t, "api suite")
 }
