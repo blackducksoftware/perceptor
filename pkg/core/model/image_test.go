@@ -43,7 +43,14 @@ func RunImageTests() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			image := NewImage("abc", "latest", DockerImageSha(sha))
 			Expect(image.HubProjectName()).To(Equal("abc"))
-			Expect(image.HubProjectVersionName()).To(Equal(sha[:20])) //"abcdefghijklmnopqrst"))
+			Expect(image.HubProjectVersionName()).To(Equal("latest-" + sha[:20]))
+			Expect(image.HubScanName()).To(Equal(sha))
+		})
+		It("missing tag", func() {
+			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			image := NewImage("abc", "", DockerImageSha(sha))
+			Expect(image.HubProjectName()).To(Equal("abc"))
+			Expect(image.HubProjectVersionName()).To(Equal(sha[:20]))
 			Expect(image.HubScanName()).To(Equal(sha))
 		})
 	})
