@@ -34,7 +34,7 @@ func APIImageToCoreImage(apiImage api.Image) (*model.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return model.NewImage(apiImage.Name, sha), nil
+	return model.NewImage(apiImage.Repository, apiImage.Tag, sha), nil
 }
 
 // APIContainerToCoreContainer .....

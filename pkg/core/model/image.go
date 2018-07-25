@@ -27,14 +27,14 @@ import (
 
 // Image .....
 type Image struct {
-	// Name combines Host, User, and Project
-	Name string
-	Sha  DockerImageSha
+	Repository string
+	Tag        string
+	Sha        DockerImageSha
 }
 
 // NewImage .....
-func NewImage(name string, sha DockerImageSha) *Image {
-	return &Image{Name: name, Sha: sha}
+func NewImage(repository string, tag string, sha DockerImageSha) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha}
 }
 
 func (image Image) shaPrefix() string {
@@ -45,7 +45,7 @@ func (image Image) shaPrefix() string {
 
 // HubProjectName .....
 func (image Image) HubProjectName() string {
-	return image.Name
+	return image.Repository
 }
 
 // HubProjectVersionName .....
@@ -59,7 +59,7 @@ func (image Image) HubScanName() string {
 	return string(image.Sha)
 }
 
-// PullSpec combines Name with the image sha and should be pullable by Docker
+// PullSpec combines repository with sha and should be pullable by Docker
 func (image *Image) PullSpec() string {
-	return fmt.Sprintf("%s@sha256:%s", image.Name, image.Sha)
+	return fmt.Sprintf("%s@sha256:%s", image.Repository, image.Sha)
 }

@@ -168,8 +168,8 @@ func (hr *HTTPResponder) GetNextImage() api.NextImage {
 	if image != nil {
 		imageString = image.PullSpec()
 		imageSpec = api.NewImageSpec(
-			image.Name,
-			image.PullSpec(),
+			image.Repository,
+			image.Tag,
 			string(image.Sha),
 			image.HubProjectName(),
 			image.HubProjectVersionName(),
@@ -189,7 +189,7 @@ func (hr *HTTPResponder) PostFinishScan(job api.FinishedScanClientJob) error {
 	} else {
 		err = fmt.Errorf(job.Err)
 	}
-	image := model.NewImage(job.ImageSpec.ImageName, model.DockerImageSha(job.ImageSpec.Sha))
+	image := model.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, model.DockerImageSha(job.ImageSpec.Sha))
 	hr.PostFinishScanJobChannel <- &a.FinishScanClient{Image: image, Err: err}
 	log.Debugf("handled finished scan job -- %v", job)
 	return nil

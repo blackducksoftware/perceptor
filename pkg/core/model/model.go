@@ -146,7 +146,7 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 func (model *Model) createImage(image Image) bool {
 	_, hasImage := model.Images[image.Sha]
 	if !hasImage {
-		newInfo := NewImageInfo(image.Sha, image.Name)
+		newInfo := NewImageInfo(image.Sha, &RepoTag{Repository: image.Repository, Tag: image.Tag})
 		model.Images[image.Sha] = newInfo
 		log.Debugf("added image %s to model", image.PullSpec())
 	} else {
