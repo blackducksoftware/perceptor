@@ -92,7 +92,11 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 			case <-stop:
 				return
 			case images := <-routineTaskManager.OrphanedImages:
-				hubClient.DeleteScans(images)
+				scanNames := make([]string, len(images))
+				for i, image := range images {
+					scanNames[i] = string(image.Sha)
+				}
+				hubClient.DeleteScans(scanNames)
 			}
 		}
 	}()

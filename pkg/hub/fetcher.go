@@ -39,6 +39,7 @@ const (
 type Fetcher struct {
 	client         *hubclient.Client
 	deleteClient   *hubclient.Client
+	scansToDelete  map[string]bool
 	circuitBreaker *CircuitBreaker
 	hubVersion     string
 	username       string
@@ -116,6 +117,7 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	hf := Fetcher{
 		client:         client,
 		deleteClient:   deleteClient,
+		scansToDelete:  map[string]bool{},
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
 		username:       username,
 		password:       password,
@@ -128,6 +130,8 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	if err != nil {
 		return nil, err
 	}
+	// TODO replace with scheduler
+	hf.startDeletingScans()
 	return &hf, nil
 }
 
@@ -139,6 +143,32 @@ func (hf *Fetcher) SetTimeout(timeout time.Duration) {
 // HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
+}
+
+func (hf *Fetcher) DeleteScans(scanNames []string) {
+	// TODO protect from concurrent read/write
+	for _, scanName := range scanNames {
+		hf.scansToDelete[scanName] = true
+	}
+}
+
+func (hf *Fetcher) startDeletingScans() {
+	go func() {
+		for {
+			time.Sleep(1 * time.Minute)
+			var scanName *string
+			for key := range hf.scansToDelete {
+				scanName = &key
+				break
+			}
+			if scanName != nil {
+				err := hf.DeleteScan(*scanName)
+				if err != nil {
+					log.Errorf("unable to delete scan: %s", err.Error())
+				}
+			}
+		}
+	}()
 }
 
 // DeleteScan deletes the code location and project version (but NOT the project)
