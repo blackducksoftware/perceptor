@@ -50,8 +50,11 @@ func (image Image) HubProjectName() string {
 
 // HubProjectVersionName .....
 func (image Image) HubProjectVersionName() string {
-	// TODO add tag if available
-	return image.shaPrefix()
+	tag := ""
+	if image.Tag != "" {
+		tag = image.Tag + "-"
+	}
+	return fmt.Sprintf("%s%s", tag, image.shaPrefix())
 }
 
 // HubScanName .....
