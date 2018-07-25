@@ -33,12 +33,13 @@ import (
 
 // RoutineTaskManager manages routine tasks
 type RoutineTaskManager struct {
-	actions      chan actions.Action
-	stop         <-chan struct{}
-	readTimings  chan func(model.Timings)
-	writeTimings chan model.Timings
-	hubClient    hub.FetcherInterface
-	Timings      *model.Timings
+	actions        chan actions.Action
+	stop           <-chan struct{}
+	readTimings    chan func(model.Timings)
+	writeTimings   chan model.Timings
+	hubClient      hub.FetcherInterface
+	Timings        *model.Timings
+	OrphanedImages chan []*model.Image
 	// routine tasks
 	InitialHubCheckScheduler         *Scheduler
 	HubScanCompletionScheduler       *Scheduler
@@ -47,17 +48,19 @@ type RoutineTaskManager struct {
 	ModelMetricsScheduler            *Scheduler
 	StalledScanClientScheduler       *Scheduler
 	ReloginToHubScheduler            *Scheduler
+	CleanupOrphanedImagesScheduler   *Scheduler
 }
 
 // NewRoutineTaskManager ...
 func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface, timings *model.Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
-		actions:      make(chan actions.Action),
-		stop:         stop,
-		readTimings:  make(chan func(model.Timings)),
-		writeTimings: make(chan model.Timings),
-		hubClient:    hubClient,
-		Timings:      timings,
+		actions:        make(chan actions.Action),
+		stop:           stop,
+		readTimings:    make(chan func(model.Timings)),
+		writeTimings:   make(chan model.Timings),
+		hubClient:      hubClient,
+		Timings:        timings,
+		OrphanedImages: make(chan []*model.Image),
 	}
 	rtm.InitialHubCheckScheduler = rtm.startHubInitialScanChecking()
 	rtm.HubScanCompletionScheduler = rtm.startPollingHubForScanCompletion()
@@ -66,6 +69,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	rtm.HubScanRefreshScheduler = rtm.startCheckingForUpdatesForCompletedScans()
 	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
 	rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
+	rtm.CleanupOrphanedImagesScheduler = rtm.startCleaningUpOrphanedImages()
 	go func() {
 		for {
 			select {
@@ -192,5 +196,15 @@ func (rtm *RoutineTaskManager) startReloggingInToHub() *Scheduler {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
 		}
 		log.Infof("successfully re-logged in to hub")
+	})
+}
+
+func (rtm *RoutineTaskManager) startCleaningUpOrphanedImages() *Scheduler {
+	return NewScheduler(time.Hour, rtm.stop, func() {
+		log.Debug("cleaning up orphaned images")
+		action := &actions.CleanUpOrphanedImages{CompletedImages: make(chan []*model.Image)}
+		rtm.actions <- action
+		images := <-action.CompletedImages
+		rtm.OrphanedImages <- images
 	})
 }

@@ -86,6 +86,16 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 	// 2. routine task manager
 	stop := make(chan struct{})
 	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case images := <-routineTaskManager.OrphanedImages:
+				hubClient.DeleteScans(images)
+			}
+		}
+	}()
 
 	// 3. gather up all actions into a single channel
 	actions := make(chan a.Action, actionChannelSize)
