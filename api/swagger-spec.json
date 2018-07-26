@@ -340,21 +340,21 @@
     "Image": {
       "type": "object",
       "required": [
-        "Name",
+        "Repository",
         "Sha",
-        "DockerImage"
+        "Tag"
       ],
       "properties": {
-        "DockerImage": {
-          "description": "The Docker Image reference of the image",
+        "Repository": {
+          "description": "The Docker Image repository of the image",
           "type": "string"
         },
-        "Name": {
-          "description": "The name of the image",
+        "Tag": {
+          "description": "The Docker tag of the image",
           "type": "string"
         },
         "Sha": {
-          "description": "The SHA of the image",
+          "description": "The Docker sha of the image",
           "type": "string"
         }
       },
@@ -377,20 +377,20 @@
     "ImageSpec": {
       "type": "object",
       "required": [
-        "ImageName",
-        "PullSpec",
+        "Repository",
+        "Tag",
         "Sha",
         "HubProjectName",
         "HubProjectVersionName",
         "HubScanName"
       ],
       "properties": {
-        "ImageName": {
-          "description": "The Docker Image reference of the image",
+        "Repository": {
+          "description": "The Docker Image repository of the image",
           "type": "string"
         },
-        "PullSpec": {
-          "description": "The name of the image",
+        "Tag": {
+          "description": "The Docker tag of the image",
           "type": "string"
         },
         "Sha": {
