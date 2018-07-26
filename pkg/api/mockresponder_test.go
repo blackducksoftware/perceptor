@@ -22,6 +22,8 @@ under the License.
 package api
 
 import (
+	"sort"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -60,6 +62,9 @@ func RunMockResponderTests() {
 			})
 			Expect(err).To(BeNil())
 			scanResults := mr.GetScanResults()
+			sort.Slice(scanResults.Images, func(i int, j int) bool {
+				return scanResults.Images[i].Sha < scanResults.Images[j].Sha
+			})
 			Expect(scanResults.Images[0].Repository).To(Equal(repo1))
 			Expect(scanResults.Images[0].Tag).To(Equal(tag1))
 			Expect(scanResults.Images[0].Sha).To(Equal(sha1))
