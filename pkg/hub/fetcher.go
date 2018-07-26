@@ -32,11 +32,14 @@ import (
 
 const (
 	maxHubExponentialBackoffDuration = 1 * time.Hour
+	hubDeleteTimeout                 = 1 * time.Hour
 )
 
 // Fetcher .....
 type Fetcher struct {
 	client         *hubclient.Client
+	deleteClient   *hubclient.Client
+	scansToDelete  map[string]bool
 	circuitBreaker *CircuitBreaker
 	hubVersion     string
 	username       string
@@ -70,6 +73,13 @@ func (hf *Fetcher) Login() error {
 	err := hf.client.Login(hf.username, hf.password)
 	recordHubResponse("login", err == nil)
 	recordHubResponseTime("login", time.Now().Sub(start))
+	if err != nil {
+		return err
+	}
+	startDelete := time.Now()
+	err = hf.deleteClient.Login(hf.username, hf.password)
+	recordHubResponse("login", err == nil)
+	recordHubResponseTime("login", time.Now().Sub(startDelete))
 	return err
 }
 
@@ -100,8 +110,14 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	if err != nil {
 		return nil, err
 	}
+	deleteClient, err := hubclient.NewWithSession(baseURL, 0, hubDeleteTimeout)
+	if err != nil {
+		return nil, err
+	}
 	hf := Fetcher{
 		client:         client,
+		deleteClient:   deleteClient,
+		scansToDelete:  map[string]bool{},
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
 		username:       username,
 		password:       password,
@@ -114,6 +130,8 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 	if err != nil {
 		return nil, err
 	}
+	// TODO replace with scheduler
+	hf.startDeletingScans()
 	return &hf, nil
 }
 
@@ -125,6 +143,69 @@ func (hf *Fetcher) SetTimeout(timeout time.Duration) {
 // HubVersion .....
 func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
+}
+
+// DeleteScans ...
+func (hf *Fetcher) DeleteScans(scanNames []string) {
+	// TODO protect from concurrent read/write
+	for _, scanName := range scanNames {
+		hf.scansToDelete[scanName] = true
+	}
+}
+
+func (hf *Fetcher) startDeletingScans() {
+	go func() {
+		for {
+			time.Sleep(1 * time.Minute)
+			var scanName *string
+			for key := range hf.scansToDelete {
+				scanName = &key
+				break
+			}
+			if scanName != nil {
+				err := hf.DeleteScan(*scanName)
+				if err != nil {
+					log.Errorf("unable to delete scan: %s", err.Error())
+				} else {
+					delete(hf.scansToDelete, *scanName)
+				}
+			}
+		}
+	}()
+}
+
+// DeleteScan deletes the code location and project version (but NOT the project)
+// associated with the given scan name.
+func (hf *Fetcher) DeleteScan(scanName string) error {
+	if !hf.circuitBreaker.IsEnabled() {
+		return fmt.Errorf("unable to delete scan, circuit breaker is disabled")
+	}
+	queryString := fmt.Sprintf("name:%s", scanName)
+	start := time.Now()
+	clList, err := hf.deleteClient.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
+	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
+	recordHubResponse("allCodeLocations", err == nil)
+	switch len(clList.Items) {
+	case 0:
+		return nil
+	case 1:
+		// continue
+	default:
+		return fmt.Errorf("expected 0 or 1 scans of name %s, found %d", scanName, len(clList.Items))
+	}
+	codeLocation := clList.Items[0]
+	deleteCodeLocationStart := time.Now()
+	err = hf.deleteClient.DeleteCodeLocation(codeLocation.Meta.Href)
+	recordHubResponseTime("deleteCodeLocation", time.Now().Sub(deleteCodeLocationStart))
+	recordHubResponse("deleteCodeLocation", err == nil)
+	if err != nil {
+		return err
+	}
+	deleteVersionStart := time.Now()
+	err = hf.deleteClient.DeleteProjectVersion(codeLocation.MappedProjectVersion)
+	recordHubResponseTime("deleteVersion", time.Now().Sub(deleteVersionStart))
+	recordHubResponse("deleteVersion", err == nil)
+	return err
 }
 
 // func (hf *Fetcher) FetchAllScanNames() ([]string, error) {

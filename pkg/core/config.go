@@ -29,15 +29,16 @@ import (
 
 // Config contains all configuration for Perceptor
 type Config struct {
-	HubHost                      string
-	HubUser                      string
-	HubUserPasswordEnvVar        string
-	HubClientTimeoutMilliseconds int
-	HubPort                      int
-	ConcurrentScanLimit          int
-	UseMockMode                  bool
-	Port                         int
-	LogLevel                     string
+	HubHost                         string
+	HubUser                         string
+	HubUserPasswordEnvVar           string
+	HubClientTimeoutMilliseconds    int
+	HubPort                         int
+	PruneOrphanedImagesPauseMinutes int
+	ConcurrentScanLimit             int
+	UseMockMode                     bool
+	Port                            int
+	LogLevel                        string
 }
 
 // HubClientTimeout converts the milliseconds to a duration

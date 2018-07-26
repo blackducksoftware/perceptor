@@ -23,12 +23,12 @@ package api
 
 // Image .....
 type Image struct {
-	Name        string
-	Sha         string
-	DockerImage string
+	Repository string
+	Tag        string
+	Sha        string
 }
 
 // NewImage .....
-func NewImage(name string, sha string, dockerImage string) *Image {
-	return &Image{Name: name, Sha: sha, DockerImage: dockerImage}
+func NewImage(repository string, tag string, sha string) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha}
 }

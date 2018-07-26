@@ -26,7 +26,6 @@ import (
 	"reflect"
 
 	ds "github.com/blackducksoftware/perceptor/pkg/datastructures"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,6 +95,18 @@ func (model *Model) AddImage(image Image, priority int) {
 	}
 }
 
+// DeleteImage removes an image from the model.
+// WARNING: It should ABSOLUTELY NOT be called for images that are still referenced by one or more pods.
+// WARNING: It should *probably* not be called for images in the ScanStatusRunningScanClient
+//   or ScanStatusRunningHubScan states.
+func (model *Model) DeleteImage(sha DockerImageSha) error {
+	if _, ok := model.Images[sha]; !ok {
+		return fmt.Errorf("unable to delete image %s, not found", sha)
+	}
+	delete(model.Images, sha)
+	return nil
+}
+
 // image state transitions
 
 func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
@@ -147,11 +158,11 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 func (model *Model) createImage(image Image) bool {
 	_, hasImage := model.Images[image.Sha]
 	if !hasImage {
-		newInfo := NewImageInfo(image.Sha, image.Name)
+		newInfo := NewImageInfo(image.Sha, &RepoTag{Repository: image.Repository, Tag: image.Tag})
 		model.Images[image.Sha] = newInfo
-		log.Debugf("added image %s to model", image.HumanReadableName())
+		log.Debugf("added image %s to model", image.PullSpec())
 	} else {
-		log.Debugf("not adding image %s to model, already have in cache", image.HumanReadableName())
+		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
 	}
 	return !hasImage
 }
@@ -369,141 +380,4 @@ func (model *Model) InProgressHubScans() *([]Image) {
 		}
 	}
 	return &inProgressHubScans
-}
-
-// ScanResultsForPod .....
-func (model *Model) ScanResultsForPod(podName string) (*Scan, error) {
-	pod, ok := model.Pods[podName]
-	if !ok {
-		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
-	}
-
-	overallStatus := hub.PolicyStatusTypeNotInViolation
-	policyViolationCount := 0
-	vulnerabilityCount := 0
-	for _, container := range pod.Containers {
-		imageScan, err := model.ScanResultsForImage(container.Image.Sha)
-		if err != nil {
-			log.Errorf("unable to get scan results for image %s: %s", container.Image.Sha, err.Error())
-			return nil, err
-		}
-		if imageScan == nil {
-			return nil, nil
-		}
-		policyViolationCount += imageScan.PolicyViolations
-		vulnerabilityCount += imageScan.Vulnerabilities
-		imageScanOverallStatus := imageScan.OverallStatus
-		if imageScanOverallStatus != hub.PolicyStatusTypeNotInViolation {
-			overallStatus = imageScanOverallStatus
-		}
-	}
-	podScan := &Scan{
-		OverallStatus:    overallStatus,
-		PolicyViolations: policyViolationCount,
-		Vulnerabilities:  vulnerabilityCount}
-	return podScan, nil
-}
-
-// ScanResultsForImage .....
-func (model *Model) ScanResultsForImage(sha DockerImageSha) (*Scan, error) {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return nil, fmt.Errorf("could not find image of sha %s in cache", sha)
-	}
-
-	if imageInfo.ScanStatus != ScanStatusComplete {
-		return nil, nil
-	}
-	if imageInfo.ScanResults == nil {
-		return nil, fmt.Errorf("model inconsistency: could not find scan results for completed image %s", sha)
-	}
-
-	imageScan := &Scan{
-		OverallStatus:    imageInfo.ScanResults.OverallStatus(),
-		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
-		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
-	return imageScan, nil
-}
-
-// Metrics .....
-func (model *Model) Metrics() *Metrics {
-	// number of images in each status
-	statusCounts := make(map[ScanStatus]int)
-	for _, imageResults := range model.Images {
-		statusCounts[imageResults.ScanStatus]++
-	}
-
-	// number of containers per pod (as a histgram, but not a prometheus histogram ???)
-	containerCounts := make(map[int]int)
-	for _, pod := range model.Pods {
-		containerCounts[len(pod.Containers)]++
-	}
-
-	// number of times each image is referenced from a pod's container
-	imageCounts := make(map[Image]int)
-	for _, pod := range model.Pods {
-		for _, cont := range pod.Containers {
-			imageCounts[cont.Image]++
-		}
-	}
-	imageCountHistogram := make(map[int]int)
-	for _, count := range imageCounts {
-		imageCountHistogram[count]++
-	}
-
-	podStatus := map[string]int{}
-	podPolicyViolations := map[int]int{}
-	podVulnerabilities := map[int]int{}
-	for podName := range model.Pods {
-		podScan, err := model.ScanResultsForPod(podName)
-		if err != nil {
-			log.Errorf("unable to get scan results for pod %s: %s", podName, err.Error())
-			continue
-		}
-		if podScan != nil {
-			podStatus[podScan.OverallStatus.String()]++
-			podPolicyViolations[podScan.PolicyViolations]++
-			podVulnerabilities[podScan.Vulnerabilities]++
-		} else {
-			podStatus["Unknown"]++
-			podPolicyViolations[-1]++
-			podVulnerabilities[-1]++
-		}
-	}
-
-	imageStatus := map[string]int{}
-	imagePolicyViolations := map[int]int{}
-	imageVulnerabilities := map[int]int{}
-	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus == ScanStatusComplete {
-			imageScan := imageInfo.ScanResults
-			if imageScan == nil {
-				log.Errorf("found nil scan results for completed image %s", sha)
-				continue
-			}
-			imageStatus[imageScan.OverallStatus().String()]++
-			imagePolicyViolations[imageScan.PolicyViolationCount()]++
-			imageVulnerabilities[imageScan.VulnerabilityCount()]++
-		} else {
-			imageStatus["Unknown"]++
-			imagePolicyViolations[-1]++
-			imageVulnerabilities[-1]++
-		}
-	}
-
-	// TODO
-	// number of images without a pod pointing to them
-	return &Metrics{
-		ScanStatusCounts:      statusCounts,
-		NumberOfImages:        len(model.Images),
-		NumberOfPods:          len(model.Pods),
-		ContainerCounts:       containerCounts,
-		ImageCountHistogram:   imageCountHistogram,
-		PodStatus:             podStatus,
-		ImageStatus:           imageStatus,
-		PodPolicyViolations:   podPolicyViolations,
-		ImagePolicyViolations: imagePolicyViolations,
-		PodVulnerabilities:    podVulnerabilities,
-		ImageVulnerabilities:  imageVulnerabilities,
-	}
 }

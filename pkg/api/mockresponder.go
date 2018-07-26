@@ -25,13 +25,15 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
 // MockResponder .....
 type MockResponder struct {
-	Pods             map[string]Pod
+	Pods             map[string]*Pod
 	Images           map[string]ImageInfo
 	NextImageCounter int
 }
@@ -39,7 +41,7 @@ type MockResponder struct {
 // NewMockResponder .....
 func NewMockResponder() *MockResponder {
 	return &MockResponder{
-		Pods:             map[string]Pod{},
+		Pods:             map[string]*Pod{},
 		Images:           map[string]ImageInfo{},
 		NextImageCounter: 0,
 	}
@@ -54,15 +56,30 @@ type ImageInfo struct {
 	ComponentsURL    string
 }
 
-// GetMetrics .....
-func (mr *MockResponder) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	// TODO
-}
-
 // GetModel .....
 func (mr *MockResponder) GetModel() Model {
-	// TODO
-	return Model{}
+	images := map[string]*ModelImageInfo{}
+	for key, image := range mr.Images {
+		scanResults := &hub.ScanResults{
+			PolicyStatus: hub.PolicyStatus{
+				OverallStatus: hub.PolicyStatusTypeNotInViolation,
+				UpdatedAt:     time.Now().String(),
+				ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{
+					hub.PolicyStatusTypeNotInViolation: 3,
+				},
+			},
+			RiskProfile: hub.RiskProfile{BomLastUpdatedAt: time.Now().String()}}
+		images[key] = &ModelImageInfo{
+			ImageSha: key,
+			RepoTags: []*ModelRepoTag{
+				{Repository: image.Image.Repository, Tag: image.Image.Tag},
+			},
+			ScanResults: scanResults}
+	}
+	return Model{
+		Images: images,
+		Pods:   mr.Pods,
+	}
 }
 
 // perceiver
@@ -76,9 +93,12 @@ func (mr *MockResponder) AddPod(pod Pod) error {
 		return nil
 	}
 
-	mr.Pods[qualifiedName] = pod
+	mr.Pods[qualifiedName] = &pod
 	for _, cont := range pod.Containers {
-		mr.AddImage(cont.Image)
+		err := mr.AddImage(cont.Image)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -87,7 +107,7 @@ func (mr *MockResponder) AddPod(pod Pod) error {
 func (mr *MockResponder) UpdatePod(pod Pod) error {
 	log.Infof("update pod: %+v", pod)
 	qualifiedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
-	mr.Pods[qualifiedName] = pod
+	mr.Pods[qualifiedName] = &pod
 	return nil
 }
 
@@ -112,7 +132,8 @@ func (mr *MockResponder) GetScanResults() ScanResults {
 	}
 	for _, imageInfo := range mr.Images {
 		scannedImages = append(scannedImages, ScannedImage{
-			Name:             imageInfo.Image.Name,
+			Repository:       imageInfo.Image.Repository,
+			Tag:              imageInfo.Image.Tag,
 			ComponentsURL:    imageInfo.ComponentsURL,
 			OverallStatus:    imageInfo.OverallStatus,
 			PolicyViolations: imageInfo.PolicyViolations,
@@ -153,7 +174,7 @@ func (mr *MockResponder) AddImage(image Image) error {
 // UpdateAllPods .....
 func (mr *MockResponder) UpdateAllPods(allPods AllPods) error {
 	log.Infof("update all pods: %+v", allPods)
-	mr.Pods = map[string]Pod{}
+	mr.Pods = map[string]*Pod{}
 	for _, pod := range allPods.Pods {
 		mr.AddPod(pod)
 	}
@@ -179,7 +200,8 @@ func (mr *MockResponder) GetNextImage() NextImage {
 		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
 		HubProjectVersionName: fmt.Sprintf("mock-perceptor-project-version-%d", mr.NextImageCounter),
 		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
-		PullSpec:              "abc/def/ghi",
+		Repository:            "abc/def/ghi",
+		Tag:                   "latest",
 		Sha:                   "123abc456def"}
 	return NextImage{ImageSpec: &imageSpec}
 }

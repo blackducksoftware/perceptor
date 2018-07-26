@@ -23,17 +23,18 @@ package api
 
 import (
 	"math"
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestNewModelTime .....
-func TestNewModelTime(t *testing.T) {
-	m := NewModelTime(500 * time.Millisecond)
-	if math.Abs(m.Seconds-0.5) > 0.000001 {
-		t.Errorf("expected 0.5, got %f", m.Minutes)
-	}
-	if math.Abs(m.Minutes-0.0083333) > 0.0000001 {
-		t.Errorf("expected 0.0083333, got %f", m.Minutes)
-	}
+func RunModelTests() {
+	Describe("modeltime", func() {
+		It("time", func() {
+			m := NewModelTime(500 * time.Millisecond)
+			Expect(math.Abs(m.Seconds-0.5) < 0.000001).To(BeTrue())
+			Expect(math.Abs(m.Minutes-0.0083333) < 0.0000001).To(BeTrue())
+		})
+	})
 }
