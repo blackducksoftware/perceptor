@@ -39,7 +39,7 @@ type RoutineTaskManager struct {
 	writeTimings   chan model.Timings
 	hubClient      hub.FetcherInterface
 	Timings        *model.Timings
-	OrphanedImages chan []*model.Image
+	OrphanedImages chan []string
 	// routine tasks
 	InitialHubCheckScheduler         *Scheduler
 	HubScanCompletionScheduler       *Scheduler
@@ -48,19 +48,18 @@ type RoutineTaskManager struct {
 	ModelMetricsScheduler            *Scheduler
 	StalledScanClientScheduler       *Scheduler
 	ReloginToHubScheduler            *Scheduler
-	CleanupOrphanedImagesScheduler   *Scheduler
+	PruneOrphanedImagesScheduler     *Scheduler
 }
 
 // NewRoutineTaskManager ...
-func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface, timings *model.Timings) *RoutineTaskManager {
+func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface, pruneOrphanedImagesPause time.Duration, timings *model.Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
-		actions:        make(chan actions.Action),
-		stop:           stop,
-		readTimings:    make(chan func(model.Timings)),
-		writeTimings:   make(chan model.Timings),
-		hubClient:      hubClient,
-		Timings:        timings,
-		OrphanedImages: make(chan []*model.Image),
+		actions:      make(chan actions.Action),
+		stop:         stop,
+		readTimings:  make(chan func(model.Timings)),
+		writeTimings: make(chan model.Timings),
+		hubClient:    hubClient,
+		Timings:      timings,
 	}
 	rtm.InitialHubCheckScheduler = rtm.startHubInitialScanChecking()
 	rtm.HubScanCompletionScheduler = rtm.startPollingHubForScanCompletion()
@@ -69,7 +68,10 @@ func NewRoutineTaskManager(stop <-chan struct{}, hubClient hub.FetcherInterface,
 	rtm.HubScanRefreshScheduler = rtm.startCheckingForUpdatesForCompletedScans()
 	rtm.ReloginToHubScheduler = rtm.startReloggingInToHub()
 	rtm.EnqueueImagesForRefreshScheduler = rtm.startEnqueueingImagesNeedingRefreshing()
-	rtm.CleanupOrphanedImagesScheduler = rtm.startCleaningUpOrphanedImages()
+	if pruneOrphanedImagesPause > 0 {
+		rtm.PruneOrphanedImagesScheduler = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
+		rtm.OrphanedImages = make(chan []string)
+	}
 	go func() {
 		for {
 			select {
@@ -199,12 +201,12 @@ func (rtm *RoutineTaskManager) startReloggingInToHub() *Scheduler {
 	})
 }
 
-func (rtm *RoutineTaskManager) startCleaningUpOrphanedImages() *Scheduler {
-	return NewScheduler(time.Hour, rtm.stop, func() {
+func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *Scheduler {
+	return NewScheduler(pause, rtm.stop, func() {
 		log.Debug("cleaning up orphaned images")
-		action := &actions.CleanUpOrphanedImages{CompletedImages: make(chan []*model.Image)}
+		action := &actions.PruneOrphanedImages{CompletedImageShas: make(chan []string)}
 		rtm.actions <- action
-		images := <-action.CompletedImages
+		images := <-action.CompletedImageShas
 		rtm.OrphanedImages <- images
 	})
 }

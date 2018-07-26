@@ -145,6 +145,7 @@ func (hf *Fetcher) HubVersion() string {
 	return hf.hubVersion
 }
 
+// DeleteScans ...
 func (hf *Fetcher) DeleteScans(scanNames []string) {
 	// TODO protect from concurrent read/write
 	for _, scanName := range scanNames {
@@ -165,6 +166,8 @@ func (hf *Fetcher) startDeletingScans() {
 				err := hf.DeleteScan(*scanName)
 				if err != nil {
 					log.Errorf("unable to delete scan: %s", err.Error())
+				} else {
+					delete(hf.scansToDelete, *scanName)
 				}
 			}
 		}

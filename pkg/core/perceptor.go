@@ -24,6 +24,7 @@ package core
 import (
 	"fmt"
 	"os"
+	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	a "github.com/blackducksoftware/perceptor/pkg/core/actions"
@@ -85,18 +86,15 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 
 	// 2. routine task manager
 	stop := make(chan struct{})
-	routineTaskManager := NewRoutineTaskManager(stop, hubClient, model.DefaultTimings)
+	pruneOrphanedImagesPause := time.Duration(config.PruneOrphanedImagesPauseMinutes) * time.Minute
+	routineTaskManager := NewRoutineTaskManager(stop, hubClient, pruneOrphanedImagesPause, model.DefaultTimings)
 	go func() {
 		for {
 			select {
 			case <-stop:
 				return
-			case images := <-routineTaskManager.OrphanedImages:
-				scanNames := make([]string, len(images))
-				for i, image := range images {
-					scanNames[i] = string(image.Sha)
-				}
-				hubClient.DeleteScans(scanNames)
+			case imageShas := <-routineTaskManager.OrphanedImages:
+				hubClient.DeleteScans(imageShas)
 			}
 		}
 	}()

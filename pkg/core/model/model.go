@@ -95,6 +95,18 @@ func (model *Model) AddImage(image Image, priority int) {
 	}
 }
 
+// DeleteImage removes an image from the model.
+// WARNING: It should ABSOLUTELY NOT be called for images that are still referenced by one or more pods.
+// WARNING: It should *probably* not be called for images in the ScanStatusRunningScanClient
+//   or ScanStatusRunningHubScan states.
+func (model *Model) DeleteImage(sha DockerImageSha) error {
+	if _, ok := model.Images[sha]; !ok {
+		return fmt.Errorf("unable to delete image %s, not found", sha)
+	}
+	delete(model.Images, sha)
+	return nil
+}
+
 // image state transitions
 
 func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
