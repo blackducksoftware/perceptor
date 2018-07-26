@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package util
 
 import (
 	"fmt"
@@ -221,11 +221,6 @@ var _ = Describe("Priority queue", func() {
 			}
 			Expect(pq.size).To(Equal(0))
 		})
-	})
-
-	// remove by key
-	Describe("Remove by key", func() {
-
 	})
 
 	// change key

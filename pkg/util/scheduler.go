@@ -19,7 +19,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package util
 
 import (
 	"time"
@@ -28,14 +28,15 @@ import (
 // Scheduler periodically executes `action`, with a pause of `delay` between
 // invocations, and stops when receiving an event on `stop`.
 type Scheduler struct {
-	delay  time.Duration
-	stop   <-chan struct{}
-	action func()
+	delay    time.Duration
+	stop     <-chan struct{}
+	setDelay chan time.Duration
+	action   func()
 }
 
 // NewScheduler ...
 func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
-	scheduler := &Scheduler{delay: delay, stop: stop, action: action}
+	scheduler := &Scheduler{delay: delay, stop: stop, setDelay: make(chan time.Duration), action: action}
 	go scheduler.start()
 	return scheduler
 }
@@ -50,11 +51,13 @@ func (scheduler *Scheduler) start() {
 		case <-timer.C:
 			scheduler.action()
 			timer = time.NewTimer(scheduler.delay)
+		case delay := <-scheduler.setDelay:
+			scheduler.delay = delay
 		}
 	}
 }
 
 // SetDelay sets the delay
 func (scheduler *Scheduler) SetDelay(delay time.Duration) {
-	scheduler.delay = delay
+	scheduler.setDelay <- delay
 }
