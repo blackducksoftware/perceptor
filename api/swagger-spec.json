@@ -23,7 +23,7 @@
   "host": "perceptor",
   "basePath": "/perceptor",
   "paths": {
-    "/allImages": {
+    "/allimages": {
       "put": {
         "description": "Update all images",
         "tags": [
@@ -51,7 +51,7 @@
         }
       }
     },
-    "/allPods": {
+    "/allpods": {
       "put": {
         "description": "Updates all pods",
         "tags": [
