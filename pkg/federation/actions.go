@@ -29,6 +29,10 @@ type FedGetModel struct {
 	Done chan *APIModel
 }
 
+func NewFedGetModel() *FedGetModel {
+	return &FedGetModel{Done: make(chan *APIModel)}
+}
+
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	// TODO
 }
@@ -39,4 +43,29 @@ type FedSetHubs struct {
 
 func (fsh *FedSetHubs) FedApply(federator *Federator) {
 	federator.setHubs(fsh.HubBaseURLs)
+}
+
+type FedFindProject struct {
+	Request  APIProjectSearchRequest
+	Response chan *APIProjectSearchResponse
+}
+
+func NewFedFindProject(request APIProjectSearchRequest) *FedFindProject {
+	return &FedFindProject{Request: request, Response: make(chan *APIProjectSearchResponse)}
+}
+
+func (ffp *FedFindProject) FedApply(federator *Federator) {
+	// TODO talk to all the hubs, ask them for their projects;
+	// get back:
+	//  - a list of each matching project
+	//  - a list of hubs with problems or which are not yet initialized
+	//    (in case that would be relevant to the user -- i.e. that their project
+	//     *might* be present, but we don't know)
+}
+
+type FedUpdateConfig struct {
+}
+
+func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
+	// TODO
 }

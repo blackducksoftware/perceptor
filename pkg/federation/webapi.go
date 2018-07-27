@@ -207,7 +207,7 @@ func NewHTTPResponder() *HTTPResponder {
 
 // GetModel .....
 func (hr *HTTPResponder) GetModel() *APIModel {
-	get := &FedGetModel{}
+	get := NewFedGetModel()
 	hr.RequestsCh <- get
 	return <-get.Done
 }
@@ -215,10 +215,14 @@ func (hr *HTTPResponder) GetModel() *APIModel {
 func (hr *HTTPResponder) SetHubs(hubs *APISetHubsRequest) {
 	hr.RequestsCh <- &FedSetHubs{HubBaseURLs: hubs.HubURLs}
 }
-func (hr *HTTPResponder) UpdateConfig(config *APIUpdateConfigRequest) {}
+func (hr *HTTPResponder) UpdateConfig(config *APIUpdateConfigRequest) {
+	hr.RequestsCh <- &FedUpdateConfig{}
+}
 
 func (hr *HTTPResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {
-	return &APIProjectSearchResponse{}
+	req := NewFedFindProject(request)
+	hr.RequestsCh <- req
+	return <-req.Response
 }
 
 // errors
