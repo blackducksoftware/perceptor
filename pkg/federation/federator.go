@@ -21,16 +21,14 @@ under the License.
 
 package federation
 
-import (
-	"fmt"
-)
-
 const (
 	actionChannelSize = 100
 )
 
 // Federator ...
 type Federator struct {
+	responder *HTTPResponder
+	// model
 	hubs map[string]*Hub
 	// channels
 	actions chan FedAction
@@ -38,5 +36,10 @@ type Federator struct {
 
 // NewFederator ...
 func NewFederator(config *Config) (*Federator, error) {
-	return nil, fmt.Errorf("TODO")
+	responder := NewHTTPResponder()
+	f := &Federator{
+		responder: responder,
+		hubs:      map[string]*Hub{},
+		actions:   make(chan FedAction, actionChannelSize)}
+	return f, nil
 }
