@@ -105,7 +105,7 @@ func SetupHTTPServer(responder Responder) {
 				responder.Error(w, r, err, 400)
 				return
 			}
-			responder.PostFinishScan(scanResults)
+			responder.UpdateConfig(&request)
 			fmt.Fprint(w, "")
 		} else {
 			responder.NotFound(w, r)
@@ -115,30 +115,69 @@ func SetupHTTPServer(responder Responder) {
 
 // Responder .....
 type Responder interface {
-	GetModel() APIModel
+	GetModel() *APIModel
 	//
 	SetHubs(hubs *APISetHubsRequest)
 	UpdateConfig(config *APIUpdateConfigRequest)
 	//
-	FindProject(request APIProjectSearchRequest) APIProjectSearchResponse
+	FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse
 	// errors
 	NotFound(w http.ResponseWriter, r *http.Request)
 	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
 }
 
+type MockResponder struct{}
+
+func NewMockResponder() *MockResponder {
+	return &MockResponder{}
+}
+
+func (mr *MockResponder) GetModel() *APIModel {
+	return &APIModel{Hubs: map[string]*APIModelHub{
+		"http://blackducksoftware/com": &APIModelHub{
+			HasLoadedAllProjects:    false,
+			IsCircuitBreakerEnabled: false,
+			IsLoggedIn:              false,
+			ProjectCount:            0,
+			Projects:                map[string]string{},
+		},
+	}}
+}
+
+func (mr *MockResponder) SetHubs(hubs *APISetHubsRequest)             {}
+func (mr *MockResponder) UpdateConfig(config *APIUpdateConfigRequest) {}
+
+func (mr *MockResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {
+	return &APIProjectSearchResponse{}
+}
+
+func (mr *MockResponder) NotFound(w http.ResponseWriter, r *http.Request)                         {}
+func (mr *MockResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {}
+
 type APIModel struct {
-	// map of project name to ... ? hub URL?
-	Projects map[string]string
 	// map of hub URL to ... ? hub info?
 	Hubs map[string]*APIModelHub
 }
 
-type APISetHubsRequest struct{}
+type APISetHubsRequest struct {
+	HubURLs []string
+}
 
-type APIUpdateConfigRequest struct{}
+type APIUpdateConfigRequest struct {
+	// TODO anything we need here?
+}
 
-type APIProjectSearchRequest struct{}
-type APIProjectSearchResponse struct{}
+type APIProjectSearchRequest struct {
+	ProjectName string
+}
+type APIProjectSearchResponse struct {
+	Projects []*APIProject
+}
+
+type APIProject struct {
+	Name string
+	URL  string
+}
 
 type APIModelHub struct {
 	// can we log in to the hub?
@@ -148,6 +187,6 @@ type APIModelHub struct {
 	ProjectCount         int
 	// is circuit breaker enabled?
 	IsCircuitBreakerEnabled bool
-	//
+	// map of project name to ... ? hub URL?
 	Projects map[string]string
 }

@@ -27,7 +27,7 @@ import (
 	"os"
 
 	// import just for the side-effect of changing how logrus works
-	"github.com/blackducksoftware/perceptor/pkg/api"
+
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -63,17 +63,18 @@ func RunFederator(configPath string) {
 	http.Handle("/metrics", prometheus.Handler())
 
 	if config.UseMockMode {
-		responder := api.NewMockResponder()
-		api.SetupHTTPServer(responder)
+		panic("TODO -- unimplemented")
+		responder := NewMockResponder()
+		SetupHTTPServer(responder)
 		log.Info("instantiated responder in mock mode")
 	} else {
-		perceptor, err := NewPerceptor(config)
+		federator, err := NewFederator(config)
 		if err != nil {
-			log.Errorf("unable to instantiate percepter: %s", err.Error())
+			log.Errorf("unable to instantiate federator: %s", err.Error())
 			panic(err)
 		}
 
-		log.Infof("instantiated perceptor in real mode: %+v", perceptor)
+		log.Infof("instantiated federator in real mode: %+v", federator)
 	}
 
 	addr := fmt.Sprintf(":%d", config.Port)
