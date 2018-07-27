@@ -140,7 +140,6 @@ func (mr *MockResponder) GetModel() *APIModel {
 			HasLoadedAllProjects:    false,
 			IsCircuitBreakerEnabled: false,
 			IsLoggedIn:              false,
-			ProjectCount:            0,
 			Projects:                map[string]string{},
 		},
 	}}
@@ -187,7 +186,6 @@ type APIModelHub struct {
 	IsLoggedIn bool
 	// have all the projects been sucked in?
 	HasLoadedAllProjects bool
-	ProjectCount         int
 	// is circuit breaker enabled?
 	IsCircuitBreakerEnabled bool
 	// map of project name to ... ? hub URL?
