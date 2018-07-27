@@ -33,7 +33,7 @@ const (
 type Federator struct {
 	hubs map[string]*Hub
 	// channels
-	actions chan Action
+	actions chan FedAction
 }
 
 // NewFederator ...

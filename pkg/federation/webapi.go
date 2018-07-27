@@ -26,6 +26,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SetupHTTPServer .....
@@ -189,4 +191,46 @@ type APIModelHub struct {
 	IsCircuitBreakerEnabled bool
 	// map of project name to ... ? hub URL?
 	Projects map[string]string
+}
+
+// HTTPResponder ...
+type HTTPResponder struct {
+	GetModelChannel chan *FedGetModel
+}
+
+// NewHTTPResponder .....
+func NewHTTPResponder() *HTTPResponder {
+	return &HTTPResponder{
+		GetModelChannel: make(chan *FedGetModel),
+	}
+}
+
+// GetModel .....
+func (hr *HTTPResponder) GetModel() *APIModel {
+	get := &FedGetModel{}
+	hr.GetModelChannel <- get
+	return <-get.Done
+}
+
+func (hr *HTTPResponder) SetHubs(hubs *APISetHubsRequest)             {}
+func (hr *HTTPResponder) UpdateConfig(config *APIUpdateConfigRequest) {}
+
+func (hr *HTTPResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {
+	return &APIProjectSearchResponse{}
+}
+
+// errors
+
+// NotFound .....
+func (hr *HTTPResponder) NotFound(w http.ResponseWriter, r *http.Request) {
+	log.Errorf("HTTPResponder not found from request %+v", r)
+	recordHTTPNotFound(r)
+	http.NotFound(w, r)
+}
+
+// Error .....
+func (hr *HTTPResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+	log.Errorf("HTTPResponder error %s with code %d from request %+v", err.Error(), statusCode, r)
+	recordHTTPError(r, err, statusCode)
+	http.Error(w, err.Error(), statusCode)
 }

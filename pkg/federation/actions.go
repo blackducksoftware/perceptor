@@ -21,6 +21,14 @@ under the License.
 
 package federation
 
-type Action interface {
-	Apply(model *HubModel)
+type FedAction interface {
+	FedApply(federator *Federator)
+}
+
+type FedGetModel struct {
+	Done chan *APIModel
+}
+
+func (fgm *FedGetModel) FedApply(federator *Federator) {
+	// TODO
 }
