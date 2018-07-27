@@ -191,6 +191,8 @@ type APIModelHub struct {
 	IsCircuitBreakerEnabled bool
 	// map of project name to ... ? hub URL?
 	Projects map[string]string
+	// bad things that have happened
+	Errors []string
 }
 
 // HTTPResponder ...

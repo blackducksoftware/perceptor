@@ -50,17 +50,21 @@ type Hub struct {
 	// data
 	codeLocationNames []string
 	projectNames      []string
+	errors            []error
 	// TODO critical vulnerabilities
 	// schedulers
-	loginScheduler             *util.Scheduler
-	pullProjectsScheduler      *util.Scheduler
-	pullCodeLocationsScheduler *util.Scheduler
+	loginScheduler         *util.Scheduler
+	fetchProjectsScheduler *util.Scheduler
+	// pullCodeLocationsScheduler *util.Scheduler
 	// channels
-	stop                   <-chan struct{}
-	resetCircuitBreakerCh  chan struct{}
-	setTimeoutCh           chan time.Duration
-	getProjectNamesCh      chan chan []string
-	getCodeLocationNamesCh chan chan []string
+	stop                        <-chan struct{}
+	resetCircuitBreakerCh       chan struct{}
+	setTimeoutCh                chan time.Duration
+	getProjectNamesCh           chan chan []string
+	didLoginCh                  chan error
+	didFetchProjectNamesCh      chan []string
+	didFetchProjectNamesErrorCh chan error
+	//getCodeLocationNamesCh chan chan []string
 }
 
 // NewHub returns a new, logged-in Hub.
@@ -77,13 +81,22 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	hf := Hub{
 		client: client,
 		// circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
-		username:          username,
-		password:          password,
-		port:              port,
-		baseURL:           baseURL,
+		username: username,
+		password: password,
+		port:     port,
+		baseURL:  baseURL,
+		//
 		codeLocationNames: nil,
 		projectNames:      nil,
-		stop:              stop}
+		errors:            []error{},
+		//
+		stop: stop,
+		resetCircuitBreakerCh:       make(chan struct{}),
+		setTimeoutCh:                make(chan time.Duration),
+		getProjectNamesCh:           make(chan chan []string),
+		didLoginCh:                  make(chan error),
+		didFetchProjectNamesCh:      make(chan []string),
+		didFetchProjectNamesErrorCh: make(chan error)}
 	err = hf.login()
 	if err != nil {
 		return nil, err
@@ -102,12 +115,22 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 				// TODO hf.circuitBreaker.Reset()
 			case ch := <-hf.getProjectNamesCh:
 				ch <- hf.projectNames
-			case ch := <-hf.getCodeLocationNamesCh:
-				ch <- hf.codeLocationNames
+			case projectNames := <-hf.didFetchProjectNamesCh:
+				hf.projectNames = projectNames
+			case err := <-hf.didFetchProjectNamesErrorCh:
+				// TODO don't let this grow without bounds
+				hf.errors = append(hf.errors, err)
+			case err := <-hf.didLoginCh:
+				if err != nil {
+					hf.errors = append(hf.errors, err)
+				}
+				// case ch := <-hf.getCodeLocationNamesCh:
+				// 	ch <- hf.codeLocationNames
 			}
 		}
 	}()
-	// TODO start up schedulers
+	hf.loginScheduler = hf.startLoginScheduler()
+	hf.fetchProjectsScheduler = hf.startFetchProjectsScheduler()
 	return &hf, nil
 }
 
@@ -142,9 +165,6 @@ func (hf *Hub) login() error {
 	err := hf.client.Login(hf.username, hf.password)
 	// recordHubResponse("login", err == nil)
 	// recordHubResponseTime("login", time.Now().Sub(start))
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -153,12 +173,12 @@ func (hf *Hub) SetTimeout(timeout time.Duration) {
 	hf.setTimeoutCh <- timeout
 }
 
-// CodeLocationNames ...
-func (hf *Hub) CodeLocationNames() []string {
-	ch := make(chan []string)
-	hf.getCodeLocationNamesCh <- ch
-	return <-ch
-}
+// // CodeLocationNames ...
+// func (hf *Hub) CodeLocationNames() []string {
+// 	ch := make(chan []string)
+// 	hf.getCodeLocationNamesCh <- ch
+// 	return <-ch
+// }
 
 // ProjectNames ...
 func (hf *Hub) ProjectNames() []string {
@@ -173,25 +193,43 @@ func (hf *Hub) startLoginScheduler() *util.Scheduler {
 	pause := 30 * time.Minute
 	return util.NewScheduler(pause, hf.stop, func() {
 		err := hf.login()
+		hf.didLoginCh <- err
 		if err != nil {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
+		} else {
+			log.Infof("successfully re-logged in to hub %s", hf.baseURL)
 		}
-		log.Infof("successfully re-logged in to hub")
 	})
 }
 
-func (hf *Hub) fetchAllCodeLocationNames() ([]string, error) {
-	options := &hubapi.GetListOptions{}
-	codeLocationList, err := hf.client.ListAllCodeLocations(options) //circuitBreaker.ListAllCodeLocations()
-	if err != nil {
-		return nil, err
-	}
-	scanNames := make([]string, len(codeLocationList.Items))
-	for i, cl := range codeLocationList.Items {
-		scanNames[i] = cl.Name
-	}
-	return scanNames, nil
+func (hf *Hub) startFetchProjectsScheduler() *util.Scheduler {
+	pause := 30 * time.Minute
+	return util.NewScheduler(pause, hf.stop, func() {
+		projectNames, err := hf.fetchAllProjectNames()
+		if err == nil {
+			log.Infof("successfully fetched %d project names from %s", len(projectNames), hf.baseURL)
+			hf.didFetchProjectNamesCh <- projectNames
+		} else {
+			log.Errorf("unable to fetch project names:  %s", err.Error())
+			hf.didFetchProjectNamesErrorCh <- err
+		}
+	})
 }
+
+// Hub api calls
+
+// func (hf *Hub) fetchAllCodeLocationNames() ([]string, error) {
+// 	options := &hubapi.GetListOptions{}
+// 	codeLocationList, err := hf.client.ListAllCodeLocations(options) //circuitBreaker.ListAllCodeLocations()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	scanNames := make([]string, len(codeLocationList.Items))
+// 	for i, cl := range codeLocationList.Items {
+// 		scanNames[i] = cl.Name
+// 	}
+// 	return scanNames, nil
+// }
 
 func (hf *Hub) fetchAllProjectNames() ([]string, error) {
 	options := &hubapi.GetListOptions{}
