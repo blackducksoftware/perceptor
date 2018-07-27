@@ -173,7 +173,8 @@ type APIProjectSearchRequest struct {
 	ProjectName string
 }
 type APIProjectSearchResponse struct {
-	Projects []*APIProject
+	// map of hubBaseURL to project
+	Projects map[string]*APIProject
 }
 
 type APIProject struct {
