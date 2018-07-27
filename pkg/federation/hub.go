@@ -78,7 +78,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	if err != nil {
 		return nil, err
 	}
-	hf := Hub{
+	hub := Hub{
 		client: client,
 		// circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
 		username: username,
@@ -97,11 +97,11 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 		didLoginCh:                  make(chan error),
 		didFetchProjectNamesCh:      make(chan []string),
 		didFetchProjectNamesErrorCh: make(chan error)}
-	err = hf.login()
+	err = hub.login()
 	if err != nil {
 		return nil, err
 	}
-	err = hf.fetchHubVersion()
+	err = hub.fetchHubVersion()
 	if err != nil {
 		return nil, err
 	}
@@ -109,34 +109,34 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	go func() {
 		for {
 			select {
-			case timeout := <-hf.setTimeoutCh:
-				hf.client.SetTimeout(timeout)
-			case <-hf.resetCircuitBreakerCh:
-				// TODO hf.circuitBreaker.Reset()
-			case ch := <-hf.getProjectNamesCh:
-				ch <- hf.projectNames
-			case projectNames := <-hf.didFetchProjectNamesCh:
-				hf.projectNames = projectNames
-			case err := <-hf.didFetchProjectNamesErrorCh:
+			case timeout := <-hub.setTimeoutCh:
+				hub.client.SetTimeout(timeout)
+			case <-hub.resetCircuitBreakerCh:
+				// TODO hub.circuitBreaker.Reset()
+			case ch := <-hub.getProjectNamesCh:
+				ch <- hub.projectNames
+			case projectNames := <-hub.didFetchProjectNamesCh:
+				hub.projectNames = projectNames
+			case err := <-hub.didFetchProjectNamesErrorCh:
 				// TODO don't let this grow without bounds
-				hf.errors = append(hf.errors, err)
-			case err := <-hf.didLoginCh:
+				hub.errors = append(hub.errors, err)
+			case err := <-hub.didLoginCh:
 				if err != nil {
-					hf.errors = append(hf.errors, err)
+					hub.errors = append(hub.errors, err)
 				}
-				// case ch := <-hf.getCodeLocationNamesCh:
-				// 	ch <- hf.codeLocationNames
+				// case ch := <-hub.getCodeLocationNamesCh:
+				// 	ch <- hub.codeLocationNames
 			}
 		}
 	}()
-	hf.loginScheduler = hf.startLoginScheduler()
-	hf.fetchProjectsScheduler = hf.startFetchProjectsScheduler()
-	return &hf, nil
+	hub.loginScheduler = hub.startLoginScheduler()
+	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler()
+	return &hub, nil
 }
 
-func (hf *Hub) fetchHubVersion() error {
+func (hub *Hub) fetchHubVersion() error {
 	// start := time.Now()
-	currentVersion, err := hf.client.CurrentVersion()
+	currentVersion, err := hub.client.CurrentVersion()
 	// recordHubResponse("version", err == nil)
 	// recordHubResponseTime("version", time.Now().Sub(start))
 	if err != nil {
@@ -144,83 +144,83 @@ func (hf *Hub) fetchHubVersion() error {
 		return err
 	}
 
-	hf.HubVersion = currentVersion.Version
-	log.Infof("successfully got hub version %s", hf.HubVersion)
+	hub.HubVersion = currentVersion.Version
+	log.Infof("successfully got hub version %s", hub.HubVersion)
 	return nil
 }
 
 // // ResetCircuitBreaker ...
-// func (hf *Hub) ResetCircuitBreaker() {
-//   hf.resetCircuitBreakerCh <- struct{}
+// func (hub *Hub) ResetCircuitBreaker() {
+//   hub.resetCircuitBreakerCh <- struct{}
 // }
 //
 // // IsEnabled returns whether the Hub is currently enabled
 // // example: the circuit breaker is disabled -> the Hub is disabled
-// func (hf *Hub) IsEnabled() <-chan bool {
-// 	return hf.circuitBreaker.IsEnabledChannel
+// func (hub *Hub) IsEnabled() <-chan bool {
+// 	return hub.circuitBreaker.IsEnabledChannel
 // }
 
-func (hf *Hub) login() error {
+func (hub *Hub) login() error {
 	// start := time.Now()
-	err := hf.client.Login(hf.username, hf.password)
+	err := hub.client.Login(hub.username, hub.password)
 	// recordHubResponse("login", err == nil)
 	// recordHubResponseTime("login", time.Now().Sub(start))
 	return err
 }
 
 // SetTimeout ...
-func (hf *Hub) SetTimeout(timeout time.Duration) {
-	hf.setTimeoutCh <- timeout
+func (hub *Hub) SetTimeout(timeout time.Duration) {
+	hub.setTimeoutCh <- timeout
 }
 
 // // CodeLocationNames ...
-// func (hf *Hub) CodeLocationNames() []string {
+// func (hub *Hub) CodeLocationNames() []string {
 // 	ch := make(chan []string)
-// 	hf.getCodeLocationNamesCh <- ch
+// 	hub.getCodeLocationNamesCh <- ch
 // 	return <-ch
 // }
 
 // ProjectNames ...
-func (hf *Hub) ProjectNames() []string {
+func (hub *Hub) ProjectNames() []string {
 	ch := make(chan []string)
-	hf.getProjectNamesCh <- ch
+	hub.getProjectNamesCh <- ch
 	return <-ch
 }
 
 // Regular jobs
 
-func (hf *Hub) startLoginScheduler() *util.Scheduler {
+func (hub *Hub) startLoginScheduler() *util.Scheduler {
 	pause := 30 * time.Minute
-	return util.NewScheduler(pause, hf.stop, func() {
-		err := hf.login()
-		hf.didLoginCh <- err
+	return util.NewScheduler(pause, hub.stop, func() {
+		err := hub.login()
+		hub.didLoginCh <- err
 		if err != nil {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
 		} else {
-			log.Infof("successfully re-logged in to hub %s", hf.baseURL)
+			log.Infof("successfully re-logged in to hub %s", hub.baseURL)
 		}
 	})
 }
 
-func (hf *Hub) startFetchProjectsScheduler() *util.Scheduler {
+func (hub *Hub) startFetchProjectsScheduler() *util.Scheduler {
 	pause := 30 * time.Minute
-	return util.NewScheduler(pause, hf.stop, func() {
-		projectNames, err := hf.fetchAllProjectNames()
+	return util.NewScheduler(pause, hub.stop, func() {
+		projectNames, err := hub.fetchAllProjectNames()
 		if err == nil {
-			log.Infof("successfully fetched %d project names from %s", len(projectNames), hf.baseURL)
-			hf.didFetchProjectNamesCh <- projectNames
+			log.Infof("successfully fetched %d project names from %s", len(projectNames), hub.baseURL)
+			hub.didFetchProjectNamesCh <- projectNames
 		} else {
 			log.Errorf("unable to fetch project names:  %s", err.Error())
-			hf.didFetchProjectNamesErrorCh <- err
+			hub.didFetchProjectNamesErrorCh <- err
 		}
 	})
 }
 
 // Hub api calls
 
-// func (hf *Hub) fetchAllCodeLocationNames() ([]string, error) {
+// func (hub *Hub) fetchAllCodeLocationNames() ([]string, error) {
 // 	options := &hubapi.GetListOptions{}
-// 	codeLocationList, err := hf.client.ListAllCodeLocations(options) //circuitBreaker.ListAllCodeLocations()
+// 	codeLocationList, err := hub.client.ListAllCodeLocations(options) //circuitBreaker.ListAllCodeLocations()
 // 	if err != nil {
 // 		return nil, err
 // 	}
@@ -231,9 +231,9 @@ func (hf *Hub) startFetchProjectsScheduler() *util.Scheduler {
 // 	return scanNames, nil
 // }
 
-func (hf *Hub) fetchAllProjectNames() ([]string, error) {
+func (hub *Hub) fetchAllProjectNames() ([]string, error) {
 	options := &hubapi.GetListOptions{}
-	projectList, err := hf.client.ListProjects(options) //circuitBreaker.ListAllProjects()
+	projectList, err := hub.client.ListProjects(options) //circuitBreaker.ListAllProjects()
 	if err != nil {
 		return nil, err
 	}
