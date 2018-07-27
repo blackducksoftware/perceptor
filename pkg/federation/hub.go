@@ -34,7 +34,7 @@ import (
 
 const (
 	maxHubExponentialBackoffDuration = 1 * time.Hour
-	hubDeleteTimeout                 = 1 * time.Hour
+	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
 // Hub .....
@@ -57,7 +57,7 @@ type Hub struct {
 	fetchProjectsScheduler *util.Scheduler
 	// pullCodeLocationsScheduler *util.Scheduler
 	// channels
-	stop                        <-chan struct{}
+	stop                        chan struct{}
 	resetCircuitBreakerCh       chan struct{}
 	setTimeoutCh                chan time.Duration
 	getProjectNamesCh           chan chan []string
@@ -70,9 +70,9 @@ type Hub struct {
 // NewHub returns a new, logged-in Hub.
 // It will instead return an error if any of the following happen:
 //  - unable to instantiate an API client
-//  - unable to sign in to the Hub
+//  - unable to log in to the Hub
 //  - unable to get hub version from the Hub
-func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration, stop <-chan struct{}) (*Hub, error) {
+func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration) (*Hub, error) {
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
@@ -90,7 +90,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 		projectNames:      nil,
 		errors:            []error{},
 		//
-		stop: stop,
+		stop: make(chan struct{}),
 		resetCircuitBreakerCh:       make(chan struct{}),
 		setTimeoutCh:                make(chan time.Duration),
 		getProjectNamesCh:           make(chan chan []string),
@@ -132,6 +132,10 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	hub.loginScheduler = hub.startLoginScheduler()
 	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler()
 	return &hub, nil
+}
+
+func (hub *Hub) Stop() {
+	close(hub.stop)
 }
 
 func (hub *Hub) fetchHubVersion() error {

@@ -29,20 +29,24 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config contains all configuration for Perceptor
-type Config struct {
-	HubUser                      string
-	HubUserPasswordEnvVar        string
-	HubClientTimeoutMilliseconds int
-	HubPort                      int
-	UseMockMode                  bool
-	Port                         int
-	LogLevel                     string
+type HubConfig struct {
+	User                      string
+	PasswordEnvVar            string
+	ClientTimeoutMilliseconds int
+	Port                      int
 }
 
 // HubClientTimeout converts the milliseconds to a duration
-func (config *Config) HubClientTimeout() time.Duration {
-	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
+func (config *HubConfig) ClientTimeout() time.Duration {
+	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
+}
+
+// Config ...
+type Config struct {
+	HubConfig   *HubConfig
+	UseMockMode bool
+	Port        int
+	LogLevel    string
 }
 
 // GetLogLevel .....

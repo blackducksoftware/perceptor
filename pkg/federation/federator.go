@@ -21,6 +21,13 @@ under the License.
 
 package federation
 
+import (
+	"fmt"
+	"os"
+
+	log "github.com/sirupsen/logrus"
+)
+
 const (
 	actionChannelSize = 100
 )
@@ -29,17 +36,57 @@ const (
 type Federator struct {
 	responder *HTTPResponder
 	// model
-	hubs map[string]*Hub
+	config      *Config
+	hubPassword string
+	hubs        map[string]*Hub
 	// channels
+	stop    chan struct{}
 	actions chan FedAction
 }
 
 // NewFederator ...
 func NewFederator(config *Config) (*Federator, error) {
 	responder := NewHTTPResponder()
-	f := &Federator{
-		responder: responder,
-		hubs:      map[string]*Hub{},
-		actions:   make(chan FedAction, actionChannelSize)}
-	return f, nil
+	hubPassword, ok := os.LookupEnv(config.HubConfig.PasswordEnvVar)
+	if !ok {
+		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubConfig.PasswordEnvVar)
+	}
+	fed := &Federator{
+		responder:   responder,
+		config:      config,
+		hubPassword: hubPassword,
+		hubs:        map[string]*Hub{},
+		stop:        make(chan struct{}),
+		actions:     make(chan FedAction, actionChannelSize)}
+	return fed, nil
+}
+
+func (fed *Federator) setHubs(hubURLs []string) {
+	newHubURLs := map[string]bool{}
+	for _, hubURL := range hubURLs {
+		newHubURLs[hubURL] = true
+	}
+	// 1. create new hubs
+	hubConfig := fed.config.HubConfig
+	// TODO move this into a 'HubCreationManager' or something that can handle
+	// retries and failures intelligently
+	for hubURL := range newHubURLs {
+		if _, ok := fed.hubs[hubURL]; !ok {
+			hub, err := NewHub(hubConfig.User, fed.hubPassword, hubURL, hubConfig.Port, hubConfig.ClientTimeout())
+			if err == nil {
+				fed.hubs[hubURL] = hub
+			} else {
+				log.Errorf("unable to create Hub for URL %s: %s", hubURL, err.Error())
+			}
+		}
+	}
+	// 2. delete removed hubs
+	// TODO separate this into a delete manager, handling failures and retries
+	for hubURL, hub := range fed.hubs {
+		if _, ok := newHubURLs[hubURL]; !ok {
+			hub.Stop()
+			delete(fed.hubs, hubURL)
+			// TODO does any other clean up need to happen?
+		}
+	}
 }

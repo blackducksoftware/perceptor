@@ -197,24 +197,24 @@ type APIModelHub struct {
 
 // HTTPResponder ...
 type HTTPResponder struct {
-	GetModelChannel chan *FedGetModel
+	RequestsCh chan FedAction
 }
 
 // NewHTTPResponder .....
 func NewHTTPResponder() *HTTPResponder {
-	return &HTTPResponder{
-		GetModelChannel: make(chan *FedGetModel),
-	}
+	return &HTTPResponder{RequestsCh: make(chan FedAction)}
 }
 
 // GetModel .....
 func (hr *HTTPResponder) GetModel() *APIModel {
 	get := &FedGetModel{}
-	hr.GetModelChannel <- get
+	hr.RequestsCh <- get
 	return <-get.Done
 }
 
-func (hr *HTTPResponder) SetHubs(hubs *APISetHubsRequest)             {}
+func (hr *HTTPResponder) SetHubs(hubs *APISetHubsRequest) {
+	hr.RequestsCh <- &FedSetHubs{HubBaseURLs: hubs.HubURLs}
+}
 func (hr *HTTPResponder) UpdateConfig(config *APIUpdateConfigRequest) {}
 
 func (hr *HTTPResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {

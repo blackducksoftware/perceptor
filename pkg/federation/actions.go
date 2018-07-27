@@ -32,3 +32,11 @@ type FedGetModel struct {
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	// TODO
 }
+
+type FedSetHubs struct {
+	HubBaseURLs []string
+}
+
+func (fsh *FedSetHubs) FedApply(federator *Federator) {
+	federator.setHubs(fsh.HubBaseURLs)
+}
