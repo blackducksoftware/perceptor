@@ -35,15 +35,17 @@ import (
 
 // RunFederator .....
 func RunFederator(configPath string) {
-	log.Info("start")
+	stop := make(chan struct{})
+
+	log.Infof("RunFederator with config path %s", configPath)
 
 	config, err := GetConfig(configPath)
 	if err != nil {
-		log.Errorf("Failed to load configuration: %s", err.Error())
+		log.Errorf("Failed to load config file %s: %s", configPath, err.Error())
 		panic(err)
 	}
 	if config == nil {
-		err = fmt.Errorf("expected non-nil config, but got nil")
+		err = fmt.Errorf("expected non-nil config from path %s, but got nil", configPath)
 		log.Errorf(err.Error())
 		panic(err)
 	}
@@ -76,7 +78,11 @@ func RunFederator(configPath string) {
 		log.Infof("instantiated federator in real mode: %+v", federator)
 	}
 
-	addr := fmt.Sprintf(":%d", config.Port)
-	http.ListenAndServe(addr, nil)
+	log.Infof("start HTTP server on port %d", config.Port)
+	go func() {
+		addr := fmt.Sprintf(":%d", config.Port)
+		http.ListenAndServe(addr, nil)
+	}()
 	log.Info("Http server started!")
+	<-stop
 }

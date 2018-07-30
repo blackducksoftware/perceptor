@@ -34,6 +34,7 @@ import (
 func SetupHTTPServer(responder Responder) {
 	// state of the program
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("http request: GET model")
 		if r.Method == "GET" {
 			jsonBytes, err := json.MarshalIndent(responder.GetModel(), "", "  ")
 			if err != nil {
@@ -49,6 +50,7 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/sethubs", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("http request: PUT sethubs")
 		if r.Method == "PUT" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -68,6 +70,7 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/findproject", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("http request: POST findproject")
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -94,7 +97,33 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 
+	http.HandleFunc("/stackdump", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("http request: GET stackdump")
+		if r.Method == "GET" {
+			a, b := dumpStack()
+			dict := map[string]string{
+				"runtime": a,
+				"pprof":   b,
+			}
+			fmt.Printf("runtime:\n%s\n\n", a)
+			fmt.Printf("pprof:\n%s\n\n", b)
+			//			log.Printf()
+			//			log.Debugf("runtime: %s", )
+			jsonBytes, err := json.MarshalIndent(dict, "", "  ")
+			if err != nil {
+				responder.Error(w, r, err, 500)
+			} else {
+				header := w.Header()
+				header.Set(http.CanonicalHeaderKey("content-type"), "application/json")
+				fmt.Fprint(w, string(jsonBytes))
+			}
+		} else {
+			responder.NotFound(w, r)
+		}
+	})
+
 	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("http request: POST config")
 		if r.Method == "POST" {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -225,7 +254,9 @@ func NewHTTPResponder() *HTTPResponder {
 // GetModel .....
 func (hr *HTTPResponder) GetModel() *APIModel {
 	get := NewFedGetModel()
-	hr.RequestsCh <- get
+	go func() {
+		hr.RequestsCh <- get
+	}()
 	return <-get.Done
 }
 

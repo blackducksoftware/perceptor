@@ -24,6 +24,8 @@ package federation
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -47,17 +49,37 @@ type Federator struct {
 // NewFederator ...
 func NewFederator(config *Config) (*Federator, error) {
 	responder := NewHTTPResponder()
+	SetupHTTPServer(responder)
 	hubPassword, ok := os.LookupEnv(config.HubConfig.PasswordEnvVar)
 	if !ok {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubConfig.PasswordEnvVar)
 	}
+	actions := make(chan FedAction, actionChannelSize)
+	go func() {
+		for {
+			select {
+			case a := <-responder.RequestsCh:
+				actions <- a
+			}
+		}
+	}()
 	fed := &Federator{
 		responder:   responder,
 		config:      config,
 		hubPassword: hubPassword,
 		hubs:        map[string]*Hub{},
 		stop:        make(chan struct{}),
-		actions:     make(chan FedAction, actionChannelSize)}
+		actions:     actions}
+	go func() {
+		for {
+			a := <-actions
+			log.Debugf("received action %s", reflect.TypeOf(a))
+			start := time.Now()
+			a.FedApply(fed)
+			stop := time.Now()
+			log.Debugf("finished processing action -- %s", stop.Sub(start))
+		}
+	}()
 	return fed, nil
 }
 
