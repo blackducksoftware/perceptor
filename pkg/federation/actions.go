@@ -21,39 +21,48 @@ under the License.
 
 package federation
 
+// FedAction ...
 type FedAction interface {
 	FedApply(federator *Federator)
 }
 
+// FedGetModel ...
 type FedGetModel struct {
 	Done chan *APIModel
 }
 
+// NewFedGetModel ...
 func NewFedGetModel() *FedGetModel {
 	return &FedGetModel{Done: make(chan *APIModel)}
 }
 
+// FedApply ...
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	// TODO
 }
 
+// FedSetHubs ...
 type FedSetHubs struct {
 	HubBaseURLs []string
 }
 
+// FedApply ...
 func (fsh *FedSetHubs) FedApply(federator *Federator) {
 	federator.setHubs(fsh.HubBaseURLs)
 }
 
+// FedFindProject ...
 type FedFindProject struct {
 	Request  APIProjectSearchRequest
 	Response chan *APIProjectSearchResponse
 }
 
+// NewFedFindProject ...
 func NewFedFindProject(request APIProjectSearchRequest) *FedFindProject {
 	return &FedFindProject{Request: request, Response: make(chan *APIProjectSearchResponse)}
 }
 
+// FedApply ...
 func (ffp *FedFindProject) FedApply(federator *Federator) {
 	// TODO talk to all the hubs, ask them for their projects;
 	// get back:
@@ -63,9 +72,11 @@ func (ffp *FedFindProject) FedApply(federator *Federator) {
 	//     *might* be present, but we don't know)
 }
 
+// FedUpdateConfig ...
 type FedUpdateConfig struct {
 }
 
+// FedApply ...
 func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
 	// TODO
 }

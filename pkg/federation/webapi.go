@@ -128,12 +128,15 @@ type Responder interface {
 	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
 }
 
+// MockResponder ...
 type MockResponder struct{}
 
+// NewMockResponder ...
 func NewMockResponder() *MockResponder {
 	return &MockResponder{}
 }
 
+// GetModel ...
 func (mr *MockResponder) GetModel() *APIModel {
 	return &APIModel{Hubs: map[string]*APIModelHub{
 		"http://blackducksoftware/com": &APIModelHub{
@@ -145,42 +148,57 @@ func (mr *MockResponder) GetModel() *APIModel {
 	}}
 }
 
-func (mr *MockResponder) SetHubs(hubs *APISetHubsRequest)             {}
+// SetHubs ...
+func (mr *MockResponder) SetHubs(hubs *APISetHubsRequest) {}
+
+// UpdateConfig ...
 func (mr *MockResponder) UpdateConfig(config *APIUpdateConfigRequest) {}
 
+// FindProject ...
 func (mr *MockResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {
 	return &APIProjectSearchResponse{}
 }
 
-func (mr *MockResponder) NotFound(w http.ResponseWriter, r *http.Request)                         {}
+// NotFound ...
+func (mr *MockResponder) NotFound(w http.ResponseWriter, r *http.Request) {}
+
+// Error ...
 func (mr *MockResponder) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {}
 
+// APIModel ...
 type APIModel struct {
 	// map of hub URL to ... ? hub info?
 	Hubs map[string]*APIModelHub
 }
 
+// APISetHubsRequest ...
 type APISetHubsRequest struct {
 	HubURLs []string
 }
 
+// APIUpdateConfigRequest ...
 type APIUpdateConfigRequest struct {
 	// TODO anything we need here?
 }
 
+// APIProjectSearchRequest ...
 type APIProjectSearchRequest struct {
 	ProjectName string
 }
+
+// APIProjectSearchResponse ...
 type APIProjectSearchResponse struct {
 	// map of hubBaseURL to project
 	Projects map[string]*APIProject
 }
 
+// APIProject ...
 type APIProject struct {
 	Name string
 	URL  string
 }
 
+// APIModelHub ...
 type APIModelHub struct {
 	// can we log in to the hub?
 	IsLoggedIn bool
@@ -211,13 +229,17 @@ func (hr *HTTPResponder) GetModel() *APIModel {
 	return <-get.Done
 }
 
+// SetHubs ...
 func (hr *HTTPResponder) SetHubs(hubs *APISetHubsRequest) {
 	hr.RequestsCh <- &FedSetHubs{HubBaseURLs: hubs.HubURLs}
 }
+
+// UpdateConfig ...
 func (hr *HTTPResponder) UpdateConfig(config *APIUpdateConfigRequest) {
 	hr.RequestsCh <- &FedUpdateConfig{}
 }
 
+// FindProject ...
 func (hr *HTTPResponder) FindProject(request APIProjectSearchRequest) *APIProjectSearchResponse {
 	req := NewFedFindProject(request)
 	hr.RequestsCh <- req

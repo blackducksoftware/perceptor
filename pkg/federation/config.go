@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// HubConfig ...
 type HubConfig struct {
 	User                      string
 	PasswordEnvVar            string
@@ -36,7 +37,7 @@ type HubConfig struct {
 	Port                      int
 }
 
-// HubClientTimeout converts the milliseconds to a duration
+// ClientTimeout converts the milliseconds to a duration
 func (config *HubConfig) ClientTimeout() time.Duration {
 	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
 }

@@ -134,6 +134,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	return &hub, nil
 }
 
+// Stop ...
 func (hub *Hub) Stop() {
 	close(hub.stop)
 }
