@@ -84,6 +84,7 @@ func NewFederator(config *Config) (*Federator, error) {
 }
 
 func (fed *Federator) setHubs(hubURLs []string) {
+	// TODO move this into a goroutine, so that it won't block the goroutine processing federator actions
 	newHubURLs := map[string]bool{}
 	for _, hubURL := range hubURLs {
 		newHubURLs[hubURL] = true
