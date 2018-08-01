@@ -133,12 +133,12 @@ func (rtm *RoutineTaskManager) startHubInitialScanChecking() *util.Scheduler {
 			rtm.actions <- &actions.FetchScanInitial{Scan: &model.HubImageScan{Sha: (*image).Sha, Scan: scan, Err: err}}
 		}
 	}
-	return util.NewScheduler(rtm.Timings.CheckHubThrottle, rtm.stop, action)
+	return util.NewScheduler(rtm.Timings.CheckHubThrottle, rtm.stop, false, action)
 }
 
 func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *util.Scheduler {
 	log.Info("starting to poll hub for scan completion")
-	return util.NewScheduler(rtm.Timings.CheckHubForCompletedScansPause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.CheckHubForCompletedScansPause, rtm.stop, false, func() {
 		log.Debug("checking hub for completion of running hub scans")
 		rtm.actions <- &actions.CheckScansCompletion{Continuation: func(images *[]model.Image) {
 			if images == nil {
@@ -155,20 +155,20 @@ func (rtm *RoutineTaskManager) startPollingHubForScanCompletion() *util.Schedule
 
 func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Scheduler {
 	log.Info("starting checking for stalled scans")
-	return util.NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.CheckForStalledScansPause, rtm.stop, false, func() {
 		log.Debug("checking for stalled scans")
 		rtm.actions <- &actions.RequeueStalledScans{StalledScanClientTimeout: rtm.GetTimings().StalledScanClientTimeout}
 	})
 }
 
 func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.ModelMetricsPause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.ModelMetricsPause, rtm.stop, false, func() {
 		rtm.actions <- &actions.GetMetrics{Continuation: recordModelMetrics}
 	})
 }
 
 func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.RefreshImagePause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.RefreshImagePause, rtm.stop, false, func() {
 		log.Debug("requesting completed scans for rechecking hub")
 
 		var wg sync.WaitGroup
@@ -186,14 +186,14 @@ func (rtm *RoutineTaskManager) startCheckingForUpdatesForCompletedScans() *util.
 }
 
 func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.EnqueueImagesForRefreshPause, rtm.stop, false, func() {
 		log.Debug("enqueueing images in need of refreshing")
 		rtm.actions <- &actions.EnqueueImagesNeedingRefreshing{RefreshThresholdDuration: rtm.GetTimings().RefreshThresholdDuration}
 	})
 }
 
 func (rtm *RoutineTaskManager) startReloggingInToHub() *util.Scheduler {
-	return util.NewScheduler(rtm.Timings.HubReloginPause, rtm.stop, func() {
+	return util.NewScheduler(rtm.Timings.HubReloginPause, rtm.stop, false, func() {
 		err := rtm.hubClient.Login()
 		if err != nil {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
@@ -203,7 +203,7 @@ func (rtm *RoutineTaskManager) startReloggingInToHub() *util.Scheduler {
 }
 
 func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Scheduler {
-	return util.NewScheduler(pause, rtm.stop, func() {
+	return util.NewScheduler(pause, rtm.stop, false, func() {
 		log.Debug("cleaning up orphaned images")
 		action := &actions.PruneOrphanedImages{CompletedImageShas: make(chan []string)}
 		rtm.actions <- action
