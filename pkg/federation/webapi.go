@@ -237,6 +237,8 @@ type APIModelHub struct {
 	IsCircuitBreakerEnabled bool
 	// map of project name to ... ? hub URL?
 	Projects map[string]string
+	// map of code location name to mapped project version url
+	CodeLocations map[string]string
 	// bad things that have happened
 	Errors []string
 }

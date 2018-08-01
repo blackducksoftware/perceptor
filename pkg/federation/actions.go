@@ -45,8 +45,12 @@ func (fgm *FedGetModel) FedApply(federator *Federator) {
 			errors[ix] = err.Error()
 		}
 		projects := map[string]string{}
-		for _, name := range hub.ProjectNames() {
-			projects[name] = "TODO"
+		for name, url := range hub.Projects() {
+			projects[name] = url
+		}
+		codeLocations := map[string]string{}
+		for name, url := range hub.CodeLocations() {
+			codeLocations[name] = url
 		}
 		hubs[hubURL] = &APIModelHub{
 			Errors:                  errors,
@@ -54,6 +58,7 @@ func (fgm *FedGetModel) FedApply(federator *Federator) {
 			IsCircuitBreakerEnabled: false, // TODO
 			IsLoggedIn:              false, // TODO
 			Projects:                projects,
+			CodeLocations:           codeLocations,
 		}
 	}
 	model := &APIModel{Hubs: hubs}
