@@ -159,7 +159,7 @@ func (hf *Fetcher) startDeletingScans() {
 			time.Sleep(1 * time.Minute)
 			var scanName *string
 			for key := range hf.scansToDelete {
-				scanName = &key
+				*scanName = key
 				break
 			}
 			if scanName != nil {
