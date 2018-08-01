@@ -21,6 +21,8 @@ under the License.
 
 package federation
 
+import log "github.com/sirupsen/logrus"
+
 // FedAction ...
 type FedAction interface {
 	FedApply(federator *Federator)
@@ -103,4 +105,23 @@ type FedUpdateConfig struct {
 // FedApply ...
 func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
 	// TODO
+}
+
+// HubCreationResult ...
+type HubCreationResult struct {
+	hub *Hub
+	err error
+}
+
+// FedApply ...
+func (hcr *HubCreationResult) FedApply(federator *Federator) {
+	if hcr.err == nil {
+		if _, ok := federator.hubs[hcr.hub.baseURL]; ok {
+			log.Errorf("cannot add hub %s: already present", hcr.hub.baseURL)
+			return
+		}
+		federator.hubs[hcr.hub.baseURL] = hcr.hub
+	} else {
+		log.Errorf("unable to add hub %s: %s", hcr.hub.baseURL, hcr.err.Error())
+	}
 }

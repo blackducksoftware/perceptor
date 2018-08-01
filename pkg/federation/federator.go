@@ -22,8 +22,6 @@ under the License.
 package federation
 
 import (
-	"fmt"
-	"os"
 	"reflect"
 	"time"
 
@@ -36,11 +34,11 @@ const (
 
 // Federator ...
 type Federator struct {
-	responder *HTTPResponder
+	responder  *HTTPResponder
+	hubCreator *HubCreator
 	// model
-	config      *Config
-	hubPassword string
-	hubs        map[string]*Hub
+	config *Config
+	hubs   map[string]*Hub
 	// channels
 	stop    chan struct{}
 	actions chan FedAction
@@ -50,9 +48,9 @@ type Federator struct {
 func NewFederator(config *Config) (*Federator, error) {
 	responder := NewHTTPResponder()
 	SetupHTTPServer(responder)
-	hubPassword, ok := os.LookupEnv(config.HubConfig.PasswordEnvVar)
-	if !ok {
-		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubConfig.PasswordEnvVar)
+	hubCreator, err := NewHubCreator(config.HubConfig)
+	if err != nil {
+		return nil, err
 	}
 	actions := make(chan FedAction, actionChannelSize)
 	go func() {
@@ -60,16 +58,18 @@ func NewFederator(config *Config) (*Federator, error) {
 			select {
 			case a := <-responder.RequestsCh:
 				actions <- a
+			case d := <-hubCreator.didFinishHubCreation:
+				actions <- d
 			}
 		}
 	}()
 	fed := &Federator{
-		responder:   responder,
-		config:      config,
-		hubPassword: hubPassword,
-		hubs:        map[string]*Hub{},
-		stop:        make(chan struct{}),
-		actions:     actions}
+		responder:  responder,
+		hubCreator: hubCreator,
+		config:     config,
+		hubs:       map[string]*Hub{},
+		stop:       make(chan struct{}),
+		actions:    actions}
 	go func() {
 		for {
 			a := <-actions
@@ -84,28 +84,22 @@ func NewFederator(config *Config) (*Federator, error) {
 }
 
 func (fed *Federator) setHubs(hubURLs []string) {
-	// TODO move this into a goroutine, so that it won't block the goroutine processing federator actions
 	newHubURLs := map[string]bool{}
 	for _, hubURL := range hubURLs {
 		newHubURLs[hubURL] = true
 	}
-	// 1. create new hubs
-	hubConfig := fed.config.HubConfig
-	// TODO move this into a 'HubCreationManager' or something that can handle
-	// retries and failures intelligently
+	hubsToCreate := map[string]bool{}
 	for hubURL := range newHubURLs {
 		if _, ok := fed.hubs[hubURL]; !ok {
-			fetchAllProjectsPause := 30 * time.Minute
-			hub, err := NewHub(hubConfig.User, fed.hubPassword, hubURL, hubConfig.Port, hubConfig.ClientTimeout(), fetchAllProjectsPause)
-			if err == nil {
-				fed.hubs[hubURL] = hub
-			} else {
-				log.Errorf("unable to create Hub for URL %s: %s", hubURL, err.Error())
-			}
+			hubsToCreate[hubURL] = true
 		}
 	}
+	// 1. create new hubs
+	// TODO handle retries and failures intelligently
+	go func() {
+		fed.hubCreator.createHubs(hubsToCreate)
+	}()
 	// 2. delete removed hubs
-	// TODO separate this into a delete manager, handling failures and retries
 	for hubURL, hub := range fed.hubs {
 		if _, ok := newHubURLs[hubURL]; !ok {
 			hub.Stop()

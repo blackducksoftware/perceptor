@@ -31,15 +31,21 @@ import (
 
 // HubConfig ...
 type HubConfig struct {
-	User                      string
-	PasswordEnvVar            string
-	ClientTimeoutMilliseconds int
-	Port                      int
+	User                         string
+	PasswordEnvVar               string
+	ClientTimeoutMilliseconds    int
+	Port                         int
+	FetchAllProjectsPauseMinutes int
 }
 
 // ClientTimeout converts the milliseconds to a duration
 func (config *HubConfig) ClientTimeout() time.Duration {
 	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
+}
+
+// FetchAllProjectsPause converts the minutes to a duration
+func (config *HubConfig) FetchAllProjectsPause() time.Duration {
+	return time.Duration(config.FetchAllProjectsPauseMinutes) * time.Minute
 }
 
 // Config ...
