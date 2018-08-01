@@ -94,7 +94,8 @@ func (fed *Federator) setHubs(hubURLs []string) {
 	// retries and failures intelligently
 	for hubURL := range newHubURLs {
 		if _, ok := fed.hubs[hubURL]; !ok {
-			hub, err := NewHub(hubConfig.User, fed.hubPassword, hubURL, hubConfig.Port, hubConfig.ClientTimeout())
+			fetchAllProjectsPause := 30 * time.Minute
+			hub, err := NewHub(hubConfig.User, fed.hubPassword, hubURL, hubConfig.Port, hubConfig.ClientTimeout(), fetchAllProjectsPause)
 			if err == nil {
 				fed.hubs[hubURL] = hub
 			} else {

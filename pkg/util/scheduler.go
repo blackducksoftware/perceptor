@@ -28,20 +28,24 @@ import (
 // Scheduler periodically executes `action`, with a pause of `delay` between
 // invocations, and stops when receiving an event on `stop`.
 type Scheduler struct {
-	delay    time.Duration
-	stop     <-chan struct{}
-	setDelay chan time.Duration
-	action   func()
+	delay          time.Duration
+	stop           <-chan struct{}
+	setDelay       chan time.Duration
+	action         func()
+	runImmediately bool
 }
 
 // NewScheduler ...
-func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
-	scheduler := &Scheduler{delay: delay, stop: stop, setDelay: make(chan time.Duration), action: action}
+func NewScheduler(delay time.Duration, stop <-chan struct{}, runImmediately bool, action func()) *Scheduler {
+	scheduler := &Scheduler{delay: delay, stop: stop, setDelay: make(chan time.Duration), action: action, runImmediately: runImmediately}
 	go scheduler.start()
 	return scheduler
 }
 
 func (scheduler *Scheduler) start() {
+	if scheduler.runImmediately {
+		scheduler.action()
+	}
 	timer := time.NewTimer(scheduler.delay)
 	for {
 		select {

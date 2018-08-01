@@ -72,7 +72,7 @@ type Hub struct {
 //  - unable to instantiate an API client
 //  - unable to log in to the Hub
 //  - unable to get hub version from the Hub
-func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration) (*Hub, error) {
+func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) (*Hub, error) {
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
 	if err != nil {
@@ -130,7 +130,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 		}
 	}()
 	hub.loginScheduler = hub.startLoginScheduler()
-	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler()
+	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
 	return &hub, nil
 }
 
@@ -196,7 +196,7 @@ func (hub *Hub) ProjectNames() []string {
 
 func (hub *Hub) startLoginScheduler() *util.Scheduler {
 	pause := 30 * time.Minute
-	return util.NewScheduler(pause, hub.stop, func() {
+	return util.NewScheduler(pause, hub.stop, false, func() {
 		err := hub.login()
 		hub.didLoginCh <- err
 		if err != nil {
@@ -207,9 +207,9 @@ func (hub *Hub) startLoginScheduler() *util.Scheduler {
 	})
 }
 
-func (hub *Hub) startFetchProjectsScheduler() *util.Scheduler {
-	pause := 30 * time.Minute
-	return util.NewScheduler(pause, hub.stop, func() {
+func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
+	return util.NewScheduler(pause, hub.stop, true, func() {
+		log.Debugf("starting to fetch all project names")
 		projectNames, err := hub.fetchAllProjectNames()
 		if err == nil {
 			log.Infof("successfully fetched %d project names from %s", len(projectNames), hub.baseURL)
@@ -237,7 +237,8 @@ func (hub *Hub) startFetchProjectsScheduler() *util.Scheduler {
 // }
 
 func (hub *Hub) fetchAllProjectNames() ([]string, error) {
-	options := &hubapi.GetListOptions{}
+	limit := 2000000
+	options := &hubapi.GetListOptions{Limit: &limit}
 	projectList, err := hub.client.ListProjects(options) //circuitBreaker.ListAllProjects()
 	if err != nil {
 		return nil, err
