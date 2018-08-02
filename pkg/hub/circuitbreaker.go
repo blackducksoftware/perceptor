@@ -142,5 +142,5 @@ func (cb *CircuitBreaker) IssueRequest(description string, request func() error)
 	} else {
 		cb.failure()
 	}
-	return nil
+	return err
 }
