@@ -56,7 +56,8 @@ func (fgm *FedGetModel) FedApply(federator *Federator) {
 		}
 		hubs[hubURL] = &APIModelHub{
 			Errors:                  errors,
-			HasLoadedAllProjects:    false, // TODO
+			HasLoadedAllProjects:    hub.projects != nil,
+			Status:                  hub.hubStatus.String(),
 			IsCircuitBreakerEnabled: false, // TODO
 			IsLoggedIn:              false, // TODO
 			Projects:                projects,
@@ -110,18 +111,13 @@ func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
 // HubCreationResult ...
 type HubCreationResult struct {
 	hub *Hub
-	err error
 }
 
 // FedApply ...
 func (hcr *HubCreationResult) FedApply(federator *Federator) {
-	if hcr.err == nil {
-		if _, ok := federator.hubs[hcr.hub.baseURL]; ok {
-			log.Errorf("cannot add hub %s: already present", hcr.hub.baseURL)
-			return
-		}
-		federator.hubs[hcr.hub.baseURL] = hcr.hub
-	} else {
-		log.Errorf("unable to add hub %s: %s", hcr.hub.baseURL, hcr.err.Error())
+	if _, ok := federator.hubs[hcr.hub.host]; ok {
+		log.Errorf("cannot add hub %s: already present", hcr.hub.host)
+		return
 	}
+	federator.hubs[hcr.hub.host] = hcr.hub
 }

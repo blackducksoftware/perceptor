@@ -25,9 +25,7 @@ import (
 	"fmt"
 	"time"
 
-	// "github.com/blackducksoftware/hub-client-go/hubapi"
-	"github.com/blackducksoftware/hub-client-go/hubapi"
-	"github.com/blackducksoftware/hub-client-go/hubclient"
+	h "github.com/blackducksoftware/perceptor/pkg/hub"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,16 +35,50 @@ const (
 	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
+// HubStatus describes the state of a hub client
+type HubStatus int
+
+// .....
+const (
+	HubStatusInitializing HubStatus = iota
+	HubStatusError        HubStatus = iota
+	HubStatusUp           HubStatus = iota
+	HubStatusDown         HubStatus = iota
+)
+
+// String .....
+func (status HubStatus) String() string {
+	switch status {
+	case HubStatusInitializing:
+		return "HubStatusInitializing"
+	case HubStatusError:
+		return "HubStatusError"
+	case HubStatusUp:
+		return "HubStatusUp"
+	case HubStatusDown:
+		return "HubStatusDown"
+	}
+	panic(fmt.Errorf("invalid HubStatus value: %d", status))
+}
+
+// MarshalJSON .....
+func (status HubStatus) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, status.String())
+	return []byte(jsonString), nil
+}
+
+// MarshalText .....
+func (status HubStatus) MarshalText() (text []byte, err error) {
+	return []byte(status.String()), nil
+}
+
 // Hub .....
 type Hub struct {
-	client *hubclient.Client
-	// circuitBreaker *CircuitBreaker
-	HubVersion string
-	// hub credentials
-	username string
-	port     int
-	password string
-	baseURL  string
+	fetcher *h.Fetcher
+	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
+	//   all code locations) and one for frequent, quick requests
+	hubStatus HubStatus
+	host      string
 	// data
 	codeLocations map[string]string
 	projects      map[string]string
@@ -57,16 +89,13 @@ type Hub struct {
 	fetchProjectsScheduler      *util.Scheduler
 	fetchCodeLocationsScheduler *util.Scheduler
 	// channels
-	stop                         chan struct{}
-	resetCircuitBreakerCh        chan struct{}
-	setTimeoutCh                 chan time.Duration
-	getCodeLocationsCh           chan chan map[string]string
-	getProjectsCh                chan chan map[string]string
-	didLoginCh                   chan error
-	didFetchCodeLocationsCh      chan map[string]string
-	didFetchCodeLocationsErrorCh chan error
-	didFetchProjectsCh           chan map[string]string
-	didFetchProjectsErrorCh      chan error
+	stop                    chan struct{}
+	resetCircuitBreakerCh   chan struct{}
+	getCodeLocationsCh      chan chan map[string]string
+	getProjectsCh           chan chan map[string]string
+	didLoginCh              chan error
+	didFetchCodeLocationsCh chan *fetchCodeLocationsResult
+	didFetchProjectsCh      chan *fetchProjectsResult
 }
 
 // NewHub returns a new, logged-in Hub.
@@ -74,94 +103,67 @@ type Hub struct {
 //  - unable to instantiate an API client
 //  - unable to log in to the Hub
 //  - unable to get hub version from the Hub
-func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) (*Hub, error) {
-	baseURL := fmt.Sprintf("https://%s:%d", host, port)
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
-	if err != nil {
-		return nil, err
-	}
-	hub := Hub{
-		client: client,
-		// circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration, client),
-		username: username,
-		password: password,
-		port:     port,
-		baseURL:  baseURL,
+func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) *Hub {
+	hub := &Hub{
+		host: host,
 		//
 		codeLocations: nil,
 		projects:      nil,
 		errors:        []error{},
 		//
 		stop: make(chan struct{}),
-		resetCircuitBreakerCh:        make(chan struct{}),
-		setTimeoutCh:                 make(chan time.Duration),
-		getProjectsCh:                make(chan chan map[string]string),
-		getCodeLocationsCh:           make(chan chan map[string]string),
-		didLoginCh:                   make(chan error),
-		didFetchCodeLocationsCh:      make(chan map[string]string),
-		didFetchCodeLocationsErrorCh: make(chan error),
-		didFetchProjectsCh:           make(chan map[string]string),
-		didFetchProjectsErrorCh:      make(chan error)}
-	err = hub.login()
+		resetCircuitBreakerCh:   make(chan struct{}),
+		getProjectsCh:           make(chan chan map[string]string),
+		getCodeLocationsCh:      make(chan chan map[string]string),
+		didLoginCh:              make(chan error),
+		didFetchCodeLocationsCh: make(chan *fetchCodeLocationsResult),
+		didFetchProjectsCh:      make(chan *fetchProjectsResult)}
+	// initialize hub client
+	fetcher, err := h.NewFetcher(username, password, host, port, hubClientTimeout)
 	if err != nil {
-		return nil, err
+		hub.errors = append(hub.errors, err)
+		return hub
 	}
-	err = hub.fetchHubVersion()
-	if err != nil {
-		return nil, err
-	}
+	hub.fetcher = fetcher
 	// action processing
 	go func() {
 		for {
 			select {
-			case timeout := <-hub.setTimeoutCh:
-				hub.client.SetTimeout(timeout)
 			case <-hub.resetCircuitBreakerCh:
 				// TODO hub.circuitBreaker.Reset()
 			case ch := <-hub.getProjectsCh:
 				ch <- hub.projects
-			case projects := <-hub.didFetchProjectsCh:
-				hub.projects = projects
-			case codeLocations := <-hub.didFetchCodeLocationsCh:
-				hub.codeLocations = codeLocations
-			case err := <-hub.didFetchProjectsErrorCh:
-				// TODO don't let this grow without bounds
-				hub.errors = append(hub.errors, err)
+			case ch := <-hub.getCodeLocationsCh:
+				ch <- hub.codeLocations
+			case result := <-hub.didFetchProjectsCh:
+				if result.err != nil {
+					hub.errors = append(hub.errors, err)
+				} else {
+					hub.projects = result.projects
+				}
+			case result := <-hub.didFetchCodeLocationsCh:
+				if result.err != nil {
+					// TODO don't let this grow without bounds
+					hub.errors = append(hub.errors, err)
+				} else {
+					hub.codeLocations = result.codeLocations
+				}
 			case err := <-hub.didLoginCh:
 				if err != nil {
 					hub.errors = append(hub.errors, err)
 				}
-			case ch := <-hub.getCodeLocationsCh:
-				ch <- hub.codeLocations
-			case err := <-hub.didFetchCodeLocationsErrorCh:
-				hub.errors = append(hub.errors, err)
 			}
 		}
 	}()
 	hub.loginScheduler = hub.startLoginScheduler()
 	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
 	hub.fetchCodeLocationsScheduler = hub.startFetchCodeLocationsScheduler(fetchAllProjectsPause)
-	return &hub, nil
+	return hub
 }
 
 // Stop ...
 func (hub *Hub) Stop() {
 	close(hub.stop)
-}
-
-func (hub *Hub) fetchHubVersion() error {
-	// start := time.Now()
-	currentVersion, err := hub.client.CurrentVersion()
-	// recordHubResponse("version", err == nil)
-	// recordHubResponseTime("version", time.Now().Sub(start))
-	if err != nil {
-		log.Errorf("unable to get hub version: %s", err.Error())
-		return err
-	}
-
-	hub.HubVersion = currentVersion.Version
-	log.Infof("successfully got hub version %s", hub.HubVersion)
-	return nil
 }
 
 // // ResetCircuitBreaker ...
@@ -176,16 +178,7 @@ func (hub *Hub) fetchHubVersion() error {
 // }
 
 func (hub *Hub) login() error {
-	// start := time.Now()
-	err := hub.client.Login(hub.username, hub.password)
-	// recordHubResponse("login", err == nil)
-	// recordHubResponseTime("login", time.Now().Sub(start))
-	return err
-}
-
-// SetTimeout ...
-func (hub *Hub) SetTimeout(timeout time.Duration) {
-	hub.setTimeoutCh <- timeout
+	return hub.fetcher.Login()
 }
 
 // CodeLocations ...
@@ -209,68 +202,57 @@ func (hub *Hub) startLoginScheduler() *util.Scheduler {
 	return util.NewScheduler(pause, hub.stop, false, func() {
 		err := hub.login()
 		hub.didLoginCh <- err
-		if err != nil {
-			log.Errorf("unable to re-login to hub: %s", err.Error())
-		} else {
-			log.Infof("successfully re-logged in to hub %s", hub.baseURL)
-		}
 	})
 }
 
 func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
 	return util.NewScheduler(pause, hub.stop, true, func() {
 		log.Debugf("starting to fetch all project")
-		projects, err := hub.fetchAllProjects()
-		if err == nil {
-			log.Infof("successfully fetched %d projects from %s", len(projects), hub.baseURL)
-			hub.didFetchProjectsCh <- projects
-		} else {
-			log.Errorf("unable to fetch projects:  %s", err.Error())
-			hub.didFetchProjectsErrorCh <- err
-		}
+		result := hub.fetchAllProjects()
+		hub.didFetchProjectsCh <- result
 	})
 }
 
 func (hub *Hub) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
 	return util.NewScheduler(pause, hub.stop, true, func() {
 		log.Debugf("starting to fetch all code locations")
-		cls, err := hub.fetchAllCodeLocations()
-		if err == nil {
-			log.Infof("successfully fetched %d cls from %s", len(cls), hub.baseURL)
-			hub.didFetchCodeLocationsCh <- cls
-		} else {
-			log.Errorf("unable to fetch code locations:  %s", err.Error())
-			hub.didFetchCodeLocationsErrorCh <- err
-		}
+		result := hub.fetchAllCodeLocations()
+		hub.didFetchCodeLocationsCh <- result
 	})
 }
 
 // Hub api calls
 
-func (hub *Hub) fetchAllCodeLocations() (map[string]string, error) {
-	limit := 2000000
-	options := &hubapi.GetListOptions{Limit: &limit}
-	codeLocationList, err := hub.client.ListAllCodeLocations(options) //circuitBreaker.ListAllCodeLocations()
+type fetchCodeLocationsResult struct {
+	codeLocations map[string]string
+	err           error
+}
+
+func (hub *Hub) fetchAllCodeLocations() *fetchCodeLocationsResult {
+	codeLocationList, err := hub.fetcher.ListAllCodeLocations()
 	if err != nil {
-		return nil, err
+		return &fetchCodeLocationsResult{codeLocations: nil, err: err}
 	}
 	cls := map[string]string{}
 	for _, cl := range codeLocationList.Items {
 		cls[cl.Name] = cl.MappedProjectVersion
 	}
-	return cls, nil
+	return &fetchCodeLocationsResult{codeLocations: cls, err: nil}
 }
 
-func (hub *Hub) fetchAllProjects() (map[string]string, error) {
-	limit := 2000000
-	options := &hubapi.GetListOptions{Limit: &limit}
-	projectList, err := hub.client.ListProjects(options) //circuitBreaker.ListAllProjects()
+type fetchProjectsResult struct {
+	projects map[string]string
+	err      error
+}
+
+func (hub *Hub) fetchAllProjects() *fetchProjectsResult {
+	projectList, err := hub.fetcher.ListAllProjects()
 	if err != nil {
-		return nil, err
+		return &fetchProjectsResult{projects: nil, err: err}
 	}
 	projects := map[string]string{}
 	for _, proj := range projectList.Items {
 		projects[proj.Name] = proj.Meta.Href
 	}
-	return projects, nil
+	return &fetchProjectsResult{projects: projects, err: nil}
 }

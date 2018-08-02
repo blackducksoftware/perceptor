@@ -168,7 +168,7 @@ func NewMockResponder() *MockResponder {
 // GetModel ...
 func (mr *MockResponder) GetModel() *APIModel {
 	return &APIModel{Hubs: map[string]*APIModelHub{
-		"http://blackducksoftware/com": &APIModelHub{
+		"http://blackducksoftware/com": {
 			HasLoadedAllProjects:    false,
 			IsCircuitBreakerEnabled: false,
 			IsLoggedIn:              false,
@@ -241,6 +241,8 @@ type APIModelHub struct {
 	CodeLocations map[string]string
 	// bad things that have happened
 	Errors []string
+	// status
+	Status string
 }
 
 // HTTPResponder ...

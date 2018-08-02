@@ -25,13 +25,10 @@ import (
 	"fmt"
 	"math"
 	"time"
-
-	"github.com/blackducksoftware/hub-client-go/hubapi"
 )
 
 // CircuitBreaker .....
 type CircuitBreaker struct {
-	Client              ClientInterface
 	State               CircuitBreakerState
 	NextCheckTime       *time.Time
 	MaxBackoffDuration  time.Duration
@@ -40,9 +37,8 @@ type CircuitBreaker struct {
 }
 
 // NewCircuitBreaker .....
-func NewCircuitBreaker(maxBackoffDuration time.Duration, client ClientInterface) *CircuitBreaker {
+func NewCircuitBreaker(maxBackoffDuration time.Duration) *CircuitBreaker {
 	cb := &CircuitBreaker{
-		Client:              client,
 		NextCheckTime:       nil,
 		MaxBackoffDuration:  maxBackoffDuration,
 		ConsecutiveFailures: 0,
@@ -129,122 +125,22 @@ func (cb *CircuitBreaker) setNextCheckTime() {
 	cb.NextCheckTime = &nextCheckTime
 }
 
-// // ListAllCodeLocations ...
-// func (cb *CircuitBreaker) ListAllCodeLocations() (*hubapi.CodeLocationList, error) {
-// 	if !cb.isAbleToIssueRequest() {
-// 		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
-// 	}
-// 	start := time.Now()
-// 	val, err := cb.Client.ListAllCodeLocations(nil)
-// 	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
-// 	recordHubResponse("allCodeLocations", err == nil)
-// 	if err == nil {
-// 		cb.success()
-// 	} else {
-// 		cb.failure()
-// 	}
-// 	return val, err
-// }
-
-// ListCodeLocations ...
-func (cb *CircuitBreaker) ListCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
+// IssueRequest synchronously:
+//  - checks whether it's enabled
+//  - runs 'request'
+//  - looks at the result of 'request', disabling itself on failure
+func (cb *CircuitBreaker) IssueRequest(description string, request func() error) error {
 	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch code location list: circuit breaker disabled")
-	}
-	queryString := fmt.Sprintf("name:%s", codeLocationName)
-	start := time.Now()
-	val, err := cb.Client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
-	recordHubResponseTime("allCodeLocations", time.Now().Sub(start))
-	recordHubResponse("allCodeLocations", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
-}
-
-// GetProjectVersion ...
-func (cb *CircuitBreaker) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project version: circuit breaker disabled")
+		return fmt.Errorf("unable to issue request %s, circuit breaker is disabled", description)
 	}
 	start := time.Now()
-	val, err := cb.Client.GetProjectVersion(link)
-	recordHubResponseTime("projectVersion", time.Now().Sub(start))
-	recordHubResponse("projectVersion", err == nil)
+	err := request()
+	recordHubResponseTime(description, time.Now().Sub(start))
+	recordHubResponse(description, err == nil)
 	if err == nil {
 		cb.success()
 	} else {
 		cb.failure()
 	}
-	return val, err
-}
-
-// GetProject ...
-func (cb *CircuitBreaker) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project: circuit breaker disabled")
-	}
-	start := time.Now()
-	val, err := cb.Client.GetProject(link)
-	recordHubResponseTime("project", time.Now().Sub(start))
-	recordHubResponse("project", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
-}
-
-// GetProjectVersionRiskProfile ...
-func (cb *CircuitBreaker) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project version risk profile: circuit breaker disabled")
-	}
-	startGetRiskProfile := time.Now()
-	val, err := cb.Client.GetProjectVersionRiskProfile(link)
-	recordHubResponseTime("projectVersionRiskProfile", time.Now().Sub(startGetRiskProfile))
-	recordHubResponse("projectVersionRiskProfile", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
-}
-
-// GetProjectVersionPolicyStatus ...
-func (cb *CircuitBreaker) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch project version policy status: circuit breaker disabled")
-	}
-	startGetPolicyStatus := time.Now()
-	val, err := cb.Client.GetProjectVersionPolicyStatus(link)
-	recordHubResponseTime("projectVersionPolicyStatus", time.Now().Sub(startGetPolicyStatus))
-	recordHubResponse("projectVersionPolicyStatus", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
-}
-
-// ListScanSummaries ...
-func (cb *CircuitBreaker) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
-	if !cb.isAbleToIssueRequest() {
-		return nil, fmt.Errorf("unable to fetch scan summary list: circuit breaker disabled")
-	}
-	startGetScanSummaries := time.Now()
-	val, err := cb.Client.ListScanSummaries(link)
-	recordHubResponseTime("scanSummaries", time.Now().Sub(startGetScanSummaries))
-	recordHubResponse("scanSummaries", err == nil)
-	if err == nil {
-		cb.success()
-	} else {
-		cb.failure()
-	}
-	return val, err
+	return err
 }

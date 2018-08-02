@@ -53,6 +53,7 @@ func NewFederator(config *Config) (*Federator, error) {
 		return nil, err
 	}
 	actions := make(chan FedAction, actionChannelSize)
+	// dump events into 'actions' queue
 	go func() {
 		for {
 			select {
@@ -70,6 +71,7 @@ func NewFederator(config *Config) (*Federator, error) {
 		hubs:       map[string]*Hub{},
 		stop:       make(chan struct{}),
 		actions:    actions}
+	// process actions
 	go func() {
 		for {
 			a := <-actions

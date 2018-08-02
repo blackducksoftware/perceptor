@@ -27,7 +27,7 @@ import "time"
 type FetcherInterface interface {
 	Login() error
 	HubVersion() string
-	DeleteScans(scanNames []string)
+	DeleteScan(scanNames string) error
 	FetchScan(scanNameSearchString string) (*ScanResults, error)
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
