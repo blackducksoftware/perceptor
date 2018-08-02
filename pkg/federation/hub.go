@@ -77,13 +77,8 @@ type Hub struct {
 	fetcher *h.Fetcher
 	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
 	//   all code locations) and one for frequent, quick requests
-	HubVersion string
-	hubStatus  HubStatus
-	// hub credentials
-	username string
-	port     int
-	password string
-	baseURL  string
+	hubStatus HubStatus
+	host      string
 	// data
 	codeLocations map[string]string
 	projects      map[string]string
@@ -109,12 +104,8 @@ type Hub struct {
 //  - unable to log in to the Hub
 //  - unable to get hub version from the Hub
 func NewHub(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) *Hub {
-	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	hub := &Hub{
-		username: username,
-		password: password,
-		port:     port,
-		baseURL:  baseURL,
+		host: host,
 		//
 		codeLocations: nil,
 		projects:      nil,
@@ -128,7 +119,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 		didFetchCodeLocationsCh: make(chan *fetchCodeLocationsResult),
 		didFetchProjectsCh:      make(chan *fetchProjectsResult)}
 	// initialize hub client
-	fetcher, err := h.NewFetcher(username, password, baseURL, port, hubClientTimeout)
+	fetcher, err := h.NewFetcher(username, password, host, port, hubClientTimeout)
 	if err != nil {
 		hub.errors = append(hub.errors, err)
 		return hub

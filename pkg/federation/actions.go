@@ -115,9 +115,9 @@ type HubCreationResult struct {
 
 // FedApply ...
 func (hcr *HubCreationResult) FedApply(federator *Federator) {
-	if _, ok := federator.hubs[hcr.hub.baseURL]; ok {
-		log.Errorf("cannot add hub %s: already present", hcr.hub.baseURL)
+	if _, ok := federator.hubs[hcr.hub.host]; ok {
+		log.Errorf("cannot add hub %s: already present", hcr.hub.host)
 		return
 	}
-	federator.hubs[hcr.hub.baseURL] = hcr.hub
+	federator.hubs[hcr.hub.host] = hcr.hub
 }
