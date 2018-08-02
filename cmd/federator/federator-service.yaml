@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hub-federator
+spec:
+  ports:
+  - name: hub-federator
+    port: 3016
+    protocol: TCP
+    targetPort: 3016
+  selector:
+    name: hub-federator
