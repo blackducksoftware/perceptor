@@ -70,7 +70,7 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeout())
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
@@ -94,7 +94,9 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 			case <-stop:
 				return
 			case imageShas := <-routineTaskManager.OrphanedImages:
-				hubClient.DeleteScans(imageShas)
+				// TODO reenable deletion with appropriate throttling
+				// hubClient.DeleteScans(imageShas)
+				log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
 			}
 		}
 	}()

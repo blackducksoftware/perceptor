@@ -241,6 +241,8 @@ type APIModelHub struct {
 	CodeLocations map[string]string
 	// bad things that have happened
 	Errors []string
+	// status
+	Status string
 }
 
 // HTTPResponder ...

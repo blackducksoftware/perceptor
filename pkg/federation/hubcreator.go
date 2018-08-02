@@ -51,9 +51,9 @@ func (hc *HubCreator) createHubs(hubURLs map[string]bool) {
 		port := hc.hubConfig.Port
 		timeout := hc.hubConfig.ClientTimeout()
 		fetchAllProjectsPause := hc.hubConfig.FetchAllProjectsPause()
-		hub, err := NewHub(user, hc.hubPassword, hubURL, port, timeout, fetchAllProjectsPause)
+		hub := NewHub(user, hc.hubPassword, hubURL, port, timeout, fetchAllProjectsPause)
 		go func() {
-			hc.didFinishHubCreation <- &HubCreationResult{hub: hub, err: err}
+			hc.didFinishHubCreation <- &HubCreationResult{hub: hub}
 		}()
 	}
 }
