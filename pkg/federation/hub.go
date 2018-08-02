@@ -121,6 +121,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	// initialize hub client
 	fetcher, err := h.NewFetcher(username, password, host, port, hubClientTimeout)
 	if err != nil {
+		hub.hubStatus = HubStatusError
 		hub.errors = append(hub.errors, err)
 		return hub
 	}
@@ -158,6 +159,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	hub.loginScheduler = hub.startLoginScheduler()
 	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
 	hub.fetchCodeLocationsScheduler = hub.startFetchCodeLocationsScheduler(fetchAllProjectsPause)
+	hub.hubStatus = HubStatusUp
 	return hub
 }
 
