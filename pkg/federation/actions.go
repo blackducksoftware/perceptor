@@ -42,7 +42,7 @@ func NewFedGetModel() *FedGetModel {
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	hubs := map[string]*APIModelHub{}
 	for hubURL, hub := range federator.hubs {
-		errors := []string{}
+		errors := make([]string, len(hub.errors))
 		for ix, err := range hub.errors {
 			errors[ix] = err.Error()
 		}
