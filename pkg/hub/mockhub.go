@@ -81,8 +81,8 @@ func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error)
 }
 
 // HubVersion .....
-func (hub *MockHub) HubVersion() string {
-	return hub.hubVersion
+func (hub *MockHub) HubVersion() (string, error) {
+	return hub.hubVersion, nil
 }
 
 // Login .....

@@ -35,7 +35,7 @@ type HubConfig struct {
 	PasswordEnvVar               string
 	ClientTimeoutMilliseconds    int
 	Port                         int
-	FetchAllProjectsPauseMinutes int
+	FetchAllProjectsPauseSeconds int
 }
 
 // ClientTimeout converts the milliseconds to a duration
@@ -45,7 +45,7 @@ func (config *HubConfig) ClientTimeout() time.Duration {
 
 // FetchAllProjectsPause converts the minutes to a duration
 func (config *HubConfig) FetchAllProjectsPause() time.Duration {
-	return time.Duration(config.FetchAllProjectsPauseMinutes) * time.Minute
+	return time.Duration(config.FetchAllProjectsPauseSeconds) * time.Second
 }
 
 // Config ...

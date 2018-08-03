@@ -34,8 +34,8 @@ import (
 func SetupHTTPServer(responder Responder) {
 	// state of the program
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("http request: GET model")
 		if r.Method == "GET" {
+			log.Debugf("http request: GET model")
 			jsonBytes, err := json.MarshalIndent(responder.GetModel(), "", "  ")
 			if err != nil {
 				responder.Error(w, r, err, 500)
@@ -50,8 +50,8 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/sethubs", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("http request: PUT sethubs")
 		if r.Method == "PUT" {
+			log.Debugf("http request: PUT sethubs")
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				responder.Error(w, r, err, 400)
@@ -70,8 +70,8 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/findproject", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("http request: POST findproject")
 		if r.Method == "POST" {
+			log.Debugf("http request: POST findproject")
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				responder.Error(w, r, err, 400)
@@ -98,8 +98,8 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/stackdump", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("http request: GET stackdump")
 		if r.Method == "GET" {
+			log.Debugf("http request: GET stackdump")
 			a, b := dumpStack()
 			dict := map[string]string{
 				"runtime": a,
@@ -123,8 +123,8 @@ func SetupHTTPServer(responder Responder) {
 	})
 
 	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("http request: POST config")
 		if r.Method == "POST" {
+			log.Debugf("http request: POST config")
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				responder.Error(w, r, err, 400)

@@ -39,7 +39,6 @@ const (
 type Fetcher struct {
 	client         *hubclient.Client
 	circuitBreaker *CircuitBreaker
-	hubVersion     string
 	username       string
 	password       string
 	baseURL        string
@@ -77,26 +76,25 @@ func (hf *Fetcher) Login() error {
 	return err
 }
 
-func (hf *Fetcher) fetchHubVersion() error {
+// HubVersion fetches the hub version
+func (hf *Fetcher) HubVersion() (string, error) {
 	start := time.Now()
 	currentVersion, err := hf.client.CurrentVersion()
 	recordHubResponse("version", err == nil)
 	recordHubResponseTime("version", time.Now().Sub(start))
 	if err != nil {
 		log.Errorf("unable to get hub version: %s", err.Error())
-		return err
+		return "", err
 	}
 
-	hf.hubVersion = currentVersion.Version
-	log.Infof("successfully got hub version %s", hf.hubVersion)
-	return nil
+	log.Infof("successfully got hub version %s", currentVersion.Version)
+	return currentVersion.Version, nil
 }
 
-// NewFetcher returns a new, logged-in Fetcher.
-// It will instead return an error if any of the following happen:
-//  - unable to instantiate an API client
-//  - unable to sign in to the Hub
-//  - unable to get hub version from the Hub
+// NewFetcher returns a new Fetcher.
+// It will not be logged in.
+// It will return an error if: any of the following happen:
+//  - unable to instantiate a Hub API client
 func NewFetcher(username string, password string, hubHost string, hubPort int, hubClientTimeout time.Duration) (*Fetcher, error) {
 	baseURL := fmt.Sprintf("https://%s:%d", hubHost, hubPort)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -109,25 +107,12 @@ func NewFetcher(username string, password string, hubHost string, hubPort int, h
 		username:       username,
 		password:       password,
 		baseURL:        baseURL}
-	err = hf.Login()
-	if err != nil {
-		return nil, err
-	}
-	err = hf.fetchHubVersion()
-	if err != nil {
-		return nil, err
-	}
 	return &hf, nil
 }
 
 // SetTimeout is currently not concurrent-safe, and should be made so TODO
 func (hf *Fetcher) SetTimeout(timeout time.Duration) {
 	hf.client.SetTimeout(timeout)
-}
-
-// HubVersion .....
-func (hf *Fetcher) HubVersion() string {
-	return hf.hubVersion
 }
 
 // DeleteScan deletes the code location and project version (but NOT the project)
@@ -285,11 +270,14 @@ func (hf *Fetcher) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 func (hf *Fetcher) ListAllProjects() (*hubapi.ProjectList, error) {
 	var list *hubapi.ProjectList
 	var fetchError error
-	hf.circuitBreaker.IssueRequest("allProjects", func() error {
+	err := hf.circuitBreaker.IssueRequest("allProjects", func() error {
 		limit := 2000000
 		list, fetchError = hf.client.ListProjects(&hubapi.GetListOptions{Limit: &limit})
 		return fetchError
 	})
+	if err != nil {
+		return nil, err
+	}
 	return list, fetchError
 }
 
@@ -297,97 +285,127 @@ func (hf *Fetcher) ListAllProjects() (*hubapi.ProjectList, error) {
 func (hf *Fetcher) ListAllCodeLocations() (*hubapi.CodeLocationList, error) {
 	var list *hubapi.CodeLocationList
 	var fetchError error
-	hf.circuitBreaker.IssueRequest("allCodeLocations", func() error {
+	err := hf.circuitBreaker.IssueRequest("allCodeLocations", func() error {
 		limit := 2000000
 		list, fetchError = hf.client.ListAllCodeLocations(&hubapi.GetListOptions{Limit: &limit})
+		if fetchError != nil {
+			log.Errorf("fetch error: %s", fetchError.Error())
+		}
 		return fetchError
 	})
+	if err != nil {
+		return nil, err
+	}
 	return list, fetchError
 }
 
 // ListCodeLocations ...
 func (hf *Fetcher) ListCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
 	var list *hubapi.CodeLocationList
-	var err error
-	hf.circuitBreaker.IssueRequest("codeLocations", func() error {
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("codeLocations", func() error {
 		queryString := fmt.Sprintf("name:%s", codeLocationName)
-		list, err = hf.client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
-		return err
+		list, fetchError = hf.client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
+		return fetchError
 	})
-	return list, err
+	if err != nil {
+		return nil, err
+	}
+	return list, fetchError
 }
 
 // GetProjectVersion ...
 func (hf *Fetcher) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
 	var pv *hubapi.ProjectVersion
-	var err error
-	hf.circuitBreaker.IssueRequest("projectVersion", func() error {
-		pv, err = hf.client.GetProjectVersion(link)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("projectVersion", func() error {
+		pv, fetchError = hf.client.GetProjectVersion(link)
+		return fetchError
 	})
-	return pv, err
+	if err != nil {
+		return nil, err
+	}
+	return pv, fetchError
 }
 
 // GetProject ...
 func (hf *Fetcher) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
 	var val *hubapi.Project
-	var err error
-	hf.circuitBreaker.IssueRequest("project", func() error {
-		val, err = hf.client.GetProject(link)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("project", func() error {
+		val, fetchError = hf.client.GetProject(link)
+		return fetchError
 	})
-	return val, err
+	if err != nil {
+		return nil, err
+	}
+	return val, fetchError
 }
 
 // GetProjectVersionRiskProfile ...
 func (hf *Fetcher) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
 	var val *hubapi.ProjectVersionRiskProfile
-	var err error
-	hf.circuitBreaker.IssueRequest("projectVersionRiskProfile", func() error {
-		val, err = hf.client.GetProjectVersionRiskProfile(link)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("projectVersionRiskProfile", func() error {
+		val, fetchError = hf.client.GetProjectVersionRiskProfile(link)
+		return fetchError
 	})
-	return val, err
+	if err != nil {
+		return nil, err
+	}
+	return val, fetchError
 }
 
 // GetProjectVersionPolicyStatus ...
 func (hf *Fetcher) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
 	var val *hubapi.ProjectVersionPolicyStatus
-	var err error
-	hf.circuitBreaker.IssueRequest("projectVersionPolicyStatus", func() error {
-		val, err = hf.client.GetProjectVersionPolicyStatus(link)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("projectVersionPolicyStatus", func() error {
+		val, fetchError = hf.client.GetProjectVersionPolicyStatus(link)
+		return fetchError
 	})
-	return val, err
+	if err != nil {
+		return nil, err
+	}
+	return val, fetchError
 }
 
 // ListScanSummaries ...
 func (hf *Fetcher) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
 	var val *hubapi.ScanSummaryList
-	var err error
-	hf.circuitBreaker.IssueRequest("scanSummaries", func() error {
-		val, err = hf.client.ListScanSummaries(link)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("scanSummaries", func() error {
+		val, fetchError = hf.client.ListScanSummaries(link)
+		return fetchError
 	})
-	return val, err
+	if err != nil {
+		return nil, err
+	}
+	return val, fetchError
 }
 
 // DeleteProjectVersion ...
 func (hf *Fetcher) DeleteProjectVersion(projectVersionHRef string) error {
-	var err error
-	hf.circuitBreaker.IssueRequest("deleteVersion", func() error {
-		err = hf.client.DeleteProjectVersion(projectVersionHRef)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("deleteVersion", func() error {
+		fetchError = hf.client.DeleteProjectVersion(projectVersionHRef)
+		return fetchError
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return fetchError
 }
 
 // DeleteCodeLocation ...
 func (hf *Fetcher) DeleteCodeLocation(codeLocationHRef string) error {
-	var err error
-	hf.circuitBreaker.IssueRequest("deleteCodeLocation", func() error {
-		err = hf.client.DeleteCodeLocation(codeLocationHRef)
-		return err
+	var fetchError error
+	err := hf.circuitBreaker.IssueRequest("deleteCodeLocation", func() error {
+		fetchError = hf.client.DeleteCodeLocation(codeLocationHRef)
+		return fetchError
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return fetchError
 }

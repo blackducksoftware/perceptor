@@ -200,8 +200,8 @@ func (hub *Hub) Projects() map[string]string {
 // Regular jobs
 
 func (hub *Hub) startLoginScheduler() *util.Scheduler {
-	pause := 30 * time.Minute
-	return util.NewScheduler(pause, hub.stop, false, func() {
+	pause := 3 * time.Minute
+	return util.NewScheduler(pause, hub.stop, true, func() {
 		err := hub.login()
 		hub.didLoginCh <- err
 	})
@@ -209,7 +209,7 @@ func (hub *Hub) startLoginScheduler() *util.Scheduler {
 
 func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
 	return util.NewScheduler(pause, hub.stop, true, func() {
-		log.Debugf("starting to fetch all project")
+		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
 		hub.didFetchProjectsCh <- result
 	})
@@ -232,6 +232,7 @@ type fetchCodeLocationsResult struct {
 
 func (hub *Hub) fetchAllCodeLocations() *fetchCodeLocationsResult {
 	codeLocationList, err := hub.fetcher.ListAllCodeLocations()
+	log.Debugf("fetched all code locations: %+v, %+v", codeLocationList, err)
 	if err != nil {
 		return &fetchCodeLocationsResult{codeLocations: nil, err: err}
 	}
@@ -249,6 +250,7 @@ type fetchProjectsResult struct {
 
 func (hub *Hub) fetchAllProjects() *fetchProjectsResult {
 	projectList, err := hub.fetcher.ListAllProjects()
+	log.Debugf("fetched all projects: %+v, %+v", projectList, err)
 	if err != nil {
 		return &fetchProjectsResult{projects: nil, err: err}
 	}
