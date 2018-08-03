@@ -49,6 +49,7 @@ func RunFederator(configPath string) {
 		log.Errorf(err.Error())
 		panic(err)
 	}
+	log.Infof("got config: %+v", config)
 
 	level, err := config.GetLogLevel()
 	if err != nil {
