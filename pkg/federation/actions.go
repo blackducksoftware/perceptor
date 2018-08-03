@@ -42,27 +42,7 @@ func NewFedGetModel() *FedGetModel {
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	hubs := map[string]*APIModelHub{}
 	for hubURL, hub := range federator.hubs {
-		errors := make([]string, len(hub.errors))
-		for ix, err := range hub.errors {
-			errors[ix] = err.Error()
-		}
-		projects := map[string]string{}
-		for name, url := range hub.Projects() {
-			projects[name] = url
-		}
-		codeLocations := map[string]string{}
-		for name, url := range hub.CodeLocations() {
-			codeLocations[name] = url
-		}
-		hubs[hubURL] = &APIModelHub{
-			Errors:                  errors,
-			HasLoadedAllProjects:    hub.projects != nil,
-			Status:                  hub.hubStatus.String(),
-			IsCircuitBreakerEnabled: false, // TODO
-			IsLoggedIn:              false, // TODO
-			Projects:                projects,
-			CodeLocations:           codeLocations,
-		}
+		hubs[hubURL] = hub.Model()
 	}
 	model := &APIModel{Hubs: hubs}
 	fgm.Done <- model

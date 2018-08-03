@@ -91,6 +91,7 @@ type Hub struct {
 	// channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
+	getModel                chan chan *APIModelHub
 	getCodeLocationsCh      chan chan map[string]string
 	getProjectsCh           chan chan map[string]string
 	didLoginCh              chan error
@@ -113,6 +114,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
+		getModel:                make(chan chan *APIModelHub),
 		getProjectsCh:           make(chan chan map[string]string),
 		getCodeLocationsCh:      make(chan chan map[string]string),
 		didLoginCh:              make(chan error),
@@ -132,20 +134,22 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 			select {
 			case <-hub.resetCircuitBreakerCh:
 				// TODO hub.circuitBreaker.Reset()
+			case ch := <-hub.getModel:
+				ch <- hub.apiModel()
 			case ch := <-hub.getProjectsCh:
 				ch <- hub.projects
 			case ch := <-hub.getCodeLocationsCh:
 				ch <- hub.codeLocations
 			case result := <-hub.didFetchProjectsCh:
 				if result.err != nil {
-					hub.errors = append(hub.errors, err)
+					hub.errors = append(hub.errors, result.err)
 				} else {
 					hub.projects = result.projects
 				}
 			case result := <-hub.didFetchCodeLocationsCh:
 				if result.err != nil {
 					// TODO don't let this grow without bounds
-					hub.errors = append(hub.errors, err)
+					hub.errors = append(hub.errors, result.err)
 				} else {
 					hub.codeLocations = result.codeLocations
 				}
@@ -179,22 +183,58 @@ func (hub *Hub) Stop() {
 // 	return hub.circuitBreaker.IsEnabledChannel
 // }
 
+// TODO these aren't threadsafe ... they're just thread-safely grabbing references to
+// these mutable objects, then throwing them out into the wild.  Oops!
+// Maybe re-enable these later, but make them ACTUALLY threadsafe :) :)
+// // CodeLocations ...
+// func (hub *Hub) CodeLocations() map[string]string {
+// 	ch := make(chan map[string]string)
+// 	hub.getCodeLocationsCh <- ch
+// 	return <-ch
+// }
+
+// // Projects ...
+// func (hub *Hub) Projects() map[string]string {
+// 	ch := make(chan map[string]string)
+// 	hub.getProjectsCh <- ch
+// 	return <-ch
+// }
+
+// Model ...
+func (hub *Hub) Model() *APIModelHub {
+	ch := make(chan *APIModelHub)
+	hub.getModel <- ch
+	return <-ch
+}
+
+// Private methods
+
 func (hub *Hub) login() error {
 	return hub.fetcher.Login()
 }
 
-// CodeLocations ...
-func (hub *Hub) CodeLocations() map[string]string {
-	ch := make(chan map[string]string)
-	hub.getCodeLocationsCh <- ch
-	return <-ch
-}
-
-// Projects ...
-func (hub *Hub) Projects() map[string]string {
-	ch := make(chan map[string]string)
-	hub.getProjectsCh <- ch
-	return <-ch
+func (hub *Hub) apiModel() *APIModelHub {
+	errors := make([]string, len(hub.errors))
+	for ix, err := range hub.errors {
+		errors[ix] = err.Error()
+	}
+	projects := map[string]string{}
+	for name, url := range hub.projects {
+		projects[name] = url
+	}
+	codeLocations := map[string]string{}
+	for name, url := range hub.codeLocations {
+		codeLocations[name] = url
+	}
+	return &APIModelHub{
+		Errors:                  errors,
+		HasLoadedAllProjects:    hub.projects != nil,
+		Status:                  hub.hubStatus.String(),
+		IsCircuitBreakerEnabled: false, // TODO
+		IsLoggedIn:              false, // TODO
+		Projects:                projects,
+		CodeLocations:           codeLocations,
+	}
 }
 
 // Regular jobs

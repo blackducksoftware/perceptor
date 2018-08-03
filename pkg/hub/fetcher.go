@@ -68,6 +68,7 @@ func (hf *Fetcher) IsEnabled() <-chan bool {
 // is closed because the calls were failing due to being unauthenticated.
 // Or maybe TODO we need to distinguish between different types of
 // request failure (network vs. 400 vs. 500 etc.)
+// TODO could reset circuit breaker on success
 func (hf *Fetcher) Login() error {
 	start := time.Now()
 	err := hf.client.Login(hf.username, hf.password)

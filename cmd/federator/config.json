@@ -3,7 +3,8 @@
         "User": "sysadmin",
         "PasswordEnvVar": "HUB_PASSWORD",
         "ClientTimeoutMillisecond": 5000,
-        "Port": 443
+        "Port": 443,
+        "FetchAllProjectsPauseSeconds": 3
     },
     "UseMockMode": false,
     "LogLevel": "debug",
