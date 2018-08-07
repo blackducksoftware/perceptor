@@ -283,7 +283,7 @@ type fetchCodeLocationsResult struct {
 
 func (hub *Hub) fetchAllCodeLocations() *fetchCodeLocationsResult {
 	codeLocationList, err := hub.fetcher.ListAllCodeLocations()
-	log.Debugf("fetched all code locations: %+v, %+v", codeLocationList, err)
+	log.Debugf("fetched all code locations: found %d, expected %d, %+v", len(codeLocationList.Items), codeLocationList.TotalCount, err)
 	if err != nil {
 		return &fetchCodeLocationsResult{codeLocations: nil, err: err}
 	}
@@ -301,7 +301,7 @@ type fetchProjectsResult struct {
 
 func (hub *Hub) fetchAllProjects() *fetchProjectsResult {
 	projectList, err := hub.fetcher.ListAllProjects()
-	log.Debugf("fetched all projects: %+v, %+v", projectList, err)
+	log.Debugf("fetched all projects: found %d, expected %d, %+v", len(projectList.Items), projectList.TotalCount, err)
 	if err != nil {
 		return &fetchProjectsResult{projects: nil, err: err}
 	}
