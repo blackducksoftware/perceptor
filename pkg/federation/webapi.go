@@ -27,6 +27,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/blackducksoftware/perceptor/pkg/util"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -100,13 +102,14 @@ func SetupHTTPServer(responder Responder) {
 	http.HandleFunc("/stackdump", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			log.Debugf("http request: GET stackdump")
-			a, b := dumpStack()
+			runtimeStack := util.DumpRuntimeStack()
+			pprofStack := util.DumpPProfStack()
 			dict := map[string]string{
-				"runtime": a,
-				"pprof":   b,
+				"runtime": runtimeStack,
+				"pprof":   pprofStack,
 			}
-			fmt.Printf("runtime:\n%s\n\n", a)
-			fmt.Printf("pprof:\n%s\n\n", b)
+			fmt.Printf("runtime:\n%s\n\n", runtimeStack)
+			fmt.Printf("pprof:\n%s\n\n", pprofStack)
 			//			log.Printf()
 			//			log.Debugf("runtime: %s", )
 			jsonBytes, err := json.MarshalIndent(dict, "", "  ")
