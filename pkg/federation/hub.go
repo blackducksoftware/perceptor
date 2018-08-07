@@ -40,17 +40,14 @@ type HubStatus int
 
 // .....
 const (
-	HubStatusInitializing HubStatus = iota
-	HubStatusError        HubStatus = iota
-	HubStatusUp           HubStatus = iota
-	HubStatusDown         HubStatus = iota
+	HubStatusError HubStatus = iota
+	HubStatusUp    HubStatus = iota
+	HubStatusDown  HubStatus = iota
 )
 
 // String .....
 func (status HubStatus) String() string {
 	switch status {
-	case HubStatusInitializing:
-		return "HubStatusInitializing"
 	case HubStatusError:
 		return "HubStatusError"
 	case HubStatusUp:
@@ -77,8 +74,8 @@ type Hub struct {
 	fetcher *h.Fetcher
 	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
 	//   all code locations) and one for frequent, quick requests
-	hubStatus HubStatus
-	host      string
+	status HubStatus
+	host   string
 	// data
 	codeLocations map[string]string
 	projects      map[string]string
@@ -123,7 +120,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	// initialize hub client
 	fetcher, err := h.NewFetcher(username, password, host, port, hubClientTimeout)
 	if err != nil {
-		hub.hubStatus = HubStatusError
+		hub.status = HubStatusError
 		hub.errors = append(hub.errors, err)
 		return hub
 	}
@@ -132,6 +129,8 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	go func() {
 		for {
 			select {
+			case <-hub.stop:
+				return
 			case <-hub.resetCircuitBreakerCh:
 				// TODO hub.circuitBreaker.Reset()
 			case ch := <-hub.getModel:
@@ -152,20 +151,22 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 				}
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
-				if err != nil {
+				if err != nil && hub.status == HubStatusUp {
+					hub.status = HubStatusDown
 					hub.recordError(hub.fetchProjectsScheduler.Pause())
 					hub.recordError(hub.fetchCodeLocationsScheduler.Pause())
-				} else {
+				} else if err == nil && hub.status == HubStatusDown {
+					hub.status = HubStatusUp
 					hub.recordError(hub.fetchProjectsScheduler.Resume(true))
 					hub.recordError(hub.fetchCodeLocationsScheduler.Resume(true))
 				}
 			}
 		}
 	}()
-	hub.loginScheduler = hub.startLoginScheduler()
 	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
 	hub.fetchCodeLocationsScheduler = hub.startFetchCodeLocationsScheduler(fetchAllProjectsPause)
-	hub.hubStatus = HubStatusUp
+	hub.status = HubStatusUp
+	hub.loginScheduler = hub.startLoginScheduler()
 	return hub
 }
 
@@ -238,7 +239,7 @@ func (hub *Hub) apiModel() *APIModelHub {
 	return &APIModelHub{
 		Errors:                  errors,
 		HasLoadedAllProjects:    hub.projects != nil,
-		Status:                  hub.hubStatus.String(),
+		Status:                  hub.status.String(),
 		IsCircuitBreakerEnabled: false, // TODO
 		IsLoggedIn:              false, // TODO
 		Projects:                projects,
@@ -249,8 +250,7 @@ func (hub *Hub) apiModel() *APIModelHub {
 // Regular jobs
 
 func (hub *Hub) startLoginScheduler() *util.Scheduler {
-	//	pause := 3 * time.Minute
-	pause := 3 * time.Second
+	pause := 30 * time.Minute
 	return util.NewRunningScheduler(pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
 		err := hub.login()
@@ -259,7 +259,7 @@ func (hub *Hub) startLoginScheduler() *util.Scheduler {
 }
 
 func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewRunningScheduler(pause, hub.stop, true, func() {
+	return util.NewScheduler(pause, hub.stop, func() {
 		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
 		hub.didFetchProjectsCh <- result
@@ -267,7 +267,7 @@ func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler
 }
 
 func (hub *Hub) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewRunningScheduler(pause, hub.stop, true, func() {
+	return util.NewScheduler(pause, hub.stop, func() {
 		log.Debugf("starting to fetch all code locations")
 		result := hub.fetchAllCodeLocations()
 		hub.didFetchCodeLocationsCh <- result

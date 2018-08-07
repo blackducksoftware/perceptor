@@ -91,4 +91,28 @@ var _ = Describe("Scheduler", func() {
 		Expect(x).To(Equal(3))
 		log.Debug("end")
 	})
+
+	It("Resume immediately", func() {
+		stop := make(chan struct{})
+		defer close(stop)
+		x := 0
+		y := 0
+		useX := true
+		s := NewRunningScheduler(500*time.Millisecond, stop, true, func() {
+			if useX {
+				x++
+			} else {
+				y++
+			}
+		})
+		time.Sleep(250 * time.Millisecond)
+		Expect(s.Pause()).To(BeNil())
+		Expect(x).To(Equal(1))
+		Expect(y).To(Equal(0))
+		useX = false
+		Expect(s.Resume(true)).To(BeNil())
+		time.Sleep(750 * time.Millisecond)
+		Expect(x).To(Equal(1))
+		Expect(y).To(Equal(2))
+	})
 })
