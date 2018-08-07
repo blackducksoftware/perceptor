@@ -24,6 +24,8 @@ package util
 import (
 	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SchedulerState describes the state of a scheduler
@@ -107,6 +109,7 @@ func (scheduler *Scheduler) start() {
 	for {
 		select {
 		case <-scheduler.didFinishAction:
+			log.Debugf("scheduler: didFinishAction")
 			switch scheduler.nextState {
 			case SchedulerStateStopped:
 				scheduler.state = SchedulerStateStopped
@@ -118,12 +121,14 @@ func (scheduler *Scheduler) start() {
 				scheduler.startTimer()
 			}
 		case <-scheduler.runAction:
+			log.Debugf("scheduler: runAction")
 			scheduler.nextState = SchedulerStateReady
 			go func() {
 				scheduler.action()
 				scheduler.didFinishAction <- true
 			}()
 		case ch := <-scheduler.pause:
+			log.Debugf("scheduler: pause (state %s)", scheduler.state)
 			switch scheduler.state {
 			case SchedulerStateReady:
 				scheduler.state = SchedulerStatePaused
@@ -137,6 +142,7 @@ func (scheduler *Scheduler) start() {
 				ch <- fmt.Errorf("cannot pause scheduler while in state %s", scheduler.state.String())
 			}
 		case action := <-scheduler.resume:
+			log.Debugf("scheduler: resume")
 			switch scheduler.state {
 			case SchedulerStatePaused:
 				scheduler.state = SchedulerStateReady
@@ -152,6 +158,7 @@ func (scheduler *Scheduler) start() {
 				action.err <- fmt.Errorf("cannot resume scheduler while in state %s", scheduler.state.String())
 			}
 		case <-scheduler.stop:
+			log.Debugf("scheduler: stop")
 			switch scheduler.state {
 			case SchedulerStateReady:
 				scheduler.stopTimer()

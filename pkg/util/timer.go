@@ -63,6 +63,8 @@ func NewTimer(duration time.Duration) *Timer {
 // Stop cancels the timer and returns true if the timer was not already canceled,
 // and false otherwise.
 func (t *Timer) Stop() bool {
+	log.Debugf("timer: %t, %+v", t == nil, t)
+	log.Debugf("timer.stop: %t, %+v", t.stop == nil, t.stop)
 	select {
 	case t.stop <- true:
 		return true
