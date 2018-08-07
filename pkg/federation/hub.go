@@ -141,21 +141,23 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 			case ch := <-hub.getCodeLocationsCh:
 				ch <- hub.codeLocations
 			case result := <-hub.didFetchProjectsCh:
-				if result.err != nil {
-					hub.errors = append(hub.errors, result.err)
-				} else {
+				hub.recordError(result.err)
+				if result.err == nil {
 					hub.projects = result.projects
 				}
 			case result := <-hub.didFetchCodeLocationsCh:
-				if result.err != nil {
-					// TODO don't let this grow without bounds
-					hub.errors = append(hub.errors, result.err)
-				} else {
+				hub.recordError(result.err)
+				if result.err == nil {
 					hub.codeLocations = result.codeLocations
 				}
 			case err := <-hub.didLoginCh:
+				hub.recordError(err)
 				if err != nil {
-					hub.errors = append(hub.errors, err)
+					hub.recordError(hub.fetchProjectsScheduler.Pause())
+					hub.recordError(hub.fetchCodeLocationsScheduler.Pause())
+				} else {
+					hub.recordError(hub.fetchProjectsScheduler.Resume(true))
+					hub.recordError(hub.fetchCodeLocationsScheduler.Resume(true))
 				}
 			}
 		}
@@ -209,6 +211,13 @@ func (hub *Hub) Model() *APIModelHub {
 
 // Private methods
 
+func (hub *Hub) recordError(err error) {
+	// TODO don't let this grow without bounds
+	if err != nil {
+		hub.errors = append(hub.errors, err)
+	}
+}
+
 func (hub *Hub) login() error {
 	return hub.fetcher.Login()
 }
@@ -240,15 +249,17 @@ func (hub *Hub) apiModel() *APIModelHub {
 // Regular jobs
 
 func (hub *Hub) startLoginScheduler() *util.Scheduler {
-	pause := 3 * time.Minute
-	return util.NewScheduler(pause, hub.stop, true, func() {
+	//	pause := 3 * time.Minute
+	pause := 3 * time.Second
+	return util.NewRunningScheduler(pause, hub.stop, true, func() {
+		log.Debugf("starting to login to hub")
 		err := hub.login()
 		hub.didLoginCh <- err
 	})
 }
 
 func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewScheduler(pause, hub.stop, true, func() {
+	return util.NewRunningScheduler(pause, hub.stop, true, func() {
 		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
 		hub.didFetchProjectsCh <- result
@@ -256,7 +267,7 @@ func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler
 }
 
 func (hub *Hub) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewScheduler(pause, hub.stop, true, func() {
+	return util.NewRunningScheduler(pause, hub.stop, true, func() {
 		log.Debugf("starting to fetch all code locations")
 		result := hub.fetchAllCodeLocations()
 		hub.didFetchCodeLocationsCh <- result

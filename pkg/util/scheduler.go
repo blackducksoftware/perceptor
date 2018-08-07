@@ -64,7 +64,7 @@ type Scheduler struct {
 	nextState SchedulerState
 	delay     time.Duration
 	action    func()
-	timer     *time.Timer
+	timer     *Timer
 	// channels
 	pause           chan chan error
 	resume          chan *resume
@@ -74,24 +74,32 @@ type Scheduler struct {
 	setDelay        chan time.Duration
 }
 
-// NewScheduler creates a new scheduler, which can immediately run 'action' or wait until 'delay' before
-// running 'action' for the first time.
-func NewScheduler(delay time.Duration, stop <-chan struct{}, runImmediately bool, action func()) *Scheduler {
-	scheduler := &Scheduler{
-		state:     SchedulerStateReady,
-		delay:     delay,
-		action:    action,
-		pause:     make(chan chan error),
-		resume:    make(chan *resume),
-		runAction: make(chan bool),
-		stop:      stop,
-		setDelay:  make(chan time.Duration)}
-	go scheduler.start()
-	if runImmediately {
-		scheduler.runAction <- true
+// NewRunningScheduler creates a new scheduler which is running
+func NewRunningScheduler(delay time.Duration, stop <-chan struct{}, runImmediately bool, action func()) *Scheduler {
+	s := NewScheduler(delay, stop, action)
+	err := s.Resume(runImmediately)
+	if err != nil {
+		// TODO somehow handle error?
+		log.Error(err.Error())
 	} else {
-		scheduler.startTimer()
+		log.Debug("started scheduler successfully")
 	}
+	return s
+}
+
+// NewScheduler creates a new scheduler which is paused
+func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
+	scheduler := &Scheduler{
+		state:           SchedulerStatePaused,
+		delay:           delay,
+		action:          action,
+		pause:           make(chan chan error),
+		resume:          make(chan *resume),
+		runAction:       make(chan bool),
+		didFinishAction: make(chan bool),
+		stop:            stop,
+		setDelay:        make(chan time.Duration)}
+	go scheduler.start()
 	return scheduler
 }
 
@@ -122,7 +130,7 @@ func (scheduler *Scheduler) start() {
 				scheduler.stopTimer()
 				ch <- nil
 			case SchedulerStateRunningAction:
-				// if nextState is Stopped or Paused, then error ...
+				// TODO if nextState is Stopped or Paused, then error ...
 				scheduler.nextState = SchedulerStatePaused
 				ch <- nil
 			default:
@@ -134,7 +142,9 @@ func (scheduler *Scheduler) start() {
 				scheduler.state = SchedulerStateReady
 				action.err <- nil
 				if action.runImmediately {
-					scheduler.runAction <- true
+					go func() {
+						scheduler.runAction <- true
+					}()
 				} else {
 					scheduler.startTimer()
 				}
@@ -154,24 +164,30 @@ func (scheduler *Scheduler) start() {
 			}
 			return
 		case delay := <-scheduler.setDelay:
+			log.Debugf("scheduler: setDelay")
 			scheduler.delay = delay
 		}
 	}
 }
 
 func (scheduler *Scheduler) startTimer() {
-	scheduler.timer = time.NewTimer(scheduler.delay)
+	log.Debugf("starting timer with delay %s", scheduler.delay)
+	timer := NewTimer(scheduler.delay)
+	scheduler.timer = timer
 	go func() {
-		// TODO does this correctly handle the case where the timer gets cancelled?
-		_, ok := <-scheduler.timer.C
-		if ok {
+		didComplete := <-timer.Done()
+		if didComplete {
 			scheduler.runAction <- true
+		} else {
+			// otherwise (it was canceled), do nothing?
 		}
 	}()
 }
 
 func (scheduler *Scheduler) stopTimer() {
-	scheduler.timer.Stop()
+	if scheduler.timer != nil {
+		scheduler.timer.Stop()
+	}
 }
 
 // Pause temporarily stops the scheduler.

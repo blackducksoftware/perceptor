@@ -21,7 +21,11 @@ under the License.
 
 package util
 
-import "time"
+import (
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
 
 // Timer is a thin wrapper around time.Timer, that provides:
 // a concurrent-safe interface to have a cancellable timer,
