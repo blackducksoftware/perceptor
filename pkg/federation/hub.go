@@ -132,6 +132,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 			case <-hub.stop:
 				return
 			case <-hub.resetCircuitBreakerCh:
+				log.Warnf("resetting circuit breaker is currently disabled: ignoring")
 				// TODO hub.circuitBreaker.Reset()
 			case ch := <-hub.getModel:
 				ch <- hub.apiModel()
@@ -165,7 +166,7 @@ func NewHub(username string, password string, host string, port int, hubClientTi
 	}()
 	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
 	hub.fetchCodeLocationsScheduler = hub.startFetchCodeLocationsScheduler(fetchAllProjectsPause)
-	hub.status = HubStatusUp
+	hub.status = HubStatusDown
 	hub.loginScheduler = hub.startLoginScheduler()
 	return hub
 }
