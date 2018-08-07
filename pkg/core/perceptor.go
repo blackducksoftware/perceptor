@@ -174,7 +174,11 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
 		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
+	hubVersion, err := hubClient.HubVersion()
+	if err != nil {
+		log.Errorf("unable to get Hub version: %s", err.Error())
+	}
+	reducer := newReducer(model.NewModel(hubVersion, modelConfig, timings), actions)
 
 	// 5. connect reducer notifications to routine task manager
 	go func() {
