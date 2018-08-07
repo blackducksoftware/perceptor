@@ -161,6 +161,7 @@ func (scheduler *Scheduler) start() {
 				scheduler.state = SchedulerStateStopped
 			case SchedulerStateStopped:
 				// ??? not sure how this would happen
+				log.Warnf("ignoring stop signal: scheduler already stopped")
 			}
 			return
 		case delay := <-scheduler.setDelay:
@@ -191,7 +192,7 @@ func (scheduler *Scheduler) stopTimer() {
 }
 
 // Pause temporarily stops the scheduler.
-// It returns
+// It returns an error if the scheduler could not be paused.
 func (scheduler *Scheduler) Pause() error {
 	ch := make(chan error)
 	scheduler.pause <- ch
