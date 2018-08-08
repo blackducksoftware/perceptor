@@ -66,8 +66,9 @@ type Scheduler struct {
 	nextState SchedulerState
 	delay     time.Duration
 	action    func()
-	timer     *Timer
+	timer     *time.Ticker
 	// channels
+	stopTimerCh     chan struct{}
 	pause           chan chan error
 	resume          chan *resume
 	runAction       chan bool
@@ -92,9 +93,12 @@ func NewRunningScheduler(delay time.Duration, stop <-chan struct{}, runImmediate
 // NewScheduler creates a new scheduler which is paused
 func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
 	scheduler := &Scheduler{
-		state:           SchedulerStatePaused,
-		delay:           delay,
-		action:          action,
+		state: SchedulerStatePaused,
+		// nextState: ???
+		delay:  delay,
+		action: action,
+		// timer: nil,
+		stopTimerCh:     make(chan struct{}),
 		pause:           make(chan chan error),
 		resume:          make(chan *resume),
 		runAction:       make(chan bool),
@@ -118,10 +122,19 @@ func (scheduler *Scheduler) start() {
 				scheduler.state = SchedulerStatePaused
 			default:
 				scheduler.state = SchedulerStateReady
-				scheduler.startTimer()
 			}
 		case <-scheduler.runAction:
 			log.Debugf("scheduler: runAction")
+			switch scheduler.state {
+			case SchedulerStateReady:
+				// we're good
+			case SchedulerStateRunningAction:
+				log.Warnf("backpressuring!  cannot run scheduler action, action already in progress")
+				break
+			default:
+				log.Errorf("cannot run action from state %s", scheduler.state)
+				break
+			}
 			scheduler.nextState = SchedulerStateReady
 			go func() {
 				scheduler.action()
@@ -135,7 +148,10 @@ func (scheduler *Scheduler) start() {
 				scheduler.stopTimer()
 				ch <- nil
 			case SchedulerStateRunningAction:
-				// TODO if nextState is Stopped or Paused, then error ...
+				if scheduler.nextState == SchedulerStatePaused || scheduler.nextState == SchedulerStateStopped {
+					ch <- fmt.Errorf("cannot pause scheduler: %s already queued up", scheduler.nextState)
+					break
+				}
 				scheduler.nextState = SchedulerStatePaused
 				ch <- nil
 			default:
@@ -151,9 +167,9 @@ func (scheduler *Scheduler) start() {
 					go func() {
 						scheduler.runAction <- true
 					}()
-				} else {
-					scheduler.startTimer()
 				}
+				scheduler.stopTimerCh = make(chan struct{})
+				scheduler.startTimer(scheduler.stopTimerCh)
 			default:
 				action.err <- fmt.Errorf("cannot resume scheduler while in state %s", scheduler.state.String())
 			}
@@ -178,23 +194,26 @@ func (scheduler *Scheduler) start() {
 	}
 }
 
-func (scheduler *Scheduler) startTimer() {
+func (scheduler *Scheduler) startTimer(stop <-chan struct{}) {
 	log.Debugf("starting timer with delay %s", scheduler.delay)
-	timer := NewTimer(scheduler.delay)
-	scheduler.timer = timer
+	scheduler.timer = time.NewTicker(scheduler.delay)
 	go func() {
-		didComplete := <-timer.Done()
-		if didComplete {
-			scheduler.runAction <- true
-		} else {
-			// otherwise (it was canceled), do nothing?
+		for {
+			select {
+			case <-scheduler.timer.C:
+				scheduler.runAction <- true
+			case <-stop:
+				scheduler.timer.Stop()
+				return
+			}
 		}
 	}()
 }
 
 func (scheduler *Scheduler) stopTimer() {
-	if scheduler.timer != nil {
-		scheduler.timer.Stop()
+	if scheduler.stopTimerCh != nil {
+		close(scheduler.stopTimerCh)
+		scheduler.stopTimerCh = nil
 	}
 }
 

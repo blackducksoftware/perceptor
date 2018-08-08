@@ -187,23 +187,6 @@ func (hub *Hub) Stop() {
 // 	return hub.circuitBreaker.IsEnabledChannel
 // }
 
-// TODO these aren't threadsafe ... they're just thread-safely grabbing references to
-// these mutable objects, then throwing them out into the wild.  Oops!
-// Maybe re-enable these later, but make them ACTUALLY threadsafe :) :)
-// // CodeLocations ...
-// func (hub *Hub) CodeLocations() map[string]string {
-// 	ch := make(chan map[string]string)
-// 	hub.getCodeLocationsCh <- ch
-// 	return <-ch
-// }
-
-// // Projects ...
-// func (hub *Hub) Projects() map[string]string {
-// 	ch := make(chan map[string]string)
-// 	hub.getProjectsCh <- ch
-// 	return <-ch
-// }
-
 // Model ...
 func (hub *Hub) Model() *APIModelHub {
 	ch := make(chan *APIModelHub)
