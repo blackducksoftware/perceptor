@@ -201,6 +201,9 @@ func (hub *Hub) recordError(err error) {
 	if err != nil {
 		hub.errors = append(hub.errors, err)
 	}
+	if len(hub.errors) > 1000 {
+		hub.errors = hub.errors[500:]
+	}
 }
 
 func (hub *Hub) login() error {
@@ -234,27 +237,45 @@ func (hub *Hub) apiModel() *APIModelHub {
 // Regular jobs
 
 func (hub *Hub) startLoginScheduler() *util.Scheduler {
-	pause := 30 * time.Minute
-	return util.NewRunningScheduler(pause, hub.stop, true, func() {
+	pause := 30 * time.Second // Minute
+	name := fmt.Sprintf("login-%s", hub.host)
+	return util.NewRunningScheduler(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
 		err := hub.login()
-		hub.didLoginCh <- err
+		select {
+		case hub.didLoginCh <- err:
+			// good to go
+		case <-hub.stop:
+			// just exit
+		}
 	})
 }
 
 func (hub *Hub) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewScheduler(pause, hub.stop, func() {
+	name := fmt.Sprintf("fetchProjects-%s", hub.host)
+	return util.NewScheduler(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
-		hub.didFetchProjectsCh <- result
+		select {
+		case hub.didFetchProjectsCh <- result:
+			// good to go
+		case <-hub.stop: // TODO should cancel when this happens
+			// just exit
+		}
 	})
 }
 
 func (hub *Hub) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
-	return util.NewScheduler(pause, hub.stop, func() {
+	name := fmt.Sprintf("fetchCodeLocations-%s", hub.host)
+	return util.NewScheduler(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all code locations")
 		result := hub.fetchAllCodeLocations()
-		hub.didFetchCodeLocationsCh <- result
+		select {
+		case hub.didFetchCodeLocationsCh <- result:
+			// good to go
+		case <-hub.stop:
+			// just exit
+		}
 	})
 }
 

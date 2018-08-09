@@ -64,6 +64,7 @@ type resume struct {
 // It stops when receiving an event on `stop`.
 // It's basically a time.Ticker with additional functionality for pausing and resuming.
 type Scheduler struct {
+	name   string
 	state  SchedulerState
 	delay  time.Duration
 	action func()
@@ -75,21 +76,22 @@ type Scheduler struct {
 }
 
 // NewRunningScheduler creates a new scheduler which is running
-func NewRunningScheduler(delay time.Duration, stop <-chan struct{}, runImmediately bool, action func()) *Scheduler {
-	s := NewScheduler(delay, stop, action)
+func NewRunningScheduler(name string, delay time.Duration, stop <-chan struct{}, runImmediately bool, action func()) *Scheduler {
+	s := NewScheduler(name, delay, stop, action)
 	err := s.Resume(runImmediately)
 	if err != nil {
 		// TODO somehow handle error?
-		log.Error(err.Error())
+		log.Errorf("scheduler %s: %s", name, err.Error())
 	} else {
-		log.Debug("started scheduler successfully")
+		log.Debugf("scheduler %s started scheduler successfully", name)
 	}
 	return s
 }
 
 // NewScheduler creates a new scheduler which is paused
-func NewScheduler(delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
+func NewScheduler(name string, delay time.Duration, stop <-chan struct{}, action func()) *Scheduler {
 	scheduler := &Scheduler{
+		name:     name,
 		state:    SchedulerStatePaused,
 		delay:    delay,
 		action:   action,
@@ -113,62 +115,57 @@ func (scheduler *Scheduler) start() {
 		c = nil
 	}
 	didFinishAction := make(chan bool)
-	var nextState SchedulerState
+	var shouldPauseAfterRunningAction bool
 	executeAction := func() {
 		scheduler.state = SchedulerStateRunningAction
-		nextState = SchedulerStateReady
+		shouldPauseAfterRunningAction = false
 		go func() {
 			scheduler.action()
-			didFinishAction <- true
+			select {
+			case didFinishAction <- true:
+			case <-scheduler.stop:
+			}
 		}()
 	}
 	for {
 		select {
 		case <-didFinishAction:
-			log.Debugf("scheduler: didFinishAction")
-			switch nextState {
-			case SchedulerStateStopped:
-				scheduler.state = SchedulerStateStopped
-				stopTimer()
-				return
-			case SchedulerStatePaused:
+			log.Debugf("scheduler %s: didFinishAction, state %s, shouldPause %t", scheduler.name, scheduler.state, shouldPauseAfterRunningAction)
+			if shouldPauseAfterRunningAction {
 				scheduler.state = SchedulerStatePaused
 				stopTimer()
-			default:
+			} else {
 				scheduler.state = SchedulerStateReady
 			}
 		case <-c:
-			log.Debugf("scheduler: timer.C")
+			log.Debugf("scheduler %s: timer.C", scheduler.name)
 			switch scheduler.state {
 			case SchedulerStateReady:
-				// we're good
+				executeAction()
 			case SchedulerStateRunningAction:
-				log.Warnf("backpressuring!  cannot run scheduler action, action already in progress")
-				break
+				log.Warnf("scheduler %s: backpressuring!  cannot run scheduler action, action already in progress", scheduler.name)
 			default:
-				log.Errorf("cannot run action from state %s", scheduler.state)
-				break
+				log.Errorf("scheduler %s: cannot run action from state %s", scheduler.name, scheduler.state)
 			}
-			executeAction()
 		case ch := <-scheduler.pause:
-			log.Debugf("scheduler: pause (state %s)", scheduler.state)
+			log.Debugf("scheduler %s: pause (state %s)", scheduler.name, scheduler.state)
 			switch scheduler.state {
 			case SchedulerStateReady:
 				scheduler.state = SchedulerStatePaused
 				stopTimer()
 				ch <- nil
 			case SchedulerStateRunningAction:
-				if nextState == SchedulerStatePaused || nextState == SchedulerStateStopped {
-					ch <- fmt.Errorf("cannot pause scheduler: %s already queued up", nextState)
+				if shouldPauseAfterRunningAction {
+					ch <- fmt.Errorf("cannot pause scheduler %s: pause already queued up", scheduler.name)
 					break
 				}
-				nextState = SchedulerStatePaused
+				shouldPauseAfterRunningAction = true
 				ch <- nil
 			default:
-				ch <- fmt.Errorf("cannot pause scheduler while in state %s", scheduler.state.String())
+				ch <- fmt.Errorf("cannot pause scheduler %s while in state %s", scheduler.name, scheduler.state.String())
 			}
 		case action := <-scheduler.resume:
-			log.Debugf("scheduler: resume")
+			log.Debugf("scheduler %s: resume", scheduler.name)
 			switch scheduler.state {
 			case SchedulerStatePaused:
 				action.err <- nil
@@ -179,24 +176,21 @@ func (scheduler *Scheduler) start() {
 					scheduler.state = SchedulerStateReady
 				}
 			default:
-				action.err <- fmt.Errorf("cannot resume scheduler while in state %s", scheduler.state.String())
+				action.err <- fmt.Errorf("cannot resume scheduler %s while in state %s", scheduler.name, scheduler.state.String())
 			}
 		case <-scheduler.stop:
-			log.Debugf("scheduler: stop")
+			log.Debugf("scheduler %s: stop, state %s", scheduler.name, scheduler.state)
 			switch scheduler.state {
 			case SchedulerStateReady:
 				stopTimer()
-			case SchedulerStateRunningAction:
-				nextState = SchedulerStateStopped
-			case SchedulerStatePaused:
-				scheduler.state = SchedulerStateStopped
 			case SchedulerStateStopped:
 				// ??? not sure how this would happen
-				log.Warnf("ignoring stop signal: scheduler already stopped")
+				log.Warnf("ignoring stop signal: scheduler %s already stopped", scheduler.name)
 			}
+			scheduler.state = SchedulerStateStopped
 			return
 		case delay := <-scheduler.setDelay:
-			log.Debugf("scheduler: setDelay")
+			log.Debugf("scheduler %s: setDelay", scheduler.name)
 			scheduler.delay = delay
 		}
 	}

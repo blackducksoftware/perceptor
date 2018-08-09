@@ -34,7 +34,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(1*time.Second, stop, false, func() { x++ })
+		s := NewRunningScheduler("test1", 1*time.Second, stop, false, func() { x++ })
 		time.Sleep(500 * time.Millisecond)
 		err := s.Pause()
 		Expect(err).To(BeNil())
@@ -45,7 +45,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(1*time.Second, stop, false, func() { x++ })
+		s := NewRunningScheduler("test2", 1*time.Second, stop, false, func() { x++ })
 		time.Sleep(1500 * time.Millisecond)
 		err := s.Pause()
 		Expect(err).To(BeNil())
@@ -56,7 +56,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(1*time.Second, stop, false, func() { x++ })
+		s := NewRunningScheduler("test3", 1*time.Second, stop, false, func() { x++ })
 		log.Debugf("started s: %+v", s)
 		time.Sleep(1500 * time.Millisecond)
 		Skip("Pausing after stopping is currently not supported")
@@ -70,7 +70,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(250*time.Millisecond, stop, false, func() { x++ })
+		s := NewRunningScheduler("test4", 250*time.Millisecond, stop, false, func() { x++ })
 		log.Debug("middle")
 		time.Sleep(650 * time.Millisecond)
 		err := s.Pause()
@@ -83,7 +83,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(250*time.Millisecond, stop, true, func() { x++ })
+		s := NewRunningScheduler("test5", 250*time.Millisecond, stop, true, func() { x++ })
 		log.Debug("middle")
 		time.Sleep(650 * time.Millisecond)
 		err := s.Pause()
@@ -98,7 +98,7 @@ var _ = Describe("Scheduler", func() {
 		x := 0
 		y := 0
 		useX := true
-		s := NewRunningScheduler(500*time.Millisecond, stop, true, func() {
+		s := NewRunningScheduler("test6", 500*time.Millisecond, stop, true, func() {
 			if useX {
 				x++
 			} else {
@@ -120,7 +120,7 @@ var _ = Describe("Scheduler", func() {
 		stop := make(chan struct{})
 		defer close(stop)
 		x := 0
-		s := NewRunningScheduler(2*time.Second, stop, true, func() {
+		s := NewRunningScheduler("test7", 2*time.Second, stop, true, func() {
 			time.Sleep(1 * time.Second)
 			x++
 		})
@@ -130,5 +130,81 @@ var _ = Describe("Scheduler", func() {
 		time.Sleep(1 * time.Second)
 		Expect(s.state).To(Equal(SchedulerStateReady))
 		Expect(x).To(Equal(1))
+	})
+
+	It("stops executing action after being stopped", func() {
+		stop := make(chan struct{})
+		x := 0
+		s := NewRunningScheduler("test8", 500*time.Millisecond, stop, false, func() {
+			log.Errorf("this shouldn't get executed")
+			x++
+		})
+		time.Sleep(250 * time.Millisecond)
+		close(stop)
+		time.Sleep(10 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		time.Sleep(2 * time.Second)
+		Expect(x).To(Equal(0))
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		// wait a bit longer to make sure it's not running
+		time.Sleep(2 * time.Second)
+		Expect(x).To(Equal(0))
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+	})
+
+	It("can be stopped while running action -- action will complete, then it will stop", func() {
+		stop := make(chan struct{})
+		beforeSleep := 0
+		afterSleep := 0
+		s := NewRunningScheduler("test9", 2*time.Second, stop, true, func() {
+			beforeSleep++
+			time.Sleep(1 * time.Second)
+			afterSleep++
+		})
+		time.Sleep(1 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		Expect(beforeSleep).To(Equal(1))
+		Expect(afterSleep).To(Equal(0))
+		// now, cancel it while the action is running
+		time.Sleep(500 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		close(stop)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		// wait for the action to complete ... even though that shouldn't make a difference
+		time.Sleep(750 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		Expect(beforeSleep).To(Equal(1))
+		Expect(afterSleep).To(Equal(1))
+		// wait a bit longer to make sure it's not running
+		time.Sleep(2 * time.Second)
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		Expect(beforeSleep).To(Equal(1))
+		Expect(afterSleep).To(Equal(1))
+	})
+
+	It("should still deallocate despite a long-running action", func() {
+		stop := make(chan struct{})
+		beforeSleep := 0
+		afterSleep := 0
+		s := NewRunningScheduler("test10", 1*time.Second, stop, true, func() {
+			beforeSleep++
+			time.Sleep(1 * time.Second)
+			afterSleep++
+		})
+		time.Sleep(1 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		Expect(beforeSleep).To(Equal(1))
+		Expect(afterSleep).To(Equal(0))
+		// now, cancel it while the action is running
+		time.Sleep(250 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		close(stop)
+		time.Sleep(3 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		// wait a bit longer to make sure it's not running
+		time.Sleep(3 * time.Second)
+		Expect(s.state).To(Equal(SchedulerStateStopped))
+		Expect(beforeSleep).To(Equal(1))
+		Expect(afterSleep).To(Equal(1))
 	})
 })
