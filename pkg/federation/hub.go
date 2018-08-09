@@ -197,7 +197,6 @@ func (hub *Hub) Model() *APIModelHub {
 // Private methods
 
 func (hub *Hub) recordError(err error) {
-	// TODO don't let this grow without bounds
 	if err != nil {
 		hub.errors = append(hub.errors, err)
 	}
