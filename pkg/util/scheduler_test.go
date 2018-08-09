@@ -115,4 +115,20 @@ var _ = Describe("Scheduler", func() {
 		Expect(x).To(Equal(1))
 		Expect(y).To(Equal(2))
 	})
+
+	It("state during action execution is 'running action'", func() {
+		stop := make(chan struct{})
+		defer close(stop)
+		x := 0
+		s := NewRunningScheduler(2*time.Second, stop, true, func() {
+			time.Sleep(1 * time.Second)
+			x++
+		})
+		time.Sleep(500 * time.Millisecond)
+		Expect(s.state).To(Equal(SchedulerStateRunningAction))
+		Expect(x).To(Equal(0))
+		time.Sleep(1 * time.Second)
+		Expect(s.state).To(Equal(SchedulerStateReady))
+		Expect(x).To(Equal(1))
+	})
 })

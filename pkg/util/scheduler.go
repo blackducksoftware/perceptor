@@ -59,8 +59,10 @@ type resume struct {
 	err            chan error
 }
 
-// Scheduler periodically executes `action`, with a pause of `delay` between
-// invocations, and stops when receiving an event on `stop`.
+// Scheduler periodically executes `action`, waiting `delay` between invocation starts.
+// If `action` takes longer than `delay`, invocations will be dropped.
+// It stops when receiving an event on `stop`.
+// It's basically a time.Ticker with additional functionality for pausing and resuming.
 type Scheduler struct {
 	state  SchedulerState
 	delay  time.Duration
@@ -144,6 +146,7 @@ func (scheduler *Scheduler) start() {
 				log.Errorf("cannot run action from state %s", scheduler.state)
 				break
 			}
+			scheduler.state = SchedulerStateRunningAction
 			nextState = SchedulerStateReady
 			go func() {
 				scheduler.action()

@@ -37,15 +37,17 @@ func DumpRuntimeStack() string {
 }
 
 // DumpPProfStack uses pprof to inspect goroutines
-func DumpPProfStack() string {
+func DumpPProfStack() (string, int) {
 	pprofBuffer := new(bytes.Buffer)
-	pprof.Lookup("goroutine").WriteTo(pprofBuffer, 1)
-	return pprofBuffer.String()
+	profile := pprof.Lookup("goroutine")
+	profile.WriteTo(pprofBuffer, 1)
+	return pprofBuffer.String(), profile.Count()
 }
 
 // DumpHeap uses pprof to inspect the heap
-func DumpHeap() string {
+func DumpHeap() (string, int) {
 	heapBuffer := new(bytes.Buffer)
-	pprof.Lookup("heap").WriteTo(heapBuffer, 1)
-	return heapBuffer.String()
+	profile := pprof.Lookup("heap")
+	profile.WriteTo(heapBuffer, 1)
+	return heapBuffer.String(), profile.Count()
 }

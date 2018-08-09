@@ -32,5 +32,5 @@ type FetcherInterface interface {
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
 	Model() *FetcherModel
-	IsEnabled() <-chan bool
+	//	IsEnabled() <-chan bool
 }

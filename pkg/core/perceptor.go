@@ -144,8 +144,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 				actions <- a
 			case a := <-routineTaskManager.actions:
 				actions <- a
-			case isEnabled := <-hubClient.IsEnabled():
-				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
+			// case isEnabled := <-hubClient.IsEnabled():
+			// 	actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:
 				hubClient.ResetCircuitBreaker()
 			}

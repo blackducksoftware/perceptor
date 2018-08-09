@@ -103,13 +103,18 @@ func SetupHTTPServer(responder Responder) {
 		if r.Method == "GET" {
 			log.Debugf("http request: GET stackdump")
 			runtimeStack := util.DumpRuntimeStack()
-			pprofStack := util.DumpPProfStack()
-			dict := map[string]string{
-				"runtime": runtimeStack,
-				"pprof":   pprofStack,
+			pprofStack, grsCount := util.DumpPProfStack()
+			heap, heapCount := util.DumpHeap()
+			dict := map[string]interface{}{
+				"runtime":    runtimeStack,
+				"pprof":      pprofStack,
+				"pprofCount": grsCount,
+				"heap":       heap,
+				"heapCount":  heapCount,
 			}
 			fmt.Printf("runtime:\n%s\n\n", runtimeStack)
-			fmt.Printf("pprof:\n%s\n\n", pprofStack)
+			fmt.Printf("pprof: %d\n%s\n\n", grsCount, pprofStack)
+			fmt.Printf("heap: %d\n%s\n\n", heapCount, heap)
 			//			log.Printf()
 			//			log.Debugf("runtime: %s", )
 			jsonBytes, err := json.MarshalIndent(dict, "", "  ")

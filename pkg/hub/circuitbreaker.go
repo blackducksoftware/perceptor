@@ -33,7 +33,7 @@ type CircuitBreaker struct {
 	NextCheckTime       *time.Time
 	MaxBackoffDuration  time.Duration
 	ConsecutiveFailures int
-	IsEnabledChannel    chan bool
+	//	IsEnabledChannel    chan bool
 }
 
 // NewCircuitBreaker .....
@@ -42,7 +42,7 @@ func NewCircuitBreaker(maxBackoffDuration time.Duration) *CircuitBreaker {
 		NextCheckTime:       nil,
 		MaxBackoffDuration:  maxBackoffDuration,
 		ConsecutiveFailures: 0,
-		IsEnabledChannel:    make(chan bool),
+		//		IsEnabledChannel:    make(chan bool),
 	}
 	cb.setState(CircuitBreakerStateEnabled)
 	return cb
@@ -60,16 +60,17 @@ func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
 	recordCircuitBreakerState(state)
 	recordCircuitBreakerTransition(cb.State, state)
 	cb.State = state
-	go func() {
-		switch state {
-		case CircuitBreakerStateEnabled:
-			cb.IsEnabledChannel <- true
-		case CircuitBreakerStateDisabled:
-			cb.IsEnabledChannel <- false
-		case CircuitBreakerStateChecking:
-			break
-		}
-	}()
+	// go func() {
+	// 	// TODO this goroutine may be leaked if nothing is reading from the channel
+	// 	switch state {
+	// 	case CircuitBreakerStateEnabled:
+	// 		cb.IsEnabledChannel <- true
+	// 	case CircuitBreakerStateDisabled:
+	// 		cb.IsEnabledChannel <- false
+	// 	case CircuitBreakerStateChecking:
+	// 		break
+	// 	}
+	// }()
 }
 
 // IsEnabled .....
