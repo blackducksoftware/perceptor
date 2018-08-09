@@ -22,14 +22,14 @@ under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 
 	fed "github.com/blackducksoftware/perceptor/pkg/federation"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	configPath := os.Args[1]
-	fmt.Printf("Config path: %s", configPath)
+	log.Infof("Config path: %s", configPath)
 	fed.RunFederator(configPath)
 }
