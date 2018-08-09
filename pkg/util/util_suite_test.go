@@ -19,18 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package util
 
-import "time"
+import (
+	"testing"
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() (string, error)
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	//	IsEnabled() <-chan bool
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
+)
+
+func TestUtil(t *testing.T) {
+	RegisterFailHandler(Fail)
+	log.SetLevel(log.DebugLevel)
+	RunSpecs(t, "core suite")
 }

@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"sort"
 
-	ds "github.com/blackducksoftware/perceptor/pkg/datastructures"
+	"github.com/blackducksoftware/perceptor/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
@@ -48,7 +48,7 @@ var (
 	pod4 = *NewPod("pod4", "pod4uid", "ns4", []Container{})
 )
 
-func sortedValues(pq *ds.PriorityQueue) []interface{} {
+func sortedValues(pq *util.PriorityQueue) []interface{} {
 	vals := pq.Values()
 	sort.Slice(vals, func(i int, j int) bool {
 		return vals[i].(DockerImageSha) < vals[j].(DockerImageSha)

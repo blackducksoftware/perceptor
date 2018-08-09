@@ -19,18 +19,35 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package util
 
-import "time"
+import (
+	"bytes"
+	"runtime"
+	"runtime/pprof"
+)
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() (string, error)
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	//	IsEnabled() <-chan bool
+// See: https://play.golang.org/p/0hVB0_LMdm
+
+// DumpRuntimeStack uses runtime to inspect goroutines
+func DumpRuntimeStack() string {
+	buf := make([]byte, 1<<16)
+	runtime.Stack(buf, true)
+	return string(bytes.Trim(buf, "\x00"))
+}
+
+// DumpPProfStack uses pprof to inspect goroutines
+func DumpPProfStack() (string, int) {
+	pprofBuffer := new(bytes.Buffer)
+	profile := pprof.Lookup("goroutine")
+	profile.WriteTo(pprofBuffer, 1)
+	return pprofBuffer.String(), profile.Count()
+}
+
+// DumpHeap uses pprof to inspect the heap
+func DumpHeap() (string, int) {
+	heapBuffer := new(bytes.Buffer)
+	profile := pprof.Lookup("heap")
+	profile.WriteTo(heapBuffer, 1)
+	return heapBuffer.String(), profile.Count()
 }

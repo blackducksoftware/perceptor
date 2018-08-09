@@ -19,16 +19,17 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package core
+package main
 
 import (
-	"testing"
+	"os"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	fed "github.com/blackducksoftware/perceptor/pkg/federation"
+	log "github.com/sirupsen/logrus"
 )
 
-func TestPerceptor(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "core suite")
+func main() {
+	configPath := os.Args[1]
+	log.Infof("Config path: %s", configPath)
+	fed.RunFederator(configPath)
 }

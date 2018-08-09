@@ -70,7 +70,7 @@ func NewPerceptor(config *Config) (*Perceptor, error) {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.HubUserPasswordEnvVar)
 	}
 
-	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeoutMilliseconds)
+	hubClient, err := hub.NewFetcher(config.HubUser, hubPassword, config.HubHost, config.HubPort, config.HubClientTimeout())
 	if err != nil {
 		log.Errorf("unable to instantiate hub Fetcher: %s", err.Error())
 		return nil, err
@@ -94,7 +94,9 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 			case <-stop:
 				return
 			case imageShas := <-routineTaskManager.OrphanedImages:
-				hubClient.DeleteScans(imageShas)
+				// TODO reenable deletion with appropriate throttling
+				// hubClient.DeleteScans(imageShas)
+				log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
 			}
 		}
 	}()
@@ -142,8 +144,8 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 				actions <- a
 			case a := <-routineTaskManager.actions:
 				actions <- a
-			case isEnabled := <-hubClient.IsEnabled():
-				actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
+			// case isEnabled := <-hubClient.IsEnabled():
+			// 	actions <- &a.SetIsHubEnabled{IsEnabled: isEnabled}
 			case <-httpResponder.ResetCircuitBreakerChannel:
 				hubClient.ResetCircuitBreaker()
 			}
@@ -172,7 +174,11 @@ func newPerceptorHelper(hubClient hub.FetcherInterface, config *Config) *Percept
 		RefreshThresholdDuration:       model.DefaultTimings.RefreshThresholdDuration,
 		StalledScanClientTimeout:       model.DefaultTimings.StalledScanClientTimeout,
 	}
-	reducer := newReducer(model.NewModel(hubClient.HubVersion(), modelConfig, timings), actions)
+	hubVersion, err := hubClient.HubVersion()
+	if err != nil {
+		log.Errorf("unable to get Hub version: %s", err.Error())
+	}
+	reducer := newReducer(model.NewModel(hubVersion, modelConfig, timings), actions)
 
 	// 5. connect reducer notifications to routine task manager
 	go func() {

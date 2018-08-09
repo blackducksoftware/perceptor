@@ -1,0 +1,12 @@
+{
+    "HubConfig": {
+        "User": "sysadmin",
+        "PasswordEnvVar": "HUB_PASSWORD",
+        "ClientTimeoutMillisecond": 5000,
+        "Port": 443,
+        "FetchAllProjectsPauseSeconds": 60
+    },
+    "UseMockMode": false,
+    "LogLevel": "debug",
+    "Port": "3016"
+}

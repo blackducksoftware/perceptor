@@ -70,9 +70,9 @@ func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
 	return nil, nil
 }
 
-// DeleteScans ...
-func (hub *MockHub) DeleteScans(scanNames []string) {
-	// unimplemented
+// DeleteScan ...
+func (hub *MockHub) DeleteScan(scanName string) error {
+	return nil
 }
 
 // FetchScan .....
@@ -81,8 +81,8 @@ func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error)
 }
 
 // HubVersion .....
-func (hub *MockHub) HubVersion() string {
-	return hub.hubVersion
+func (hub *MockHub) HubVersion() (string, error) {
+	return hub.hubVersion, nil
 }
 
 // Login .....

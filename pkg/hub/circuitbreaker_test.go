@@ -22,6 +22,7 @@ under the License.
 package hub
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -29,20 +30,23 @@ import (
 // TestCircuitBreaker .....
 func TestCircuitBreaker(t *testing.T) {
 	hubClient := &MockHubClient{ShouldFail: false}
-	cb := NewCircuitBreaker(10*time.Minute, hubClient)
+	cb := NewCircuitBreaker(10 * time.Minute)
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
 	}
 
 	// API working -> cb remains enabled
-	cb.ListCodeLocations("abc")
+	cb.IssueRequest("abc", func() error {
+		return nil
+	})
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
 	}
 
 	// API fails -> cb gets disabled
-	hubClient.ShouldFail = true
-	cb.ListCodeLocations("abc")
+	cb.IssueRequest("abc", func() error {
+		return fmt.Errorf("planned failure")
+	})
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
 	}
@@ -51,12 +55,11 @@ func TestCircuitBreaker(t *testing.T) {
 	}
 
 	// cb disabled -> API calls fail
-	clList, err := cb.ListCodeLocations("abc")
+	err := cb.IssueRequest("abc", func() error {
+		panic("this should never be called!")
+	})
 	if err == nil {
 		t.Errorf("expected error, got nil")
-	}
-	if clList != nil {
-		t.Errorf("expected nil cl list, got %+v", clList)
 	}
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
@@ -67,12 +70,11 @@ func TestCircuitBreaker(t *testing.T) {
 
 	// disabled -> checks -> disabled
 	time.Sleep(2 * time.Second)
-	clList, err = cb.ListCodeLocations("abc")
+	err = cb.IssueRequest("abc", func() error {
+		return fmt.Errorf("planned failure")
+	})
 	if err == nil {
 		t.Errorf("expected error, got nil")
-	}
-	if clList != nil {
-		t.Errorf("expected nil cl list, got %+v", clList)
 	}
 	if cb.State != CircuitBreakerStateDisabled {
 		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
@@ -84,12 +86,11 @@ func TestCircuitBreaker(t *testing.T) {
 	// disabled -> checks -> enabled
 	time.Sleep(4 * time.Second)
 	hubClient.ShouldFail = false
-	clList, err = cb.ListCodeLocations("abc")
+	err = cb.IssueRequest("abc", func() error {
+		return nil
+	})
 	if err != nil {
 		t.Errorf("expected nil error, got: %s", err.Error())
-	}
-	if clList == nil {
-		t.Errorf("expected cl list, got nil")
 	}
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
@@ -98,7 +99,7 @@ func TestCircuitBreaker(t *testing.T) {
 
 // TestCircuitBreakerConsecutiveFailures .....
 func TestCircuitBreakerConsecutiveFailures(t *testing.T) {
-	cb := NewCircuitBreaker(10*time.Minute, &MockHubClient{})
+	cb := NewCircuitBreaker(10 * time.Minute)
 	if cb.State != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
 	}

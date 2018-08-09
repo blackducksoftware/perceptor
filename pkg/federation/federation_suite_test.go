@@ -19,18 +19,17 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package federation
 
-import "time"
+import (
+	"testing"
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() (string, error)
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	//	IsEnabled() <-chan bool
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func TestModel(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunActionsTests()
+	RunSpecs(t, "core suite")
 }
