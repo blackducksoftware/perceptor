@@ -112,15 +112,18 @@ func (scheduler *Scheduler) start() {
 		timer.Stop()
 		c = nil
 	}
-	runAction := make(chan bool)
 	didFinishAction := make(chan bool)
 	var nextState SchedulerState
+	executeAction := func() {
+		scheduler.state = SchedulerStateRunningAction
+		nextState = SchedulerStateReady
+		go func() {
+			scheduler.action()
+			didFinishAction <- true
+		}()
+	}
 	for {
 		select {
-		case <-c:
-			go func() {
-				runAction <- true
-			}()
 		case <-didFinishAction:
 			log.Debugf("scheduler: didFinishAction")
 			switch nextState {
@@ -134,8 +137,8 @@ func (scheduler *Scheduler) start() {
 			default:
 				scheduler.state = SchedulerStateReady
 			}
-		case <-runAction:
-			log.Debugf("scheduler: runAction")
+		case <-c:
+			log.Debugf("scheduler: timer.C")
 			switch scheduler.state {
 			case SchedulerStateReady:
 				// we're good
@@ -146,12 +149,7 @@ func (scheduler *Scheduler) start() {
 				log.Errorf("cannot run action from state %s", scheduler.state)
 				break
 			}
-			scheduler.state = SchedulerStateRunningAction
-			nextState = SchedulerStateReady
-			go func() {
-				scheduler.action()
-				didFinishAction <- true
-			}()
+			executeAction()
 		case ch := <-scheduler.pause:
 			log.Debugf("scheduler: pause (state %s)", scheduler.state)
 			switch scheduler.state {
@@ -173,14 +171,13 @@ func (scheduler *Scheduler) start() {
 			log.Debugf("scheduler: resume")
 			switch scheduler.state {
 			case SchedulerStatePaused:
-				scheduler.state = SchedulerStateReady
 				action.err <- nil
-				if action.runImmediately {
-					go func() {
-						runAction <- true
-					}()
-				}
 				startTimer()
+				if action.runImmediately {
+					executeAction()
+				} else {
+					scheduler.state = SchedulerStateReady
+				}
 			default:
 				action.err <- fmt.Errorf("cannot resume scheduler while in state %s", scheduler.state.String())
 			}
