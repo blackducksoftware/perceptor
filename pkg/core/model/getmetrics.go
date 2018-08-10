@@ -19,27 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
 // GetMetrics .....
 type GetMetrics struct {
-	Continuation func(metrics *m.Metrics)
+	Continuation func(metrics *Metrics)
 }
 
 // Apply .....
-func (g *GetMetrics) Apply(model *m.Model) {
+func (g *GetMetrics) Apply(model *Model) {
 	modelMetrics := metrics(model)
 	go g.Continuation(modelMetrics)
 }
 
-func metrics(model *m.Model) *m.Metrics {
+func metrics(model *Model) *Metrics {
 	// number of images in each status
-	statusCounts := make(map[m.ScanStatus]int)
+	statusCounts := make(map[ScanStatus]int)
 	for _, imageResults := range model.Images {
 		statusCounts[imageResults.ScanStatus]++
 	}
@@ -51,7 +50,7 @@ func metrics(model *m.Model) *m.Metrics {
 	}
 
 	// number of times each image is referenced from a pod's container
-	imageCounts := make(map[m.Image]int)
+	imageCounts := make(map[Image]int)
 	for _, pod := range model.Pods {
 		for _, cont := range pod.Containers {
 			imageCounts[cont.Image]++
@@ -86,7 +85,7 @@ func metrics(model *m.Model) *m.Metrics {
 	imagePolicyViolations := map[int]int{}
 	imageVulnerabilities := map[int]int{}
 	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus == m.ScanStatusComplete {
+		if imageInfo.ScanStatus == ScanStatusComplete {
 			imageScan := imageInfo.ScanResults
 			if imageScan == nil {
 				log.Errorf("found nil scan results for completed image %s", sha)
@@ -104,7 +103,7 @@ func metrics(model *m.Model) *m.Metrics {
 
 	// TODO
 	// number of images without a pod pointing to them
-	return &m.Metrics{
+	return &Metrics{
 		ScanStatusCounts:      statusCounts,
 		NumberOfImages:        len(model.Images),
 		NumberOfPods:          len(model.Pods),

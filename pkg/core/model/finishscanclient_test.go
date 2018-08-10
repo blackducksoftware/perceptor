@@ -19,25 +19,23 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
 	"fmt"
 	"testing"
-
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 )
 
 // TestScanClientFails .....
 func TestScanClientFails(t *testing.T) {
-	model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 1}, nil)
-	image := *m.NewImage("abc", "4.0", m.DockerImageSha("23bcf2dae3"))
+	model := NewModel()
+	image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"))
 	model.AddImage(image, 0)
-	model.SetImageScanStatus(image.Sha, m.ScanStatusInQueue)
-	model.SetImageScanStatus(image.Sha, m.ScanStatusRunningScanClient)
+	model.SetImageScanStatus(image.Sha, ScanStatusInQueue)
+	model.SetImageScanStatus(image.Sha, ScanStatusRunningScanClient)
 	model.FinishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
 
-	if model.Images[image.Sha].ScanStatus != m.ScanStatusInQueue {
+	if model.Images[image.Sha].ScanStatus != ScanStatusInQueue {
 		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
 		t.Fail()
 	}

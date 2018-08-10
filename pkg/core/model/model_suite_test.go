@@ -32,5 +32,11 @@ func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunImageTests()
 	RunModelTests()
+	RunActionTests()
+	RunTestAddImageAction()
+	RunTestAddPodAction()
+	RunTestAllImages()
+	RunTestGetFullScanResults()
+	RunTestPodOverallStatus()
 	RunSpecs(t, "model suite")
 }

@@ -19,30 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-func RunTestAddPodAction() {
-	It("should add a pod and all the pod's containers' images", func() {
-		actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
-		(&AddPod{testPod}).Apply(actual)
+func RunTestAddImageAction() {
+	It("should add an image", func() {
+		actual := NewModel()
+		(&AddImage{testImage}).Apply(actual)
 		// expected (a bit hacky to get the times set up):
-		//  - pod gets added to .Pods
-		//  - all images within pod get added to .Images
-		//  - all new images get added to hub check queue
-		expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 0}, nil)
-		expected.ImagePriority[testImage.Sha] = 1
-		expected.Pods[testPod.QualifiedName()] = testPod
-		imageInfo := m.NewImageInfo(testSha, &m.RepoTag{Repository: "image1", Tag: ""})
-		imageInfo.ScanStatus = m.ScanStatusInHubCheckQueue
+		//  - image gets added to .Images
+		//  - image gets added to hub check queue
+		expected := *NewModel()
+		expected.ImagePriority[testImage.Sha] = 0
+		imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""})
+		imageInfo.ScanStatus = ScanStatusUnknown
 		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 		expected.Images[testSha] = imageInfo
-		expected.ImageHubCheckQueue = append(expected.ImageHubCheckQueue, imageInfo.ImageSha)
 		//
 		Expect(actual).To(Equal(&expected))
 	})

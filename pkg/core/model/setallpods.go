@@ -19,18 +19,17 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
+// AllPods .....
+type AllPods struct {
+	Pods []Pod
+}
 
-// AllImages doesn't remove pre-existing images
-func RunTestAllImages() {
-	It("should not remove pre-existing images", func() {
-		actual := createNewModel1()
-		(&AllImages{}).Apply(actual)
-		Expect(len(actual.Images)).To(Equal(2))
-	})
+// Apply .....
+func (a *AllPods) Apply(model *Model) {
+	model.Pods = map[string]Pod{}
+	for _, pod := range a.Pods {
+		model.AddPod(pod)
+	}
 }

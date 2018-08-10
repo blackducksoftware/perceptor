@@ -19,11 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +38,7 @@ func NewGetModel() *GetModel {
 }
 
 // Apply .....
-func (g *GetModel) Apply(model *m.Model) {
+func (g *GetModel) Apply(model *Model) {
 	apiModel := CoreModelToAPIModel(model)
 	apiModel.HubCircuitBreaker = g.HubCircuitBreaker
 	go func() {
@@ -48,7 +47,7 @@ func (g *GetModel) Apply(model *m.Model) {
 }
 
 // CoreContainerToAPIContainer .....
-func CoreContainerToAPIContainer(coreContainer m.Container) *api.Container {
+func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	image := coreContainer.Image
 	return &api.Container{
 		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha)),
@@ -57,7 +56,7 @@ func CoreContainerToAPIContainer(coreContainer m.Container) *api.Container {
 }
 
 // CorePodToAPIPod .....
-func CorePodToAPIPod(corePod m.Pod) *api.Pod {
+func CorePodToAPIPod(corePod Pod) *api.Pod {
 	containers := []api.Container{}
 	for _, coreContainer := range corePod.Containers {
 		containers = append(containers, *CoreContainerToAPIContainer(coreContainer))
@@ -71,7 +70,7 @@ func CorePodToAPIPod(corePod m.Pod) *api.Pod {
 }
 
 // CoreModelToAPIModel .....
-func CoreModelToAPIModel(model *m.Model) *api.Model {
+func CoreModelToAPIModel(model *Model) *api.Model {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
@@ -92,43 +91,39 @@ func CoreModelToAPIModel(model *m.Model) *api.Model {
 			TimeOfLastStatusChange: imageInfo.TimeOfLastStatusChange.String(),
 		}
 	}
-	// hub check queue
-	hubQueue := make([]string, len(model.ImageHubCheckQueue))
-	for i, image := range model.ImageHubCheckQueue {
-		hubQueue[i] = string(image)
-	}
+
 	// return value
 	return &api.Model{
-		Pods:               pods,
-		Images:             images,
-		HubVersion:         model.HubVersion,
-		ImageHubCheckQueue: hubQueue,
-		ImageScanQueue:     model.ImageScanQueue.Dump(),
-		Config: &api.ModelConfig{
-			HubHost:             model.Config.HubHost,
-			HubUser:             model.Config.HubUser,
-			HubPort:             model.Config.HubPort,
-			LogLevel:            model.Config.LogLevel,
-			Port:                model.Config.Port,
-			ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
-		},
-		Timings: &api.ModelTimings{
-			CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
-			CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
-			CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
-			EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
-			HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
-			HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
-			ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),
-			RefreshImagePause:              *api.NewModelTime(model.Timings.RefreshImagePause),
-			RefreshThresholdDuration:       *api.NewModelTime(model.Timings.RefreshThresholdDuration),
-			StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
-		},
+		Pods:   pods,
+		Images: images,
+		// TODO
+		// ImagePriority: model.ImagePriority,
+		// HubVersion:     model.HubVersion,
+		// ImageScanQueue: model.ImageScanQueue.Dump(),
+		// Config: &api.ModelConfig{
+		// 	HubHost:             model.Config.HubHost,
+		// 	HubUser:             model.Config.HubUser,
+		// 	HubPort:             model.Config.HubPort,
+		// 	LogLevel:            model.Config.LogLevel,
+		// 	Port:                model.Config.Port,
+		// 	ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
+		// },
+		// Timings: &api.ModelTimings{
+		// 	CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
+		// 	CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
+		// 	CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
+		// 	EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
+		// 	HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
+		// 	HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
+		// 	ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),
+		// 	RefreshImagePause:              *api.NewModelTime(model.Timings.RefreshImagePause),
+		// 	RefreshThresholdDuration:       *api.NewModelTime(model.Timings.RefreshThresholdDuration),
+		// 	StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
 	}
 }
 
 // ScanResults .....
-func ScanResults(model *m.Model) api.ScanResults {
+func ScanResults(model *Model) api.ScanResults {
 	// pods
 	pods := []api.ScannedPod{}
 	for podName, pod := range model.Pods {
@@ -152,7 +147,7 @@ func ScanResults(model *m.Model) api.ScanResults {
 	// images
 	images := []api.ScannedImage{}
 	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus != m.ScanStatusComplete {
+		if imageInfo.ScanStatus != ScanStatusComplete {
 			continue
 		}
 		if imageInfo.ScanResults == nil {
@@ -171,5 +166,5 @@ func ScanResults(model *m.Model) api.ScanResults {
 		images = append(images, apiImage)
 	}
 
-	return *api.NewScanResults(model.HubVersion, model.HubVersion, pods, images)
+	return *api.NewScanResults(pods, images)
 }

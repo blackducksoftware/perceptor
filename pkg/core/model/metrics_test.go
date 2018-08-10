@@ -31,6 +31,7 @@ import (
 func TestMetrics(t *testing.T) {
 	recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
 	recordEvent("abc")
+	recordError("def", "ghi")
 
 	message := "finished test case"
 	t.Log(message)

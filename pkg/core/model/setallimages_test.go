@@ -19,18 +19,18 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// SetIsHubEnabled .....
-type SetIsHubEnabled struct {
-	IsEnabled bool
-}
-
-// Apply .....
-func (s *SetIsHubEnabled) Apply(model *m.Model) {
-	model.IsHubEnabled = s.IsEnabled
+// AllImages doesn't remove pre-existing images
+func RunTestAllImages() {
+	It("should not remove pre-existing images", func() {
+		actual := createNewModel1()
+		(&AllImages{}).Apply(actual)
+		Expect(len(actual.Images)).To(Equal(2))
+	})
 }

@@ -19,24 +19,21 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
-func TestModel(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunActionTests()
-	RunTestAddImageAction()
-	RunTestAddPodAction()
-	RunTestAllImages()
-	RunFetchScanCompletionTests()
-	RunFetchScanRefresh()
-	RunTestGetFullScanResults()
-	RunTestPodOverallStatus()
-	RunSpecs(t, "model suite")
+// FinishScanClient .....
+type FinishScanClient struct {
+	Image *Image
+	Err   error
+}
+
+// Apply .....
+func (f *FinishScanClient) Apply(model *Model) {
+	newModel := model
+	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == nil, f.Image.Sha)
+	newModel.FinishRunningScanClient(f.Image, f.Err)
 }

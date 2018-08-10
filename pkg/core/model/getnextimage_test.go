@@ -19,10 +19,9 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
@@ -32,14 +31,14 @@ func RunGetNextImage() {
 	Describe("GetNextImage", func() {
 		It("no image available", func() {
 			// actual
-			actual := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			actual := NewModel()
 			get := NewGetNextImage()
 			go func() {
 				get.Apply(actual)
 			}()
 			nextImage := <-get.Done
 			// expected: front image removed from scan queue, status and time of image changed
-			expected := *m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			expected := *NewModel()
 
 			Expect(nextImage).To(BeNil())
 			log.Infof("%+v, %+v", actual, expected)
@@ -47,9 +46,9 @@ func RunGetNextImage() {
 		})
 
 		It("regular", func() {
-			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
+			model := NewModel()
 			model.AddImage(image1, 0)
-			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
+			model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
 
 			get := NewGetNextImage()
 			go func() { get.Apply(model) }()
@@ -57,27 +56,8 @@ func RunGetNextImage() {
 
 			Expect(nextImage).To(Equal(image1))
 			Expect(model.ImageScanQueue.Values()).To(Equal([]interface{}{}))
-			Expect(model.Images[image1.Sha].ScanStatus).To(Equal(m.ScanStatusRunningScanClient))
+			Expect(model.Images[image1.Sha].ScanStatus).To(Equal(ScanStatusRunningScanClient))
 			// TODO expected: time of image changed
-		})
-
-		It("hub inacessible", func() {
-			model := m.NewModel("test version", &m.Config{ConcurrentScanLimit: 3}, nil)
-			model.AddImage(image1, 0)
-			model.SetImageScanStatus(image1.Sha, m.ScanStatusInQueue)
-			model.IsHubEnabled = false
-
-			get := NewGetNextImage()
-			go func() { get.Apply(model) }()
-			nextImage := <-get.Done
-
-			Expect(nextImage).To(BeNil())
-
-			model.IsHubEnabled = true
-			get = NewGetNextImage()
-			go func() { get.Apply(model) }()
-			nextImage = <-get.Done
-			Expect(nextImage).ToNot(BeNil())
 		})
 	})
 }

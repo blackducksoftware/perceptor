@@ -19,19 +19,16 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
-import (
-	"testing"
+import "testing"
 
-	log "github.com/sirupsen/logrus"
-)
-
-// TestMetrics .....
-func TestMetrics(t *testing.T) {
-	recordRequeueStalledScan("abc")
-
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+// AllPods does remove pre-existing pods
+// TestAllPods .....
+func TestAllPods(t *testing.T) {
+	actual := createNewModel1()
+	(&AllPods{}).Apply(actual)
+	if len(actual.Pods) != 0 {
+		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
+	}
 }

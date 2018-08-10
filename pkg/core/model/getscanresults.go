@@ -19,13 +19,12 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
 	"fmt"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,14 +40,14 @@ func NewGetScanResults() *GetScanResults {
 }
 
 // Apply .....
-func (g *GetScanResults) Apply(model *m.Model) {
+func (g *GetScanResults) Apply(model *Model) {
 	scanResults := ScanResults(model)
 	go func() {
 		g.Done <- scanResults
 	}()
 }
 
-func scanResultsForPod(model *m.Model, podName string) (*m.Scan, error) {
+func scanResultsForPod(model *Model, podName string) (*Scan, error) {
 	pod, ok := model.Pods[podName]
 	if !ok {
 		return nil, fmt.Errorf("could not find pod of name %s in cache", podName)
@@ -73,27 +72,27 @@ func scanResultsForPod(model *m.Model, podName string) (*m.Scan, error) {
 			overallStatus = imageScanOverallStatus
 		}
 	}
-	podScan := &m.Scan{
+	podScan := &Scan{
 		OverallStatus:    overallStatus,
 		PolicyViolations: policyViolationCount,
 		Vulnerabilities:  vulnerabilityCount}
 	return podScan, nil
 }
 
-func scanResultsForImage(model *m.Model, sha m.DockerImageSha) (*m.Scan, error) {
+func scanResultsForImage(model *Model, sha DockerImageSha) (*Scan, error) {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
 		return nil, fmt.Errorf("could not find image of sha %s in cache", sha)
 	}
 
-	if imageInfo.ScanStatus != m.ScanStatusComplete {
+	if imageInfo.ScanStatus != ScanStatusComplete {
 		return nil, nil
 	}
 	if imageInfo.ScanResults == nil {
 		return nil, fmt.Errorf("model inconsistency: could not find scan results for completed image %s", sha)
 	}
 
-	imageScan := &m.Scan{
+	imageScan := &Scan{
 		OverallStatus:    imageInfo.ScanResults.OverallStatus(),
 		PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}

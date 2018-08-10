@@ -19,10 +19,9 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,9 +31,9 @@ type PruneOrphanedImages struct {
 }
 
 // Apply .....
-func (p *PruneOrphanedImages) Apply(model *m.Model) {
+func (p *PruneOrphanedImages) Apply(model *Model) {
 	// find images that aren't in a pod
-	imagesInPod := map[m.DockerImageSha]bool{}
+	imagesInPod := map[DockerImageSha]bool{}
 	for _, pod := range model.Pods {
 		for _, cont := range pod.Containers {
 			imagesInPod[cont.Image.Sha] = true
@@ -42,13 +41,13 @@ func (p *PruneOrphanedImages) Apply(model *m.Model) {
 	}
 	//
 	completed := []string{}
-	deleteImmediately := []m.DockerImageSha{}
+	deleteImmediately := []DockerImageSha{}
 	for sha, imageInfo := range model.Images {
 		if !imagesInPod[sha] {
 			switch imageInfo.ScanStatus {
-			case m.ScanStatusUnknown, m.ScanStatusInHubCheckQueue, m.ScanStatusInQueue:
+			case ScanStatusUnknown, ScanStatusInQueue:
 				deleteImmediately = append(deleteImmediately, sha)
-			case m.ScanStatusComplete:
+			case ScanStatusComplete:
 				completed = append(completed, string(sha))
 			default:
 				// let's leave ScanStatusRunningHubScan and ScanStatusRunningScanClient

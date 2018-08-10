@@ -19,13 +19,27 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
 import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	log "github.com/sirupsen/logrus"
 )
 
-// Action .....
-type Action interface {
-	Apply(model *m.Model)
+// GetNextImage .....
+type GetNextImage struct {
+	Done chan *Image
+}
+
+// NewGetNextImage ...
+func NewGetNextImage() *GetNextImage {
+	return &GetNextImage{Done: make(chan *Image)}
+}
+
+// Apply .....
+func (g *GetNextImage) Apply(model *Model) {
+	log.Debugf("looking for next image to scan, %d currently in progress", model.InProgressScanCount())
+	image := model.GetNextImageFromScanQueue()
+	go func() {
+		g.Done <- image
+	}()
 }

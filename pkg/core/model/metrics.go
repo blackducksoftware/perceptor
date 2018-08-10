@@ -29,6 +29,11 @@ import (
 
 var eventsCounter *prometheus.CounterVec
 var stateTransitionCounter *prometheus.CounterVec
+var errorCounter *prometheus.CounterVec
+
+func recordError(action string, name string) {
+	errorCounter.With(prometheus.Labels{"action": action, "name": name}).Inc()
+}
 
 func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
 	stateTransitionCounter.With(prometheus.Labels{
@@ -58,4 +63,12 @@ func init() {
 		Help:      "counters for events happening in the core",
 	}, []string{"event"})
 	prometheus.MustRegister(eventsCounter)
+
+	errorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "action_errors_counter",
+		Help:      "records errors encounted during core action processing",
+	}, []string{"action", "name"})
+	prometheus.MustRegister(errorCounter)
 }

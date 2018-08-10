@@ -19,20 +19,14 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package actions
+package model
 
-import (
-	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-)
-
-// AllImages .....
-type AllImages struct {
-	Images []m.Image
+// UpdatePod .....
+type UpdatePod struct {
+	Pod Pod
 }
 
 // Apply .....
-func (a *AllImages) Apply(model *m.Model) {
-	for _, image := range a.Images {
-		model.AddImage(image, 0)
-	}
+func (u *UpdatePod) Apply(model *Model) {
+	model.AddPod(u.Pod)
 }
