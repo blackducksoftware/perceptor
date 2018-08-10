@@ -32,33 +32,19 @@ import (
 // Model is the root of the core model
 type Model struct {
 	// Pods is a map of qualified name ("<namespace>/<name>") to pod
-	Pods                 map[string]Pod
-	Images               map[DockerImageSha]*ImageInfo
-	ImageScanQueue       *util.PriorityQueue
-	ImagePriority        map[DockerImageSha]int
-	ImageHubCheckQueue   []DockerImageSha
-	ImageRefreshQueue    []DockerImageSha
-	ImageRefreshQueueSet map[DockerImageSha]bool
-	HubVersion           string
-	Config               *Config
-	Timings              *Timings
-	IsHubEnabled         bool
+	Pods           map[string]Pod
+	Images         map[DockerImageSha]*ImageInfo
+	ImageScanQueue *util.PriorityQueue
+	ImagePriority  map[DockerImageSha]int
 }
 
 // NewModel .....
-func NewModel(hubVersion string, config *Config, timings *Timings) *Model {
+func NewModel() *Model {
 	return &Model{
-		Pods:                 make(map[string]Pod),
-		Images:               make(map[DockerImageSha]*ImageInfo),
-		ImageScanQueue:       util.NewPriorityQueue(),
-		ImagePriority:        map[DockerImageSha]int{},
-		ImageHubCheckQueue:   []DockerImageSha{},
-		ImageRefreshQueue:    []DockerImageSha{},
-		ImageRefreshQueueSet: make(map[DockerImageSha]bool),
-		HubVersion:           hubVersion,
-		Config:               config,
-		Timings:              timings,
-		IsHubEnabled:         true,
+		Pods:           make(map[string]Pod),
+		Images:         make(map[DockerImageSha]*ImageInfo),
+		ImageScanQueue: util.NewPriorityQueue(),
+		ImagePriority:  map[DockerImageSha]int{},
 	}
 }
 
@@ -91,7 +77,6 @@ func (model *Model) AddImage(image Image, priority int) {
 	added := model.createImage(image)
 	if added {
 		model.ImagePriority[image.Sha] = priority
-		model.SetImageScanStatus(image.Sha, ScanStatusInHubCheckQueue)
 	}
 }
 
@@ -111,8 +96,6 @@ func (model *Model) DeleteImage(sha DockerImageSha) error {
 
 func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
 	switch state {
-	case ScanStatusInHubCheckQueue:
-		return model.removeImageFromHubCheckQueue(sha)
 	case ScanStatusInQueue:
 		return model.removeImageFromScanQueue(sha)
 	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
@@ -124,8 +107,6 @@ func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
 
 func (model *Model) enterState(sha DockerImageSha, state ScanStatus) error {
 	switch state {
-	case ScanStatusInHubCheckQueue:
-		return model.addImageToHubCheckQueue(sha)
 	case ScanStatusInQueue:
 		return model.addImageToScanQueue(sha)
 	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
@@ -183,27 +164,6 @@ func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 // (things are in the right state, things that are expected to be present are
 // actually present, etc.)
 
-func (model *Model) addImageToHubCheckQueue(sha DockerImageSha) error {
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue, sha)
-	return nil
-}
-
-func (model *Model) removeImageFromHubCheckQueue(sha DockerImageSha) error {
-	index := -1
-	for i := 0; i < len(model.ImageHubCheckQueue); i++ {
-		if model.ImageHubCheckQueue[i] == sha {
-			index = i
-			break
-		}
-	}
-	if index < 0 {
-		return fmt.Errorf("unable to remove sha %s from hub check queue, not found", string(sha))
-	}
-
-	model.ImageHubCheckQueue = append(model.ImageHubCheckQueue[:index], model.ImageHubCheckQueue[index+1:]...)
-	return nil
-}
-
 func (model *Model) addImageToScanQueue(sha DockerImageSha) error {
 	priority := model.ImagePriority[sha]
 	return model.ImageScanQueue.Add(string(sha), priority, sha)
@@ -229,31 +189,8 @@ func (model *Model) SetImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 	}
 }
 
-// GetNextImageFromHubCheckQueue .....
-func (model *Model) GetNextImageFromHubCheckQueue() *Image {
-	if len(model.ImageHubCheckQueue) == 0 {
-		log.Debug("hub check queue empty")
-		return nil
-	}
-
-	first := model.ImageHubCheckQueue[0]
-	image := model.unsafeGet(first).Image()
-
-	return &image
-}
-
 // GetNextImageFromScanQueue .....
 func (model *Model) GetNextImageFromScanQueue() *Image {
-	if !model.IsHubEnabled {
-		log.Debugf("Hub not enabled, can't start a new scan")
-		return nil
-	}
-
-	if model.InProgressScanCount() >= model.Config.ConcurrentScanLimit {
-		log.Debugf("max concurrent scan count reached, can't start a new scan -- %v", model.InProgressScans())
-		return nil
-	}
-
 	if model.ImageScanQueue.IsEmpty() {
 		log.Debug("scan queue empty, can't start a new scan")
 		return nil
@@ -274,59 +211,6 @@ func (model *Model) GetNextImageFromScanQueue() *Image {
 		log.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
 		return nil
 	}
-}
-
-// AddImageToRefreshQueue .....
-func (model *Model) AddImageToRefreshQueue(sha DockerImageSha) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("expected to already have image %s, but did not", string(sha))
-	}
-
-	if imageInfo.ScanStatus != ScanStatusComplete {
-		return fmt.Errorf("unable to refresh image %s, scan status is %s", string(sha), imageInfo.ScanStatus.String())
-	}
-
-	// if it's already in the refresh queue, don't add it again
-	_, ok = model.ImageRefreshQueueSet[sha]
-	if ok {
-		return fmt.Errorf("unable to add image %s to refresh queue, already in queue", string(sha))
-	}
-
-	model.ImageRefreshQueue = append(model.ImageRefreshQueue, sha)
-	model.ImageRefreshQueueSet[sha] = false
-	return nil
-}
-
-// GetNextImageFromRefreshQueue .....
-func (model *Model) GetNextImageFromRefreshQueue() *Image {
-	if len(model.ImageRefreshQueue) == 0 {
-		log.Debug("refresh queue empty")
-		return nil
-	}
-
-	first := model.ImageRefreshQueue[0]
-	image := model.unsafeGet(first).Image()
-
-	return &image
-}
-
-// RemoveImageFromRefreshQueue .....
-func (model *Model) RemoveImageFromRefreshQueue(sha DockerImageSha) error {
-	index := -1
-	for i := 0; i < len(model.ImageRefreshQueue); i++ {
-		if model.ImageRefreshQueue[i] == sha {
-			index = i
-			break
-		}
-	}
-	if index < 0 {
-		return fmt.Errorf("unable to remove sha %s from refresh queue, not found", string(sha))
-	}
-
-	model.ImageRefreshQueue = append(model.ImageRefreshQueue[:index], model.ImageRefreshQueue[index+1:]...)
-	delete(model.ImageRefreshQueueSet, sha)
-	return nil
 }
 
 // FinishRunningScanClient .....
