@@ -287,10 +287,10 @@ type fetchCodeLocationsResult struct {
 
 func (hub *Hub) fetchAllCodeLocations() *fetchCodeLocationsResult {
 	codeLocationList, err := hub.fetcher.ListAllCodeLocations()
-	log.Debugf("fetched all code locations: found %d, expected %d, %+v", len(codeLocationList.Items), codeLocationList.TotalCount, err)
 	if err != nil {
 		return &fetchCodeLocationsResult{codeLocations: nil, err: err}
 	}
+	log.Debugf("fetched all code locations: found %d, expected %d", len(codeLocationList.Items), codeLocationList.TotalCount)
 	cls := map[string]string{}
 	for _, cl := range codeLocationList.Items {
 		cls[cl.Name] = cl.MappedProjectVersion
@@ -305,10 +305,10 @@ type fetchProjectsResult struct {
 
 func (hub *Hub) fetchAllProjects() *fetchProjectsResult {
 	projectList, err := hub.fetcher.ListAllProjects()
-	log.Debugf("fetched all projects: found %d, expected %d, %+v", len(projectList.Items), projectList.TotalCount, err)
 	if err != nil {
 		return &fetchProjectsResult{projects: nil, err: err}
 	}
+	log.Debugf("fetched all projects: found %d, expected %d", len(projectList.Items), projectList.TotalCount)
 	projects := map[string]string{}
 	for _, proj := range projectList.Items {
 		projects[proj.Name] = proj.Meta.Href
