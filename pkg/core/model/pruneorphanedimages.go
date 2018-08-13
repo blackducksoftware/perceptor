@@ -58,7 +58,7 @@ func (p *PruneOrphanedImages) Apply(model *Model) {
 	}
 	// 1. immediately delete any orphaned images in the scan queue or status unknown
 	for _, sha := range deleteImmediately {
-		err := model.DeleteImage(sha)
+		err := model.deleteImage(sha)
 		if err != nil {
 			log.Errorf("unable to delete image: %s", err.Error())
 		}

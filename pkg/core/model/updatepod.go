@@ -28,5 +28,5 @@ type UpdatePod struct {
 
 // Apply .....
 func (u *UpdatePod) Apply(model *Model) {
-	model.AddPod(u.Pod)
+	model.addPod(u.Pod)
 }

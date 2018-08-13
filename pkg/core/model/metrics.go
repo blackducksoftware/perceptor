@@ -98,8 +98,8 @@ func init() {
 	statusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",
 		Subsystem: "core",
-		Name:      "status_gauge",
-		Help:      "a gauge of statuses for perceptor core's current state",
+		Name:      "model_status_gauge",
+		Help:      "a gauge of statuses for perceptor core model's current state",
 	}, []string{"name"})
 	prometheus.MustRegister(statusGauge)
 

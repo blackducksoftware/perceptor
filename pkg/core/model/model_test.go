@@ -44,12 +44,12 @@ func RunModelTests() {
 
 		removeScanItemModel := func() *Model {
 			model := NewModel()
-			model.AddImage(image1, 0)
-			model.AddImage(image2, 0)
-			model.AddImage(image3, 0)
-			model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
-			model.SetImageScanStatus(image2.Sha, ScanStatusInQueue)
-			model.SetImageScanStatus(image3.Sha, ScanStatusInQueue)
+			model.addImage(image1, 0)
+			model.addImage(image2, 0)
+			model.addImage(image3, 0)
+			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
+			model.setImageScanStatus(image2.Sha, ScanStatusInQueue)
+			model.setImageScanStatus(image3.Sha, ScanStatusInQueue)
 			return model
 		}
 
@@ -63,27 +63,27 @@ func RunModelTests() {
 		Describe("Image scan queue operations", func() {
 			It("TestModelRemoveItemFromFrontOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image2.Sha, image3.Sha}))
 			})
 
 			It("TestModelRemoveItemFromMiddleOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image3.Sha}))
 			})
 
 			It("TestModelRemoveItemFromEndOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image2.Sha}))
 			})
 
 			It("TestModelRemoveAllItemsFromScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
-				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
-				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{}))
 			})
 		})

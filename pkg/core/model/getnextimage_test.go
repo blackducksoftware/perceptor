@@ -47,8 +47,8 @@ func RunGetNextImage() {
 
 		It("regular", func() {
 			model := NewModel()
-			model.AddImage(image1, 0)
-			model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
+			model.addImage(image1, 0)
+			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
 
 			get := NewGetNextImage()
 			go func() { get.Apply(model) }()

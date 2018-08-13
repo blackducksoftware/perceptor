@@ -37,8 +37,8 @@ func NewGetNextImage() *GetNextImage {
 
 // Apply .....
 func (g *GetNextImage) Apply(model *Model) {
-	log.Debugf("looking for next image to scan, %d currently in progress", model.InProgressScanCount())
-	image := model.GetNextImageFromScanQueue()
+	log.Debugf("looking for next image to scan, %d currently in progress", model.inProgressScanCount())
+	image := model.getNextImageFromScanQueue()
 	go func() {
 		g.Done <- image
 	}()

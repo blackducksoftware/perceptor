@@ -30,6 +30,6 @@ type AllPods struct {
 func (a *AllPods) Apply(model *Model) {
 	model.Pods = map[string]Pod{}
 	for _, pod := range a.Pods {
-		model.AddPod(pod)
+		model.addPod(pod)
 	}
 }

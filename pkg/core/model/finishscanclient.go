@@ -35,5 +35,5 @@ type FinishScanClient struct {
 func (f *FinishScanClient) Apply(model *Model) {
 	newModel := model
 	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == nil, f.Image.Sha)
-	newModel.FinishRunningScanClient(f.Image, f.Err)
+	newModel.finishRunningScanClient(f.Image, f.Err)
 }

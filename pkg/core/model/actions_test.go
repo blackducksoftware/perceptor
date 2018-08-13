@@ -55,8 +55,8 @@ var (
 
 func createNewModel1() *Model {
 	model := NewModel()
-	model.AddPod(pod1)
-	model.AddPod(pod2)
+	model.addPod(pod1)
+	model.addPod(pod2)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{
@@ -67,10 +67,10 @@ func createNewModel1() *Model {
 
 func createNewModel2() *Model {
 	model := NewModel()
-	model.AddPod(pod1)
-	model.AddPod(pod2)
-	model.AddPod(pod3)
-	model.AddPod(pod4)
+	model.addPod(pod1)
+	model.addPod(pod2)
+	model.addPod(pod3)
+	model.addPod(pod4)
 	model.Images[sha1].ScanStatus = ScanStatusComplete
 	model.Images[sha1].SetScanResults(&hub.ScanResults{
 		PolicyStatus: hub.PolicyStatus{

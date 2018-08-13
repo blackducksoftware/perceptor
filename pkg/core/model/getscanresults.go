@@ -24,7 +24,7 @@ package model
 import (
 	"fmt"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/api" // TODO I hate how this package depends on the api package
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
