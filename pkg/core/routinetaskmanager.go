@@ -193,7 +193,7 @@ func (rtm *RoutineTaskManager) startEnqueueingImagesNeedingRefreshing() *util.Sc
 }
 
 func (rtm *RoutineTaskManager) startReloggingInToHub() *util.Scheduler {
-	return util.NewRunningScheduler("hubLogin", rtm.Timings.HubReloginPause, rtm.stop, false, func() {
+	return util.NewRunningScheduler("hubLogin", rtm.Timings.HubReloginPause, rtm.stop, true, func() {
 		err := rtm.hubClient.Login()
 		if err != nil {
 			log.Errorf("unable to re-login to hub: %s", err.Error())
