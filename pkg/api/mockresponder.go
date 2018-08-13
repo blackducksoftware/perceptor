@@ -82,6 +82,11 @@ func (mr *MockResponder) GetModel() Model {
 	}
 }
 
+// PutHubs ....
+func (mr *MockResponder) PutHubs(hubs *PutHubs) {
+	// TODO
+}
+
 // perceiver
 
 // AddPod .....

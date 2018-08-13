@@ -28,6 +28,7 @@ import (
 // Responder .....
 type Responder interface {
 	GetModel() Model
+	PutHubs(hubs *PutHubs)
 
 	// perceiver
 	AddPod(pod Pod) error

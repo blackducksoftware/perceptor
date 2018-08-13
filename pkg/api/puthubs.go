@@ -21,10 +21,7 @@ under the License.
 
 package api
 
-// PostConfig allows certain config parameters to be changed.
-type PostConfig struct {
-	ConcurrentScanLimit          *int
-	HubClientTimeoutMilliseconds *int
-	LogLevel                     *string
-	ImageRefreshThresholdSeconds *int
+// PutHubs sets the current Hubs.
+type PutHubs struct {
+	HubURLs []string
 }
