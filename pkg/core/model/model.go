@@ -55,8 +55,8 @@ func NewModel() *Model {
 		ImagePriority:  map[DockerImageSha]int{},
 		actions:        make(chan Action, actionChannelSize),
 	}
-	stop := time.Now()
 	go func() {
+		stop := time.Now()
 		for {
 			select {
 			case nextAction := <-model.actions:

@@ -21,32 +21,35 @@ under the License.
 
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"time"
 
-// HubClient is a placeholder for now
-type HubClient interface { /* TODO */
-}
+	"github.com/blackducksoftware/perceptor/pkg/hub"
+)
 
 // HubClientCreaterInterface ...
 type HubClientCreaterInterface interface {
-	Create(hubURL string) (*HubClient, error)
+	Create(hubURL string) (hub.ClientInterface, error)
 }
 
 // HubClientCreater ...
 type HubClientCreater struct {
-	password string
+	username    string
+	password    string
+	port        int
+	httpTimeout time.Duration
 }
 
 // Create ...
-func (hcc *HubClientCreater) Create(hubURL string) (*HubClient, error) {
-	// ????
-	return nil, fmt.Errorf("TODO")
+func (hcc *HubClientCreater) Create(hubURL string) (hub.ClientInterface, error) {
+	return hub.NewClient(hcc.username, hcc.password, hubURL, hcc.port, hcc.httpTimeout, 999999*time.Hour), nil
 }
 
 // MockHubCreater ...
 type MockHubCreater struct{}
 
 // Create ...
-func (mhc *MockHubCreater) Create(hubURL string) (*HubClient, error) {
+func (mhc *MockHubCreater) Create(hubURL string) (hub.ClientInterface, error) {
 	return nil, fmt.Errorf("TODO")
 }
