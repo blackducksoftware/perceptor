@@ -21,15 +21,19 @@ under the License.
 
 package hub
 
-import "github.com/blackducksoftware/hub-client-go/hubapi"
+import (
+	"time"
 
-// ClientInterface provides an interface around hub-client-go's client,
-// allowing it to be mocked for testing.
+	"github.com/blackducksoftware/perceptor/pkg/api"
+)
+
+// ClientInterface .....
 type ClientInterface interface {
-	ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error)
-	GetProject(link hubapi.ResourceLink) (*hubapi.Project, error)
-	GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error)
-	ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error)
-	GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error)
-	GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error)
+	Version() (string, error)
+	DeleteScan(scanName string) error
+	FetchScan(scanNameSearchString string) (*ScanResults, error)
+	SetTimeout(timeout time.Duration)
+	ResetCircuitBreaker()
+	Model() *api.HubModel
+	//	IsEnabled() <-chan bool
 }

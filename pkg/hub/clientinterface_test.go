@@ -21,16 +21,15 @@ under the License.
 
 package hub
 
-import "time"
+import (
+	"testing"
+)
 
-// FetcherInterface .....
-type FetcherInterface interface {
-	Login() error
-	HubVersion() (string, error)
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	Model() *FetcherModel
-	//	IsEnabled() <-chan bool
+func TestClientInterfaceImplementations(t *testing.T) {
+	consumeClientInterface(&Client{})
+	consumeClientInterface(NewMockHub("abc version"))
+}
+
+func consumeClientInterface(fi ClientInterface) {
+	// nothing to do
 }

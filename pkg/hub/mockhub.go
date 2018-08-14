@@ -26,6 +26,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/blackducksoftware/perceptor/pkg/api"
 )
 
 // need: mock hub, ?mock apiserver?
@@ -80,8 +82,8 @@ func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error)
 	return nil, nil
 }
 
-// HubVersion .....
-func (hub *MockHub) HubVersion() (string, error) {
+// Version .....
+func (hub *MockHub) Version() (string, error) {
 	return hub.hubVersion, nil
 }
 
@@ -96,8 +98,8 @@ func (hub *MockHub) SetTimeout(timeout time.Duration) {
 }
 
 // Model ...
-func (hub *MockHub) Model() *FetcherModel {
-	return &FetcherModel{}
+func (hub *MockHub) Model() *api.HubModel {
+	return &api.HubModel{}
 }
 
 // ResetCircuitBreaker ...

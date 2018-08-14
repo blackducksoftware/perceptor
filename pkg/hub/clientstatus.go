@@ -22,15 +22,39 @@ under the License.
 package hub
 
 import (
-	"testing"
+	"fmt"
 )
 
-// TestFetcherInterfaceImplementations .....
-func TestFetcherInterfaceImplementations(t *testing.T) {
-	consumeFetcherInterface(&Fetcher{})
-	consumeFetcherInterface(NewMockHub("abc version"))
+// ClientStatus describes the state of a hub client
+type ClientStatus int
+
+// .....
+const (
+	ClientStatusError ClientStatus = iota
+	ClientStatusUp    ClientStatus = iota
+	ClientStatusDown  ClientStatus = iota
+)
+
+// String .....
+func (status ClientStatus) String() string {
+	switch status {
+	case ClientStatusError:
+		return "ClientStatusError"
+	case ClientStatusUp:
+		return "ClientStatusUp"
+	case ClientStatusDown:
+		return "ClientStatusDown"
+	}
+	panic(fmt.Errorf("invalid ClientStatus value: %d", status))
 }
 
-func consumeFetcherInterface(fi FetcherInterface) {
-	// nothing to do
+// MarshalJSON .....
+func (status ClientStatus) MarshalJSON() ([]byte, error) {
+	jsonString := fmt.Sprintf(`"%s"`, status.String())
+	return []byte(jsonString), nil
+}
+
+// MarshalText .....
+func (status ClientStatus) MarshalText() (text []byte, err error) {
+	return []byte(status.String()), nil
 }
