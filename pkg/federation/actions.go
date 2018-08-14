@@ -21,7 +21,11 @@ under the License.
 
 package federation
 
-import log "github.com/sirupsen/logrus"
+import (
+	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
+	log "github.com/sirupsen/logrus"
+)
 
 // FedAction ...
 type FedAction interface {
@@ -40,7 +44,7 @@ func NewFedGetModel() *FedGetModel {
 
 // FedApply ...
 func (fgm *FedGetModel) FedApply(federator *Federator) {
-	hubs := map[string]*APIModelHub{}
+	hubs := map[string]*api.HubModel{}
 	for hubURL, hub := range federator.hubs {
 		hubs[hubURL] = hub.Model()
 	}
@@ -90,14 +94,14 @@ func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
 
 // HubCreationResult ...
 type HubCreationResult struct {
-	hub *Hub
+	hub *hub.Client
 }
 
 // FedApply ...
 func (hcr *HubCreationResult) FedApply(federator *Federator) {
-	if _, ok := federator.hubs[hcr.hub.host]; ok {
-		log.Errorf("cannot add hub %s: already present", hcr.hub.host)
+	if _, ok := federator.hubs[hcr.hub.Host]; ok {
+		log.Errorf("cannot add hub %s: already present", hcr.hub.Host)
 		return
 	}
-	federator.hubs[hcr.hub.host] = hcr.hub
+	federator.hubs[hcr.hub.Host] = hcr.hub
 }
