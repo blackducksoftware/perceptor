@@ -25,9 +25,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"time"
 
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,15 +58,18 @@ type ImageInfo struct {
 func (mr *MockResponder) GetModel() Model {
 	images := map[string]*ModelImageInfo{}
 	for key, image := range mr.Images {
-		scanResults := &hub.ScanResults{
-			PolicyStatus: hub.PolicyStatus{
-				OverallStatus: hub.PolicyStatusTypeNotInViolation,
-				UpdatedAt:     time.Now().String(),
-				ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{
-					hub.PolicyStatusTypeNotInViolation: 3,
-				},
-			},
-			RiskProfile: hub.RiskProfile{BomLastUpdatedAt: time.Now().String()}}
+		scanResults := map[string]interface{}{
+			"PolicyStatus": "NOT_IN_VIOLATION",
+		}
+		// &hub.ScanResults{
+		// PolicyStatus: hub.PolicyStatus{
+		// 	OverallStatus: hub.PolicyStatusTypeNotInViolation,
+		// 	UpdatedAt:     time.Now().String(),
+		// 	ComponentVersionStatusCounts: map[hub.PolicyStatusType]int{
+		// 		hub.PolicyStatusTypeNotInViolation: 3,
+		// 	},
+		// },
+		// RiskProfile: hub.RiskProfile{BomLastUpdatedAt: time.Now().String()}}
 		images[key] = &ModelImageInfo{
 			ImageSha: key,
 			RepoTags: []*ModelRepoTag{

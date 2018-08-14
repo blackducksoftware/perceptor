@@ -23,8 +23,6 @@ package api
 
 import (
 	"time"
-
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 // Model .....
@@ -87,7 +85,7 @@ type ModelTimings struct {
 type ModelImageInfo struct {
 	ScanStatus             string
 	TimeOfLastStatusChange string
-	ScanResults            *hub.ScanResults
+	ScanResults            interface{}
 	ImageSha               string
 	RepoTags               []*ModelRepoTag
 }
