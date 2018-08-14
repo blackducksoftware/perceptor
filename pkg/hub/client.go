@@ -46,7 +46,7 @@ type Client struct {
 	// basic hub info
 	username string
 	password string
-	host     string
+	Host     string
 	port     int
 	status   ClientStatus
 	// data
@@ -76,7 +76,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
 		username:       username,
 		password:       password,
-		host:           host,
+		Host:           host,
 		port:           port,
 		status:         ClientStatusDown,
 		//
@@ -210,7 +210,7 @@ func (hub *Client) apiModel() *api.HubModel {
 
 func (hub *Client) startLoginScheduler() *util.Scheduler {
 	pause := 30 * time.Second // Minute
-	name := fmt.Sprintf("login-%s", hub.host)
+	name := fmt.Sprintf("login-%s", hub.Host)
 	return util.NewRunningScheduler(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
 		err := hub.login()
@@ -222,7 +222,7 @@ func (hub *Client) startLoginScheduler() *util.Scheduler {
 }
 
 func (hub *Client) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
-	name := fmt.Sprintf("fetchProjects-%s", hub.host)
+	name := fmt.Sprintf("fetchProjects-%s", hub.Host)
 	return util.NewScheduler(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
@@ -234,7 +234,7 @@ func (hub *Client) startFetchProjectsScheduler(pause time.Duration) *util.Schedu
 }
 
 func (hub *Client) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
-	name := fmt.Sprintf("fetchCodeLocations-%s", hub.host)
+	name := fmt.Sprintf("fetchCodeLocations-%s", hub.Host)
 	return util.NewScheduler(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all code locations")
 		result := hub.fetchAllCodeLocations()
