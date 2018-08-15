@@ -118,6 +118,21 @@ var _ = Describe("Priority queue", func() {
 		})
 	})
 
+	Describe("Peek", func() {
+		pq := newPriorityQueueWithInitialCapacity(5)
+		It("should reveal the highest priority item with peek", func() {
+			Expect(pq.Peek()).To(BeNil())
+			pq.Add("one", 1, 111)
+			Expect(pq.Peek()).To(Equal(111))
+			pq.Add("zero", 0, -10)
+			Expect(pq.Peek()).To(Equal(111))
+			pq.Add("three", 3, 333)
+			Expect(pq.Peek()).To(Equal(333))
+			pq.Add("four", 4, 444)
+			Expect(pq.Peek()).To(Equal(444))
+		})
+	})
+
 	// add
 	Describe("Add and Pop", func() {
 		pq := NewPriorityQueue()

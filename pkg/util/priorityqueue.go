@@ -111,6 +111,14 @@ func (pq *PriorityQueue) Add(key string, priority int, value interface{}) error 
 	return nil
 }
 
+// Peek returns the highest priority item, or nil if empty.
+func (pq *PriorityQueue) Peek() interface{} {
+	if pq.size == 0 {
+		return nil
+	}
+	return pq.items[0].value
+}
+
 // Pop removes the highest priority element, returning an error if empty.
 func (pq *PriorityQueue) Pop() (interface{}, error) {
 	if pq.size == 0 {
