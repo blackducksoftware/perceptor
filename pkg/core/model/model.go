@@ -92,6 +92,10 @@ func (model *Model) AddImage(image Image, priority int) {
 	if added {
 		model.ImagePriority[image.Sha] = priority
 		model.SetImageScanStatus(image.Sha, ScanStatusInHubCheckQueue)
+	} else {
+		if priority > model.ImagePriority[image.Sha] {
+			model.ImagePriority[image.Sha] = priority
+		}
 	}
 }
 
