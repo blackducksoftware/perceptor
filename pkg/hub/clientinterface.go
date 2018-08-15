@@ -29,11 +29,15 @@ import (
 
 // ClientInterface .....
 type ClientInterface interface {
+	Host() string
 	Version() (string, error)
 	DeleteScan(scanName string) error
 	FetchScan(scanNameSearchString string) (*ScanResults, error)
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
 	Model() *api.HubModel
+	ProjectsCount() (int, error)
+	CodeLocationsCount() (int, error)
+	InProgressScanCount() int
 	//	IsEnabled() <-chan bool
 }

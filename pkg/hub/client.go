@@ -46,7 +46,7 @@ type Client struct {
 	// basic hub info
 	username string
 	password string
-	Host     string
+	host     string
 	port     int
 	status   ClientStatus
 	// data
@@ -55,9 +55,9 @@ type Client struct {
 	errors        []error
 	// TODO critical vulnerabilities
 	// schedulers
-	loginScheduler              *util.Scheduler
-	fetchProjectsScheduler      *util.Scheduler
-	fetchCodeLocationsScheduler *util.Scheduler
+	loginTimer              *util.Timer
+	fetchProjectsTimer      *util.Timer
+	fetchCodeLocationsTimer *util.Timer
 	// channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
@@ -76,7 +76,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
 		username:       username,
 		password:       password,
-		Host:           host,
+		host:           host,
 		port:           port,
 		status:         ClientStatusDown,
 		//
@@ -128,25 +128,30 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.recordError(err)
 				if err != nil && hub.status == ClientStatusUp {
 					hub.status = ClientStatusDown
-					hub.recordError(hub.fetchProjectsScheduler.Pause())
-					hub.recordError(hub.fetchCodeLocationsScheduler.Pause())
+					hub.recordError(hub.fetchProjectsTimer.Pause())
+					hub.recordError(hub.fetchCodeLocationsTimer.Pause())
 				} else if err == nil && hub.status == ClientStatusDown {
 					hub.status = ClientStatusUp
-					hub.recordError(hub.fetchProjectsScheduler.Resume(true))
-					hub.recordError(hub.fetchCodeLocationsScheduler.Resume(true))
+					hub.recordError(hub.fetchProjectsTimer.Resume(true))
+					hub.recordError(hub.fetchCodeLocationsTimer.Resume(true))
 				}
 			}
 		}
 	}()
-	hub.fetchProjectsScheduler = hub.startFetchProjectsScheduler(fetchAllProjectsPause)
-	hub.fetchCodeLocationsScheduler = hub.startFetchCodeLocationsScheduler(fetchAllProjectsPause)
-	hub.loginScheduler = hub.startLoginScheduler()
+	hub.fetchProjectsTimer = hub.startFetchProjectsTimer(fetchAllProjectsPause)
+	hub.fetchCodeLocationsTimer = hub.startFetchCodeLocationsTimer(fetchAllProjectsPause)
+	hub.loginTimer = hub.startLoginTimer()
 	return hub
 }
 
 // Stop ...
 func (hub *Client) Stop() {
 	close(hub.stop)
+}
+
+// Host ...
+func (hub *Client) Host() string {
+	return hub.host
 }
 
 // // ResetCircuitBreaker ...
@@ -208,10 +213,10 @@ func (hub *Client) apiModel() *api.HubModel {
 
 // Regular jobs
 
-func (hub *Client) startLoginScheduler() *util.Scheduler {
+func (hub *Client) startLoginTimer() *util.Timer {
 	pause := 30 * time.Second // Minute
-	name := fmt.Sprintf("login-%s", hub.Host)
-	return util.NewRunningScheduler(name, pause, hub.stop, true, func() {
+	name := fmt.Sprintf("login-%s", hub.host)
+	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
 		err := hub.login()
 		select {
@@ -221,9 +226,9 @@ func (hub *Client) startLoginScheduler() *util.Scheduler {
 	})
 }
 
-func (hub *Client) startFetchProjectsScheduler(pause time.Duration) *util.Scheduler {
-	name := fmt.Sprintf("fetchProjects-%s", hub.Host)
-	return util.NewScheduler(name, pause, hub.stop, func() {
+func (hub *Client) startFetchProjectsTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("fetchProjects-%s", hub.host)
+	return util.NewTimer(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all projects")
 		result := hub.fetchAllProjects()
 		select {
@@ -233,9 +238,9 @@ func (hub *Client) startFetchProjectsScheduler(pause time.Duration) *util.Schedu
 	})
 }
 
-func (hub *Client) startFetchCodeLocationsScheduler(pause time.Duration) *util.Scheduler {
-	name := fmt.Sprintf("fetchCodeLocations-%s", hub.Host)
-	return util.NewScheduler(name, pause, hub.stop, func() {
+func (hub *Client) startFetchCodeLocationsTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("fetchCodeLocations-%s", hub.host)
+	return util.NewTimer(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all code locations")
 		result := hub.fetchAllCodeLocations()
 		select {

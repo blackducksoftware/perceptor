@@ -111,3 +111,8 @@ func (hub *MockHub) ResetCircuitBreaker() {
 func (hub *MockHub) IsEnabled() <-chan bool {
 	return make(<-chan bool)
 }
+
+// Host ...
+func (hub *MockHub) Host() string {
+	return "unimplemented"
+}
