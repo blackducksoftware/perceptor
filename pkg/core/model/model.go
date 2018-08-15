@@ -135,6 +135,20 @@ func (model *Model) GetModel() api.CoreModel {
 	return <-get.Done
 }
 
+// GetNextImage ...
+func (model *Model) GetNextImage() *Image {
+	get := NewGetNextImage()
+	model.actions <- get
+	return <-get.Done
+}
+
+// StartScanClient ...
+func (model *Model) StartScanClient(sha DockerImageSha) error {
+	start := NewStartScanClient(sha)
+	model.actions <- start
+	return <-start.Error
+}
+
 // Package API
 
 // AddPod adds a pod and all the images in a pod to the model.
