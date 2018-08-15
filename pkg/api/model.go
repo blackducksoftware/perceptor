@@ -25,8 +25,15 @@ import (
 	"time"
 )
 
-// Model .....
+// Model ...
 type Model struct {
+	// TODO
+	Todo      string
+	CoreModel CoreModel
+}
+
+// CoreModel .....
+type CoreModel struct {
 	Pods           map[string]*Pod
 	Images         map[string]*ModelImageInfo
 	ImageScanQueue []map[string]interface{}
