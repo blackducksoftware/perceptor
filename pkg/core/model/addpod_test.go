@@ -23,7 +23,6 @@ package model
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 func RunTestAddPodAction() {
@@ -42,6 +41,6 @@ func RunTestAddPodAction() {
 		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 		expected.Images[testSha] = imageInfo
 		//
-		Expect(actual).To(Equal(&expected))
+		checkModelEquality(actual, &expected)
 	})
 }

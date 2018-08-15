@@ -28,19 +28,17 @@ import (
 
 // GetModel .....
 type GetModel struct {
-	HubCircuitBreaker *api.ModelCircuitBreaker
-	Done              chan *api.Model
+	Done chan api.CoreModel
 }
 
 // NewGetModel .....
 func NewGetModel() *GetModel {
-	return &GetModel{Done: make(chan *api.Model)}
+	return &GetModel{Done: make(chan api.CoreModel)}
 }
 
 // Apply .....
 func (g *GetModel) Apply(model *Model) {
 	apiModel := CoreModelToAPIModel(model)
-	apiModel.HubCircuitBreaker = g.HubCircuitBreaker
 	go func() {
 		g.Done <- apiModel
 	}()
@@ -70,7 +68,7 @@ func CorePodToAPIPod(corePod Pod) *api.Pod {
 }
 
 // CoreModelToAPIModel .....
-func CoreModelToAPIModel(model *Model) *api.Model {
+func CoreModelToAPIModel(model *Model) api.CoreModel {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
@@ -93,7 +91,7 @@ func CoreModelToAPIModel(model *Model) *api.Model {
 	}
 
 	// return value
-	return &api.Model{
+	return api.CoreModel{
 		Pods:   pods,
 		Images: images,
 		// TODO

@@ -128,6 +128,13 @@ func (model *Model) GetScanResults() api.ScanResults {
 	return <-get.Done
 }
 
+// GetModel ...
+func (model *Model) GetModel() api.CoreModel {
+	get := NewGetModel()
+	model.actions <- get
+	return <-get.Done
+}
+
 // Package API
 
 // AddPod adds a pod and all the images in a pod to the model.
@@ -266,19 +273,10 @@ func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 	}
 }
 
-// GetNextImageFromScanQueue .....
+// GetNextImageFromScanQueue simply returns the item at the front of the scan queue,
+// non-destructively.
 func (model *Model) getNextImageFromScanQueue() *Image {
-	if model.ImageScanQueue.IsEmpty() {
-		log.Debug("scan queue empty, can't start a new scan")
-		return nil
-	}
-
-	first, err := model.ImageScanQueue.Pop()
-	if err != nil {
-		log.Errorf("unable to get next image from scan queue: %s", err.Error())
-		return nil
-	}
-
+	first := model.ImageScanQueue.Peek()
 	switch sha := first.(type) {
 	case DockerImageSha:
 		image := model.unsafeGet(sha).Image()

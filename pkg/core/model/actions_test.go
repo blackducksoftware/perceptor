@@ -26,6 +26,7 @@ import (
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,6 +53,13 @@ var (
 	testCont  = Container{Image: testImage}
 	testPod   = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Container{testCont}}
 )
+
+func checkModelEquality(m1 *Model, m2 *Model) {
+	Expect(m1.ImagePriority).To(Equal(m2.ImagePriority))
+	Expect(m1.Images).To(Equal(m2.Images))
+	Expect(m1.ImageScanQueue).To(Equal(m2.ImageScanQueue))
+	Expect(m1.Pods).To(Equal(m2.Pods))
+}
 
 func createNewModel1() *Model {
 	model := NewModel()
@@ -93,7 +101,6 @@ func RunActionTests() {
 			processAction(&DeletePod{})
 			processAction(&AddImage{})
 			processAction(&AllPods{})
-			processAction(&GetNextImage{})
 			processAction(&FinishScanClient{})
 			processAction(&AllImages{})
 			processAction(&GetModel{})
