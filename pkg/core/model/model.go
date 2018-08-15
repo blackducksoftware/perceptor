@@ -280,12 +280,25 @@ func (model *Model) getNextImageFromScanQueue() *Image {
 	switch sha := first.(type) {
 	case DockerImageSha:
 		image := model.unsafeGet(sha).Image()
-		model.setImageScanStatus(sha, ScanStatusRunningScanClient)
 		return &image
 	default:
 		log.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
 		return nil
 	}
+}
+
+// startScanClient attempts to move `sha` from state InQueue to state RunningScanClient,
+// returning an error if the sha doesn't exist, or is not in state InQueue.
+func (model *Model) startScanClient(sha DockerImageSha) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("unable to start scan client for image %s, not found", sha)
+	}
+	if imageInfo.ScanStatus != ScanStatusInQueue {
+		return fmt.Errorf("unable to start scan client for image %s, not in state InQueue", sha)
+	}
+	model.setImageScanStatus(sha, ScanStatusRunningScanClient)
+	return nil
 }
 
 // FinishRunningScanClient .....

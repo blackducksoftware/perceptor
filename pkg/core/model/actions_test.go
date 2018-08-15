@@ -22,6 +22,7 @@ under the License.
 package model
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
@@ -56,7 +57,11 @@ var (
 
 func checkModelEquality(m1 *Model, m2 *Model) {
 	Expect(m1.ImagePriority).To(Equal(m2.ImagePriority))
-	Expect(m1.Images).To(Equal(m2.Images))
+	ji1, err := json.Marshal(m1.Images)
+	Expect(err).To(BeNil())
+	ji2, err := json.Marshal(m2.Images)
+	Expect(err).To(BeNil())
+	Expect(ji1).To(Equal(ji2))
 	Expect(m1.ImageScanQueue).To(Equal(m2.ImageScanQueue))
 	Expect(m1.Pods).To(Equal(m2.Pods))
 }

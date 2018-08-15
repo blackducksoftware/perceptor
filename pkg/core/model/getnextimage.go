@@ -22,22 +22,24 @@ under the License.
 package model
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
-func TestModel(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunActionTests()
-	RunGetNextImageTests()
-	RunImageTests()
-	RunModelTests()
-	RunTestAddImageAction()
-	RunTestAddPodAction()
-	RunTestAllImages()
-	RunTestGetFullScanResults()
-	RunTestPodOverallStatus()
-	RunSpecs(t, "model suite")
+// GetNextImage .....
+type GetNextImage struct {
+	Done chan *Image
+}
+
+// NewGetNextImage ...
+func NewGetNextImage() *GetNextImage {
+	return &GetNextImage{Done: make(chan *Image)}
+}
+
+// Apply .....
+func (g *GetNextImage) Apply(model *Model) {
+	log.Debugf("looking for next image to scan, %d currently in progress", model.inProgressScanCount())
+	image := model.getNextImageFromScanQueue()
+	go func() {
+		g.Done <- image
+	}()
 }
