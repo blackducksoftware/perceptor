@@ -107,7 +107,7 @@ func (model *Model) AddImage(image Image, priority int) {
 	}
 	err = model.addImageToScanQueue(image.Sha)
 	if err != nil {
-		log.Errorf("unable to re-add image % to scan queue", image.Sha)
+		log.Errorf("unable to re-add image %s to scan queue", image.Sha)
 	}
 }
 
