@@ -37,9 +37,9 @@ type RoutineTaskManager struct {
 	timings        *Timings
 	OrphanedImages chan []string
 	// routine tasks
-	ModelMetricsScheduler        *util.Scheduler
-	StalledScanClientScheduler   *util.Scheduler
-	PruneOrphanedImagesScheduler *util.Scheduler
+	ModelMetricsTimer        *util.Timer
+	StalledScanClientTimer   *util.Timer
+	PruneOrphanedImagesTimer *util.Timer
 }
 
 // Timings ??? TODO
@@ -57,10 +57,10 @@ func NewRoutineTaskManager(stop <-chan struct{}, pruneOrphanedImagesPause time.D
 		writeTimings: make(chan *Timings),
 		timings:      timings,
 	}
-	rtm.StalledScanClientScheduler = rtm.startCheckingForStalledScanClientScans()
-	rtm.ModelMetricsScheduler = rtm.startGeneratingModelMetrics()
+	rtm.StalledScanClientTimer = rtm.startCheckingForStalledScanClientScans()
+	rtm.ModelMetricsTimer = rtm.startGeneratingModelMetrics()
 	if pruneOrphanedImagesPause > 0 {
-		rtm.PruneOrphanedImagesScheduler = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
+		rtm.PruneOrphanedImagesTimer = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
 		rtm.OrphanedImages = make(chan []string)
 	}
 	go func() {
@@ -78,8 +78,8 @@ func NewRoutineTaskManager(stop <-chan struct{}, pruneOrphanedImagesPause time.D
 				}()
 			case newTimings := <-rtm.writeTimings:
 				rtm.timings = newTimings
-				rtm.StalledScanClientScheduler.SetDelay(newTimings.StalledScanClientTimeout)
-				rtm.ModelMetricsScheduler.SetDelay(newTimings.ModelMetricsPause)
+				rtm.StalledScanClientTimer.SetDelay(newTimings.StalledScanClientTimeout)
+				rtm.ModelMetricsTimer.SetDelay(newTimings.ModelMetricsPause)
 			}
 		}
 	}()
@@ -103,22 +103,22 @@ func (rtm *RoutineTaskManager) GetTimings() (*Timings, error) {
 	}
 }
 
-func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Scheduler {
+func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Timer {
 	log.Info("starting checking for stalled scans")
-	return util.NewRunningScheduler("stalledScanClient", rtm.timings.CheckForStalledScansPause, rtm.stop, false, func() {
+	return util.NewRunningTimer("stalledScanClient", rtm.timings.CheckForStalledScansPause, rtm.stop, false, func() {
 		log.Debug("checking for stalled scans")
 		// TODO write to a channel or something?
 	})
 }
 
-func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Scheduler {
-	return util.NewRunningScheduler("modelMetrics", rtm.timings.ModelMetricsPause, rtm.stop, false, func() {
+func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Timer {
+	return util.NewRunningTimer("modelMetrics", rtm.timings.ModelMetricsPause, rtm.stop, false, func() {
 		// TODO write to a channel or something?
 	})
 }
 
-func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Scheduler {
-	return util.NewRunningScheduler("orphanedImagePruning", pause, rtm.stop, false, func() {
+func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Timer {
+	return util.NewRunningTimer("orphanedImagePruning", pause, rtm.stop, false, func() {
 		log.Debug("cleaning up orphaned images")
 		// TODO write to a channel or something?
 	})

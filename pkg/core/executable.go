@@ -69,7 +69,7 @@ func RunPerceptor(configPath string) {
 		creater = &MockHubCreater{}
 	} else {
 		log.Infof("instantiating perceptor in real mode")
-		creater = &HubClientCreater{}
+		creater = &HubManager{}
 	}
 
 	perceptor, err := NewPerceptor(config, creater)

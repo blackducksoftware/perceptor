@@ -47,7 +47,6 @@ type Perceptor struct {
 	//	hubs               map[string]*HubManager
 	hubClientCreater HubClientCreaterInterface // func(hubURL string, user string, password string, port int) <-chan *hubCreationResult
 	// channels
-	postNextImage       chan chan *api.NextImage
 	postConfig          chan *api.PostConfig
 	getModel            chan struct{}
 	resetCircuitBreaker chan struct{}
@@ -57,7 +56,7 @@ type Perceptor struct {
 func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*Perceptor, error) {
 	model := m.NewModel()
 
-	// 2. routine task manager
+	// 1. routine task manager
 	stop := make(chan struct{})
 	pruneOrphanedImagesPause := time.Duration(config.PruneOrphanedImagesPauseMinutes) * time.Minute
 	routineTaskManager := NewRoutineTaskManager(stop, pruneOrphanedImagesPause, &Timings{})
@@ -74,12 +73,11 @@ func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*
 		}
 	}()
 
-	// 6. perceptor
+	// 2. perceptor
 	perceptor := &Perceptor{
 		model:               model,
 		routineTaskManager:  routineTaskManager,
 		hubClientCreater:    hubClientCreater,
-		postNextImage:       make(chan chan *api.NextImage),
 		postConfig:          make(chan *api.PostConfig),
 		getModel:            make(chan struct{}),
 		resetCircuitBreaker: make(chan struct{}),
@@ -89,12 +87,8 @@ func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*
 	go func() {
 		for {
 			select {
-			case a := <-perceptor.postNextImage:
-				// TODO
-				//  1. find a hub; else abort
-				//  2. find an image; else abort
-				//  3. send image to that hub; respond to http
-				log.Warnf("unimplemented: %+v", a)
+			case <-stop:
+				return
 			case config := <-perceptor.postConfig:
 				// TODO
 				log.Warnf("unimplemented: %+v", config)
@@ -111,10 +105,10 @@ func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*
 		}
 	}()
 
-	// 1. http responder
+	// 4. http responder
 	api.SetupHTTPServer(perceptor)
 
-	// 7. done
+	// 5. done
 	return perceptor, nil
 }
 

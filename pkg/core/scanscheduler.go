@@ -22,36 +22,26 @@ under the License.
 package core
 
 import (
-	"fmt"
-	"time"
-
+	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
-// HubClientCreaterInterface ...
-type HubClientCreaterInterface interface {
-	Create(hubURL string) (hub.ClientInterface, error)
+// ScanScheduler ...
+type ScanScheduler struct {
+	// ProjectLimit int
+	CodeLocationLimit   int
+	ConcurrentScanLimit int
+	HubManager          *HubManager
 }
 
-// HubManager ...
-type HubManager struct {
-	username    string
-	password    string
-	port        int
-	httpTimeout time.Duration
-	//
-	Hubs map[string]hub.ClientInterface
-}
-
-// Create ...
-func (hm *HubManager) Create(hubURL string) (hub.ClientInterface, error) {
-	return hub.NewClient(hm.username, hm.password, hubURL, hm.port, hm.httpTimeout, 999999*time.Hour), nil
-}
-
-// MockHubCreater ...
-type MockHubCreater struct{}
-
-// Create ...
-func (mhc *MockHubCreater) Create(hubURL string) (hub.ClientInterface, error) {
-	return nil, fmt.Errorf("TODO")
+// AssignImage finds a Hub that is available to scan `image`.
+func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
+	for _, hub := range s.HubManager.Hubs {
+		clCount, err := hub.CodeLocationsCount()
+		if err == nil && clCount < s.CodeLocationLimit && hub.InProgressScanCount() < s.ConcurrentScanLimit {
+			return hub
+		}
+	}
+	// TODO eventually, could look through projects
+	return nil
 }
