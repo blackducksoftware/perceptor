@@ -37,6 +37,12 @@ const (
 	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
+// Result models computations that may succeed or fail.
+type Result struct {
+	Value interface{}
+	Err   error
+}
+
 // Client .....
 type Client struct {
 	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
@@ -52,7 +58,7 @@ type Client struct {
 	// data
 	codeLocations   map[string]hubapi.CodeLocation
 	errors          []error
-	inProgressScans []string
+	inProgressScans map[string]bool
 	// TODO critical vulnerabilities
 	// timers
 	loginTimer                   *util.Timer
@@ -64,14 +70,14 @@ type Client struct {
 	getModel                chan chan *api.HubModel
 	getCodeLocationsCh      chan chan map[string]hubapi.CodeLocation
 	deleteScanCh            chan string
-	didDeleteScanCh         chan error
+	didDeleteScanCh         chan *Result
 	didLoginCh              chan error
 	startScanClientCh       chan string
 	finishScanClientCh      chan string
 	scanDidFinishCh         chan *ScanDidFinish
 	getCodeLocationsCountCh chan chan int
 	getInProgressScansCh    chan chan []string
-	didFetchCodeLocationsCh chan *fetchCodeLocationsResult
+	didFetchCodeLocationsCh chan *Result
 }
 
 // NewClient returns a new, logged-in Client.
@@ -87,21 +93,21 @@ func NewClient(username string, password string, host string, port int, hubClien
 		//
 		codeLocations:   map[string]hubapi.CodeLocation{},
 		errors:          []error{},
-		inProgressScans: []string{},
+		inProgressScans: map[string]bool{},
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
 		getModel:                make(chan chan *api.HubModel),
 		getCodeLocationsCh:      make(chan chan map[string]hubapi.CodeLocation),
 		deleteScanCh:            make(chan string),
-		didDeleteScanCh:         make(chan error),
+		didDeleteScanCh:         make(chan *Result),
 		didLoginCh:              make(chan error),
 		startScanClientCh:       make(chan string),
 		finishScanClientCh:      make(chan string),
 		scanDidFinishCh:         make(chan *ScanDidFinish),
 		getCodeLocationsCountCh: make(chan chan int),
 		getInProgressScansCh:    make(chan chan []string),
-		didFetchCodeLocationsCh: make(chan *fetchCodeLocationsResult)}
+		didFetchCodeLocationsCh: make(chan *Result)}
 	// initialize hub client
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -121,11 +127,35 @@ func NewClient(username string, password string, host string, port int, hubClien
 				ch <- hub.apiModel()
 			case ch := <-hub.getCodeLocationsCh:
 				ch <- hub.codeLocations
-			case result := <-hub.didFetchCodeLocationsCh:
-				hub.recordError(result.err)
-				if result.err == nil {
-					hub.codeLocations = result.codeLocations
+			case scanName := <-hub.deleteScanCh:
+				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
+			case result := <-hub.didDeleteScanCh:
+				hub.recordError(result.Err)
+				if result.Err == nil {
+					scanName := result.Value.(string)
+					delete(hub.codeLocations, scanName)
 				}
+			case result := <-hub.didFetchCodeLocationsCh:
+				hub.recordError(result.Err)
+				if result.Err == nil {
+					hub.codeLocations = result.Value.(map[string]hubapi.CodeLocation)
+				}
+			case scanName := <-hub.startScanClientCh:
+				// anything to do?
+				log.Debugf("nothing to do: received scan client start for scan %s", scanName)
+			case scanName := <-hub.finishScanClientCh:
+				hub.inProgressScans[scanName] = true
+			case s := <-hub.scanDidFinishCh:
+				delete(hub.inProgressScans, s.ScanName)
+				hub.scanDidFinishCh <- s
+			case get := <-hub.getCodeLocationsCountCh:
+				get <- len(hub.codeLocations)
+			case get := <-hub.getInProgressScansCh:
+				scans := []string{}
+				for scanName := range hub.inProgressScans {
+					scans = append(scans, scanName)
+				}
+				get <- scans
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
 				if err != nil && hub.status == ClientStatusUp {
@@ -249,33 +279,46 @@ func (hub *Client) startCheckScansForCompletionTimer() *util.Timer {
 	pause := 1 * time.Minute
 	name := fmt.Sprintf("checkScansForCompletion-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch all code locations")
-		// TODO
+		log.Debugf("starting to check scans for completion")
+		var scanNames []string
 		select {
-		//		case hub.didFetchCodeLocationsCh <- result:
-		case <-hub.stop: // TODO should cancel when this happens
+		case scanNames = <-hub.InProgressScans():
+		case <-hub.stop:
+			return
+		}
+		for _, scanName := range scanNames {
+			scanResults, err := hub.fetchScan(scanName)
+			if err != nil {
+				log.Errorf("unable to fetch scan %s: %s", scanName, err.Error())
+				continue
+			}
+			switch scanResults.ScanSummaryStatus() {
+			case ScanSummaryStatusInProgress:
+				// nothing to do
+			case ScanSummaryStatusFailure, ScanSummaryStatusSuccess:
+				select {
+				case hub.scanDidFinishCh <- &ScanDidFinish{ScanName: scanName, ScanResults: scanResults}:
+				case <-hub.stop:
+					return
+				}
+			}
 		}
 	})
 }
 
 // Hub api calls
 
-type fetchCodeLocationsResult struct {
-	codeLocations map[string]hubapi.CodeLocation
-	err           error
-}
-
-func (hub *Client) fetchAllCodeLocations() *fetchCodeLocationsResult {
+func (hub *Client) fetchAllCodeLocations() *Result {
 	codeLocationList, err := hub.listAllCodeLocations()
 	if err != nil {
-		return &fetchCodeLocationsResult{codeLocations: nil, err: err}
+		return &Result{Value: nil, Err: err}
 	}
 	log.Debugf("fetched all code locations: found %d, expected %d", len(codeLocationList.Items), codeLocationList.TotalCount)
 	cls := map[string]hubapi.CodeLocation{}
 	for _, cl := range codeLocationList.Items {
 		cls[cl.Name] = cl
 	}
-	return &fetchCodeLocationsResult{codeLocations: cls, err: nil}
+	return &Result{Value: cls, Err: nil}
 }
 
 // IsEnabled returns whether the fetcher is currently enabled
@@ -319,7 +362,7 @@ func (hub *Client) deleteScanAndProjectVersion(scanName string) error {
 	projectVersionURL := cl.MappedProjectVersion
 	finish := func(err error) {
 		select {
-		case hub.didDeleteScanCh <- err:
+		case hub.didDeleteScanCh <- &Result{Value: scanName, Err: err}:
 		case <-hub.stop:
 		}
 	}
