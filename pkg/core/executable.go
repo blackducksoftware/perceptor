@@ -63,13 +63,17 @@ func RunPerceptor(configPath string) {
 
 	http.Handle("/metrics", prometheus.Handler())
 
-	var creater HubClientCreaterInterface
+	var creater HubManagerInterface
 	if config.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
 		creater = &MockHubCreater{}
 	} else {
 		log.Infof("instantiating perceptor in real mode")
-		creater = &HubManager{}
+		password, ok := os.LookupEnv(config.HubUserPasswordEnvVar)
+		if !ok {
+			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.HubUserPasswordEnvVar))
+		}
+		creater = NewHubManager(config.HubUser, password, config.HubPort, config.HubClientTimeout())
 	}
 
 	perceptor, err := NewPerceptor(config, creater)

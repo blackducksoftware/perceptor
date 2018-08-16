@@ -44,16 +44,15 @@ const (
 type Perceptor struct {
 	model              *m.Model
 	routineTaskManager *RoutineTaskManager
-	//	hubs               map[string]*HubManager
-	hubClientCreater HubClientCreaterInterface // func(hubURL string, user string, password string, port int) <-chan *hubCreationResult
+	scanScheduler      *ScanScheduler
+	hubManager         HubManagerInterface
 	// channels
-	postConfig          chan *api.PostConfig
-	getModel            chan struct{}
-	resetCircuitBreaker chan struct{}
+	postConfig chan *api.PostConfig
+	getModel   chan struct{}
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*Perceptor, error) {
+func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, error) {
 	model := m.NewModel()
 
 	// 1. routine task manager
@@ -75,12 +74,12 @@ func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*
 
 	// 2. perceptor
 	perceptor := &Perceptor{
-		model:               model,
-		routineTaskManager:  routineTaskManager,
-		hubClientCreater:    hubClientCreater,
-		postConfig:          make(chan *api.PostConfig),
-		getModel:            make(chan struct{}),
-		resetCircuitBreaker: make(chan struct{}),
+		model:              model,
+		routineTaskManager: routineTaskManager,
+		scanScheduler:      &ScanScheduler{ConcurrentScanLimit: 2, CodeLocationLimit: 1000, HubManager: hubManager},
+		hubManager:         hubManager,
+		postConfig:         make(chan *api.PostConfig),
+		getModel:           make(chan struct{}),
 	}
 
 	// 3. gather up model actions
@@ -95,12 +94,10 @@ func NewPerceptor(config *Config, hubClientCreater HubClientCreaterInterface) (*
 			case get := <-perceptor.getModel:
 				// TODO
 				log.Warnf("unimplemented: %+v", get)
-			//case a := <-routineTaskManager.actions:
-			// TODO
-			// case isEnabled := <-hubClient.IsEnabled():
-			// 	actions <- &model.SetIsHubEnabled{IsEnabled: isEnabled}
-			case <-perceptor.resetCircuitBreaker:
+				//case a := <-routineTaskManager.actions:
 				// TODO
+				// case isEnabled := <-hubClient.IsEnabled():
+				// 	actions <- &model.SetIsHubEnabled{IsEnabled: isEnabled}
 			}
 		}
 	}()
@@ -122,8 +119,7 @@ func (pcp *Perceptor) GetModel() api.Model {
 
 // PutHubs ...
 func (pcp *Perceptor) PutHubs(hubs *api.PutHubs) {
-	panic("TODO")
-	//	hr.PutHubsChannel <- hubs
+	pcp.hubManager.SetHubs(hubs.HubURLs)
 }
 
 // AddPod .....
@@ -212,27 +208,25 @@ func (pcp *Perceptor) GetScanResults() api.ScanResults {
 // GetNextImage .....
 func (pcp *Perceptor) GetNextImage() api.NextImage {
 	recordGetNextImage()
+	log.Debugf("handled GET next image")
 	image := pcp.model.GetNextImage()
-	// TODO: use scheduler to get a free hub
-	if image != nil {
-		return api.NextImage{ImageSpec: nil}
+	if image == nil {
+		return *api.NewNextImage(nil)
 	}
-	imageString := "null"
-	var imageSpec *api.ImageSpec
-	if image != nil {
-		imageString = image.PullSpec()
-
-		imageSpec = &api.ImageSpec{
-			Repository:            image.Repository,
-			Tag:                   image.Tag,
-			Sha:                   string(image.Sha),
-			HubURL:                "TODO -- get a hub URL",
-			HubProjectName:        image.HubProjectName(),
-			HubProjectVersionName: image.HubProjectVersionName(),
-			HubScanName:           image.HubScanName()}
+	hub := pcp.scanScheduler.AssignImage(image)
+	if hub == nil {
+		return *api.NewNextImage(nil)
 	}
+	imageSpec := &api.ImageSpec{
+		Repository:            image.Repository,
+		Tag:                   image.Tag,
+		Sha:                   string(image.Sha),
+		HubURL:                hub.Host(),
+		HubProjectName:        image.HubProjectName(),
+		HubProjectVersionName: image.HubProjectVersionName(),
+		HubScanName:           image.HubScanName()}
 	nextImage := *api.NewNextImage(imageSpec)
-	log.Debugf("handled GET next image -- %s", imageString)
+	log.Debugf("handled GET next image -- %s", image.PullSpec())
 	return nextImage
 }
 
@@ -263,7 +257,9 @@ func (pcp *Perceptor) PostConfig(config *api.PostConfig) {
 // PostCommand .....
 func (pcp *Perceptor) PostCommand(command *api.PostCommand) {
 	if command.ResetCircuitBreaker != nil {
-		pcp.resetCircuitBreaker <- struct{}{}
+		for _, hub := range pcp.hubManager.HubClients() {
+			hub.ResetCircuitBreaker()
+		}
 	}
 	log.Debugf("handled post command -- %+v", command)
 }
