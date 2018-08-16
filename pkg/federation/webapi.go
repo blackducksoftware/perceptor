@@ -178,10 +178,10 @@ func NewMockResponder() *MockResponder {
 func (mr *MockResponder) GetModel() *APIModel {
 	return &APIModel{Hubs: map[string]*api.HubModel{
 		"http://blackducksoftware/com": {
-			HasLoadedAllProjects:    false,
+			//			HasLoadedAllProjects:    false,
 			IsCircuitBreakerEnabled: false,
 			IsLoggedIn:              false,
-			Projects:                map[string]string{},
+			//			Projects:                map[string]string{},
 		},
 	}}
 }
