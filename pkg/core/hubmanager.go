@@ -42,12 +42,14 @@ type HubManager struct {
 	port        int
 	httpTimeout time.Duration
 	//
+	stop <-chan struct{}
+	//
 	hubs map[string]hub.ClientInterface
 }
 
 // NewHubManager ...
-func NewHubManager(username string, password string, port int, httpTimeout time.Duration) *HubManager {
-	return &HubManager{username: username, password: password, port: port, httpTimeout: httpTimeout, hubs: map[string]hub.ClientInterface{}}
+func NewHubManager(username string, password string, port int, httpTimeout time.Duration, stop <-chan struct{}) *HubManager {
+	return &HubManager{username: username, password: password, port: port, httpTimeout: httpTimeout, stop: stop, hubs: map[string]hub.ClientInterface{}}
 }
 
 // SetHubs ...

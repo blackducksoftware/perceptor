@@ -41,6 +41,35 @@ func sortedValues(pq *util.PriorityQueue) []interface{} {
 
 func RunModelTests() {
 	Describe("Model", func() {
+		It("add image without pod, then same image in pod", func() {
+			model := NewModel()
+
+			model.addImage(image1, -2)
+			model.addImage(image3, -1)
+			model.setImageScanStatus(sha1, ScanStatusInQueue)
+			model.setImageScanStatus(sha3, ScanStatusInQueue)
+			Expect(model.ImagePriority[sha1]).To(Equal(-2))
+			Expect(model.ImagePriority[sha3]).To(Equal(-1))
+			Expect(model.ImageScanQueue.Values()[0]).To(Equal(sha3))
+
+			model.addPod(pod1)
+			log.Infof("priorities: %+v", model.ImagePriority)
+			model.setImageScanStatus(sha2, ScanStatusInQueue)
+			Expect(model.ImagePriority[sha1]).To(Equal(1))
+			Expect(model.ImagePriority[sha2]).To(Equal(1))
+			Expect(model.ImagePriority[sha3]).To(Equal(-1))
+
+			// This is destructive!
+			values := []interface{}{}
+			for {
+				next, err := model.ImageScanQueue.Pop()
+				if err != nil {
+					break
+				}
+				values = append(values, next)
+			}
+			Expect(values).To(Equal([]interface{}{sha1, sha2, sha3}))
+		})
 
 		removeScanItemModel := func() *Model {
 			model := NewModel()

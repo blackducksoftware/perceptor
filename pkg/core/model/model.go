@@ -172,9 +172,25 @@ func (model *Model) addPod(newPod Pod) {
 
 // AddImage adds an image to the model, adding it to the queue for hub checking.
 func (model *Model) addImage(image Image, priority int) {
+	log.Debugf("about to add image %s, priority %d", image.Sha, priority)
 	added := model.createImage(image)
 	if added {
 		model.ImagePriority[image.Sha] = priority
+		return
+	}
+	if priority <= model.ImagePriority[image.Sha] {
+		return
+	}
+	log.Debugf("upgrading priority for image %s to %d", image.Sha, priority)
+	model.ImagePriority[image.Sha] = priority
+	err := model.removeImageFromScanQueue(image.Sha)
+	if err != nil {
+		log.Errorf("unable to remove image %s from scan queue", image.Sha)
+		return
+	}
+	err = model.addImageToScanQueue(image.Sha)
+	if err != nil {
+		log.Errorf("unable to re-add image %s to scan queue", image.Sha)
 	}
 }
 

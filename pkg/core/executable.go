@@ -63,6 +63,8 @@ func RunPerceptor(configPath string) {
 
 	http.Handle("/metrics", prometheus.Handler())
 
+	stop := make(chan struct{})
+
 	var creater HubManagerInterface
 	if config.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
@@ -73,7 +75,7 @@ func RunPerceptor(configPath string) {
 		if !ok {
 			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.HubUserPasswordEnvVar))
 		}
-		creater = NewHubManager(config.HubUser, password, config.HubPort, config.HubClientTimeout())
+		creater = NewHubManager(config.HubUser, password, config.HubPort, config.HubClientTimeout(), stop)
 	}
 
 	perceptor, err := NewPerceptor(config, creater)
@@ -85,6 +87,9 @@ func RunPerceptor(configPath string) {
 	log.Infof("instantiated perceptor: %+v", perceptor)
 
 	addr := fmt.Sprintf(":%d", config.Port)
-	http.ListenAndServe(addr, nil)
-	log.Info("Http server started!")
+	go func() {
+		log.Info("starting HTTP server on port %d", config.Port)
+		http.ListenAndServe(addr, nil)
+	}()
+	<-stop
 }
