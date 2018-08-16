@@ -67,29 +67,14 @@ func (hub *MockHub) startRandomScanFinishing() {
 	}
 }
 
-// FetchProjectByName .....
-func (hub *MockHub) FetchProjectByName(string) (*Project, error) {
-	return nil, nil
-}
-
 // DeleteScan ...
-func (hub *MockHub) DeleteScan(scanName string) error {
-	return nil
-}
-
-// FetchScan .....
-func (hub *MockHub) FetchScan(scanNameSearchString string) (*ScanResults, error) {
-	return nil, nil
+func (hub *MockHub) DeleteScan(scanName string) {
+	//
 }
 
 // Version .....
 func (hub *MockHub) Version() (string, error) {
 	return hub.hubVersion, nil
-}
-
-// Login .....
-func (hub *MockHub) Login() error {
-	return nil
 }
 
 // SetTimeout ...
@@ -115,4 +100,34 @@ func (hub *MockHub) IsEnabled() <-chan bool {
 // Host ...
 func (hub *MockHub) Host() string {
 	return "unimplemented"
+}
+
+// CodeLocationsCount ...
+func (hub *MockHub) CodeLocationsCount() <-chan int {
+	return nil
+}
+
+// StartScanClient ...
+func (hub *MockHub) StartScanClient(scanName string) {
+	//
+}
+
+// FinishScanClient ...
+func (hub *MockHub) FinishScanClient(scanName string) {
+	//
+}
+
+// ScanDidFinish ...
+func (hub *MockHub) ScanDidFinish() <-chan *ScanDidFinish {
+	return nil
+}
+
+// InProgressScans ...
+func (hub *MockHub) InProgressScans() <-chan []string {
+	return nil
+}
+
+// Stop ...
+func (hub *MockHub) Stop() {
+	//
 }

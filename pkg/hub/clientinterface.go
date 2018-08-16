@@ -27,17 +27,25 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
 )
 
+// ScanDidFinish ...
+type ScanDidFinish struct {
+	ScanName    string
+	ScanResults *ScanResults
+}
+
 // ClientInterface .....
 type ClientInterface interface {
 	Host() string
 	Version() (string, error)
-	DeleteScan(scanName string) error
-	FetchScan(scanNameSearchString string) (*ScanResults, error)
+	DeleteScan(scanName string)
+	StartScanClient(scanName string)
+	FinishScanClient(scanName string)
+	ScanDidFinish() <-chan *ScanDidFinish
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
 	Model() *api.HubModel
-	ProjectsCount() (int, error)
-	CodeLocationsCount() (int, error)
-	InProgressScanCount() int
+	CodeLocationsCount() <-chan int
+	InProgressScans() <-chan []string
+	Stop()
 	//	IsEnabled() <-chan bool
 }
