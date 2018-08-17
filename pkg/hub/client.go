@@ -67,7 +67,7 @@ type Client struct {
 	// channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
-	getModel                chan chan *api.HubModel
+	getModel                chan chan *api.ModelHub
 	getCodeLocationsCh      chan chan map[string]hubapi.CodeLocation
 	deleteScanCh            chan string
 	didDeleteScanCh         chan *Result
@@ -97,7 +97,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
-		getModel:                make(chan chan *api.HubModel),
+		getModel:                make(chan chan *api.ModelHub),
 		getCodeLocationsCh:      make(chan chan map[string]hubapi.CodeLocation),
 		deleteScanCh:            make(chan string),
 		didDeleteScanCh:         make(chan *Result),
@@ -198,8 +198,8 @@ func (hub *Client) ResetCircuitBreaker() {
 // }
 
 // Model ...
-func (hub *Client) Model() *api.HubModel {
-	ch := make(chan *api.HubModel)
+func (hub *Client) Model() *api.ModelHub {
+	ch := make(chan *api.ModelHub)
 	hub.getModel <- ch
 	return <-ch
 }
@@ -228,7 +228,7 @@ func (hub *Client) login() error {
 	return err
 }
 
-func (hub *Client) apiModel() *api.HubModel {
+func (hub *Client) apiModel() *api.ModelHub {
 	errors := make([]string, len(hub.errors))
 	for ix, err := range hub.errors {
 		errors[ix] = err.Error()
@@ -237,7 +237,7 @@ func (hub *Client) apiModel() *api.HubModel {
 	for name, cl := range hub.codeLocations {
 		codeLocations[name] = cl.Meta.Href
 	}
-	return &api.HubModel{
+	return &api.ModelHub{
 		Errors: errors,
 		//		HasLoadedAllProjects:    hub.projects != nil,
 		Status:                  hub.status.String(),

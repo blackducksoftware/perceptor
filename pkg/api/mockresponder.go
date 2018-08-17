@@ -81,7 +81,7 @@ func (mr *MockResponder) GetModel() Model {
 	// 	Images: images,
 	// 	Pods:   mr.Pods,
 	// }
-	return Model{Todo: "TODO -- unimplemented"}
+	return Model{}
 }
 
 // PutHubs ....

@@ -82,8 +82,8 @@ func (hub *MockClient) SetTimeout(timeout time.Duration) {
 }
 
 // Model ...
-func (hub *MockClient) Model() *api.HubModel {
-	return &api.HubModel{}
+func (hub *MockClient) Model() *api.ModelHub {
+	return &api.ModelHub{}
 }
 
 // ResetCircuitBreaker ...

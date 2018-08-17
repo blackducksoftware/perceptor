@@ -31,27 +31,27 @@ import (
 func TestCircuitBreaker(t *testing.T) {
 	hubClient := &MockRawClient{ShouldFail: false}
 	cb := NewCircuitBreaker(10 * time.Minute)
-	if cb.State != CircuitBreakerStateEnabled {
-		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateEnabled {
+		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
 
 	// API working -> cb remains enabled
 	cb.IssueRequest("abc", func() error {
 		return nil
 	})
-	if cb.State != CircuitBreakerStateEnabled {
-		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateEnabled {
+		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
 
 	// API fails -> cb gets disabled
 	cb.IssueRequest("abc", func() error {
 		return fmt.Errorf("planned failure")
 	})
-	if cb.State != CircuitBreakerStateDisabled {
-		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateDisabled {
+		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.state)
 	}
-	if cb.ConsecutiveFailures != 1 {
-		t.Errorf("expected 1, got %d", cb.ConsecutiveFailures)
+	if cb.consecutiveFailures != 1 {
+		t.Errorf("expected 1, got %d", cb.consecutiveFailures)
 	}
 
 	// cb disabled -> API calls fail
@@ -61,11 +61,11 @@ func TestCircuitBreaker(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
-	if cb.State != CircuitBreakerStateDisabled {
-		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateDisabled {
+		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.state)
 	}
-	if cb.ConsecutiveFailures != 1 {
-		t.Errorf("expected 1, got %d", cb.ConsecutiveFailures)
+	if cb.consecutiveFailures != 1 {
+		t.Errorf("expected 1, got %d", cb.consecutiveFailures)
 	}
 
 	// disabled -> checks -> disabled
@@ -76,11 +76,11 @@ func TestCircuitBreaker(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
-	if cb.State != CircuitBreakerStateDisabled {
-		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateDisabled {
+		t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.state)
 	}
-	if cb.ConsecutiveFailures != 2 {
-		t.Errorf("expected 1, got %d", cb.ConsecutiveFailures)
+	if cb.consecutiveFailures != 2 {
+		t.Errorf("expected 1, got %d", cb.consecutiveFailures)
 	}
 
 	// disabled -> checks -> enabled
@@ -92,37 +92,37 @@ func TestCircuitBreaker(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected nil error, got: %s", err.Error())
 	}
-	if cb.State != CircuitBreakerStateEnabled {
-		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateEnabled {
+		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
 }
 
 // TestCircuitBreakerConsecutiveFailures .....
 func TestCircuitBreakerConsecutiveFailures(t *testing.T) {
 	cb := NewCircuitBreaker(10 * time.Minute)
-	if cb.State != CircuitBreakerStateEnabled {
-		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.State)
+	if cb.state != CircuitBreakerStateEnabled {
+		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
 
 	// cb.HubFailure()
-	// if cb.State != CircuitBreakerStateDisabled {
-	// 	t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.State)
+	// if cb.state != CircuitBreakerStateDisabled {
+	// 	t.Errorf("expected CircuitBreakerStateDisabled, found %s", cb.state)
 	// }
-	// assertEqual(t, "state", cb.State, CircuitBreakerStateDisabled)
-	// assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 1)
+	// assertEqual(t, "state", cb.state, CircuitBreakerStateDisabled)
+	// assertEqual(t, "consecutive failures", cb.consecutiveFailures, 1)
 	// assertEqual(t, "is enabled", cb.IsEnabled(), false)
 	//
 	// err := cb.MoveToCheckingState()
 	// assertEqual(t, "error", err, nil)
 	// cb.HubFailure()
-	// assertEqual(t, "state", cb.State, CircuitBreakerStateDisabled)
-	// assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 2)
+	// assertEqual(t, "state", cb.state, CircuitBreakerStateDisabled)
+	// assertEqual(t, "consecutive failures", cb.consecutiveFailures, 2)
 	// assertEqual(t, "is enabled", cb.IsEnabled(), false)
 	//
 	// err = cb.MoveToCheckingState()
 	// assertEqual(t, "error", err, nil)
 	// cb.HubFailure()
-	// assertEqual(t, "state", cb.State, CircuitBreakerStateDisabled)
-	// assertEqual(t, "consecutive failures", cb.ConsecutiveFailures, 3)
+	// assertEqual(t, "state", cb.state, CircuitBreakerStateDisabled)
+	// assertEqual(t, "consecutive failures", cb.consecutiveFailures, 3)
 	// assertEqual(t, "is enabled", cb.IsEnabled(), false)
 }

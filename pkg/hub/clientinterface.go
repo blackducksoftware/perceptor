@@ -43,7 +43,7 @@ type ClientInterface interface {
 	ScanDidFinish() <-chan *ScanDidFinish
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
-	Model() *api.HubModel
+	Model() *api.ModelHub
 	CodeLocationsCount() <-chan int
 	InProgressScans() <-chan []string
 	Stop()
