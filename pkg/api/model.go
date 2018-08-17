@@ -27,7 +27,7 @@ import (
 
 // Model ...
 type Model struct {
-	Hubs      map[string]ModelHub
+	Hubs      map[string]*ModelHub
 	CoreModel CoreModel
 }
 
@@ -115,16 +115,19 @@ type ModelHub struct {
 	IsLoggedIn bool
 	// have all the projects been sucked in?
 	//	HasLoadedAllProjects bool
-	// is circuit breaker enabled?
-	IsCircuitBreakerEnabled bool
 	// map of project name to ... ? hub URL?
 	//	Projects map[string]string
 	// map of code location name to mapped project version url
-	CodeLocations map[string]string
-	// bad things that have happened
-	Errors []string
-	// status
-	Status string
-
+	CodeLocations  map[string]*ModelCodeLocation
+	Errors         []string
+	Status         string
 	CircuitBreaker *ModelCircuitBreaker
+}
+
+// ModelCodeLocation ...
+type ModelCodeLocation struct {
+	Href                 string
+	URL                  string
+	MappedProjectVersion string
+	UpdatedAt            string
 }

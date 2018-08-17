@@ -233,18 +233,23 @@ func (hub *Client) apiModel() *api.ModelHub {
 	for ix, err := range hub.errors {
 		errors[ix] = err.Error()
 	}
-	codeLocations := map[string]string{}
+	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, cl := range hub.codeLocations {
-		codeLocations[name] = cl.Meta.Href
+		codeLocations[name] = &api.ModelCodeLocation{
+			Href:                 cl.Meta.Href,
+			URL:                  cl.URL,
+			MappedProjectVersion: cl.MappedProjectVersion,
+			UpdatedAt:            cl.UpdatedAt,
+		}
 	}
 	return &api.ModelHub{
 		Errors: errors,
 		//		HasLoadedAllProjects:    hub.projects != nil,
-		Status:                  hub.status.String(),
-		IsCircuitBreakerEnabled: false, // TODO
-		IsLoggedIn:              false, // TODO
+		Status:     hub.status.String(),
+		IsLoggedIn: false, // TODO
 		//		Projects:                projects,
-		CodeLocations: codeLocations,
+		CodeLocations:  codeLocations,
+		CircuitBreaker: hub.circuitBreaker.Model(),
 	}
 }
 

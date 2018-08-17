@@ -114,7 +114,11 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 // GetModel .....
 func (pcp *Perceptor) GetModel() api.Model {
 	coreModel := pcp.model.GetModel()
-	return api.Model{CoreModel: coreModel}
+	hubModels := map[string]*api.ModelHub{}
+	for hubURL, hub := range pcp.hubManager.HubClients() {
+		hubModels[hubURL] = hub.Model()
+	}
+	return api.Model{CoreModel: coreModel, Hubs: hubModels}
 }
 
 // PutHubs ...
