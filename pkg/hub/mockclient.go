@@ -32,24 +32,23 @@ import (
 
 // need: mock hub, ?mock apiserver?
 
-// MockHub is a mock implementation of ScanClientInterface .
-// MockHub .....
-type MockHub struct {
+// MockClient is a mock implementation of ClientInterface.
+type MockClient struct {
 	inProgressImages []string
 	finishedImages   map[string]int
 	hubVersion       string
 }
 
-// NewMockHub .....
-func NewMockHub(hubVersion string) *MockHub {
-	return &MockHub{
+// NewMockClient .....
+func NewMockClient(hubVersion string) *MockClient {
+	return &MockClient{
 		inProgressImages: []string{},
 		finishedImages:   map[string]int{},
 		hubVersion:       hubVersion,
 	}
 }
 
-func (hub *MockHub) startRandomScanFinishing() {
+func (hub *MockClient) startRandomScanFinishing() {
 	fmt.Println("starting!")
 	for {
 		time.Sleep(3 * time.Second)
@@ -68,66 +67,66 @@ func (hub *MockHub) startRandomScanFinishing() {
 }
 
 // DeleteScan ...
-func (hub *MockHub) DeleteScan(scanName string) {
+func (hub *MockClient) DeleteScan(scanName string) {
 	//
 }
 
 // Version .....
-func (hub *MockHub) Version() (string, error) {
+func (hub *MockClient) Version() (string, error) {
 	return hub.hubVersion, nil
 }
 
 // SetTimeout ...
-func (hub *MockHub) SetTimeout(timeout time.Duration) {
+func (hub *MockClient) SetTimeout(timeout time.Duration) {
 	//
 }
 
 // Model ...
-func (hub *MockHub) Model() *api.HubModel {
+func (hub *MockClient) Model() *api.HubModel {
 	return &api.HubModel{}
 }
 
 // ResetCircuitBreaker ...
-func (hub *MockHub) ResetCircuitBreaker() {
+func (hub *MockClient) ResetCircuitBreaker() {
 	//
 }
 
 // IsEnabled ...
-func (hub *MockHub) IsEnabled() <-chan bool {
+func (hub *MockClient) IsEnabled() <-chan bool {
 	return make(<-chan bool)
 }
 
 // Host ...
-func (hub *MockHub) Host() string {
+func (hub *MockClient) Host() string {
 	return "unimplemented"
 }
 
 // CodeLocationsCount ...
-func (hub *MockHub) CodeLocationsCount() <-chan int {
+func (hub *MockClient) CodeLocationsCount() <-chan int {
 	return nil
 }
 
 // StartScanClient ...
-func (hub *MockHub) StartScanClient(scanName string) {
+func (hub *MockClient) StartScanClient(scanName string) {
 	//
 }
 
 // FinishScanClient ...
-func (hub *MockHub) FinishScanClient(scanName string) {
+func (hub *MockClient) FinishScanClient(scanName string) {
 	//
 }
 
 // ScanDidFinish ...
-func (hub *MockHub) ScanDidFinish() <-chan *ScanDidFinish {
+func (hub *MockClient) ScanDidFinish() <-chan *ScanDidFinish {
 	return nil
 }
 
 // InProgressScans ...
-func (hub *MockHub) InProgressScans() <-chan []string {
+func (hub *MockClient) InProgressScans() <-chan []string {
 	return nil
 }
 
 // Stop ...
-func (hub *MockHub) Stop() {
+func (hub *MockClient) Stop() {
 	//
 }

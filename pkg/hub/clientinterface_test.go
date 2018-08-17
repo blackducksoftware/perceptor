@@ -27,7 +27,7 @@ import (
 
 func TestClientInterfaceImplementations(t *testing.T) {
 	consumeClientInterface(&Client{})
-	consumeClientInterface(NewMockHub("abc version"))
+	consumeClientInterface(NewMockClient("abc version"))
 }
 
 func consumeClientInterface(fi ClientInterface) {

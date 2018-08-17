@@ -27,13 +27,13 @@ import (
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 )
 
-// MockHubClient ...
-type MockHubClient struct {
+// MockRawClient ...
+type MockRawClient struct {
 	ShouldFail bool
 }
 
 // ListAllCodeLocations ...
-func (mhc *MockHubClient) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
+func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch code locations list")
 	}
@@ -41,7 +41,7 @@ func (mhc *MockHubClient) ListAllCodeLocations(options *hubapi.GetListOptions) (
 }
 
 // GetProject ...
-func (mhc *MockHubClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
+func (mhc *MockRawClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project")
 	}
@@ -49,7 +49,7 @@ func (mhc *MockHubClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project,
 }
 
 // GetProjectVersion ...
-func (mhc *MockHubClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
+func (mhc *MockRawClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version")
 	}
@@ -57,7 +57,7 @@ func (mhc *MockHubClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.P
 }
 
 // ListScanSummaries ...
-func (mhc *MockHubClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
+func (mhc *MockRawClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch scan summary list")
 	}
@@ -65,7 +65,7 @@ func (mhc *MockHubClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.S
 }
 
 // GetProjectVersionRiskProfile ...
-func (mhc *MockHubClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
+func (mhc *MockRawClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version risk profile")
 	}
@@ -73,7 +73,7 @@ func (mhc *MockHubClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink)
 }
 
 // GetProjectVersionPolicyStatus ...
-func (mhc *MockHubClient) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
+func (mhc *MockRawClient) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version policy status")
 	}
