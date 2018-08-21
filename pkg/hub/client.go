@@ -37,12 +37,6 @@ const (
 	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
-// Result models computations that may succeed or fail.
-type Result struct {
-	Value interface{}
-	Err   error
-}
-
 // Client .....
 type Client struct {
 	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
@@ -80,8 +74,7 @@ type Client struct {
 	didFetchCodeLocationsCh chan *Result
 }
 
-// NewClient returns a new, logged-in Client.
-// It will not be logged in.
+// NewClient returns a new Client.  It will not be logged in.
 func NewClient(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) *Client {
 	hub := &Client{
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
@@ -191,12 +184,6 @@ func (hub *Client) ResetCircuitBreaker() {
 	hub.resetCircuitBreakerCh <- struct{}{}
 }
 
-// // IsEnabled returns whether the Client is currently enabled
-// // example: the circuit breaker is disabled -> the Client is disabled
-// func (hub *Client) IsEnabled() <-chan bool {
-// 	return hub.circuitBreaker.IsEnabledChannel
-// }
-
 // Model ...
 func (hub *Client) Model() *api.ModelHub {
 	ch := make(chan *api.ModelHub)
@@ -243,11 +230,9 @@ func (hub *Client) apiModel() *api.ModelHub {
 		}
 	}
 	return &api.ModelHub{
-		Errors: errors,
-		//		HasLoadedAllProjects:    hub.projects != nil,
-		Status:     hub.status.String(),
-		IsLoggedIn: false, // TODO
-		//		Projects:                projects,
+		Errors:         errors,
+		Status:         hub.status.String(),
+		IsLoggedIn:     false, // TODO
 		CodeLocations:  codeLocations,
 		CircuitBreaker: hub.circuitBreaker.Model(),
 	}
