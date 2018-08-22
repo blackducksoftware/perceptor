@@ -58,7 +58,11 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 	// 1. routine task manager
 	stop := make(chan struct{})
 	pruneOrphanedImagesPause := time.Duration(config.PruneOrphanedImagesPauseMinutes) * time.Minute
-	routineTaskManager := NewRoutineTaskManager(stop, pruneOrphanedImagesPause, &Timings{})
+	timings := &Timings{
+		CheckForStalledScansPause: 1 * time.Hour,
+		ModelMetricsPause:         15 * time.Second,
+		StalledScanClientTimeout:  5 * time.Hour}
+	routineTaskManager := NewRoutineTaskManager(stop, pruneOrphanedImagesPause, timings)
 	go func() {
 		for {
 			select {
