@@ -119,8 +119,12 @@ var _ = Describe("Priority queue", func() {
 	})
 
 	Describe("Peek", func() {
-		pq := newPriorityQueueWithInitialCapacity(5)
+		It("should return nil for an empty queue", func() {
+			pq := newPriorityQueueWithInitialCapacity(5)
+			Expect(pq.Peek()).To(BeNil())
+		})
 		It("should reveal the highest priority item with peek", func() {
+			pq := newPriorityQueueWithInitialCapacity(5)
 			Expect(pq.Peek()).To(BeNil())
 			pq.Add("one", 1, 111)
 			Expect(pq.Peek()).To(Equal(111))

@@ -311,6 +311,8 @@ func (model *Model) getNextImageFromScanQueue() *Image {
 	case DockerImageSha:
 		image := model.unsafeGet(sha).Image()
 		return &image
+	case nil:
+		return nil
 	default:
 		log.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
 		log.Debugf("additional info of scan queue, values: %+v, %+v", model.ImageScanQueue, model.ImageScanQueue.Values())
