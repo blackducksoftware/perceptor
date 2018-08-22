@@ -98,3 +98,50 @@ func scanResultsForImage(model *Model, sha DockerImageSha) (*Scan, error) {
 		Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount()}
 	return imageScan, nil
 }
+
+// ScanResults .....
+func ScanResults(model *Model) api.ScanResults {
+	// pods
+	pods := []api.ScannedPod{}
+	for podName, pod := range model.Pods {
+		podScan, err := scanResultsForPod(model, podName)
+		if err != nil {
+			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
+			continue
+		}
+		if podScan == nil {
+			log.Debugf("image scans not complete for pod %s, skipping (pod info: %+v)", podName, pod)
+			continue
+		}
+		pods = append(pods, api.ScannedPod{
+			Namespace:        pod.Namespace,
+			Name:             pod.Name,
+			PolicyViolations: podScan.PolicyViolations,
+			Vulnerabilities:  podScan.Vulnerabilities,
+			OverallStatus:    podScan.OverallStatus.String()})
+	}
+
+	// images
+	images := []api.ScannedImage{}
+	for sha, imageInfo := range model.Images {
+		if imageInfo.ScanStatus != ScanStatusComplete {
+			continue
+		}
+		if imageInfo.ScanResults == nil {
+			log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
+			continue
+		}
+		image := imageInfo.Image()
+		apiImage := api.ScannedImage{
+			Repository:       image.Repository,
+			Tag:              image.Tag,
+			Sha:              string(image.Sha),
+			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
+			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
+			OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
+			ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
+		images = append(images, apiImage)
+	}
+
+	return *api.NewScanResults(pods, images)
+}

@@ -27,19 +27,19 @@ import (
 
 // Model ...
 type Model struct {
-	Hubs      map[string]*ModelHub
-	CoreModel CoreModel
+	Hubs              map[string]*ModelHub
+	CoreModel         CoreModel
+	Config            *ModelConfig
+	Timings           *ModelTimings
+	HubCircuitBreaker *ModelCircuitBreaker
 }
 
 // CoreModel .....
 type CoreModel struct {
-	Pods              map[string]*Pod
-	Images            map[string]*ModelImageInfo
-	ImageScanQueue    []map[string]interface{}
-	HubVersion        string
-	Config            *ModelConfig
-	Timings           *ModelTimings
-	HubCircuitBreaker *ModelCircuitBreaker
+	Pods           map[string]*Pod
+	Images         map[string]*ModelImageInfo
+	ImageScanQueue []map[string]interface{}
+	ImagePriority  map[string]int
 }
 
 // ModelConfig .....

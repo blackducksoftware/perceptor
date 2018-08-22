@@ -23,7 +23,6 @@ package model
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	log "github.com/sirupsen/logrus"
 )
 
 // GetModel .....
@@ -90,79 +89,16 @@ func CoreModelToAPIModel(model *Model) api.CoreModel {
 		}
 	}
 
+	imagePriority := map[string]int{}
+	for sha, priority := range model.ImagePriority {
+		imagePriority[string(sha)] = priority
+	}
+
 	// return value
 	return api.CoreModel{
-		Pods:   pods,
-		Images: images,
-		// TODO
-		// ImagePriority: model.ImagePriority,
-		// HubVersion:     model.HubVersion,
-		// ImageScanQueue: model.ImageScanQueue.Dump(),
-		// Config: &api.ModelConfig{
-		// 	HubHost:             model.Config.HubHost,
-		// 	HubUser:             model.Config.HubUser,
-		// 	HubPort:             model.Config.HubPort,
-		// 	LogLevel:            model.Config.LogLevel,
-		// 	Port:                model.Config.Port,
-		// 	ConcurrentScanLimit: model.Config.ConcurrentScanLimit,
-		// },
-		// Timings: &api.ModelTimings{
-		// 	CheckForStalledScansPause:      *api.NewModelTime(model.Timings.CheckForStalledScansPause),
-		// 	CheckHubForCompletedScansPause: *api.NewModelTime(model.Timings.CheckHubForCompletedScansPause),
-		// 	CheckHubThrottle:               *api.NewModelTime(model.Timings.CheckHubThrottle),
-		// 	EnqueueImagesForRefreshPause:   *api.NewModelTime(model.Timings.EnqueueImagesForRefreshPause),
-		// 	HubClientTimeout:               *api.NewModelTime(model.Timings.HubClientTimeout),
-		// 	HubReloginPause:                *api.NewModelTime(model.Timings.HubReloginPause),
-		// 	ModelMetricsPause:              *api.NewModelTime(model.Timings.ModelMetricsPause),
-		// 	RefreshImagePause:              *api.NewModelTime(model.Timings.RefreshImagePause),
-		// 	RefreshThresholdDuration:       *api.NewModelTime(model.Timings.RefreshThresholdDuration),
-		// 	StalledScanClientTimeout:       *api.NewModelTime(model.Timings.StalledScanClientTimeout),
+		Pods:           pods,
+		Images:         images,
+		ImagePriority:  imagePriority,
+		ImageScanQueue: model.ImageScanQueue.Dump(),
 	}
-}
-
-// ScanResults .....
-func ScanResults(model *Model) api.ScanResults {
-	// pods
-	pods := []api.ScannedPod{}
-	for podName, pod := range model.Pods {
-		podScan, err := scanResultsForPod(model, podName)
-		if err != nil {
-			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
-			continue
-		}
-		if podScan == nil {
-			log.Debugf("image scans not complete for pod %s, skipping (pod info: %+v)", podName, pod)
-			continue
-		}
-		pods = append(pods, api.ScannedPod{
-			Namespace:        pod.Namespace,
-			Name:             pod.Name,
-			PolicyViolations: podScan.PolicyViolations,
-			Vulnerabilities:  podScan.Vulnerabilities,
-			OverallStatus:    podScan.OverallStatus.String()})
-	}
-
-	// images
-	images := []api.ScannedImage{}
-	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus != ScanStatusComplete {
-			continue
-		}
-		if imageInfo.ScanResults == nil {
-			log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
-			continue
-		}
-		image := imageInfo.Image()
-		apiImage := api.ScannedImage{
-			Repository:       image.Repository,
-			Tag:              image.Tag,
-			Sha:              string(image.Sha),
-			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
-			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
-			OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
-			ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
-		images = append(images, apiImage)
-	}
-
-	return *api.NewScanResults(pods, images)
 }

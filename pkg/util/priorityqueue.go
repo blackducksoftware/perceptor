@@ -52,7 +52,7 @@ func newPriorityQueueWithInitialCapacity(capacity int) *PriorityQueue {
 	}
 }
 
-// Values .....
+// Values should only be used for debugging.
 func (pq *PriorityQueue) Values() []interface{} {
 	elems := make([]interface{}, pq.size)
 	for i := 0; i < pq.size; i++ {
@@ -61,7 +61,7 @@ func (pq *PriorityQueue) Values() []interface{} {
 	return elems
 }
 
-// Dump .....
+// Dump should only be used for debugging.
 func (pq *PriorityQueue) Dump() []map[string]interface{} {
 	elems := make([]map[string]interface{}, pq.size)
 	for i := 0; i < pq.size; i++ {
