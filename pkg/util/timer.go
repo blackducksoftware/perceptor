@@ -90,6 +90,9 @@ func NewRunningTimer(name string, delay time.Duration, stop <-chan struct{}, run
 
 // NewTimer creates a new timer which is paused
 func NewTimer(name string, delay time.Duration, stop <-chan struct{}, action func()) *Timer {
+	if delay <= 0 {
+		panic(fmt.Errorf("invalid delay for timer %s: must be positive, was %s", name, delay))
+	}
 	timer := &Timer{
 		name:     name,
 		state:    TimerStatePaused,
