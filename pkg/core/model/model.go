@@ -313,6 +313,7 @@ func (model *Model) getNextImageFromScanQueue() *Image {
 		return &image
 	default:
 		log.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
+		log.Debugf("additional info of scan queue, values: %+v, %+v", model.ImageScanQueue, model.ImageScanQueue.Values())
 		return nil
 	}
 }
