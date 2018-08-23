@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -121,6 +122,11 @@ func (model *Model) FinishScanJob(image *Image, err error) {
 	model.actions <- &FinishScanClient{Image: image, Err: err}
 }
 
+// DidFetchScanResults ...
+func (model *Model) DidFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) {
+	model.actions <- &DidFetchScanResults{Sha: sha, ScanResults: scanResults}
+}
+
 // GetScanResults ...
 func (model *Model) GetScanResults() api.ScanResults {
 	get := NewGetScanResults()
@@ -192,6 +198,23 @@ func (model *Model) addImage(image Image, priority int) {
 	if err != nil {
 		log.Errorf("unable to re-add image %s to scan queue", image.Sha)
 	}
+}
+
+func (model *Model) didFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) error {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("unable to handle didFetchScanResults for %s: not found", sha)
+	}
+	if scanResults == nil {
+		return nil
+	}
+	// TODO is `scanResults` actually complete?
+	imageInfo.ScanResults = scanResults
+	switch imageInfo.ScanStatus {
+	case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
+		model.setImageScanStatus(sha, ScanStatusComplete)
+	}
+	return nil
 }
 
 // DeleteImage removes an image from the model.
