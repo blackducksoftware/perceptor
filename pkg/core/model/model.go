@@ -203,16 +203,33 @@ func (model *Model) addImage(image Image, priority int) {
 func (model *Model) didFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) error {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
-		return fmt.Errorf("unable to handle didFetchScanResults for %s: not found", sha)
+		return fmt.Errorf("unable to handle didFetchScanResults for %s: sha not found", sha)
 	}
 	if scanResults == nil {
 		return nil
 	}
-	// TODO is `scanResults` actually complete?
-	imageInfo.ScanResults = scanResults
-	switch imageInfo.ScanStatus {
-	case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-		model.setImageScanStatus(sha, ScanStatusComplete)
+	if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
+		imageInfo.ScanResults = scanResults
+		switch imageInfo.ScanStatus {
+		case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
+			model.setImageScanStatus(sha, ScanStatusComplete)
+		case ScanStatusComplete:
+			// nothing to do
+		}
+	} else if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
+		switch imageInfo.ScanStatus {
+		case ScanStatusUnknown, ScanStatusInQueue:
+			model.setImageScanStatus(sha, ScanStatusRunningHubScan)
+		case ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
+			// nothing to do
+		}
+	} else { // hub.ScanSummaryStatusFailure
+		switch imageInfo.ScanStatus {
+		case ScanStatusUnknown, ScanStatusRunningHubScan:
+			model.setImageScanStatus(sha, ScanStatusInQueue)
+		case ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusComplete:
+			// nothing to do
+		}
 	}
 	return nil
 }
