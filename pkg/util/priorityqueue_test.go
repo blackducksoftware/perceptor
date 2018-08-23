@@ -132,8 +132,8 @@ var _ = Describe("Priority queue", func() {
 			Expect(pq.Peek()).To(Equal(111))
 			pq.Add("three", 3, 333)
 			Expect(pq.Peek()).To(Equal(333))
-			pq.Add("four", 4, 444)
-			Expect(pq.Peek()).To(Equal(444))
+			pq.Add("four", 4, "a string")
+			Expect(pq.Peek()).To(Equal("a string"))
 		})
 	})
 
