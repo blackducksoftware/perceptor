@@ -28,6 +28,7 @@ import (
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	h "github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,8 +48,11 @@ type Perceptor struct {
 	scanScheduler      *ScanScheduler
 	hubManager         HubManagerInterface
 	// channels
-	postConfig chan *api.PostConfig
-	getModel   chan struct{}
+	stop                <-chan struct{}
+	postConfig          chan *api.PostConfig
+	getModel            chan struct{}
+	didStartScan        chan [3]interface{}
+	didFinishScanClient chan api.FinishedScanClientJob
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
@@ -78,12 +82,15 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 
 	// 2. perceptor
 	perceptor := &Perceptor{
-		model:              model,
-		routineTaskManager: routineTaskManager,
-		scanScheduler:      &ScanScheduler{ConcurrentScanLimit: 2, CodeLocationLimit: 1000, HubManager: hubManager},
-		hubManager:         hubManager,
-		postConfig:         make(chan *api.PostConfig),
-		getModel:           make(chan struct{}),
+		model:               model,
+		routineTaskManager:  routineTaskManager,
+		scanScheduler:       &ScanScheduler{ConcurrentScanLimit: 2, CodeLocationLimit: 1000, HubManager: hubManager},
+		hubManager:          hubManager,
+		stop:                stop,
+		postConfig:          make(chan *api.PostConfig),
+		getModel:            make(chan struct{}),
+		didStartScan:        make(chan [3]interface{}),
+		didFinishScanClient: make(chan api.FinishedScanClientJob),
 	}
 
 	// 3. gather up model actions
@@ -106,6 +113,45 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 		}
 	}()
 
+	go func() {
+		scanResults := hubManager.DidFetchScanResults()
+		select {
+		case <-stop:
+			return
+		case array := <-perceptor.didStartScan:
+			hubURL := array[0].(string)
+			scanName := array[1].(string)
+			sha := array[2].(m.DockerImageSha)
+			model.StartScanClient(sha)
+			hubManager.StartScanClient(hubURL, scanName)
+		case job := <-perceptor.didFinishScanClient:
+			var scanErr error
+			if job.Err == "" {
+				scanErr = nil
+				err := hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+				if err != nil {
+					log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+				}
+			} else {
+				scanErr = fmt.Errorf(job.Err)
+			}
+			image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
+			model.FinishScanJob(image, scanErr)
+		case dfsr := <-scanResults:
+			// TODO it seems like a really terrible idea to rely on something else for this information, instead
+			// of managing it ourselves
+			sha := m.DockerImageSha(dfsr.CodeLocationName)
+			switch dfsr.ScanSummaryStatus() {
+			case h.ScanSummaryStatusInProgress:
+				log.Errorf("Ignoring InProgress scan reported as scan results: %+v")
+			case h.ScanSummaryStatusFailure:
+				model.ScanDidFail(sha)
+			case h.ScanSummaryStatusSuccess:
+				model.DidFetchScanResults(sha, dfsr)
+			}
+		}
+	}()
+
 	// 4. http responder
 	api.SetupHTTPServer(perceptor)
 
@@ -120,7 +166,7 @@ func (pcp *Perceptor) GetModel() api.Model {
 	coreModel := pcp.model.GetModel()
 	hubModels := map[string]*api.ModelHub{}
 	for hubURL, hub := range pcp.hubManager.HubClients() {
-		hubModels[hubURL] = hub.Model()
+		hubModels[hubURL] = <-hub.Model()
 	}
 	return api.Model{CoreModel: coreModel, Hubs: hubModels}
 }
@@ -233,6 +279,13 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 		HubProjectName:        image.HubProjectName(),
 		HubProjectVersionName: image.HubProjectVersionName(),
 		HubScanName:           image.HubScanName()}
+	go func() {
+		select {
+		case <-pcp.stop:
+			return
+		case pcp.didStartScan <- [3]interface{}{hub.Host(), string(image.Sha), image.Sha}:
+		}
+	}()
 	nextImage := *api.NewNextImage(imageSpec)
 	log.Debugf("handled GET next image -- %s", image.PullSpec())
 	return nextImage
@@ -241,15 +294,13 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 // PostFinishScan .....
 func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 	recordPostFinishedScan()
-	var err error
-	if job.Err == "" {
-		err = nil
-	} else {
-		err = fmt.Errorf(job.Err)
-	}
-	// TODO also send to hub manager so that it can start polling the hub for this scan to complete
-	image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
-	pcp.model.FinishScanJob(image, err)
+	go func() {
+		select {
+		case <-pcp.stop:
+			return
+		case pcp.didFinishScanClient <- job:
+		}
+	}()
 	log.Debugf("handled finished scan job -- %v", job)
 	return nil
 }

@@ -381,6 +381,16 @@ func (scan *ScanResults) ScanSummaryStatus() ScanSummaryStatus {
 	return ScanSummaryStatusFailure
 }
 
+// IsDone returns true if at least one scan summary is successfully finished.
+func (scan *ScanResults) IsDone() bool {
+	switch scan.ScanSummaryStatus() {
+	case ScanSummaryStatusInProgress:
+		return false
+	default:
+		return true
+	}
+}
+
 // VulnerabilityCount .....
 func (scan *ScanResults) VulnerabilityCount() int {
 	return scan.RiskProfile.HighRiskVulnerabilityCount()

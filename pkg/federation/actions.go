@@ -46,7 +46,7 @@ func NewFedGetModel() *FedGetModel {
 func (fgm *FedGetModel) FedApply(federator *Federator) {
 	hubs := map[string]*api.ModelHub{}
 	for hubURL, hub := range federator.hubs {
-		hubs[hubURL] = hub.Model()
+		hubs[hubURL] = <-hub.Model()
 	}
 	model := &APIModel{Hubs: hubs}
 	fgm.Done <- model

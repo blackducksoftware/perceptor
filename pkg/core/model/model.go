@@ -122,6 +122,11 @@ func (model *Model) FinishScanJob(image *Image, err error) {
 	model.actions <- &FinishScanClient{Image: image, Err: err}
 }
 
+// ScanDidFail ...
+func (model *Model) ScanDidFail(sha DockerImageSha) {
+	model.actions <- &ScanDidFail{Sha: sha}
+}
+
 // DidFetchScanResults ...
 func (model *Model) DidFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) {
 	model.actions <- &DidFetchScanResults{Sha: sha, ScanResults: scanResults}
@@ -232,6 +237,20 @@ func (model *Model) didFetchScanResults(sha DockerImageSha, scanResults *hub.Sca
 		}
 	}
 	return nil
+}
+
+func (model *Model) scanDidFail(sha DockerImageSha) {
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		log.Errorf("cannot handle scanDidFail for image %s: not found", sha)
+		return
+	}
+	switch imageInfo.ScanStatus {
+	case ScanStatusRunningHubScan:
+		model.setImageScanStatus(sha, ScanStatusInQueue)
+	default:
+		log.Errorf("cannot handle scanDidFail for image %s: cannot transition from state %s", sha, imageInfo.ScanStatus.String())
+	}
 }
 
 // DeleteImage removes an image from the model.

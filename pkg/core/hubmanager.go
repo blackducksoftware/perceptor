@@ -33,6 +33,9 @@ import (
 type HubManagerInterface interface {
 	SetHubs(hubURLs []string)
 	HubClients() map[string]hub.ClientInterface
+	StartScanClient(hubURL string, scanName string) error
+	FinishScanClient(hubURL string, scanName string) error
+	DidFetchScanResults() <-chan *hub.ScanResults
 }
 
 // HubManager ...
@@ -44,12 +47,20 @@ type HubManager struct {
 	//
 	stop <-chan struct{}
 	//
-	hubs map[string]hub.ClientInterface
+	hubs                map[string]hub.ClientInterface
+	didFetchScanResults chan *hub.ScanResults
 }
 
 // NewHubManager ...
 func NewHubManager(username string, password string, port int, httpTimeout time.Duration, stop <-chan struct{}) *HubManager {
-	return &HubManager{username: username, password: password, port: port, httpTimeout: httpTimeout, stop: stop, hubs: map[string]hub.ClientInterface{}}
+	return &HubManager{
+		username:            username,
+		password:            password,
+		port:                port,
+		httpTimeout:         httpTimeout,
+		stop:                stop,
+		hubs:                map[string]hub.ClientInterface{},
+		didFetchScanResults: make(chan *hub.ScanResults)}
 }
 
 // SetHubs ...
@@ -83,7 +94,6 @@ func (hm *HubManager) SetHubs(hubURLs []string) {
 	}
 }
 
-// Create ...
 func (hm *HubManager) create(hubURL string) error {
 	if _, ok := hm.hubs[hubURL]; ok {
 		return fmt.Errorf("cannot create hub %s: already exists", hubURL)
@@ -98,6 +108,32 @@ func (hm *HubManager) HubClients() map[string]hub.ClientInterface {
 	return hm.hubs
 }
 
+// StartScanClient ...
+func (hm *HubManager) StartScanClient(hubURL string, scanName string) error {
+	hub, ok := hm.hubs[hubURL]
+	if !ok {
+		return fmt.Errorf("hub %s not found", hubURL)
+	}
+	hub.StartScanClient(scanName)
+	return nil
+}
+
+// FinishScanClient tells the appropriate hub client to start polling for
+// scan completion.
+func (hm *HubManager) FinishScanClient(hubURL string, scanName string) error {
+	hub, ok := hm.hubs[hubURL]
+	if !ok {
+		return fmt.Errorf("hub %s not found", hubURL)
+	}
+	hub.FinishScanClient(scanName)
+	return nil
+}
+
+// DidFetchScanResults combines results from all hub clients into a single channel.
+func (hm *HubManager) DidFetchScanResults() <-chan *hub.ScanResults {
+	return hm.didFetchScanResults
+}
+
 // MockHubCreater ...
 type MockHubCreater struct{}
 
@@ -108,5 +144,20 @@ func (mhc *MockHubCreater) SetHubs(hubURLs []string) {
 
 // HubClients ...
 func (mhc *MockHubCreater) HubClients() map[string]hub.ClientInterface {
+	return nil
+}
+
+// StartScanClient ...
+func (mhc *MockHubCreater) StartScanClient(hubURL string, scanName string) error {
+	return nil
+}
+
+// FinishScanClient ...
+func (mhc *MockHubCreater) FinishScanClient(hubURL string, scanName string) error {
+	return nil
+}
+
+// DidFetchScanResults ...
+func (mhc *MockHubCreater) DidFetchScanResults() <-chan *hub.ScanResults {
 	return nil
 }
