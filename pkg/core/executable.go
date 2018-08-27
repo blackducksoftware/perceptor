@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	// import just for the side-effect of changing how logrus works
@@ -38,7 +39,8 @@ import (
 func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	configManager := NewConfigManager(configPath)
+	ignoreConfigMap, _ := strconv.ParseBool(os.Getenv("IGNORE_CONFIG_MAP"))
+	configManager := NewConfigManager(configPath, ignoreConfigMap)
 
 	config, err := configManager.GetConfig()
 	if err != nil {

@@ -24,6 +24,7 @@ package core
 import (
 	"time"
 
+	"github.com/fatih/structs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,4 +50,29 @@ func (config *Config) HubClientTimeout() time.Duration {
 // GetLogLevel .....
 func (config *Config) GetLogLevel() (log.Level, error) {
 	return log.ParseLevel(config.LogLevel)
+}
+
+// The following does a couple of things:
+// 	* Provide a map of sensible defaults for the struct
+//	* Provide a map of values that can be loaded into viper so all structure
+//		config keys are loaded. This allows viper to override these defaults
+//		from either the configMap or environment variables
+//
+// If the struct above is modified, this method MUST also be modified
+// so viper is aware of the new structure
+func (config *Config) GetDefaults() map[string]interface{} {
+	defaults := Config{
+		HubHost:                      "",
+		HubUser:                      "",
+		HubUserPasswordEnvVar:        "",
+		HubClientTimeoutMilliseconds: 5000,
+		HubPort: 443,
+		PruneOrphanedImagesPauseMinutes: 20,
+		ConcurrentScanLimit:             1,
+		UseMockMode:                     false,
+		Port:                            0,
+		LogLevel:                        "warn",
+	}
+
+	return structs.Map(defaults)
 }

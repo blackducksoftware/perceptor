@@ -44,6 +44,10 @@
 [[constraint]]
   name = "github.com/spf13/viper"
   version = "1.0.0"
+  
+[[constraint]]
+  name = "github.com/fatih/structs"
+  version = "v1.0.0"
 
 [[override]]
   source = "https://github.com/fsnotify/fsnotify/archive/v1.4.7.tar.gz"

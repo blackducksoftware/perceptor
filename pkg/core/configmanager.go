@@ -31,28 +31,44 @@ import (
 //   - getting initial config
 //   - reporting ongoing changes to config
 type ConfigManager struct {
-	ConfigPath string
+	ConfigPath      string
+	IgnoreConfigMap bool
 }
 
 // NewConfigManager ...
-func NewConfigManager(configPath string) *ConfigManager {
+func NewConfigManager(configPath string, ignoreConfigMap bool) *ConfigManager {
 	return &ConfigManager{
-		ConfigPath: configPath,
+		ConfigPath:      configPath,
+		IgnoreConfigMap: ignoreConfigMap,
 	}
 }
 
 // GetConfig returns a configuration object to configure Perceptor
 func (cm *ConfigManager) GetConfig() (*Config, error) {
-	var config *Config
+	config := new(Config)
+
+	// Set the defaults
+	for key, value := range config.GetDefaults() {
+		viper.SetDefault(key, value)
+	}
+
+	// Look for environment variables (prefixed with "PCP_")
+	viper.SetEnvPrefix("pcp") // uppercased automatically
+	viper.AutomaticEnv()
 
 	viper.SetConfigFile(cm.ConfigPath)
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
+	// If IgnoreConfigMap set then all config items should be set via environment or defaults
+	if cm.IgnoreConfigMap == false {
+		err := viper.ReadInConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file: %v", err)
+		}
 	}
 
-	err = viper.Unmarshal(&config)
+	// This Unmarshal will take values from in the following order of precedence:
+	// environment, configMap, defaults
+	err := viper.Unmarshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
