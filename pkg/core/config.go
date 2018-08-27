@@ -62,11 +62,11 @@ func (config *Config) GetLogLevel() (log.Level, error) {
 // so viper is aware of the new structure
 func (config *Config) GetDefaults() map[string]interface{} {
 	defaults := Config{
-		HubHost:                         "",
-		HubUser:                         "",
-		HubUserPasswordEnvVar:           "",
-		HubClientTimeoutMilliseconds:    5000,
-		HubPort:                         443,
+		HubHost:                      "",
+		HubUser:                      "",
+		HubUserPasswordEnvVar:        "",
+		HubClientTimeoutMilliseconds: 5000,
+		HubPort: 443,
 		PruneOrphanedImagesPauseMinutes: 20,
 		ConcurrentScanLimit:             1,
 		UseMockMode:                     false,
