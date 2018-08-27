@@ -27,25 +27,25 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/api"
 )
 
-// ScanDidFinish ...
-type ScanDidFinish struct {
-	ScanName    string
-	ScanResults *ScanResults
-}
-
 // ClientInterface .....
 type ClientInterface interface {
-	Host() string
-	Version() (string, error)
+	// commands coming in
 	DeleteScan(scanName string)
 	StartScanClient(scanName string)
 	FinishScanClient(scanName string)
-	ScanDidFinish() <-chan *ScanDidFinish
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
-	Model() *api.ModelHub
+	// events going out
+	DidFetchScanResults() <-chan *ScanResults
+	ScanDidFinish() <-chan *ScanResults
+	// read-only queries
+	Host() string
+	Version() (string, error)
+	// read-only, async queries (the channel produces a single event)
+	Model() <-chan *api.ModelHub
 	CodeLocationsCount() <-chan int
 	InProgressScans() <-chan []string
-	Stop()
 	//	IsEnabled() <-chan bool
+	// prelude to clean-up
+	Stop()
 }

@@ -59,7 +59,7 @@ type Client struct {
 	fetchAllCodeLocationsTimer   *util.Timer
 	checkScansForCompletionTimer *util.Timer
 	// 'public' channels
-	publishScanDidFinishCh chan *ScanDidFinish
+	publishScanDidFinishCh chan *ScanResults
 	// 'private' channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
@@ -70,7 +70,7 @@ type Client struct {
 	didLoginCh              chan error
 	startScanClientCh       chan string
 	finishScanClientCh      chan string
-	scanDidFinishCh         chan *ScanDidFinish
+	scanDidFinishCh         chan *ScanResults
 	getCodeLocationsCountCh chan chan int
 	getInProgressScansCh    chan chan []string
 	didFetchCodeLocationsCh chan *Result
@@ -90,7 +90,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
 		//
-		publishScanDidFinishCh: make(chan *ScanDidFinish),
+		publishScanDidFinishCh: make(chan *ScanResults),
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
@@ -101,7 +101,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		didLoginCh:              make(chan error),
 		startScanClientCh:       make(chan string),
 		finishScanClientCh:      make(chan string),
-		scanDidFinishCh:         make(chan *ScanDidFinish),
+		scanDidFinishCh:         make(chan *ScanResults),
 		getCodeLocationsCountCh: make(chan chan int),
 		getInProgressScansCh:    make(chan chan []string),
 		didFetchCodeLocationsCh: make(chan *Result)}
@@ -142,9 +142,9 @@ func NewClient(username string, password string, host string, port int, hubClien
 				log.Debugf("nothing to do: received scan client start for scan %s", scanName)
 			case scanName := <-hub.finishScanClientCh:
 				hub.inProgressScans[scanName] = true
-			case s := <-hub.scanDidFinishCh:
-				delete(hub.inProgressScans, s.ScanName)
-				hub.publishScanDidFinishCh <- s
+			case sr := <-hub.scanDidFinishCh:
+				delete(hub.inProgressScans, sr.CodeLocationName)
+				hub.publishScanDidFinishCh <- sr
 			case get := <-hub.getCodeLocationsCountCh:
 				get <- len(hub.codeLocations)
 			case get := <-hub.getInProgressScansCh:
@@ -189,10 +189,10 @@ func (hub *Client) ResetCircuitBreaker() {
 }
 
 // Model ...
-func (hub *Client) Model() *api.ModelHub {
+func (hub *Client) Model() <-chan *api.ModelHub {
 	ch := make(chan *api.ModelHub)
 	hub.getModel <- ch
-	return <-ch
+	return ch
 }
 
 // Private methods
@@ -291,7 +291,7 @@ func (hub *Client) startCheckScansForCompletionTimer() *util.Timer {
 				// nothing to do
 			case ScanSummaryStatusFailure, ScanSummaryStatusSuccess:
 				select {
-				case hub.scanDidFinishCh <- &ScanDidFinish{ScanName: scanName, ScanResults: scanResults}:
+				case hub.scanDidFinishCh <- scanResults:
 				case <-hub.stop:
 					return
 				}
@@ -382,8 +382,13 @@ func (hub *Client) FinishScanClient(scanName string) {
 }
 
 // ScanDidFinish ...
-func (hub *Client) ScanDidFinish() <-chan *ScanDidFinish {
+func (hub *Client) ScanDidFinish() <-chan *ScanResults {
 	return hub.publishScanDidFinishCh
+}
+
+// DidFetchScanResults ...
+func (hub *Client) DidFetchScanResults() <-chan *ScanResults {
+	return nil // TODO
 }
 
 // CodeLocationsCount ...

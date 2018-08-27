@@ -82,8 +82,8 @@ func (hub *MockClient) SetTimeout(timeout time.Duration) {
 }
 
 // Model ...
-func (hub *MockClient) Model() *api.ModelHub {
-	return &api.ModelHub{}
+func (hub *MockClient) Model() <-chan *api.ModelHub {
+	return nil
 }
 
 // ResetCircuitBreaker ...
@@ -117,7 +117,12 @@ func (hub *MockClient) FinishScanClient(scanName string) {
 }
 
 // ScanDidFinish ...
-func (hub *MockClient) ScanDidFinish() <-chan *ScanDidFinish {
+func (hub *MockClient) ScanDidFinish() <-chan *ScanResults {
+	return nil
+}
+
+// DidFetchScanResults ...
+func (hub *MockClient) DidFetchScanResults() <-chan *ScanResults {
 	return nil
 }
 
