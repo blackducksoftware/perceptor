@@ -50,21 +50,21 @@ type Client struct {
 	port     int
 	status   ClientStatus
 	// data
-	codeLocations   map[string]hubapi.CodeLocation
+	codeLocations   map[string]*Scan
 	errors          []error
 	inProgressScans map[string]bool
-	// TODO critical vulnerabilities
 	// timers
 	loginTimer                   *util.Timer
 	fetchAllCodeLocationsTimer   *util.Timer
+	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
 	// 'public' channels
-	publishScanDidFinishCh chan *ScanResults
+	publishScanDidFinishCh       chan *ScanResults
+	publishDidFetchScanResultsCh chan *ScanResults
 	// 'private' channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
 	getModel                chan chan *api.ModelHub
-	getCodeLocationsCh      chan chan map[string]hubapi.CodeLocation
 	deleteScanCh            chan string
 	didDeleteScanCh         chan *Result
 	didLoginCh              chan error
@@ -74,6 +74,8 @@ type Client struct {
 	getCodeLocationsCountCh chan chan int
 	getInProgressScansCh    chan chan []string
 	didFetchCodeLocationsCh chan *Result
+	didFetchScanResultsCh   chan *ScanResults
+	unknownCodeLocationsCh  chan chan []string
 }
 
 // NewClient returns a new Client.  It will not be logged in.
@@ -86,16 +88,16 @@ func NewClient(username string, password string, host string, port int, hubClien
 		port:           port,
 		status:         ClientStatusDown,
 		//
-		codeLocations:   map[string]hubapi.CodeLocation{},
+		codeLocations:   map[string]*Scan{},
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
 		//
-		publishScanDidFinishCh: make(chan *ScanResults),
+		publishScanDidFinishCh:       make(chan *ScanResults),
+		publishDidFetchScanResultsCh: make(chan *ScanResults),
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
 		getModel:                make(chan chan *api.ModelHub),
-		getCodeLocationsCh:      make(chan chan map[string]hubapi.CodeLocation),
 		deleteScanCh:            make(chan string),
 		didDeleteScanCh:         make(chan *Result),
 		didLoginCh:              make(chan error),
@@ -104,7 +106,9 @@ func NewClient(username string, password string, host string, port int, hubClien
 		scanDidFinishCh:         make(chan *ScanResults),
 		getCodeLocationsCountCh: make(chan chan int),
 		getInProgressScansCh:    make(chan chan []string),
-		didFetchCodeLocationsCh: make(chan *Result)}
+		didFetchCodeLocationsCh: make(chan *Result),
+		didFetchScanResultsCh:   make(chan *ScanResults),
+		unknownCodeLocationsCh:  make(chan chan []string)}
 	// initialize hub client
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -122,8 +126,22 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.circuitBreaker.Reset()
 			case ch := <-hub.getModel:
 				ch <- hub.apiModel()
-			case ch := <-hub.getCodeLocationsCh:
-				ch <- hub.codeLocations
+			case ch := <-hub.unknownCodeLocationsCh:
+				unknownCodeLocations := []string{}
+				for name, scan := range hub.codeLocations {
+					if scan.ScanResults == nil {
+						unknownCodeLocations = append(unknownCodeLocations, name)
+					}
+				}
+				ch <- unknownCodeLocations
+			case scanResults := <-hub.scanDidFinishCh:
+				go func() {
+					select {
+					case <-hub.stop:
+						return
+					case hub.publishDidFetchScanResultsCh <- scanResults:
+					}
+				}()
 			case scanName := <-hub.deleteScanCh:
 				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
 			case result := <-hub.didDeleteScanCh:
@@ -135,7 +153,12 @@ func NewClient(username string, password string, host string, port int, hubClien
 			case result := <-hub.didFetchCodeLocationsCh:
 				hub.recordError(result.Err)
 				if result.Err == nil {
-					hub.codeLocations = result.Value.(map[string]hubapi.CodeLocation)
+					cls := result.Value.([]hubapi.CodeLocation)
+					for _, cl := range cls {
+						if _, ok := hub.codeLocations[cl.Name]; !ok {
+							hub.codeLocations[cl.Name] = &Scan{CodeLocation: cl, ScanResults: nil}
+						}
+					}
 				}
 			case scanName := <-hub.startScanClientCh:
 				// anything to do?
@@ -158,16 +181,19 @@ func NewClient(username string, password string, host string, port int, hubClien
 				if err != nil && hub.status == ClientStatusUp {
 					hub.status = ClientStatusDown
 					hub.recordError(hub.checkScansForCompletionTimer.Pause())
+					hub.recordError(hub.fetchScansTimer.Pause())
 					hub.recordError(hub.fetchAllCodeLocationsTimer.Pause())
 				} else if err == nil && hub.status == ClientStatusDown {
 					hub.status = ClientStatusUp
 					hub.recordError(hub.checkScansForCompletionTimer.Resume(true))
+					hub.recordError(hub.fetchScansTimer.Resume(true))
 					hub.recordError(hub.fetchAllCodeLocationsTimer.Resume(true))
 				}
 			}
 		}
 	}()
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer()
+	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Minute)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllProjectsPause)
 	hub.loginTimer = hub.startLoginTimer()
 	return hub
@@ -225,12 +251,12 @@ func (hub *Client) apiModel() *api.ModelHub {
 		errors[ix] = err.Error()
 	}
 	codeLocations := map[string]*api.ModelCodeLocation{}
-	for name, cl := range hub.codeLocations {
+	for name, scan := range hub.codeLocations {
 		codeLocations[name] = &api.ModelCodeLocation{
-			Href:                 cl.Meta.Href,
-			URL:                  cl.URL,
-			MappedProjectVersion: cl.MappedProjectVersion,
-			UpdatedAt:            cl.UpdatedAt,
+			Href:                 scan.CodeLocation.Meta.Href,
+			URL:                  scan.CodeLocation.URL,
+			MappedProjectVersion: scan.CodeLocation.MappedProjectVersion,
+			UpdatedAt:            scan.CodeLocation.UpdatedAt,
 		}
 	}
 	return &api.ModelHub{
@@ -245,7 +271,7 @@ func (hub *Client) apiModel() *api.ModelHub {
 // Regular jobs
 
 func (hub *Client) startLoginTimer() *util.Timer {
-	pause := 30 * time.Second // Minute
+	pause := 30 * time.Second // TODO Minute
 	name := fmt.Sprintf("login-%s", hub.host)
 	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
@@ -264,7 +290,31 @@ func (hub *Client) startFetchAllCodeLocationsTimer(pause time.Duration) *util.Ti
 		result := hub.fetchAllCodeLocations()
 		select {
 		case hub.didFetchCodeLocationsCh <- result:
-		case <-hub.stop: // TODO should cancel when this happens
+		case <-hub.stop:
+		}
+	})
+}
+
+func (hub *Client) unknownCodeLocations() []string {
+	ch := make(chan []string)
+	hub.unknownCodeLocationsCh <- ch
+	return <-ch
+}
+
+func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("fetchScans-%s", hub.host)
+	return util.NewTimer(name, pause, hub.stop, func() {
+		log.Debugf("starting to fetch scans")
+		for _, codeLocationName := range hub.unknownCodeLocations() {
+			scanResults, err := hub.fetchScan(codeLocationName)
+			if err != nil {
+				continue
+			}
+			select {
+			case hub.didFetchScanResultsCh <- scanResults:
+			case <-hub.stop:
+				return
+			}
 		}
 	})
 }
@@ -348,12 +398,12 @@ func (hub *Client) DeleteScan(scanName string) {
 }
 
 func (hub *Client) deleteScanAndProjectVersion(scanName string) error {
-	cl, ok := hub.codeLocations[scanName]
+	scan, ok := hub.codeLocations[scanName]
 	if !ok {
 		return fmt.Errorf("unable to delete scan %s, not found", scanName)
 	}
-	clURL := cl.Meta.Href
-	projectVersionURL := cl.MappedProjectVersion
+	clURL := scan.CodeLocation.Meta.Href
+	projectVersionURL := scan.CodeLocation.MappedProjectVersion
 	finish := func(err error) {
 		select {
 		case hub.didDeleteScanCh <- &Result{Value: scanName, Err: err}:
@@ -388,7 +438,7 @@ func (hub *Client) ScanDidFinish() <-chan *ScanResults {
 
 // DidFetchScanResults ...
 func (hub *Client) DidFetchScanResults() <-chan *ScanResults {
-	return nil // TODO
+	return hub.publishDidFetchScanResultsCh
 }
 
 // CodeLocationsCount ...

@@ -341,6 +341,13 @@ func (r *RiskProfileStatusCounts) HighRiskVulnerabilityCount() int {
 	return highCount
 }
 
+// Scan is a wrapper around a Hub code location, and full scan results.
+// If `ScanResults` is nil, that means the ScanResults have not been fetched yet.
+type Scan struct {
+	CodeLocation hubapi.CodeLocation
+	ScanResults  *ScanResults
+}
+
 // ScanResults models the results that we expect to get from the hub after
 // scanning a docker image.
 type ScanResults struct {
