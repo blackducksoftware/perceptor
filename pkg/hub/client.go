@@ -134,7 +134,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 					}
 				}
 				ch <- unknownCodeLocations
-			case scanResults := <-hub.scanDidFinishCh:
+			case scanResults := <-hub.didFetchScanResultsCh:
 				go func() {
 					select {
 					case <-hub.stop:
@@ -162,7 +162,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 				}
 			case scanName := <-hub.startScanClientCh:
 				// anything to do?
-				log.Debugf("nothing to do: received scan client start for scan %s", scanName)
+				log.Warnf("nothing to do: received scan client start for scan %s", scanName)
 			case scanName := <-hub.finishScanClientCh:
 				hub.inProgressScans[scanName] = true
 			case sr := <-hub.scanDidFinishCh:
@@ -193,7 +193,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		}
 	}()
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer()
-	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Minute)
+	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Second)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllProjectsPause)
 	hub.loginTimer = hub.startLoginTimer()
 	return hub
@@ -305,8 +305,11 @@ func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("fetchScans-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch scans")
-		for _, codeLocationName := range hub.unknownCodeLocations() {
+		unknownCodeLocations := hub.unknownCodeLocations()
+		log.Debugf("found %d unknown code locations", len(unknownCodeLocations))
+		for _, codeLocationName := range unknownCodeLocations {
 			scanResults, err := hub.fetchScan(codeLocationName)
+			log.Debugf("fetched scan %s: %+v", codeLocationName, err)
 			if err != nil {
 				continue
 			}
@@ -316,6 +319,7 @@ func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
 				return
 			}
 		}
+		log.Debugf("finished fetching unknown code locations")
 	})
 }
 
@@ -358,11 +362,7 @@ func (hub *Client) fetchAllCodeLocations() *Result {
 		return &Result{Value: nil, Err: err}
 	}
 	log.Debugf("fetched all code locations: found %d, expected %d", len(codeLocationList.Items), codeLocationList.TotalCount)
-	cls := map[string]hubapi.CodeLocation{}
-	for _, cl := range codeLocationList.Items {
-		cls[cl.Name] = cl
-	}
-	return &Result{Value: cls, Err: nil}
+	return &Result{Value: codeLocationList.Items, Err: nil}
 }
 
 // IsEnabled returns whether the fetcher is currently enabled
