@@ -50,7 +50,6 @@ type Perceptor struct {
 	// channels
 	stop                <-chan struct{}
 	postConfig          chan *api.PostConfig
-	getModel            chan struct{}
 	didStartScan        chan [3]interface{}
 	didFinishScanClient chan api.FinishedScanClientJob
 }
@@ -88,7 +87,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 		hubManager:          hubManager,
 		stop:                stop,
 		postConfig:          make(chan *api.PostConfig),
-		getModel:            make(chan struct{}),
 		didStartScan:        make(chan [3]interface{}),
 		didFinishScanClient: make(chan api.FinishedScanClientJob),
 	}
@@ -102,9 +100,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 			case config := <-perceptor.postConfig:
 				// TODO
 				log.Warnf("unimplemented: %+v", config)
-			case get := <-perceptor.getModel:
-				// TODO
-				log.Warnf("unimplemented: %+v", get)
 				//case a := <-routineTaskManager.actions:
 				// TODO
 				// case isEnabled := <-hubClient.IsEnabled():
@@ -246,7 +241,9 @@ func (pcp *Perceptor) UpdateAllImages(allImages api.AllImages) error {
 		}
 		images = append(images, *image)
 	}
-	pcp.model.SetImages(images)
+	go func() {
+		pcp.model.SetImages(images)
+	}()
 	log.Debugf("handled update all images -- %d images", len(allImages.Images))
 	return nil
 }
@@ -309,7 +306,13 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 
 // PostConfig .....
 func (pcp *Perceptor) PostConfig(config *api.PostConfig) {
-	pcp.postConfig <- config
+	go func() {
+		select {
+		case <-pcp.stop:
+			return
+		case pcp.postConfig <- config:
+		}
+	}()
 	log.Debugf("handled post config -- %+v", config)
 }
 
