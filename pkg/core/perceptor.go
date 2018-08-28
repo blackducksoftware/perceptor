@@ -259,13 +259,15 @@ func (pcp *Perceptor) GetScanResults() api.ScanResults {
 // GetNextImage .....
 func (pcp *Perceptor) GetNextImage() api.NextImage {
 	recordGetNextImage()
-	log.Debugf("handled GET next image")
+	log.Debugf("handling GET next image")
 	image := pcp.model.GetNextImage()
 	if image == nil {
+		log.Debug("get next image: no image found")
 		return *api.NewNextImage(nil)
 	}
 	hub := pcp.scanScheduler.AssignImage(image)
 	if hub == nil {
+		log.Debug("get next image: no available hub found")
 		return *api.NewNextImage(nil)
 	}
 	imageSpec := &api.ImageSpec{
