@@ -23,13 +23,23 @@ package main
 
 import (
 	"os"
+	"strconv"
 
 	core "github.com/blackducksoftware/perceptor/pkg/core"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	configPath := os.Args[1]
+	ignoreConfigMap, _ := strconv.ParseBool(os.Getenv("IGNORE_CONFIG_MAP"))
+	if len(os.Args) == 1 && !ignoreConfigMap {
+		log.Errorf("configPath not present and IGNORE_CONFIG_MAP is false")
+		panic("configPath not present and IGNORE_CONFIG_MAP is false")
+	}
+	configPath := ""
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
+	}
 	log.Infof("Config path: %s", configPath)
-	core.RunPerceptor(configPath)
+	log.Infof("IGNORE_CONFIG_MAP env: %v", ignoreConfigMap)
+	core.RunPerceptor(configPath, ignoreConfigMap)
 }

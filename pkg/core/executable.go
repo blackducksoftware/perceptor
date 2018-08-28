@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	// import just for the side-effect of changing how logrus works
@@ -36,10 +35,9 @@ import (
 )
 
 // RunPerceptor .....
-func RunPerceptor(configPath string) {
+func RunPerceptor(configPath string, ignoreConfigMap bool) {
 	log.Info("start")
 
-	ignoreConfigMap, _ := strconv.ParseBool(os.Getenv("IGNORE_CONFIG_MAP"))
 	configManager := NewConfigManager(configPath, ignoreConfigMap)
 
 	config, err := configManager.GetConfig()
