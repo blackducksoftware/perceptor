@@ -58,6 +58,8 @@ type Client struct {
 	fetchAllCodeLocationsTimer   *util.Timer
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
+	// public channels
+	publishUpdatesCh chan Update
 	// channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
@@ -89,6 +91,8 @@ func NewClient(username string, password string, host string, port int, hubClien
 		codeLocations:   map[string]*Scan{},
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
+		//
+		publishUpdatesCh: make(chan Update),
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
@@ -138,6 +142,8 @@ func NewClient(username string, password string, host string, port int, hubClien
 				ch <- allScanResults
 			case scanResults := <-hub.didFetchScanResultsCh:
 				hub.codeLocations[scanResults.CodeLocationName].ScanResults = scanResults
+				update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
+				hub.publish(update)
 			case scanName := <-hub.deleteScanCh:
 				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
 			case result := <-hub.didDeleteScanCh:
@@ -165,6 +171,8 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.inProgressScans[scanName] = true
 			case sr := <-hub.scanDidFinishCh:
 				delete(hub.inProgressScans, sr.CodeLocationName)
+				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr, Success: sr.ScanSummaryStatus() == ScanSummaryStatusSuccess}
+				hub.publish(update)
 			case get := <-hub.getCodeLocationsCountCh:
 				get <- len(hub.codeLocations)
 			case get := <-hub.getInProgressScansCh:
@@ -194,6 +202,17 @@ func NewClient(username string, password string, host string, port int, hubClien
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllProjectsPause)
 	hub.loginTimer = hub.startLoginTimer()
 	return hub
+}
+
+func (hub *Client) publish(update Update) {
+	// TODO also handle scan refreshes
+	go func() {
+		select {
+		case <-hub.stop:
+			return
+		case hub.publishUpdatesCh <- update:
+		}
+	}()
 }
 
 // Stop ...
@@ -447,6 +466,14 @@ func (hub *Client) ScanResults() <-chan map[string]*ScanResults {
 	ch := make(chan map[string]*ScanResults)
 	hub.getScanResultsCh <- ch
 	return ch
+}
+
+// Updates produces events for:
+// - finding a scan for the first time
+// - when a hub scan finishes
+// - when a finished scan is repulled (to get any changes to its vulnerabilities, policies, etc.)
+func (hub *Client) Updates() <-chan Update {
+	return hub.publishUpdatesCh
 }
 
 // FetchScan finds ScanResults by starting from a code location,

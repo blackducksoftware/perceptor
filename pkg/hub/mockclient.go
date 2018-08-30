@@ -130,3 +130,8 @@ func (hub *MockClient) ScanResults() <-chan map[string]*ScanResults {
 func (hub *MockClient) Stop() {
 	//
 }
+
+// Updates ...
+func (hub *MockClient) Updates() <-chan Update {
+	return nil
+}

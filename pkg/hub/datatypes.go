@@ -475,3 +475,33 @@ type Version struct {
 	ReleaseComments string
 	Phase           string
 }
+
+// Update ...
+type Update interface {
+	updateMarker()
+}
+
+// DidFindScan ...
+type DidFindScan struct {
+	Name    string
+	Results *ScanResults
+}
+
+func (dfs *DidFindScan) updateMarker() {}
+
+// DidFinishScan ...
+type DidFinishScan struct {
+	Name    string
+	Success bool
+	Results *ScanResults
+}
+
+func (dfs *DidFinishScan) updateMarker() {}
+
+// DidRefreshScan ...
+type DidRefreshScan struct {
+	Name    string
+	Results *ScanResults
+}
+
+func (drs *DidRefreshScan) updateMarker() {}

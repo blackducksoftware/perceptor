@@ -43,6 +43,7 @@ type ClientInterface interface {
 	CodeLocationsCount() <-chan int
 	InProgressScans() <-chan []string
 	ScanResults() <-chan map[string]*ScanResults
+	Updates() <-chan Update
 	//	IsEnabled() <-chan bool
 	// prelude to clean-up
 	Stop()
