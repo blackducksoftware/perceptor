@@ -59,8 +59,9 @@ type Client struct {
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
 	// 'public' channels
-	publishScanDidFinishCh       chan *ScanResults
-	publishDidFetchScanResultsCh chan *ScanResults
+	publishScanDidFinishCh         chan *ScanResults
+	publishDidFetchScanResultsCh   chan *ScanResults
+	publishDidFetchCodeLocationsCh chan []string
 	// 'private' channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
@@ -92,8 +93,9 @@ func NewClient(username string, password string, host string, port int, hubClien
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
 		//
-		publishScanDidFinishCh:       make(chan *ScanResults),
-		publishDidFetchScanResultsCh: make(chan *ScanResults),
+		publishScanDidFinishCh:         make(chan *ScanResults),
+		publishDidFetchScanResultsCh:   make(chan *ScanResults),
+		publishDidFetchCodeLocationsCh: make(chan []string),
 		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
@@ -154,11 +156,20 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.recordError(result.Err)
 				if result.Err == nil {
 					cls := result.Value.([]hubapi.CodeLocation)
-					for _, cl := range cls {
+					scanNames := make([]string, len(cls))
+					for ix, cl := range cls {
 						if _, ok := hub.codeLocations[cl.Name]; !ok {
 							hub.codeLocations[cl.Name] = &Scan{CodeLocation: cl, ScanResults: nil}
 						}
+						scanNames[ix] = cl.Name
 					}
+					go func() {
+						select {
+						case <-hub.stop:
+							return
+						case hub.publishDidFetchCodeLocationsCh <- scanNames:
+						}
+					}()
 				}
 			case scanName := <-hub.startScanClientCh:
 				// anything to do?
@@ -439,6 +450,11 @@ func (hub *Client) ScanDidFinish() <-chan *ScanResults {
 // DidFetchScanResults ...
 func (hub *Client) DidFetchScanResults() <-chan *ScanResults {
 	return hub.publishDidFetchScanResultsCh
+}
+
+// DidFetchCodeLocations ...
+func (hub *Client) DidFetchCodeLocations() <-chan []string {
+	return hub.publishDidFetchCodeLocationsCh
 }
 
 // CodeLocationsCount ...

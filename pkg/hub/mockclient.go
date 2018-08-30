@@ -121,6 +121,11 @@ func (hub *MockClient) ScanDidFinish() <-chan *ScanResults {
 	return nil
 }
 
+// DidFetchCodeLocations ...
+func (hub *MockClient) DidFetchCodeLocations() <-chan []string {
+	return nil
+}
+
 // DidFetchScanResults ...
 func (hub *MockClient) DidFetchScanResults() <-chan *ScanResults {
 	return nil

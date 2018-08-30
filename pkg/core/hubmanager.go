@@ -36,6 +36,7 @@ type HubManagerInterface interface {
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string) error
 	DidFetchScanResults() <-chan *hub.ScanResults
+	DidFetchCodeLocations() <-chan []string
 }
 
 // HubManager ...
@@ -47,20 +48,22 @@ type HubManager struct {
 	//
 	stop <-chan struct{}
 	//
-	hubs                map[string]hub.ClientInterface
-	didFetchScanResults chan *hub.ScanResults
+	hubs                  map[string]hub.ClientInterface
+	didFetchScanResults   chan *hub.ScanResults
+	didFetchCodeLocations chan []string
 }
 
 // NewHubManager ...
 func NewHubManager(username string, password string, port int, httpTimeout time.Duration, stop <-chan struct{}) *HubManager {
 	return &HubManager{
-		username:            username,
-		password:            password,
-		port:                port,
-		httpTimeout:         httpTimeout,
-		stop:                stop,
-		hubs:                map[string]hub.ClientInterface{},
-		didFetchScanResults: make(chan *hub.ScanResults)}
+		username:              username,
+		password:              password,
+		port:                  port,
+		httpTimeout:           httpTimeout,
+		stop:                  stop,
+		hubs:                  map[string]hub.ClientInterface{},
+		didFetchScanResults:   make(chan *hub.ScanResults),
+		didFetchCodeLocations: make(chan []string)}
 }
 
 // SetHubs ...
@@ -100,6 +103,19 @@ func (hm *HubManager) create(hubURL string) error {
 	}
 	hubClient := hub.NewClient(hm.username, hm.password, hubURL, hm.port, hm.httpTimeout, 999999*time.Hour)
 	hm.hubs[hubURL] = hubClient
+	// TODO need to attach these goroutines to `hub`'s stop so that they can be cleaned up
+	go func() {
+		sdf := hubClient.ScanDidFinish()
+		cls := hubClient.DidFetchCodeLocations()
+		srs := hubClient.DidFetchScanResults()
+		for {
+			select {
+			case <-sdf:
+			case <-cls:
+			case <-srs:
+			}
+		}
+	}()
 	return nil
 }
 

@@ -38,6 +38,7 @@ type ClientInterface interface {
 	// events going out
 	DidFetchScanResults() <-chan *ScanResults
 	ScanDidFinish() <-chan *ScanResults
+	DidFetchCodeLocations() <-chan []string
 	// read-only queries
 	Host() string
 	Version() (string, error)
