@@ -95,15 +95,11 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 				// - scan finished (failed)
 				// - scan refreshed
 				case *hub.DidFindScan:
-					model.DidFetchScanResults(m.DockerImageSha(u.Name), u.Results)
+					model.ScanDidFinish(m.DockerImageSha(u.Name), u.Results)
 				case *hub.DidFinishScan:
-					if u.Success {
-						model.DidFetchScanResults(m.DockerImageSha(u.Name), u.Results)
-					} else {
-						model.ScanDidFail(m.DockerImageSha(u.Name))
-					}
+					model.ScanDidFinish(m.DockerImageSha(u.Name), u.Results)
 				case *hub.DidRefreshScan:
-					// TODO
+					model.ScanDidFinish(m.DockerImageSha(u.Name), u.Results)
 				}
 			}
 		}

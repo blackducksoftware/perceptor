@@ -34,7 +34,7 @@ type DidFetchScanResults struct {
 
 // Apply .....
 func (d *DidFetchScanResults) Apply(model *Model) {
-	err := model.didFetchScanResults(d.Sha, d.ScanResults)
+	err := model.scanDidFinish(d.Sha, d.ScanResults)
 	if err != nil {
 		log.Errorf("unable to handle didFetchScanResults: %s", err.Error())
 	}

@@ -171,7 +171,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.inProgressScans[scanName] = true
 			case sr := <-hub.scanDidFinishCh:
 				delete(hub.inProgressScans, sr.CodeLocationName)
-				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr, Success: sr.ScanSummaryStatus() == ScanSummaryStatusSuccess}
+				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr}
 				hub.publish(update)
 			case get := <-hub.getCodeLocationsCountCh:
 				get <- len(hub.codeLocations)
@@ -332,6 +332,7 @@ func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
 			scanResults, err := hub.fetchScan(codeLocationName)
 			log.Debugf("fetched scan %s: %+v", codeLocationName, err)
 			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 			select {

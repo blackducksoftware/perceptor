@@ -117,18 +117,15 @@ func (model *Model) SetImages(images []Image) {
 	model.actions <- &AllImages{Images: images}
 }
 
-// FinishScanJob ...
+// FinishScanJob should be called when the scan client has finished.
 func (model *Model) FinishScanJob(image *Image, err error) {
 	model.actions <- &FinishScanClient{Image: image, Err: err}
 }
 
-// ScanDidFail ...
-func (model *Model) ScanDidFail(sha DockerImageSha) {
-	model.actions <- &ScanDidFail{Sha: sha}
-}
-
-// DidFetchScanResults ...
-func (model *Model) DidFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) {
+// ScanDidFinish should be called when:
+// - the Hub scan finishes
+// - upon startup, when scan results are first fetched
+func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) {
 	model.actions <- &DidFetchScanResults{Sha: sha, ScanResults: scanResults}
 }
 
@@ -205,15 +202,19 @@ func (model *Model) addImage(image Image, priority int) {
 	}
 }
 
-func (model *Model) didFetchScanResults(sha DockerImageSha, scanResults *hub.ScanResults) error {
+func (model *Model) scanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) error {
 	imageInfo, ok := model.Images[sha]
 	if !ok {
-		return fmt.Errorf("unable to handle didFetchScanResults for %s: sha not found", sha)
+		return fmt.Errorf("unable to handle scanDidFinish for %s: sha not found", sha)
 	}
 	if scanResults == nil {
-		return nil
-	}
-	if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
+		switch imageInfo.ScanStatus {
+		case ScanStatusUnknown:
+			model.setImageScanStatus(sha, ScanStatusInQueue)
+		default:
+			return fmt.Errorf("unexpectedly found nil ScanResults for image %s in state %s", sha, imageInfo.ScanStatus)
+		}
+	} else if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
 		imageInfo.ScanResults = scanResults
 		switch imageInfo.ScanStatus {
 		case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
@@ -233,24 +234,10 @@ func (model *Model) didFetchScanResults(sha DockerImageSha, scanResults *hub.Sca
 		case ScanStatusUnknown, ScanStatusRunningHubScan:
 			model.setImageScanStatus(sha, ScanStatusInQueue)
 		case ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusComplete:
-			// nothing to do
+			return fmt.Errorf("cannot handle scanDidFinish %s for image %s: cannot transition from state %s", imageInfo.ScanStatus, sha, imageInfo.ScanStatus.String())
 		}
 	}
 	return nil
-}
-
-func (model *Model) scanDidFail(sha DockerImageSha) {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		log.Errorf("cannot handle scanDidFail for image %s: not found", sha)
-		return
-	}
-	switch imageInfo.ScanStatus {
-	case ScanStatusRunningHubScan:
-		model.setImageScanStatus(sha, ScanStatusInQueue)
-	default:
-		log.Errorf("cannot handle scanDidFail for image %s: cannot transition from state %s", sha, imageInfo.ScanStatus.String())
-	}
 }
 
 // DeleteImage removes an image from the model.

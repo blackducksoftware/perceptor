@@ -492,7 +492,6 @@ func (dfs *DidFindScan) updateMarker() {}
 // DidFinishScan ...
 type DidFinishScan struct {
 	Name    string
-	Success bool
 	Results *ScanResults
 }
 
