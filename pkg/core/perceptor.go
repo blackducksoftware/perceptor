@@ -28,6 +28,7 @@ import (
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +75,36 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 				// TODO reenable deletion with appropriate throttling
 				// hubClient.DeleteScans(imageShas)
 				log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
+			}
+		}
+	}()
+	go func() {
+		updates := hubManager.Updates()
+		for {
+			select {
+			case <-stop:
+				return
+			case update := <-updates:
+				switch u := update.Update.(type) {
+				// TODO this logic is probably wrong.  We should distinguish between:
+				// - first find (success)
+				// - first find (nothing)
+				// - first find (in progress)
+				// - first find (failed)
+				// - scan finished (success)
+				// - scan finished (failed)
+				// - scan refreshed
+				case *hub.DidFindScan:
+					model.DidFetchScanResults(m.DockerImageSha(u.Name), u.Results)
+				case *hub.DidFinishScan:
+					if u.Success {
+						model.DidFetchScanResults(m.DockerImageSha(u.Name), u.Results)
+					} else {
+						model.ScanDidFail(m.DockerImageSha(u.Name))
+					}
+				case *hub.DidRefreshScan:
+					// TODO
+				}
 			}
 		}
 	}()
