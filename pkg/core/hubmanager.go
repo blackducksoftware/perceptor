@@ -29,6 +29,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Update is a wrapper around hub.Update which also tracks which Hub was the source.
+type Update struct {
+	HubURL string
+	Update hub.Update
+}
+
 // HubManagerInterface ...
 type HubManagerInterface interface {
 	SetHubs(hubURLs []string)
@@ -36,6 +42,7 @@ type HubManagerInterface interface {
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string) error
 	ScanResults() map[string]map[string]*hub.ScanResults
+	Updates() <-chan *Update
 }
 
 // HubManager ...
@@ -45,7 +52,8 @@ type HubManager struct {
 	port        int
 	httpTimeout time.Duration
 	//
-	stop <-chan struct{}
+	stop    <-chan struct{}
+	updates chan *Update
 	//
 	hubs                  map[string]hub.ClientInterface
 	didFetchScanResults   chan *hub.ScanResults
@@ -61,6 +69,7 @@ func NewHubManager(username string, password string, port int, httpTimeout time.
 		port:                  port,
 		httpTimeout:           httpTimeout,
 		stop:                  stop,
+		updates:               make(chan *Update),
 		hubs:                  map[string]hub.ClientInterface{},
 		didFetchScanResults:   make(chan *hub.ScanResults),
 		didFetchCodeLocations: make(chan []string)}
@@ -103,7 +112,24 @@ func (hm *HubManager) create(hubURL string) error {
 	}
 	hubClient := hub.NewClient(hm.username, hm.password, hubURL, hm.port, hm.httpTimeout, 999999*time.Hour)
 	hm.hubs[hubURL] = hubClient
+	go func() {
+		stop := hubClient.StopCh()
+		updates := hubClient.Updates()
+		for {
+			select {
+			case <-stop:
+				return
+			case nextUpdate := <-updates:
+				hm.updates <- &Update{HubURL: hubURL, Update: nextUpdate}
+			}
+		}
+	}()
 	return nil
+}
+
+// Updates returns a read-only channel of the combined update stream of each hub.
+func (hm *HubManager) Updates() <-chan *Update {
+	return hm.updates
 }
 
 // HubClients ...
@@ -167,5 +193,10 @@ func (mhc *MockHubCreater) FinishScanClient(hubURL string, scanName string) erro
 
 // ScanResults ...
 func (mhc *MockHubCreater) ScanResults() map[string]map[string]*hub.ScanResults {
+	return nil
+}
+
+// Updates ...
+func (mhc *MockHubCreater) Updates() <-chan *Update {
 	return nil
 }

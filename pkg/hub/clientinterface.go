@@ -47,4 +47,5 @@ type ClientInterface interface {
 	//	IsEnabled() <-chan bool
 	// prelude to clean-up
 	Stop()
+	StopCh() <-chan struct{}
 }

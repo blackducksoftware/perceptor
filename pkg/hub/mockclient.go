@@ -131,6 +131,11 @@ func (hub *MockClient) Stop() {
 	//
 }
 
+// StopCh ...
+func (hub *MockClient) StopCh() <-chan struct{} {
+	return nil
+}
+
 // Updates ...
 func (hub *MockClient) Updates() <-chan Update {
 	return nil

@@ -220,6 +220,11 @@ func (hub *Client) Stop() {
 	close(hub.stop)
 }
 
+// StopCh returns a reference to the stop channel
+func (hub *Client) StopCh() <-chan struct{} {
+	return hub.stop
+}
+
 // Host ...
 func (hub *Client) Host() string {
 	return hub.host
