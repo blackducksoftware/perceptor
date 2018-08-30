@@ -116,23 +116,13 @@ func (hub *MockClient) FinishScanClient(scanName string) {
 	//
 }
 
-// ScanDidFinish ...
-func (hub *MockClient) ScanDidFinish() <-chan *ScanResults {
-	return nil
-}
-
-// DidFetchCodeLocations ...
-func (hub *MockClient) DidFetchCodeLocations() <-chan []string {
-	return nil
-}
-
-// DidFetchScanResults ...
-func (hub *MockClient) DidFetchScanResults() <-chan *ScanResults {
-	return nil
-}
-
 // InProgressScans ...
 func (hub *MockClient) InProgressScans() <-chan []string {
+	return nil
+}
+
+// ScanResults ...
+func (hub *MockClient) ScanResults() <-chan map[string]*ScanResults {
 	return nil
 }
 

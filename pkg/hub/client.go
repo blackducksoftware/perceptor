@@ -58,11 +58,7 @@ type Client struct {
 	fetchAllCodeLocationsTimer   *util.Timer
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
-	// 'public' channels
-	publishScanDidFinishCh         chan *ScanResults
-	publishDidFetchScanResultsCh   chan *ScanResults
-	publishDidFetchCodeLocationsCh chan []string
-	// 'private' channels
+	// channels
 	stop                    chan struct{}
 	resetCircuitBreakerCh   chan struct{}
 	getModel                chan chan *api.ModelHub
@@ -71,6 +67,7 @@ type Client struct {
 	didLoginCh              chan error
 	startScanClientCh       chan string
 	finishScanClientCh      chan string
+	getScanResultsCh        chan chan map[string]*ScanResults
 	scanDidFinishCh         chan *ScanResults
 	getCodeLocationsCountCh chan chan int
 	getInProgressScansCh    chan chan []string
@@ -93,10 +90,6 @@ func NewClient(username string, password string, host string, port int, hubClien
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
 		//
-		publishScanDidFinishCh:         make(chan *ScanResults),
-		publishDidFetchScanResultsCh:   make(chan *ScanResults),
-		publishDidFetchCodeLocationsCh: make(chan []string),
-		//
 		stop: make(chan struct{}),
 		resetCircuitBreakerCh:   make(chan struct{}),
 		getModel:                make(chan chan *api.ModelHub),
@@ -105,6 +98,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		didLoginCh:              make(chan error),
 		startScanClientCh:       make(chan string),
 		finishScanClientCh:      make(chan string),
+		getScanResultsCh:        make(chan chan map[string]*ScanResults),
 		scanDidFinishCh:         make(chan *ScanResults),
 		getCodeLocationsCountCh: make(chan chan int),
 		getInProgressScansCh:    make(chan chan []string),
@@ -136,14 +130,14 @@ func NewClient(username string, password string, host string, port int, hubClien
 					}
 				}
 				ch <- unknownCodeLocations
+			case ch := <-hub.getScanResultsCh:
+				allScanResults := map[string]*ScanResults{}
+				for name, scan := range hub.codeLocations {
+					allScanResults[name] = scan.ScanResults
+				}
+				ch <- allScanResults
 			case scanResults := <-hub.didFetchScanResultsCh:
-				go func() {
-					select {
-					case <-hub.stop:
-						return
-					case hub.publishDidFetchScanResultsCh <- scanResults:
-					}
-				}()
+				hub.codeLocations[scanResults.CodeLocationName].ScanResults = scanResults
 			case scanName := <-hub.deleteScanCh:
 				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
 			case result := <-hub.didDeleteScanCh:
@@ -163,13 +157,6 @@ func NewClient(username string, password string, host string, port int, hubClien
 						}
 						scanNames[ix] = cl.Name
 					}
-					go func() {
-						select {
-						case <-hub.stop:
-							return
-						case hub.publishDidFetchCodeLocationsCh <- scanNames:
-						}
-					}()
 				}
 			case scanName := <-hub.startScanClientCh:
 				// anything to do?
@@ -178,7 +165,6 @@ func NewClient(username string, password string, host string, port int, hubClien
 				hub.inProgressScans[scanName] = true
 			case sr := <-hub.scanDidFinishCh:
 				delete(hub.inProgressScans, sr.CodeLocationName)
-				hub.publishScanDidFinishCh <- sr
 			case get := <-hub.getCodeLocationsCountCh:
 				get <- len(hub.codeLocations)
 			case get := <-hub.getInProgressScansCh:
@@ -442,21 +428,6 @@ func (hub *Client) FinishScanClient(scanName string) {
 	hub.finishScanClientCh <- scanName
 }
 
-// ScanDidFinish ...
-func (hub *Client) ScanDidFinish() <-chan *ScanResults {
-	return hub.publishScanDidFinishCh
-}
-
-// DidFetchScanResults ...
-func (hub *Client) DidFetchScanResults() <-chan *ScanResults {
-	return hub.publishDidFetchScanResultsCh
-}
-
-// DidFetchCodeLocations ...
-func (hub *Client) DidFetchCodeLocations() <-chan []string {
-	return hub.publishDidFetchCodeLocationsCh
-}
-
 // CodeLocationsCount ...
 func (hub *Client) CodeLocationsCount() <-chan int {
 	ch := make(chan int)
@@ -468,6 +439,13 @@ func (hub *Client) CodeLocationsCount() <-chan int {
 func (hub *Client) InProgressScans() <-chan []string {
 	ch := make(chan []string)
 	hub.getInProgressScansCh <- ch
+	return ch
+}
+
+// ScanResults ...
+func (hub *Client) ScanResults() <-chan map[string]*ScanResults {
+	ch := make(chan map[string]*ScanResults)
+	hub.getScanResultsCh <- ch
 	return ch
 }
 

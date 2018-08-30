@@ -35,10 +35,6 @@ type ClientInterface interface {
 	FinishScanClient(scanName string)
 	SetTimeout(timeout time.Duration)
 	ResetCircuitBreaker()
-	// events going out
-	DidFetchScanResults() <-chan *ScanResults
-	ScanDidFinish() <-chan *ScanResults
-	DidFetchCodeLocations() <-chan []string
 	// read-only queries
 	Host() string
 	Version() (string, error)
@@ -46,6 +42,7 @@ type ClientInterface interface {
 	Model() <-chan *api.ModelHub
 	CodeLocationsCount() <-chan int
 	InProgressScans() <-chan []string
+	ScanResults() <-chan map[string]*ScanResults
 	//	IsEnabled() <-chan bool
 	// prelude to clean-up
 	Stop()

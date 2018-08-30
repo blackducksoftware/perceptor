@@ -35,8 +35,7 @@ type HubManagerInterface interface {
 	HubClients() map[string]hub.ClientInterface
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string) error
-	DidFetchScanResults() <-chan *hub.ScanResults
-	DidFetchCodeLocations() <-chan []string
+	ScanResults() map[string]map[string]*hub.ScanResults
 }
 
 // HubManager ...
@@ -55,6 +54,7 @@ type HubManager struct {
 
 // NewHubManager ...
 func NewHubManager(username string, password string, port int, httpTimeout time.Duration, stop <-chan struct{}) *HubManager {
+	// TODO needs to be made concurrent-safe
 	return &HubManager{
 		username:              username,
 		password:              password,
@@ -103,19 +103,6 @@ func (hm *HubManager) create(hubURL string) error {
 	}
 	hubClient := hub.NewClient(hm.username, hm.password, hubURL, hm.port, hm.httpTimeout, 999999*time.Hour)
 	hm.hubs[hubURL] = hubClient
-	// TODO need to attach these goroutines to `hub`'s stop so that they can be cleaned up
-	go func() {
-		sdf := hubClient.ScanDidFinish()
-		cls := hubClient.DidFetchCodeLocations()
-		srs := hubClient.DidFetchScanResults()
-		for {
-			select {
-			case <-sdf:
-			case <-cls:
-			case <-srs:
-			}
-		}
-	}()
 	return nil
 }
 
@@ -145,9 +132,14 @@ func (hm *HubManager) FinishScanClient(hubURL string, scanName string) error {
 	return nil
 }
 
-// DidFetchScanResults combines results from all hub clients into a single channel.
-func (hm *HubManager) DidFetchScanResults() <-chan *hub.ScanResults {
-	return hm.didFetchScanResults
+// ScanResults ...
+func (hm *HubManager) ScanResults() map[string]map[string]*hub.ScanResults {
+	allScanResults := map[string]map[string]*hub.ScanResults{}
+	for hubURL, hub := range hm.hubs {
+		// TODO could cache to avoid blocking
+		allScanResults[hubURL] = <-hub.ScanResults()
+	}
+	return allScanResults
 }
 
 // MockHubCreater ...
@@ -173,7 +165,7 @@ func (mhc *MockHubCreater) FinishScanClient(hubURL string, scanName string) erro
 	return nil
 }
 
-// DidFetchScanResults ...
-func (mhc *MockHubCreater) DidFetchScanResults() <-chan *hub.ScanResults {
+// ScanResults ...
+func (mhc *MockHubCreater) ScanResults() map[string]map[string]*hub.ScanResults {
 	return nil
 }

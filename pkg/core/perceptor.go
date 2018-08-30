@@ -28,7 +28,6 @@ import (
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	h "github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -109,7 +108,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 	}()
 
 	go func() {
-		scanResults := hubManager.DidFetchScanResults()
 		select {
 		case <-stop:
 			return
@@ -132,18 +130,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 			}
 			image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
 			model.FinishScanJob(image, scanErr)
-		case dfsr := <-scanResults:
-			// TODO it seems like a really terrible idea to rely on something else for this information, instead
-			// of managing it ourselves
-			sha := m.DockerImageSha(dfsr.CodeLocationName)
-			switch dfsr.ScanSummaryStatus() {
-			case h.ScanSummaryStatusInProgress:
-				log.Errorf("Ignoring InProgress scan reported as scan results: %+v")
-			case h.ScanSummaryStatusFailure:
-				model.ScanDidFail(sha)
-			case h.ScanSummaryStatusSuccess:
-				model.DidFetchScanResults(sha, dfsr)
-			}
 		}
 	}()
 
