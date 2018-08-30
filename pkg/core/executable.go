@@ -71,11 +71,11 @@ func RunPerceptor(configPath string) {
 		creater = &MockHubCreater{}
 	} else {
 		log.Infof("instantiating perceptor in real mode")
-		password, ok := os.LookupEnv(config.HubUserPasswordEnvVar)
+		password, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
 		if !ok {
-			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.HubUserPasswordEnvVar))
+			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.Hub.PasswordEnvVar))
 		}
-		creater = NewHubManager(config.HubUser, password, config.HubPort, config.HubClientTimeout(), stop)
+		creater = NewHubManager(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout(), stop)
 	}
 
 	perceptor, err := NewPerceptor(config, creater)
@@ -88,7 +88,7 @@ func RunPerceptor(configPath string) {
 
 	addr := fmt.Sprintf(":%d", config.Port)
 	go func() {
-		log.Info("starting HTTP server on port %d", config.Port)
+		log.Infof("starting HTTP server on port %d", config.Port)
 		http.ListenAndServe(addr, nil)
 	}()
 	<-stop

@@ -105,11 +105,16 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 		}
 	}()
 
+	scanScheduler := &ScanScheduler{
+		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
+		CodeLocationLimit:   config.Hub.TotalScanLimit,
+		HubManager:          hubManager}
+
 	// 2. perceptor
 	perceptor := &Perceptor{
 		model:               model,
 		routineTaskManager:  routineTaskManager,
-		scanScheduler:       &ScanScheduler{ConcurrentScanLimit: 2, CodeLocationLimit: 1000, HubManager: hubManager},
+		scanScheduler:       scanScheduler,
 		hubManager:          hubManager,
 		stop:                stop,
 		postConfig:          make(chan *api.PostConfig),

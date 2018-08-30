@@ -27,23 +27,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// HubConfig handles Hub-specific configuration
+type HubConfig struct {
+	Host                      string
+	User                      string
+	PasswordEnvVar            string
+	ClientTimeoutMilliseconds int
+	Port                      int
+	ConcurrentScanLimit       int
+	TotalScanLimit            int
+}
+
+// ClientTimeout converts the milliseconds to a duration
+func (config *HubConfig) ClientTimeout() time.Duration {
+	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
+}
+
 // Config contains all configuration for Perceptor
 type Config struct {
-	HubHost                         string
-	HubUser                         string
-	HubUserPasswordEnvVar           string
-	HubClientTimeoutMilliseconds    int
-	HubPort                         int
+	Hub                             *HubConfig
 	PruneOrphanedImagesPauseMinutes int
-	ConcurrentScanLimit             int
 	UseMockMode                     bool
 	Port                            int
 	LogLevel                        string
-}
-
-// HubClientTimeout converts the milliseconds to a duration
-func (config *Config) HubClientTimeout() time.Duration {
-	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
 }
 
 // GetLogLevel .....
