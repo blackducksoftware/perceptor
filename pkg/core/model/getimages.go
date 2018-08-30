@@ -19,35 +19,28 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hub
+package model
 
-import (
-	"time"
+// GetImages .....
+type GetImages struct {
+	Status ScanStatus
+	Done   chan []DockerImageSha
+}
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
-)
+// NewGetImages ...
+func NewGetImages(status ScanStatus) *GetImages {
+	return &GetImages{Done: make(chan []DockerImageSha), Status: status}
+}
 
-// ClientInterface .....
-type ClientInterface interface {
-	// commands coming in
-	DeleteScan(scanName string)
-	StartScanClient(scanName string)
-	FinishScanClient(scanName string)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	// read-only queries
-	Host() string
-	Version() (string, error)
-	// read-only, async queries (the channel produces a single event)
-	Model() <-chan *api.ModelHub
-	HasFetchedCodeLocations() <-chan bool
-	CodeLocations() <-chan map[string]bool
-	CodeLocationsCount() <-chan int
-	InProgressScans() <-chan []string
-	ScanResults() <-chan map[string]*ScanResults
-	Updates() <-chan Update
-	//	IsEnabled() <-chan bool
-	// prelude to clean-up
-	Stop()
-	StopCh() <-chan struct{}
+// Apply .....
+func (g *GetImages) Apply(model *Model) {
+	shas := []DockerImageSha{}
+	for sha, imageInfo := range model.Images {
+		if imageInfo.ScanStatus == g.Status {
+			shas = append(shas, sha)
+		}
+	}
+	go func() {
+		g.Done <- shas
+	}()
 }

@@ -140,3 +140,13 @@ func (hub *MockClient) StopCh() <-chan struct{} {
 func (hub *MockClient) Updates() <-chan Update {
 	return nil
 }
+
+// HasFetchedCodeLocations ...
+func (hub *MockClient) HasFetchedCodeLocations() <-chan bool {
+	return nil
+}
+
+// CodeLocations ...
+func (hub *MockClient) CodeLocations() <-chan map[string]bool {
+	return nil
+}

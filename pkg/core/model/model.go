@@ -143,6 +143,21 @@ func (model *Model) GetModel() api.CoreModel {
 	return <-get.Done
 }
 
+// GetImages returns images in that status
+func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
+	get := NewGetImages(status)
+	model.actions <- get
+	return <-get.Done
+}
+
+// GetMetrics calculates useful metrics for observing the progress of the model
+// over time.
+func (model *Model) GetMetrics() *Metrics {
+	get := NewGetMetrics()
+	model.actions <- get
+	return <-get.Done
+}
+
 // GetNextImage ...
 func (model *Model) GetNextImage() *Image {
 	get := NewGetNextImage()

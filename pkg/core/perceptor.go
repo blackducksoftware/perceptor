@@ -71,10 +71,43 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 			select {
 			case <-stop:
 				return
-			case imageShas := <-routineTaskManager.OrphanedImages:
+			case imageShas := <-routineTaskManager.orphanedImages:
 				// TODO reenable deletion with appropriate throttling
 				// hubClient.DeleteScans(imageShas)
 				log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
+			case <-routineTaskManager.metricsCh:
+				recordModelMetrics(model.GetMetrics())
+			case <-routineTaskManager.unknownImagesCh:
+				/*
+					if:
+					 - any unknown scans
+					 - all hubs up
+					 - any scans missing from all hubs:
+					move into scan queue
+				*/
+				unknownShas := model.GetImages(m.ScanStatusUnknown)
+				if len(unknownShas) == 0 {
+					break
+				}
+				isHubNotReady := false
+				scans := map[string]bool{}
+				for _, hub := range hubManager.HubClients() {
+					if !<-hub.HasFetchedCodeLocations() {
+						isHubNotReady = true
+						break
+					}
+					for scanName := range <-hub.CodeLocations() {
+						scans[scanName] = true
+					}
+				}
+				if isHubNotReady {
+					break
+				}
+				for _, sha := range unknownShas {
+					if _, ok := scans[string(sha)]; !ok {
+						model.ScanDidFinish(sha, nil)
+					}
+				}
 			}
 		}
 	}()

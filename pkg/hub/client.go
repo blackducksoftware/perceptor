@@ -61,21 +61,23 @@ type Client struct {
 	// public channels
 	publishUpdatesCh chan Update
 	// channels
-	stop                    chan struct{}
-	resetCircuitBreakerCh   chan struct{}
-	getModel                chan chan *api.ModelHub
-	deleteScanCh            chan string
-	didDeleteScanCh         chan *Result
-	didLoginCh              chan error
-	startScanClientCh       chan string
-	finishScanClientCh      chan string
-	getScanResultsCh        chan chan map[string]*ScanResults
-	scanDidFinishCh         chan *ScanResults
-	getCodeLocationsCountCh chan chan int
-	getInProgressScansCh    chan chan []string
-	didFetchCodeLocationsCh chan *Result
-	didFetchScanResultsCh   chan *ScanResults
-	unknownCodeLocationsCh  chan chan []string
+	stop                      chan struct{}
+	resetCircuitBreakerCh     chan struct{}
+	getModel                  chan chan *api.ModelHub
+	deleteScanCh              chan string
+	didDeleteScanCh           chan *Result
+	didLoginCh                chan error
+	startScanClientCh         chan string
+	finishScanClientCh        chan string
+	getScanResultsCh          chan chan map[string]*ScanResults
+	scanDidFinishCh           chan *ScanResults
+	getCodeLocationsCountCh   chan chan int
+	getInProgressScansCh      chan chan []string
+	didFetchCodeLocationsCh   chan *Result
+	didFetchScanResultsCh     chan *ScanResults
+	hasFetchedCodeLocationsCh chan chan bool
+	getCodeLocationsCh        chan chan map[string]bool
+	unknownCodeLocationsCh    chan chan []string
 }
 
 // NewClient returns a new Client.  It will not be logged in.
@@ -88,27 +90,29 @@ func NewClient(username string, password string, host string, port int, hubClien
 		port:           port,
 		status:         ClientStatusDown,
 		//
-		codeLocations:   map[string]*Scan{},
+		codeLocations:   nil, // nil == codeLocations not yet fetched
 		errors:          []error{},
 		inProgressScans: map[string]bool{},
 		//
 		publishUpdatesCh: make(chan Update),
 		//
 		stop: make(chan struct{}),
-		resetCircuitBreakerCh:   make(chan struct{}),
-		getModel:                make(chan chan *api.ModelHub),
-		deleteScanCh:            make(chan string),
-		didDeleteScanCh:         make(chan *Result),
-		didLoginCh:              make(chan error),
-		startScanClientCh:       make(chan string),
-		finishScanClientCh:      make(chan string),
-		getScanResultsCh:        make(chan chan map[string]*ScanResults),
-		scanDidFinishCh:         make(chan *ScanResults),
-		getCodeLocationsCountCh: make(chan chan int),
-		getInProgressScansCh:    make(chan chan []string),
-		didFetchCodeLocationsCh: make(chan *Result),
-		didFetchScanResultsCh:   make(chan *ScanResults),
-		unknownCodeLocationsCh:  make(chan chan []string)}
+		resetCircuitBreakerCh:     make(chan struct{}),
+		getModel:                  make(chan chan *api.ModelHub),
+		deleteScanCh:              make(chan string),
+		didDeleteScanCh:           make(chan *Result),
+		didLoginCh:                make(chan error),
+		startScanClientCh:         make(chan string),
+		finishScanClientCh:        make(chan string),
+		getScanResultsCh:          make(chan chan map[string]*ScanResults),
+		scanDidFinishCh:           make(chan *ScanResults),
+		getCodeLocationsCountCh:   make(chan chan int),
+		getInProgressScansCh:      make(chan chan []string),
+		didFetchCodeLocationsCh:   make(chan *Result),
+		didFetchScanResultsCh:     make(chan *ScanResults),
+		hasFetchedCodeLocationsCh: make(chan chan bool),
+		getCodeLocationsCh:        make(chan chan map[string]bool),
+		unknownCodeLocationsCh:    make(chan chan []string)}
 	// initialize hub client
 	baseURL := fmt.Sprintf("https://%s:%d", host, port)
 	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
@@ -155,6 +159,9 @@ func NewClient(username string, password string, host string, port int, hubClien
 			case result := <-hub.didFetchCodeLocationsCh:
 				hub.recordError(result.Err)
 				if result.Err == nil {
+					if hub.codeLocations == nil {
+						hub.codeLocations = map[string]*Scan{}
+					}
 					cls := result.Value.([]hubapi.CodeLocation)
 					scanNames := make([]string, len(cls))
 					for ix, cl := range cls {
@@ -181,6 +188,14 @@ func NewClient(username string, password string, host string, port int, hubClien
 					scans = append(scans, scanName)
 				}
 				get <- scans
+			case ch := <-hub.hasFetchedCodeLocationsCh:
+				ch <- hub.codeLocations != nil
+			case ch := <-hub.getCodeLocationsCh:
+				codeLocations := map[string]bool{}
+				for key := range hub.codeLocations {
+					codeLocations[key] = true
+				}
+				ch <- codeLocations
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
 				if err != nil && hub.status == ClientStatusUp {
@@ -242,6 +257,20 @@ func (hub *Client) Model() <-chan *api.ModelHub {
 	return ch
 }
 
+// CodeLocations ...
+func (hub *Client) CodeLocations() <-chan map[string]bool {
+	ch := make(chan map[string]bool)
+	hub.getCodeLocationsCh <- ch
+	return ch
+}
+
+// HasFetchedCodeLocations ...
+func (hub *Client) HasFetchedCodeLocations() <-chan bool {
+	ch := make(chan bool)
+	hub.hasFetchedCodeLocationsCh <- ch
+	return ch
+}
+
 // Private methods
 
 func (hub *Client) recordError(err error) {
@@ -281,11 +310,11 @@ func (hub *Client) apiModel() *api.ModelHub {
 		}
 	}
 	return &api.ModelHub{
-		Errors:         errors,
-		Status:         hub.status.String(),
-		IsLoggedIn:     false, // TODO
-		CodeLocations:  codeLocations,
-		CircuitBreaker: hub.circuitBreaker.Model(),
+		Errors: errors,
+		Status: hub.status.String(),
+		HasLoadedAllCodeLocations: hub.codeLocations != nil,
+		CodeLocations:             codeLocations,
+		CircuitBreaker:            hub.circuitBreaker.Model(),
 	}
 }
 

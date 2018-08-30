@@ -112,9 +112,9 @@ type ModelCircuitBreaker struct {
 // ModelHub describes a hub client model
 type ModelHub struct {
 	// can we log in to the hub?
-	IsLoggedIn bool
+	//	IsLoggedIn bool
 	// have all the projects been sucked in?
-	//	HasLoadedAllProjects bool
+	HasLoadedAllCodeLocations bool
 	// map of project name to ... ? hub URL?
 	//	Projects map[string]string
 	// map of code location name to mapped project version url
