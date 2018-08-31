@@ -25,7 +25,7 @@ matrix:
   fast_finish: true
   
 before_script:
-- hack/verify-gofmt.sh
+#- hack/verify-gofmt.sh
 - hack/verify-golint.sh
 - hack/verify-govet.sh
 
