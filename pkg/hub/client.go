@@ -96,7 +96,7 @@ func NewClient(username string, password string, host string, port int, hubClien
 		//
 		publishUpdatesCh: make(chan Update),
 		//
-		stop: make(chan struct{}),
+		stop:                      make(chan struct{}),
 		resetCircuitBreakerCh:     make(chan struct{}),
 		getModel:                  make(chan chan *api.ModelHub),
 		deleteScanCh:              make(chan string),
@@ -310,8 +310,8 @@ func (hub *Client) apiModel() *api.ModelHub {
 		}
 	}
 	return &api.ModelHub{
-		Errors: errors,
-		Status: hub.status.String(),
+		Errors:                    errors,
+		Status:                    hub.status.String(),
 		HasLoadedAllCodeLocations: hub.codeLocations != nil,
 		CodeLocations:             codeLocations,
 		CircuitBreaker:            hub.circuitBreaker.Model(),
