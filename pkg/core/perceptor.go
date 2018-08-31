@@ -72,6 +72,7 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 			case <-routineTaskManager.metricsCh:
 				recordModelMetrics(model.GetMetrics())
 			case <-routineTaskManager.unknownImagesCh:
+				log.Debugf("handling RTM unknown images")
 				/*
 					if:
 					 - any unknown scans
@@ -80,6 +81,7 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 					move into scan queue
 				*/
 				unknownShas := model.GetImages(m.ScanStatusUnknown)
+				log.Debugf("found %d unknown shas", len(unknownShas))
 				if len(unknownShas) == 0 {
 					break
 				}
@@ -88,6 +90,7 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 				for _, hub := range hubManager.HubClients() {
 					if !<-hub.HasFetchedCodeLocations() {
 						isHubNotReady = true
+						log.Debugf("found hub %s which is not ready", hub.Host())
 						break
 					}
 					for scanName := range <-hub.CodeLocations() {
@@ -95,8 +98,10 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 					}
 				}
 				if isHubNotReady {
+					log.Debugf("one or more hubs not ready")
 					break
 				}
+				log.Debugf("about to change status of %d shas", len(unknownShas))
 				for _, sha := range unknownShas {
 					if _, ok := scans[string(sha)]; !ok {
 						model.ScanDidFinish(sha, nil)
@@ -162,28 +167,32 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 	}()
 
 	go func() {
-		select {
-		case <-stop:
-			return
-		case array := <-perceptor.didStartScan:
-			hubURL := array[0].(string)
-			scanName := array[1].(string)
-			sha := array[2].(m.DockerImageSha)
-			model.StartScanClient(sha)
-			hubManager.StartScanClient(hubURL, scanName)
-		case job := <-perceptor.didFinishScanClient:
-			var scanErr error
-			if job.Err == "" {
-				scanErr = nil
-				err := hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
-				if err != nil {
-					log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+		for {
+			select {
+			case <-stop:
+				return
+			case array := <-perceptor.didStartScan:
+				log.Debugf("handle didStartScan")
+				hubURL := array[0].(string)
+				scanName := array[1].(string)
+				sha := array[2].(m.DockerImageSha)
+				model.StartScanClient(sha)
+				hubManager.StartScanClient(hubURL, scanName)
+			case job := <-perceptor.didFinishScanClient:
+				log.Debugf("handle didFinishScanClient")
+				var scanErr error
+				if job.Err == "" {
+					scanErr = nil
+					err := hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+					if err != nil {
+						log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+					}
+				} else {
+					scanErr = fmt.Errorf(job.Err)
 				}
-			} else {
-				scanErr = fmt.Errorf(job.Err)
+				image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
+				model.FinishScanJob(image, scanErr)
 			}
-			image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
-			model.FinishScanJob(image, scanErr)
 		}
 	}()
 

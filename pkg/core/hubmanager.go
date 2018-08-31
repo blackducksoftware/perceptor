@@ -169,16 +169,22 @@ func (hm *HubManager) ScanResults() map[string]map[string]*hub.ScanResults {
 }
 
 // MockHubCreater ...
-type MockHubCreater struct{}
+type MockHubCreater struct {
+	hubClients map[string]hub.ClientInterface
+}
 
 // SetHubs ...
 func (mhc *MockHubCreater) SetHubs(hubURLs []string) {
-	// TODO
+	for _, hubURL := range hubURLs {
+		if _, ok := mhc.hubClients[hubURL]; !ok {
+			mhc.hubClients[hubURL] = hub.NewMockClient(hubURL)
+		}
+	}
 }
 
 // HubClients ...
 func (mhc *MockHubCreater) HubClients() map[string]hub.ClientInterface {
-	return nil
+	return mhc.hubClients
 }
 
 // StartScanClient ...
@@ -193,7 +199,7 @@ func (mhc *MockHubCreater) FinishScanClient(hubURL string, scanName string) erro
 
 // ScanResults ...
 func (mhc *MockHubCreater) ScanResults() map[string]map[string]*hub.ScanResults {
-	return nil
+	return map[string]map[string]*hub.ScanResults{}
 }
 
 // Updates ...

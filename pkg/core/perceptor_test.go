@@ -22,10 +22,12 @@ under the License.
 package core
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -33,23 +35,25 @@ import (
 func RunTestPerceptor() {
 	Describe("Perceptor", func() {
 		It("should experience unblocked channel communication", func() {
-			manager := &MockHubCreater{}
+			manager := &MockHubCreater{hubClients: map[string]hub.ClientInterface{}}
 			timings := &Timings{
 				CheckForStalledScansPause: 9999 * time.Second,
 				ModelMetricsPause:         15 * time.Second,
 				StalledScanClientTimeout:  9999 * time.Second,
-				UnknownImagePause:         2 * time.Second,
+				UnknownImagePause:         500 * time.Millisecond,
 			}
 			pcp, err := NewPerceptor(timings, &ScanScheduler{HubManager: manager, ConcurrentScanLimit: 2, TotalScanLimit: 5}, manager)
 			Expect(err).To(BeNil())
 			image1 := api.Image{
-				Sha:        "sha1sha8sh12sh16sha1sha8sh12sh16sha1sha8sh12sh16sha1sha8sh12sh16",
+				Sha:        "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs",
 				Repository: "repo1",
 				Tag:        "tag1"}
+			sha1, err := m.NewDockerImageSha(image1.Sha)
+			Expect(err).To(BeNil())
 			imageSpec := api.ImageSpec{
-				HubProjectName:        "proj1",
-				HubProjectVersionName: "ver1",
-				HubScanName:           "scan1",
+				HubProjectName:        image1.Repository,
+				HubProjectVersionName: fmt.Sprintf("%s-%s", image1.Tag, image1.Sha[:20]),
+				HubScanName:           image1.Sha,
 				HubURL:                "hub1",
 				Repository:            image1.Repository,
 				Sha:                   image1.Sha,
@@ -58,11 +62,19 @@ func RunTestPerceptor() {
 				ImageSpec: &imageSpec,
 			}
 			Expect(pcp.AddImage(image1)).To(BeNil())
+			time.Sleep(500 * time.Millisecond)
+			Expect(len(pcp.model.Images)).To(Equal(1))
+
 			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1"}})
-			time.Sleep(3 * time.Second)
+			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusUnknown))
+			time.Sleep(1 * time.Second)
+
+			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
 			Expect(pcp.GetNextImage()).To(Equal(nextImage))
 			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{ImageSpec: imageSpec, Err: ""})).To(BeNil())
-			Expect(pcp.model.Images["sha1"].ScanStatus).To(Equal(m.ScanStatusRunningHubScan))
+			time.Sleep(500 * time.Millisecond)
+
+			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusRunningHubScan))
 			//			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{})).To(BeNil())
 		})
 	})

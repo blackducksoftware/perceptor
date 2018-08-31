@@ -133,7 +133,7 @@ func (timer *Timer) start() {
 	for {
 		select {
 		case <-didFinishAction:
-			log.Debugf("timer %s: didFinishAction, state %s, shouldPause %t", timer.name, timer.state, shouldPauseAfterRunningAction)
+			//			log.Debugf("timer %s: didFinishAction, state %s, shouldPause %t", timer.name, timer.state, shouldPauseAfterRunningAction)
 			if shouldPauseAfterRunningAction {
 				timer.state = TimerStatePaused
 				stopTimer()
@@ -141,7 +141,7 @@ func (timer *Timer) start() {
 				timer.state = TimerStateReady
 			}
 		case <-c:
-			log.Debugf("timer %s: timer.C", timer.name)
+			//			log.Debugf("timer %s: timer.C", timer.name)
 			switch timer.state {
 			case TimerStateReady:
 				executeAction()
@@ -151,7 +151,7 @@ func (timer *Timer) start() {
 				log.Errorf("timer %s: cannot run action from state %s", timer.name, timer.state)
 			}
 		case ch := <-timer.pause:
-			log.Debugf("timer %s: pause (state %s)", timer.name, timer.state)
+			//			log.Debugf("timer %s: pause (state %s)", timer.name, timer.state)
 			switch timer.state {
 			case TimerStateReady:
 				timer.state = TimerStatePaused
@@ -168,7 +168,7 @@ func (timer *Timer) start() {
 				ch <- fmt.Errorf("cannot pause timer %s while in state %s", timer.name, timer.state.String())
 			}
 		case action := <-timer.resume:
-			log.Debugf("timer %s: resume", timer.name)
+			//			log.Debugf("timer %s: resume", timer.name)
 			switch timer.state {
 			case TimerStatePaused:
 				action.err <- nil
@@ -182,7 +182,7 @@ func (timer *Timer) start() {
 				action.err <- fmt.Errorf("cannot resume timer %s while in state %s", timer.name, timer.state.String())
 			}
 		case <-timer.stop:
-			log.Debugf("timer %s: stop, state %s", timer.name, timer.state)
+			//			log.Debugf("timer %s: stop, state %s", timer.name, timer.state)
 			switch timer.state {
 			case TimerStateReady:
 				stopTimer()
@@ -193,7 +193,7 @@ func (timer *Timer) start() {
 			timer.state = TimerStateStopped
 			return
 		case delay := <-timer.setDelay:
-			log.Debugf("timer %s: setDelay", timer.name)
+			//			log.Debugf("timer %s: setDelay", timer.name)
 			timer.delay = delay
 		}
 	}

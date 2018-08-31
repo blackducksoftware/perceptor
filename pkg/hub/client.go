@@ -212,10 +212,10 @@ func NewClient(username string, password string, host string, port int, hubClien
 			}
 		}
 	}()
-	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer()
+	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(1 * time.Minute)
 	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Second)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllProjectsPause)
-	hub.loginTimer = hub.startLoginTimer()
+	hub.loginTimer = hub.startLoginTimer(30 * time.Minute)
 	return hub
 }
 
@@ -320,8 +320,7 @@ func (hub *Client) apiModel() *api.ModelHub {
 
 // Regular jobs
 
-func (hub *Client) startLoginTimer() *util.Timer {
-	pause := 30 * time.Second // TODO Minute
+func (hub *Client) startLoginTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("login-%s", hub.host)
 	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
@@ -374,8 +373,7 @@ func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
 	})
 }
 
-func (hub *Client) startCheckScansForCompletionTimer() *util.Timer {
-	pause := 1 * time.Minute
+func (hub *Client) startCheckScansForCompletionTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("checkScansForCompletion-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
 		log.Debugf("starting to check scans for completion")

@@ -36,15 +36,19 @@ import (
 type MockClient struct {
 	inProgressImages []string
 	finishedImages   map[string]int
-	hubVersion       string
+	host             string
+	stop             chan struct{}
+	updates          chan Update
 }
 
 // NewMockClient .....
-func NewMockClient(hubVersion string) *MockClient {
+func NewMockClient(host string) *MockClient {
 	return &MockClient{
 		inProgressImages: []string{},
 		finishedImages:   map[string]int{},
-		hubVersion:       hubVersion,
+		host:             host,
+		stop:             make(chan struct{}),
+		updates:          make(chan Update),
 	}
 }
 
@@ -73,7 +77,7 @@ func (hub *MockClient) DeleteScan(scanName string) {
 
 // Version .....
 func (hub *MockClient) Version() (string, error) {
-	return hub.hubVersion, nil
+	return "hub.hubVersion", nil
 }
 
 // SetTimeout ...
@@ -98,12 +102,17 @@ func (hub *MockClient) IsEnabled() <-chan bool {
 
 // Host ...
 func (hub *MockClient) Host() string {
-	return "unimplemented"
+	return hub.host
 }
 
 // CodeLocationsCount ...
 func (hub *MockClient) CodeLocationsCount() <-chan int {
-	return nil
+	ch := make(chan int)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch <- 0
+	}()
+	return ch
 }
 
 // StartScanClient ...
@@ -118,35 +127,55 @@ func (hub *MockClient) FinishScanClient(scanName string) {
 
 // InProgressScans ...
 func (hub *MockClient) InProgressScans() <-chan []string {
-	return nil
+	ch := make(chan []string)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch <- []string{}
+	}()
+	return ch
 }
 
 // ScanResults ...
 func (hub *MockClient) ScanResults() <-chan map[string]*ScanResults {
-	return nil
+	ch := make(chan map[string]*ScanResults)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch <- map[string]*ScanResults{}
+	}()
+	return ch
 }
 
 // Stop ...
 func (hub *MockClient) Stop() {
-	//
+	close(hub.stop)
 }
 
 // StopCh ...
 func (hub *MockClient) StopCh() <-chan struct{} {
-	return nil
+	return hub.stop
 }
 
 // Updates ...
 func (hub *MockClient) Updates() <-chan Update {
-	return nil
+	return hub.updates
 }
 
 // HasFetchedCodeLocations ...
 func (hub *MockClient) HasFetchedCodeLocations() <-chan bool {
-	return nil
+	ch := make(chan bool)
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		ch <- true
+	}()
+	return ch
 }
 
 // CodeLocations ...
 func (hub *MockClient) CodeLocations() <-chan map[string]bool {
-	return nil
+	ch := make(chan map[string]bool)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch <- map[string]bool{}
+	}()
+	return ch
 }
