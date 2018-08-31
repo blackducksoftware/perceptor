@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"sort"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -114,6 +115,37 @@ func RunModelTests() {
 				model.setImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
 				model.setImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{}))
+			})
+		})
+
+		Describe("Image status operations", func() {
+			It("moves an image Unknown->InQueue->RunningScanClient->RunningHubScan->Complete", func() {
+				model := NewModel()
+				model.addImage(image1, 0)
+				model.addImage(image2, 0)
+				// 1. Unknown
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusUnknown))
+				// 2. InQueue
+				Expect(model.scanDidFinish(sha1, nil)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusInQueue))
+				// 3. RunningScanClient
+				Expect(model.StartScanClient(sha1)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusRunningScanClient))
+				// 4. RunningHubScan
+				model.finishRunningScanClient(&image1, nil)
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusRunningHubScan))
+				// 5. Complete
+				results := &hub.ScanResults{
+					ScanSummaries: []hub.ScanSummary{
+						{
+							CreatedAt: "maintenant",
+							Status:    hub.ScanSummaryStatusSuccess,
+							UpdatedAt: "demain",
+						},
+					},
+				}
+				Expect(model.scanDidFinish(sha1, results)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusComplete))
 			})
 		})
 	})

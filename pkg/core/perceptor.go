@@ -336,6 +336,7 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 		case pcp.didStartScan <- [3]interface{}{hub.Host(), string(image.Sha), image.Sha}:
 		}
 	}()
+	pcp.model.StartScanClient(image.Sha)
 	nextImage := *api.NewNextImage(imageSpec)
 	log.Debugf("handled GET next image -- %s", image.PullSpec())
 	return nextImage
