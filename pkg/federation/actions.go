@@ -100,7 +100,7 @@ type HubCreationResult struct {
 // FedApply ...
 func (hcr *HubCreationResult) FedApply(federator *Federator) {
 	if _, ok := federator.hubs[hcr.hub.Host()]; ok {
-		log.Errorf("cannot add hub %s: already present", hcr.hub.Host)
+		log.Errorf("cannot add hub %s: already present", hcr.hub.Host())
 		return
 	}
 	federator.hubs[hcr.hub.Host()] = hcr.hub
