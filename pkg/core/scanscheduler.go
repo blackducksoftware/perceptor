@@ -28,8 +28,7 @@ import (
 
 // ScanScheduler ...
 type ScanScheduler struct {
-	// ProjectLimit int
-	CodeLocationLimit   int
+	TotalScanLimit      int
 	ConcurrentScanLimit int
 	HubManager          HubManagerInterface
 }
@@ -37,7 +36,7 @@ type ScanScheduler struct {
 // AssignImage finds a Hub that is available to scan `image`.
 func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
 	for _, hub := range s.HubManager.HubClients() {
-		if <-hub.CodeLocationsCount() < s.CodeLocationLimit && len(<-hub.InProgressScans()) < s.ConcurrentScanLimit {
+		if <-hub.CodeLocationsCount() < s.TotalScanLimit && len(<-hub.InProgressScans()) < s.ConcurrentScanLimit {
 			return hub
 		}
 	}

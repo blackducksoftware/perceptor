@@ -36,25 +36,26 @@ type RoutineTaskManager struct {
 	writeTimings chan *Timings
 	timings      *Timings
 	// timers
-	modelMetricsTimer        *util.Timer
-	stalledScanClientTimer   *util.Timer
-	pruneOrphanedImagesTimer *util.Timer
-	unknownImagesTimer       *util.Timer
+	modelMetricsTimer      *util.Timer
+	stalledScanClientTimer *util.Timer
+	//	pruneOrphanedImagesTimer *util.Timer
+	unknownImagesTimer *util.Timer
 	// channels
-	metricsCh       chan bool
-	orphanedImages  chan []string
+	metricsCh chan bool
+	//	orphanedImages  chan []string
 	unknownImagesCh chan bool
 }
 
-// Timings ??? TODO
+// Timings ...
 type Timings struct {
 	CheckForStalledScansPause time.Duration
 	StalledScanClientTimeout  time.Duration
 	ModelMetricsPause         time.Duration
+	UnknownImagePause         time.Duration
 }
 
 // NewRoutineTaskManager ...
-func NewRoutineTaskManager(stop <-chan struct{}, pruneOrphanedImagesPause time.Duration, timings *Timings) *RoutineTaskManager {
+func NewRoutineTaskManager(stop <-chan struct{}, timings *Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
 		stop:            stop,
 		readTimings:     make(chan chan *Timings),
@@ -65,11 +66,11 @@ func NewRoutineTaskManager(stop <-chan struct{}, pruneOrphanedImagesPause time.D
 	}
 	rtm.stalledScanClientTimer = rtm.startCheckingForStalledScanClientScans()
 	rtm.modelMetricsTimer = rtm.startGeneratingModelMetrics()
-	if pruneOrphanedImagesPause > 0 {
-		rtm.pruneOrphanedImagesTimer = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
-		rtm.orphanedImages = make(chan []string)
-	}
-	rtm.unknownImagesTimer = rtm.startCheckingForUnknownImages(5 * time.Minute)
+	// if pruneOrphanedImagesPause > 0 {
+	// 	rtm.pruneOrphanedImagesTimer = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
+	// 	rtm.orphanedImages = make(chan []string)
+	// }
+	rtm.unknownImagesTimer = rtm.startCheckingForUnknownImages(timings.UnknownImagePause)
 	go func() {
 		for {
 			select {
@@ -128,12 +129,12 @@ func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Timer {
 	})
 }
 
-func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Timer {
-	return util.NewRunningTimer("orphanedImagePruning", pause, rtm.stop, false, func() {
-		log.Debug("cleaning up orphaned images")
-		// TODO write to a channel or something?
-	})
-}
+// func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Timer {
+// 	return util.NewRunningTimer("orphanedImagePruning", pause, rtm.stop, false, func() {
+// 		log.Debug("cleaning up orphaned images")
+// 		// TODO write to a channel or something?
+// 	})
+// }
 
 func (rtm *RoutineTaskManager) startCheckingForUnknownImages(pause time.Duration) *util.Timer {
 	return util.NewRunningTimer("unknownImageHandler", pause, rtm.stop, false, func() {

@@ -26,9 +26,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestModel(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
 	RegisterFailHandler(Fail)
+	RunTestPerceptor()
+	RunTestMetrics()
 	RunSpecs(t, "core suite")
 }

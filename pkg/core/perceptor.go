@@ -24,7 +24,6 @@ package core
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
@@ -55,26 +54,21 @@ type Perceptor struct {
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, error) {
+func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager HubManagerInterface) (*Perceptor, error) {
 	model := m.NewModel()
 
 	// 1. routine task manager
 	stop := make(chan struct{})
-	pruneOrphanedImagesPause := time.Duration(config.PruneOrphanedImagesPauseMinutes) * time.Minute
-	timings := &Timings{
-		CheckForStalledScansPause: 1 * time.Hour,
-		ModelMetricsPause:         15 * time.Second,
-		StalledScanClientTimeout:  5 * time.Hour}
-	routineTaskManager := NewRoutineTaskManager(stop, pruneOrphanedImagesPause, timings)
+	routineTaskManager := NewRoutineTaskManager(stop, timings)
 	go func() {
 		for {
 			select {
 			case <-stop:
 				return
-			case imageShas := <-routineTaskManager.orphanedImages:
-				// TODO reenable deletion with appropriate throttling
-				// hubClient.DeleteScans(imageShas)
-				log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
+			// case imageShas := <-routineTaskManager.orphanedImages:
+			// 	// TODO reenable deletion with appropriate throttling
+			// 	// hubClient.DeleteScans(imageShas)
+			// 	log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
 			case <-routineTaskManager.metricsCh:
 				recordModelMetrics(model.GetMetrics())
 			case <-routineTaskManager.unknownImagesCh:
@@ -138,11 +132,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 		}
 	}()
 
-	scanScheduler := &ScanScheduler{
-		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
-		CodeLocationLimit:   config.Hub.TotalScanLimit,
-		HubManager:          hubManager}
-
 	// 2. perceptor
 	perceptor := &Perceptor{
 		model:               model,
@@ -197,9 +186,6 @@ func NewPerceptor(config *Config, hubManager HubManagerInterface) (*Perceptor, e
 			model.FinishScanJob(image, scanErr)
 		}
 	}()
-
-	// 4. http responder
-	api.SetupHTTPServer(perceptor)
 
 	// 5. done
 	return perceptor, nil

@@ -25,7 +25,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -78,13 +80,23 @@ func RunPerceptor(configPath string) {
 		creater = NewHubManager(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout(), stop)
 	}
 
-	perceptor, err := NewPerceptor(config, creater)
+	scanScheduler := &ScanScheduler{
+		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
+		TotalScanLimit:      config.Hub.TotalScanLimit,
+		HubManager:          creater}
+	timings := &Timings{
+		CheckForStalledScansPause: 1 * time.Hour,
+		ModelMetricsPause:         15 * time.Second,
+		StalledScanClientTimeout:  5 * time.Hour,
+		UnknownImagePause:         5 * time.Minute}
+	perceptor, err := NewPerceptor(timings, scanScheduler, creater)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
 	}
 
 	log.Infof("instantiated perceptor: %+v", perceptor)
+	api.SetupHTTPServer(perceptor)
 
 	addr := fmt.Sprintf(":%d", config.Port)
 	go func() {
