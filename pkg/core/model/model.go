@@ -360,7 +360,7 @@ func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 		if ok {
 			statusString = imageInfo.ScanStatus.String()
 		}
-		log.Errorf("unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
+		log.Errorf("unable to transition image state for sha %s from <%s> to %s: %s", sha, statusString, newScanStatus, err.Error())
 	}
 }
 
