@@ -37,7 +37,11 @@ func TestModel(t *testing.T) {
 	RunTestAddImageAction()
 	RunTestAddPodAction()
 	RunTestAllImages()
+	RunTestAllPods()
+	RunTestFinishScanClient()
 	RunTestGetFullScanResults()
-	RunTestPodOverallStatus()
+	RunTestGetModel()
+	RunTestLegalScanStatusTransitions()
+	RunTestMetrics()
 	RunSpecs(t, "model suite")
 }

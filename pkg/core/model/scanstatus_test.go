@@ -22,7 +22,8 @@ under the License.
 package model
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type transitionCase struct {
@@ -63,13 +64,10 @@ var cases = []transitionCase{
 	{from: ScanStatusComplete, to: ScanStatusComplete, isLegal: false},
 }
 
-// TestLegalTransitions .....
-func TestLegalTransitions(t *testing.T) {
-	for _, testCase := range cases {
-		actual := IsLegalTransition(testCase.from, testCase.to)
-		expected := testCase.isLegal
-		if actual != expected {
-			t.Errorf("expected %t for %s to %s, got %t", expected, testCase.from, testCase.to, actual)
+func RunTestLegalScanStatusTransitions() {
+	It("should allow and disallow specific transitions", func() {
+		for _, testCase := range cases {
+			Expect(IsLegalTransition(testCase.from, testCase.to)).To(Equal(testCase.isLegal))
 		}
-	}
+	})
 }

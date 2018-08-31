@@ -23,26 +23,22 @@ package model
 
 import (
 	"fmt"
-	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestScanClientFails .....
-func TestScanClientFails(t *testing.T) {
-	model := NewModel()
-	image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"))
-	model.addImage(image, 0)
-	model.setImageScanStatus(image.Sha, ScanStatusInQueue)
-	model.setImageScanStatus(image.Sha, ScanStatusRunningScanClient)
-	model.finishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
-
-	if model.Images[image.Sha].ScanStatus != ScanStatusInQueue {
-		t.Logf("expected ScanStatus of InQueue, got %s", model.Images[image.Sha].ScanStatus)
-		t.Fail()
-	}
-
-	nextImage := model.getNextImageFromScanQueue()
-	if image != *nextImage {
-		t.Logf("expected nextImage of %v, got %v", image, nextImage)
-		t.Fail()
-	}
+func RunTestFinishScanClient() {
+	Describe("FinishScanClient", func() {
+		It("handles failures", func() {
+			model := NewModel()
+			image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"))
+			model.addImage(image, 0)
+			model.setImageScanStatus(image.Sha, ScanStatusInQueue)
+			model.setImageScanStatus(image.Sha, ScanStatusRunningScanClient)
+			model.finishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
+			Expect(model.Images[image.Sha].ScanStatus).To(Equal(ScanStatusInQueue))
+			Expect(*model.getNextImageFromScanQueue()).To(Equal(image))
+		})
+	})
 }

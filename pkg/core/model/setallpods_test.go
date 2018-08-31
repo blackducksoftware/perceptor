@@ -21,14 +21,15 @@ under the License.
 
 package model
 
-import "testing"
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
 
-// AllPods does remove pre-existing pods
-// TestAllPods .....
-func TestAllPods(t *testing.T) {
-	actual := createNewModel1()
-	(&AllPods{}).Apply(actual)
-	if len(actual.Pods) != 0 {
-		t.Errorf("expected 0 pods, found %d", len(actual.Pods))
-	}
+func RunTestAllPods() {
+	It("should remove pre-existing pods", func() {
+		actual := createNewModel1()
+		(&AllPods{}).Apply(actual)
+		Expect(len(actual.Pods)).To(Equal(0))
+	})
 }
