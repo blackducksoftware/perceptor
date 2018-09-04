@@ -46,14 +46,6 @@ type RoutineTaskManager struct {
 	unknownImagesCh chan bool
 }
 
-// Timings ...
-type Timings struct {
-	CheckForStalledScansPause time.Duration
-	StalledScanClientTimeout  time.Duration
-	ModelMetricsPause         time.Duration
-	UnknownImagePause         time.Duration
-}
-
 // NewRoutineTaskManager ...
 func NewRoutineTaskManager(stop <-chan struct{}, timings *Timings) *RoutineTaskManager {
 	rtm := &RoutineTaskManager{
@@ -70,7 +62,7 @@ func NewRoutineTaskManager(stop <-chan struct{}, timings *Timings) *RoutineTaskM
 	// 	rtm.pruneOrphanedImagesTimer = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
 	// 	rtm.orphanedImages = make(chan []string)
 	// }
-	rtm.unknownImagesTimer = rtm.startCheckingForUnknownImages(timings.UnknownImagePause)
+	rtm.unknownImagesTimer = rtm.startCheckingForUnknownImages(timings.UnknownImagePause())
 	go func() {
 		for {
 			select {
@@ -86,8 +78,8 @@ func NewRoutineTaskManager(stop <-chan struct{}, timings *Timings) *RoutineTaskM
 				}()
 			case newTimings := <-rtm.writeTimings:
 				rtm.timings = newTimings
-				rtm.stalledScanClientTimer.SetDelay(newTimings.StalledScanClientTimeout)
-				rtm.modelMetricsTimer.SetDelay(newTimings.ModelMetricsPause)
+				rtm.stalledScanClientTimer.SetDelay(newTimings.StalledScanClientTimeout())
+				rtm.modelMetricsTimer.SetDelay(newTimings.ModelMetricsPause())
 			}
 		}
 	}()
@@ -113,14 +105,14 @@ func (rtm *RoutineTaskManager) GetTimings() (*Timings, error) {
 
 func (rtm *RoutineTaskManager) startCheckingForStalledScanClientScans() *util.Timer {
 	log.Info("starting checking for stalled scans")
-	return util.NewRunningTimer("stalledScanClient", rtm.timings.CheckForStalledScansPause, rtm.stop, false, func() {
+	return util.NewRunningTimer("stalledScanClient", rtm.timings.CheckForStalledScansPause(), rtm.stop, false, func() {
 		log.Debug("checking for stalled scans")
 		// TODO write to a channel or something?
 	})
 }
 
 func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Timer {
-	return util.NewRunningTimer("modelMetrics", rtm.timings.ModelMetricsPause, rtm.stop, false, func() {
+	return util.NewRunningTimer("modelMetrics", rtm.timings.ModelMetricsPause(), rtm.stop, false, func() {
 		select {
 		case <-rtm.stop:
 			return

@@ -42,13 +42,47 @@ func (config *HubConfig) ClientTimeout() time.Duration {
 	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
 }
 
+// Timings ...
+type Timings struct {
+	CheckForStalledScansPauseHours  int
+	StalledScanClientTimeoutHours   int
+	ModelMetricsPauseSeconds        int
+	UnknownImagePauseMilliseconds   int
+	PruneOrphanedImagesPauseMinutes int
+}
+
+// CheckForStalledScansPause ...
+func (t *Timings) CheckForStalledScansPause() time.Duration {
+	return time.Duration(t.CheckForStalledScansPauseHours) * time.Hour
+}
+
+// StalledScanClientTimeout ...
+func (t *Timings) StalledScanClientTimeout() time.Duration {
+	return time.Duration(t.StalledScanClientTimeoutHours) * time.Hour
+}
+
+// ModelMetricsPause ...
+func (t *Timings) ModelMetricsPause() time.Duration {
+	return time.Duration(t.ModelMetricsPauseSeconds) * time.Second
+}
+
+// UnknownImagePause ...
+func (t *Timings) UnknownImagePause() time.Duration {
+	return time.Duration(t.UnknownImagePauseMilliseconds) * time.Millisecond
+}
+
+// PruneOrphanedImagesPause ...
+func (t *Timings) PruneOrphanedImagesPause() time.Duration {
+	return time.Duration(t.PruneOrphanedImagesPauseMinutes) * time.Minute
+}
+
 // Config contains all configuration for Perceptor
 type Config struct {
-	Hub                             *HubConfig
-	PruneOrphanedImagesPauseMinutes int
-	UseMockMode                     bool
-	Port                            int
-	LogLevel                        string
+	Hub         *HubConfig
+	Timings     *Timings
+	UseMockMode bool
+	Port        int
+	LogLevel    string
 }
 
 // GetLogLevel .....

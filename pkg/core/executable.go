@@ -97,12 +97,7 @@ func RunPerceptor(configPath string) {
 		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
 		TotalScanLimit:      config.Hub.TotalScanLimit,
 		HubManager:          manager}
-	timings := &Timings{
-		CheckForStalledScansPause: 1 * time.Hour,
-		ModelMetricsPause:         15 * time.Second,
-		StalledScanClientTimeout:  5 * time.Hour,
-		UnknownImagePause:         5 * time.Minute}
-	perceptor, err := NewPerceptor(timings, scanScheduler, manager)
+	perceptor, err := NewPerceptor(config.Timings, scanScheduler, manager)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)

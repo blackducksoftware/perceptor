@@ -35,10 +35,10 @@ func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 	stop := make(chan struct{})
 	manager := NewHubManager(createMockHub, stop)
 	timings := &Timings{
-		CheckForStalledScansPause: 9999 * time.Second,
-		ModelMetricsPause:         15 * time.Second,
-		StalledScanClientTimeout:  9999 * time.Second,
-		UnknownImagePause:         500 * time.Millisecond,
+		CheckForStalledScansPauseHours: 9999,
+		ModelMetricsPauseSeconds:       15,
+		StalledScanClientTimeoutHours:  9999,
+		UnknownImagePauseMilliseconds:  500,
 	}
 	pcp, err := NewPerceptor(timings,
 		&ScanScheduler{
@@ -141,7 +141,6 @@ func RunTestPerceptor() {
 			time.Sleep(500 * time.Millisecond)
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 
-			//			Expect(pcp.GetModel()).To(BeNil())
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 			//			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{ImageSpec: makeImageSpec(&image4, "hub1")}))
