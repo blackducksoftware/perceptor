@@ -22,9 +22,6 @@ under the License.
 package hub
 
 import (
-	"fmt"
-	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -34,45 +31,43 @@ import (
 
 // MockClient is a mock implementation of ClientInterface.
 type MockClient struct {
-	inProgressImages []string
-	finishedImages   map[string]int
-	host             string
-	stop             chan struct{}
-	updates          chan Update
+	images  map[string]bool
+	host    string
+	stop    chan struct{}
+	updates chan Update
 }
 
 // NewMockClient .....
 func NewMockClient(host string) *MockClient {
 	return &MockClient{
-		inProgressImages: []string{},
-		finishedImages:   map[string]int{},
-		host:             host,
-		stop:             make(chan struct{}),
-		updates:          make(chan Update),
+		images:  map[string]bool{},
+		host:    host,
+		stop:    make(chan struct{}),
+		updates: make(chan Update),
 	}
 }
 
-func (hub *MockClient) startRandomScanFinishing() {
-	fmt.Println("starting!")
-	for {
-		time.Sleep(3 * time.Second)
-		// TODO should lock the hub
-		length := len(hub.inProgressImages)
-		fmt.Println("in progress -- [", strings.Join(hub.inProgressImages, ", "), "]")
-		if length <= 0 {
-			continue
-		}
-		index := rand.Intn(length)
-		image := hub.inProgressImages[index]
-		fmt.Println("something finished --", image)
-		hub.inProgressImages = append(hub.inProgressImages[:index], hub.inProgressImages[index+1:]...)
-		hub.finishedImages[image] = 1
-	}
-}
+// func (hub *MockClient) startRandomScanFinishing() {
+// 	fmt.Println("starting!")
+// 	for {
+// 		time.Sleep(3 * time.Second)
+// 		// TODO should lock the hub
+// 		length := len(hub.inProgressImages)
+// 		fmt.Println("in progress -- [", strings.Join(hub.inProgressImages, ", "), "]")
+// 		if length <= 0 {
+// 			continue
+// 		}
+// 		index := rand.Intn(length)
+// 		image := hub.inProgressImages[index]
+// 		fmt.Println("something finished --", image)
+// 		hub.inProgressImages = append(hub.inProgressImages[:index], hub.inProgressImages[index+1:]...)
+// 		hub.finishedImages[image] = 1
+// 	}
+// }
 
 // DeleteScan ...
 func (hub *MockClient) DeleteScan(scanName string) {
-	//
+	delete(hub.images, scanName)
 }
 
 // Version .....
@@ -87,7 +82,28 @@ func (hub *MockClient) SetTimeout(timeout time.Duration) {
 
 // Model ...
 func (hub *MockClient) Model() <-chan *api.ModelHub {
-	return nil
+	ch := make(chan *api.ModelHub)
+	codeLocations := map[string]*api.ModelCodeLocation{}
+	for image := range hub.images {
+		codeLocations[image] = &api.ModelCodeLocation{
+			Href:                 "TODO",
+			MappedProjectVersion: "TODO",
+			UpdatedAt:            "TODO",
+			URL:                  "TODO",
+		}
+	}
+	model := &api.ModelHub{
+		Errors:                    []string{},
+		Status:                    "???",
+		HasLoadedAllCodeLocations: true,
+		CodeLocations:             codeLocations,
+		CircuitBreaker:            &api.ModelCircuitBreaker{},
+	}
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch <- model
+	}()
+	return ch
 }
 
 // ResetCircuitBreaker ...
@@ -110,14 +126,14 @@ func (hub *MockClient) CodeLocationsCount() <-chan int {
 	ch := make(chan int)
 	go func() {
 		time.Sleep(30 * time.Millisecond)
-		ch <- 0
+		ch <- len(hub.images)
 	}()
 	return ch
 }
 
 // StartScanClient ...
 func (hub *MockClient) StartScanClient(scanName string) {
-	//
+	hub.images[scanName] = false
 }
 
 // FinishScanClient ...
@@ -128,9 +144,15 @@ func (hub *MockClient) FinishScanClient(scanName string) {
 // InProgressScans ...
 func (hub *MockClient) InProgressScans() <-chan []string {
 	ch := make(chan []string)
+	inProgress := []string{}
+	for sha, isDone := range hub.images {
+		if !isDone {
+			inProgress = append(inProgress, sha)
+		}
+	}
 	go func() {
 		time.Sleep(30 * time.Millisecond)
-		ch <- []string{}
+		ch <- inProgress
 	}()
 	return ch
 }
@@ -173,9 +195,12 @@ func (hub *MockClient) HasFetchedCodeLocations() <-chan bool {
 // CodeLocations ...
 func (hub *MockClient) CodeLocations() <-chan map[string]bool {
 	ch := make(chan map[string]bool)
+	cls := map[string]bool{}
+	for sha := range hub.images {
+		cls[sha] = true
+	}
 	go func() {
-		time.Sleep(30 * time.Millisecond)
-		ch <- map[string]bool{}
+		ch <- cls
 	}()
 	return ch
 }

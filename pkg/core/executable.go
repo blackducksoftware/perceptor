@@ -28,12 +28,24 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
+
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 
 	log "github.com/sirupsen/logrus"
 )
+
+func createMockHub(hubURL string) hub.ClientInterface {
+	return hub.NewMockClient(hubURL)
+}
+
+func createHubClient(username string, password string, port int, httpTimeout time.Duration) func(hubURL string) hub.ClientInterface {
+	return func(hubURL string) hub.ClientInterface {
+		return hub.NewClient(username, password, hubURL, port, httpTimeout, 999999*time.Hour)
+	}
+}
 
 // RunPerceptor .....
 func RunPerceptor(configPath string) {
@@ -67,29 +79,30 @@ func RunPerceptor(configPath string) {
 
 	stop := make(chan struct{})
 
-	var creater HubManagerInterface
+	var newHub func(string) hub.ClientInterface
 	if config.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
-		creater = &MockHubCreater{}
+		newHub = createMockHub
 	} else {
 		log.Infof("instantiating perceptor in real mode")
 		password, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
 		if !ok {
 			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.Hub.PasswordEnvVar))
 		}
-		creater = NewHubManager(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout(), stop)
+		newHub = createHubClient(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout())
 	}
 
+	manager := NewHubManager(newHub, stop)
 	scanScheduler := &ScanScheduler{
 		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
 		TotalScanLimit:      config.Hub.TotalScanLimit,
-		HubManager:          creater}
+		HubManager:          manager}
 	timings := &Timings{
 		CheckForStalledScansPause: 1 * time.Hour,
 		ModelMetricsPause:         15 * time.Second,
 		StalledScanClientTimeout:  5 * time.Hour,
 		UnknownImagePause:         5 * time.Minute}
-	perceptor, err := NewPerceptor(timings, scanScheduler, creater)
+	perceptor, err := NewPerceptor(timings, scanScheduler, manager)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)

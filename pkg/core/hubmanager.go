@@ -23,7 +23,6 @@ package core
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
@@ -47,10 +46,7 @@ type HubManagerInterface interface {
 
 // HubManager ...
 type HubManager struct {
-	username    string
-	password    string
-	port        int
-	httpTimeout time.Duration
+	newHub func(hubURL string) hub.ClientInterface
 	//
 	stop    <-chan struct{}
 	updates chan *Update
@@ -61,13 +57,10 @@ type HubManager struct {
 }
 
 // NewHubManager ...
-func NewHubManager(username string, password string, port int, httpTimeout time.Duration, stop <-chan struct{}) *HubManager {
+func NewHubManager(newHub func(hubURL string) hub.ClientInterface, stop <-chan struct{}) *HubManager {
 	// TODO needs to be made concurrent-safe
 	return &HubManager{
-		username:              username,
-		password:              password,
-		port:                  port,
-		httpTimeout:           httpTimeout,
+		newHub:                newHub,
 		stop:                  stop,
 		updates:               make(chan *Update),
 		hubs:                  map[string]hub.ClientInterface{},
@@ -110,7 +103,7 @@ func (hm *HubManager) create(hubURL string) error {
 	if _, ok := hm.hubs[hubURL]; ok {
 		return fmt.Errorf("cannot create hub %s: already exists", hubURL)
 	}
-	hubClient := hub.NewClient(hm.username, hm.password, hubURL, hm.port, hm.httpTimeout, 999999*time.Hour)
+	hubClient := hm.newHub(hubURL)
 	hm.hubs[hubURL] = hubClient
 	go func() {
 		stop := hubClient.StopCh()
@@ -166,43 +159,4 @@ func (hm *HubManager) ScanResults() map[string]map[string]*hub.ScanResults {
 		allScanResults[hubURL] = <-hub.ScanResults()
 	}
 	return allScanResults
-}
-
-// MockHubCreater ...
-type MockHubCreater struct {
-	hubClients map[string]hub.ClientInterface
-}
-
-// SetHubs ...
-func (mhc *MockHubCreater) SetHubs(hubURLs []string) {
-	for _, hubURL := range hubURLs {
-		if _, ok := mhc.hubClients[hubURL]; !ok {
-			mhc.hubClients[hubURL] = hub.NewMockClient(hubURL)
-		}
-	}
-}
-
-// HubClients ...
-func (mhc *MockHubCreater) HubClients() map[string]hub.ClientInterface {
-	return mhc.hubClients
-}
-
-// StartScanClient ...
-func (mhc *MockHubCreater) StartScanClient(hubURL string, scanName string) error {
-	return nil
-}
-
-// FinishScanClient ...
-func (mhc *MockHubCreater) FinishScanClient(hubURL string, scanName string) error {
-	return nil
-}
-
-// ScanResults ...
-func (mhc *MockHubCreater) ScanResults() map[string]map[string]*hub.ScanResults {
-	return map[string]map[string]*hub.ScanResults{}
-}
-
-// Updates ...
-func (mhc *MockHubCreater) Updates() <-chan *Update {
-	return nil
 }

@@ -27,13 +27,13 @@ import (
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
-	manager := &MockHubCreater{hubClients: map[string]hub.ClientInterface{}}
+	stop := make(chan struct{})
+	manager := NewHubManager(createMockHub, stop)
 	timings := &Timings{
 		CheckForStalledScansPause: 9999 * time.Second,
 		ModelMetricsPause:         15 * time.Second,
@@ -59,15 +59,21 @@ func makeImageSpec(image *api.Image, hub string) *api.ImageSpec {
 		Repository:            image.Repository,
 		Sha:                   image.Sha,
 		Tag:                   image.Tag,
+		Priority:              *image.Priority,
 	}
 }
 
 func RunTestPerceptor() {
-	image1 := api.Image{Sha: "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs", Repository: "repo1", Tag: "tag1"}
-	image2 := api.Image{Sha: "sha2222222222222222222222222222222222222222222222222222222222222", Repository: "repo2", Tag: "tag2"}
-	image3 := api.Image{Sha: "sha1333333333333333333333333333333333333333333333333333333333333", Repository: "repo3", Tag: "tag3"}
-	image4 := api.Image{Sha: "sha1444444444444444444444444444444444444444444444444444444444444", Repository: "repo4", Tag: "tag4"}
-	image5 := api.Image{Sha: "sha1555555555555555555555555555555555555555555555555555555555555", Repository: "repo5", Tag: "tag5"}
+	one := 1
+	image1 := api.Image{Sha: "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs", Repository: "repo1", Tag: "tag1", Priority: &one}
+	two := 2
+	image2 := api.Image{Sha: "sha2222222222222222222222222222222222222222222222222222222222222", Repository: "repo2", Tag: "tag2", Priority: &two}
+	three := 3
+	image3 := api.Image{Sha: "sha1333333333333333333333333333333333333333333333333333333333333", Repository: "repo3", Tag: "tag3", Priority: &three}
+	four := 4
+	image4 := api.Image{Sha: "sha1444444444444444444444444444444444444444444444444444444444444", Repository: "repo4", Tag: "tag4", Priority: &four}
+	five := 5
+	image5 := api.Image{Sha: "sha1555555555555555555555555555555555555555555555555555555555555", Repository: "repo5", Tag: "tag5", Priority: &five}
 	Describe("Perceptor", func() {
 		It("should experience unblocked channel communication", func() {
 			pcp := newPerceptor(2, 5)
@@ -117,13 +123,27 @@ func RunTestPerceptor() {
 			})
 			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1", "hub2", "hub3"}})
 			time.Sleep(1 * time.Second)
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(5))
+
 			next1 := pcp.GetNextImage()
-			Expect(next1).To(Equal(makeImageSpec(&image1, next1.ImageSpec.HubURL)))
+			Expect(next1).To(Equal(*api.NewNextImage(makeImageSpec(&image5, next1.ImageSpec.HubURL))))
+			time.Sleep(500 * time.Millisecond)
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(4))
+
 			next2 := pcp.GetNextImage()
-			Expect(next2).To(Equal(makeImageSpec(&image2, next2.ImageSpec.HubURL)))
+			Expect(next2).To(Equal(*api.NewNextImage(makeImageSpec(&image4, next2.ImageSpec.HubURL))))
+			time.Sleep(500 * time.Millisecond)
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(3))
+
 			next3 := pcp.GetNextImage()
-			Expect(next3).To(Equal(makeImageSpec(&image3, next3.ImageSpec.HubURL)))
+			Expect(next3).To(Equal(*api.NewNextImage(makeImageSpec(&image3, next3.ImageSpec.HubURL))))
+			time.Sleep(500 * time.Millisecond)
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+
+			//			Expect(pcp.GetModel()).To(BeNil())
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 			//			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{ImageSpec: makeImageSpec(&image4, "hub1")}))
 		})
 	})
