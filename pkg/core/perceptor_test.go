@@ -32,35 +32,49 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
+	manager := &MockHubCreater{hubClients: map[string]hub.ClientInterface{}}
+	timings := &Timings{
+		CheckForStalledScansPause: 9999 * time.Second,
+		ModelMetricsPause:         15 * time.Second,
+		StalledScanClientTimeout:  9999 * time.Second,
+		UnknownImagePause:         500 * time.Millisecond,
+	}
+	pcp, err := NewPerceptor(timings,
+		&ScanScheduler{
+			HubManager:          manager,
+			ConcurrentScanLimit: concurrentScanLimit,
+			TotalScanLimit:      totalScanLimit},
+		manager)
+	Expect(err).To(BeNil())
+	return pcp
+}
+
+func makeImageSpec(image *api.Image, hub string) *api.ImageSpec {
+	return &api.ImageSpec{
+		HubProjectName:        image.Repository,
+		HubProjectVersionName: fmt.Sprintf("%s-%s", image.Tag, image.Sha[:20]),
+		HubScanName:           image.Sha,
+		HubURL:                hub,
+		Repository:            image.Repository,
+		Sha:                   image.Sha,
+		Tag:                   image.Tag,
+	}
+}
+
 func RunTestPerceptor() {
+	image1 := api.Image{Sha: "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs", Repository: "repo1", Tag: "tag1"}
+	image2 := api.Image{Sha: "sha2222222222222222222222222222222222222222222222222222222222222", Repository: "repo2", Tag: "tag2"}
+	image3 := api.Image{Sha: "sha1333333333333333333333333333333333333333333333333333333333333", Repository: "repo3", Tag: "tag3"}
+	image4 := api.Image{Sha: "sha1444444444444444444444444444444444444444444444444444444444444", Repository: "repo4", Tag: "tag4"}
+	image5 := api.Image{Sha: "sha1555555555555555555555555555555555555555555555555555555555555", Repository: "repo5", Tag: "tag5"}
 	Describe("Perceptor", func() {
 		It("should experience unblocked channel communication", func() {
-			manager := &MockHubCreater{hubClients: map[string]hub.ClientInterface{}}
-			timings := &Timings{
-				CheckForStalledScansPause: 9999 * time.Second,
-				ModelMetricsPause:         15 * time.Second,
-				StalledScanClientTimeout:  9999 * time.Second,
-				UnknownImagePause:         500 * time.Millisecond,
-			}
-			pcp, err := NewPerceptor(timings, &ScanScheduler{HubManager: manager, ConcurrentScanLimit: 2, TotalScanLimit: 5}, manager)
-			Expect(err).To(BeNil())
-			image1 := api.Image{
-				Sha:        "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs",
-				Repository: "repo1",
-				Tag:        "tag1"}
+			pcp := newPerceptor(2, 5)
 			sha1, err := m.NewDockerImageSha(image1.Sha)
 			Expect(err).To(BeNil())
-			imageSpec := api.ImageSpec{
-				HubProjectName:        image1.Repository,
-				HubProjectVersionName: fmt.Sprintf("%s-%s", image1.Tag, image1.Sha[:20]),
-				HubScanName:           image1.Sha,
-				HubURL:                "hub1",
-				Repository:            image1.Repository,
-				Sha:                   image1.Sha,
-				Tag:                   image1.Tag}
-			nextImage := api.NextImage{
-				ImageSpec: &imageSpec,
-			}
+			imageSpec := makeImageSpec(&image1, "hub1")
+			nextImage := api.NextImage{ImageSpec: imageSpec}
 			Expect(pcp.AddImage(image1)).To(BeNil())
 			time.Sleep(500 * time.Millisecond)
 			Expect(len(pcp.model.Images)).To(Equal(1))
@@ -71,11 +85,46 @@ func RunTestPerceptor() {
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
 			Expect(pcp.GetNextImage()).To(Equal(nextImage))
-			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{ImageSpec: imageSpec, Err: ""})).To(BeNil())
+			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{ImageSpec: *imageSpec, Err: ""})).To(BeNil())
 			time.Sleep(500 * time.Millisecond)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusRunningHubScan))
 			//			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{})).To(BeNil())
+		})
+
+		It("should not assign scans when there are no hubs", func() {
+			pcp := newPerceptor(2, 5)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1},
+			})
+			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
+		})
+
+		It("should not assign scans when the concurrent scan limit is 0", func() {
+			pcp := newPerceptor(0, 5)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1},
+			})
+			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1", "hub2", "hub3"}})
+			time.Sleep(1 * time.Second)
+			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
+		})
+
+		It("should assign scans to different hubs, not exceeding the concurrent scan limit of any hub", func() {
+			pcp := newPerceptor(1, 5)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1, image2, image3, image4, image5},
+			})
+			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1", "hub2", "hub3"}})
+			time.Sleep(1 * time.Second)
+			next1 := pcp.GetNextImage()
+			Expect(next1).To(Equal(makeImageSpec(&image1, next1.ImageSpec.HubURL)))
+			next2 := pcp.GetNextImage()
+			Expect(next2).To(Equal(makeImageSpec(&image2, next2.ImageSpec.HubURL)))
+			next3 := pcp.GetNextImage()
+			Expect(next3).To(Equal(makeImageSpec(&image3, next3.ImageSpec.HubURL)))
+			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
+			//			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{ImageSpec: makeImageSpec(&image4, "hub1")}))
 		})
 	})
 }
