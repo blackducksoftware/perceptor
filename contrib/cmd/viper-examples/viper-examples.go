@@ -11,7 +11,10 @@ import (
 )
 
 func main() {
-	configPath := os.Args[1]
+	var configPath string
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
+	}
 	handleConfig(configPath)
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		handleConfig(configPath)
@@ -40,19 +43,28 @@ type Config struct {
 }
 
 func getConfig(configPath string) (*Config, error) {
-	var config *Config
+	var config Config
+	log.Infof("config path: %+v", configPath)
 
-	viper.SetConfigFile(configPath)
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
+	if configPath != "" {
+		viper.SetConfigFile(configPath)
+		err := viper.ReadInConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file: %v", err)
+		}
+	} else {
+		log.Infof("about to read env")
+		viper.SetEnvPrefix("VPE")
+		viper.BindEnv("A")
+		viper.BindEnv("B")
+		viper.BindEnv("C")
+		viper.AutomaticEnv()
 	}
 
-	err = viper.Unmarshal(&config)
+	err := viper.Unmarshal(&config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
 
-	return config, nil
+	return &config, nil
 }
