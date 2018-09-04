@@ -34,7 +34,11 @@ func APIImageToCoreImage(apiImage api.Image) (*model.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return model.NewImage(apiImage.Repository, apiImage.Tag, sha), nil
+	priority := 0
+	if apiImage.Priority != nil {
+		priority = *apiImage.Priority
+	}
+	return model.NewImage(apiImage.Repository, apiImage.Tag, sha, priority), nil
 }
 
 // APIContainerToCoreContainer .....
@@ -53,6 +57,9 @@ func APIPodToCorePod(apiPod api.Pod) (*model.Pod, error) {
 		container, err := APIContainerToCoreContainer(apiContainer)
 		if err != nil {
 			return nil, err
+		}
+		if apiContainer.Image.Priority == nil {
+			container.Image.Priority = 1
 		}
 		containers = append(containers, *container)
 	}

@@ -30,4 +30,5 @@ type ImageSpec struct {
 	HubProjectName        string
 	HubProjectVersionName string
 	HubScanName           string
+	Priority              int
 }

@@ -52,7 +52,7 @@ func RunMockResponderTests() {
 						Name:  "cont1",
 					},
 					{
-						Image: Image{repo2, tag2, sha2},
+						Image: Image{Repository: repo2, Tag: tag2, Sha: sha2},
 						Name:  "cont2",
 					},
 				},

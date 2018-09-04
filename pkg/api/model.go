@@ -39,7 +39,6 @@ type CoreModel struct {
 	Pods           map[string]*Pod
 	Images         map[string]*ModelImageInfo
 	ImageScanQueue []map[string]interface{}
-	ImagePriority  map[string]int
 }
 
 // ModelConfig .....
@@ -93,6 +92,7 @@ type ModelImageInfo struct {
 	ScanResults            interface{}
 	ImageSha               string
 	RepoTags               []*ModelRepoTag
+	Priority               int
 }
 
 // ModelRepoTag ...

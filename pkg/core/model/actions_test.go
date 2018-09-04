@@ -33,11 +33,11 @@ import (
 
 var (
 	sha1   = DockerImageSha("sha1")
-	image1 = *NewImage("image1", "1", sha1)
+	image1 = *NewImage("image1", "1", sha1, 0)
 	sha2   = DockerImageSha("sha2")
-	image2 = *NewImage("image2", "2", sha2)
+	image2 = *NewImage("image2", "2", sha2, 0)
 	sha3   = DockerImageSha("sha3")
-	image3 = *NewImage("image3", "3", sha3)
+	image3 = *NewImage("image3", "3", sha3, 0)
 	cont1  = *NewContainer(image1, "cont1")
 	cont2  = *NewContainer(image2, "cont2")
 	cont3  = *NewContainer(image3, "cont3")
@@ -56,7 +56,6 @@ var (
 )
 
 func checkModelEquality(m1 *Model, m2 *Model) {
-	Expect(m1.ImagePriority).To(Equal(m2.ImagePriority))
 	ji1, err := json.Marshal(m1.Images)
 	Expect(err).To(BeNil())
 	ji2, err := json.Marshal(m2.Images)

@@ -47,7 +47,7 @@ func RunGetNextImageTests() {
 
 		It("regular", func() {
 			model := NewModel()
-			model.addImage(image1, 0)
+			model.addImage(image1)
 			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
 
 			get := NewGetNextImage()
@@ -55,7 +55,7 @@ func RunGetNextImageTests() {
 			nextImage := <-get.Done
 
 			expected := NewModel()
-			expected.addImage(image1, 0)
+			expected.addImage(image1)
 			expected.setImageScanStatus(image1.Sha, ScanStatusInQueue)
 			expected.Images[sha1].TimeOfLastStatusChange = model.Images[sha1].TimeOfLastStatusChange
 

@@ -46,8 +46,9 @@ func (g *GetModel) Apply(model *Model) {
 // CoreContainerToAPIContainer .....
 func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	image := coreContainer.Image
+	priority := image.Priority
 	return &api.Container{
-		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha)),
+		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha), &priority),
 		Name:  coreContainer.Name,
 	}
 }
@@ -86,19 +87,14 @@ func CoreModelToAPIModel(model *Model) api.CoreModel {
 			ScanResults:            imageInfo.ScanResults,
 			ScanStatus:             imageInfo.ScanStatus.String(),
 			TimeOfLastStatusChange: imageInfo.TimeOfLastStatusChange.String(),
+			Priority:               imageInfo.Priority,
 		}
-	}
-
-	imagePriority := map[string]int{}
-	for sha, priority := range model.ImagePriority {
-		imagePriority[string(sha)] = priority
 	}
 
 	// return value
 	return api.CoreModel{
 		Pods:           pods,
 		Images:         images,
-		ImagePriority:  imagePriority,
 		ImageScanQueue: model.ImageScanQueue.Dump(),
 	}
 }

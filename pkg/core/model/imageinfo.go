@@ -36,14 +36,16 @@ type ImageInfo struct {
 	ScanResults            *hub.ScanResults
 	ImageSha               DockerImageSha
 	RepoTags               []*RepoTag
+	Priority               int
 }
 
 // NewImageInfo .....
-func NewImageInfo(sha DockerImageSha, repoTag *RepoTag) *ImageInfo {
+func NewImageInfo(sha DockerImageSha, repoTag *RepoTag, priority int) *ImageInfo {
 	imageInfo := &ImageInfo{
 		ScanResults: nil,
 		ImageSha:    sha,
 		RepoTags:    []*RepoTag{repoTag},
+		Priority:    priority,
 	}
 	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
@@ -68,7 +70,7 @@ func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 // Image .....
 func (imageInfo *ImageInfo) Image() Image {
 	repoTag := imageInfo.FirstRepoTag()
-	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha)
+	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha, imageInfo.Priority)
 }
 
 // AddRepoTag .....

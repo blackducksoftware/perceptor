@@ -45,20 +45,14 @@ func RunModelTests() {
 		It("add image without pod, then same image in pod", func() {
 			model := NewModel()
 
-			model.addImage(image1, -2)
-			model.addImage(image3, -1)
+			model.addImage(image1)
+			model.addImage(image3)
 			model.setImageScanStatus(sha1, ScanStatusInQueue)
 			model.setImageScanStatus(sha3, ScanStatusInQueue)
-			Expect(model.ImagePriority[sha1]).To(Equal(-2))
-			Expect(model.ImagePriority[sha3]).To(Equal(-1))
 			Expect(model.ImageScanQueue.Values()[0]).To(Equal(sha3))
 
 			model.addPod(pod1)
-			log.Infof("priorities: %+v", model.ImagePriority)
 			model.setImageScanStatus(sha2, ScanStatusInQueue)
-			Expect(model.ImagePriority[sha1]).To(Equal(1))
-			Expect(model.ImagePriority[sha2]).To(Equal(1))
-			Expect(model.ImagePriority[sha3]).To(Equal(-1))
 
 			// This is destructive!
 			values := []interface{}{}
@@ -74,9 +68,9 @@ func RunModelTests() {
 
 		removeScanItemModel := func() *Model {
 			model := NewModel()
-			model.addImage(image1, 0)
-			model.addImage(image2, 0)
-			model.addImage(image3, 0)
+			model.addImage(image1)
+			model.addImage(image2)
+			model.addImage(image3)
 			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
 			model.setImageScanStatus(image2.Sha, ScanStatusInQueue)
 			model.setImageScanStatus(image3.Sha, ScanStatusInQueue)
@@ -121,8 +115,8 @@ func RunModelTests() {
 		Describe("Image status operations", func() {
 			It("moves an image Unknown->InQueue->RunningScanClient->RunningHubScan->Complete", func() {
 				model := NewModel()
-				model.addImage(image1, 0)
-				model.addImage(image2, 0)
+				model.addImage(image1)
+				model.addImage(image2)
 				// 1. Unknown
 				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusUnknown))
 				// 2. InQueue

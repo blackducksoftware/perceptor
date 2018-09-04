@@ -29,6 +29,6 @@ type AllImages struct {
 // Apply just adds new images.  It currently does not delete any images.
 func (a *AllImages) Apply(model *Model) {
 	for _, image := range a.Images {
-		model.addImage(image, 0)
+		model.addImage(image)
 	}
 }

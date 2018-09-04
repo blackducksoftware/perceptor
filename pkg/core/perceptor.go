@@ -190,7 +190,7 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 				} else {
 					scanErr = fmt.Errorf(job.Err)
 				}
-				image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha))
+				image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority)
 				model.FinishScanJob(image, scanErr)
 			}
 		}
@@ -323,7 +323,8 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 		HubURL:                hub.Host(),
 		HubProjectName:        image.HubProjectName(),
 		HubProjectVersionName: image.HubProjectVersionName(),
-		HubScanName:           image.HubScanName()}
+		HubScanName:           image.HubScanName(),
+		Priority:              image.Priority}
 	go func() {
 		select {
 		case <-pcp.stop:

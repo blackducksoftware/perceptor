@@ -42,7 +42,6 @@ type Model struct {
 	Pods           map[string]Pod
 	Images         map[DockerImageSha]*ImageInfo
 	ImageScanQueue *util.PriorityQueue
-	ImagePriority  map[DockerImageSha]int
 	//
 	actions chan Action
 }
@@ -53,7 +52,6 @@ func NewModel() *Model {
 		Pods:           make(map[string]Pod),
 		Images:         make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue: util.NewPriorityQueue(),
-		ImagePriority:  map[DockerImageSha]int{},
 		actions:        make(chan Action, actionChannelSize),
 	}
 	go func() {
@@ -187,34 +185,17 @@ func (model *Model) addPod(newPod Pod) {
 		log.Warnf("adding pod %s with 0 containers: %+v", newPod.QualifiedName(), newPod)
 	}
 	for _, newCont := range newPod.Containers {
-		model.addImage(newCont.Image, 1)
+		model.addImage(newCont.Image)
 	}
 	log.Debugf("done adding containers+images from pod %s -- %s", newPod.UID, newPod.QualifiedName())
 	model.Pods[newPod.QualifiedName()] = newPod
 }
 
 // AddImage adds an image to the model, adding it to the queue for hub checking.
-func (model *Model) addImage(image Image, priority int) {
-	log.Debugf("about to add image %s, priority %d", image.Sha, priority)
+func (model *Model) addImage(image Image) {
+	log.Debugf("about to add image %s, priority %d", image.Sha, image.Priority)
 	added := model.createImage(image)
-	if added {
-		model.ImagePriority[image.Sha] = priority
-		return
-	}
-	if priority <= model.ImagePriority[image.Sha] {
-		return
-	}
-	log.Debugf("upgrading priority for image %s to %d", image.Sha, priority)
-	model.ImagePriority[image.Sha] = priority
-	err := model.removeImageFromScanQueue(image.Sha)
-	if err != nil {
-		log.Errorf("unable to remove image %s from scan queue", image.Sha)
-		return
-	}
-	err = model.addImageToScanQueue(image.Sha)
-	if err != nil {
-		log.Errorf("unable to re-add image %s to scan queue", image.Sha)
-	}
+	log.Debugf("added image %s? %t", image.Sha, added)
 }
 
 func (model *Model) scanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) error {
@@ -311,16 +292,33 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 }
 
 // createImage adds the image to the model, but not to the scan queue
-func (model *Model) createImage(image Image) bool {
-	_, hasImage := model.Images[image.Sha]
-	if !hasImage {
-		newInfo := NewImageInfo(image.Sha, &RepoTag{Repository: image.Repository, Tag: image.Tag})
+func (model *Model) createImage(image Image) (ok bool) {
+	imageInfo, ok := model.Images[image.Sha]
+	if ok {
+		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
+		if image.Priority <= imageInfo.Priority {
+			return
+		}
+		log.Debugf("upgrading priority for image %s to %d", image.Sha, image.Priority)
+		imageInfo.Priority = image.Priority
+		if imageInfo.ScanStatus != ScanStatusInQueue {
+			return
+		}
+		err := model.removeImageFromScanQueue(image.Sha)
+		if err != nil {
+			log.Errorf("unable to remove image %s from scan queue", image.Sha)
+			return
+		}
+		err = model.addImageToScanQueue(image.Sha)
+		if err != nil {
+			log.Errorf("unable to re-add image %s to scan queue", image.Sha)
+		}
+	} else {
+		newInfo := NewImageInfo(image.Sha, &RepoTag{Repository: image.Repository, Tag: image.Tag}, image.Priority)
 		model.Images[image.Sha] = newInfo
 		log.Debugf("added image %s to model", image.PullSpec())
-	} else {
-		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
 	}
-	return !hasImage
+	return
 }
 
 // Be sure that `sha` is in `model.Images` before calling this method
@@ -340,8 +338,11 @@ func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
 // actually present, etc.)
 
 func (model *Model) addImageToScanQueue(sha DockerImageSha) error {
-	priority := model.ImagePriority[sha]
-	return model.ImageScanQueue.Add(string(sha), priority, sha)
+	imageInfo, ok := model.Images[sha]
+	if !ok {
+		return fmt.Errorf("unable to add image %s to scan queue: not found", sha)
+	}
+	return model.ImageScanQueue.Add(string(sha), imageInfo.Priority, sha)
 }
 
 func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
