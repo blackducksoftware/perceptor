@@ -30,11 +30,12 @@ type Image struct {
 	Repository string
 	Tag        string
 	Sha        DockerImageSha
+	Priority   int
 }
 
 // NewImage .....
-func NewImage(repository string, tag string, sha DockerImageSha) *Image {
-	return &Image{Repository: repository, Tag: tag, Sha: sha}
+func NewImage(repository string, tag string, sha DockerImageSha, priority int) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority}
 }
 
 func (image Image) shaPrefix() string {

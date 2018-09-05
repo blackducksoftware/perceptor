@@ -24,6 +24,7 @@ package federation
 import (
 	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -31,10 +32,10 @@ import (
 func RunActionsTests() {
 	Describe("API model", func() {
 		It("should convert from model, including errors", func() {
-			hub := NewHub("username", "password", "host", 443, time.Second, time.Minute)
+			hub := hub.NewClient("username", "password", "host", 443, time.Second, time.Minute)
 			time.Sleep(2 * time.Second)
-			Expect(len(hub.errors)).NotTo(Equal(0))
-			apiHub := hub.Model()
+			apiHub := <-hub.Model()
+			Expect(len(apiHub.Errors)).NotTo(Equal(0))
 			Expect(apiHub).NotTo(BeNil())
 		})
 	})

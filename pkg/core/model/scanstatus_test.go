@@ -22,7 +22,8 @@ under the License.
 package model
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type transitionCase struct {
@@ -33,55 +34,40 @@ type transitionCase struct {
 
 var cases = []transitionCase{
 	{from: ScanStatusUnknown, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusUnknown, to: ScanStatusInHubCheckQueue, isLegal: true},
-	{from: ScanStatusUnknown, to: ScanStatusInQueue, isLegal: false},
+	{from: ScanStatusUnknown, to: ScanStatusInQueue, isLegal: true},
 	{from: ScanStatusUnknown, to: ScanStatusRunningScanClient, isLegal: false},
 	{from: ScanStatusUnknown, to: ScanStatusRunningHubScan, isLegal: true},
-	{from: ScanStatusUnknown, to: ScanStatusComplete, isLegal: false},
-
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusInHubCheckQueue, isLegal: false},
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusInQueue, isLegal: true},
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusRunningScanClient, isLegal: false},
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusRunningHubScan, isLegal: true},
-	{from: ScanStatusInHubCheckQueue, to: ScanStatusComplete, isLegal: true},
+	{from: ScanStatusUnknown, to: ScanStatusComplete, isLegal: true},
 
 	{from: ScanStatusInQueue, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusInQueue, to: ScanStatusInHubCheckQueue, isLegal: false},
 	{from: ScanStatusInQueue, to: ScanStatusInQueue, isLegal: false},
 	{from: ScanStatusInQueue, to: ScanStatusRunningScanClient, isLegal: true},
 	{from: ScanStatusInQueue, to: ScanStatusRunningHubScan, isLegal: true},
 	{from: ScanStatusInQueue, to: ScanStatusComplete, isLegal: false},
 
 	{from: ScanStatusRunningScanClient, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusRunningScanClient, to: ScanStatusInHubCheckQueue, isLegal: false},
 	{from: ScanStatusRunningScanClient, to: ScanStatusInQueue, isLegal: true},
 	{from: ScanStatusRunningScanClient, to: ScanStatusRunningScanClient, isLegal: false},
 	{from: ScanStatusRunningScanClient, to: ScanStatusRunningHubScan, isLegal: true},
 	{from: ScanStatusRunningScanClient, to: ScanStatusComplete, isLegal: false},
 
 	{from: ScanStatusRunningHubScan, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusRunningHubScan, to: ScanStatusInHubCheckQueue, isLegal: false},
 	{from: ScanStatusRunningHubScan, to: ScanStatusInQueue, isLegal: true},
 	{from: ScanStatusRunningHubScan, to: ScanStatusRunningScanClient, isLegal: false},
 	{from: ScanStatusRunningHubScan, to: ScanStatusRunningHubScan, isLegal: false},
 	{from: ScanStatusRunningHubScan, to: ScanStatusComplete, isLegal: true},
 
 	{from: ScanStatusComplete, to: ScanStatusUnknown, isLegal: false},
-	{from: ScanStatusComplete, to: ScanStatusInHubCheckQueue, isLegal: false},
 	{from: ScanStatusComplete, to: ScanStatusInQueue, isLegal: false},
 	{from: ScanStatusComplete, to: ScanStatusRunningScanClient, isLegal: false},
 	{from: ScanStatusComplete, to: ScanStatusRunningHubScan, isLegal: false},
 	{from: ScanStatusComplete, to: ScanStatusComplete, isLegal: false},
 }
 
-// TestLegalTransitions .....
-func TestLegalTransitions(t *testing.T) {
-	for _, testCase := range cases {
-		actual := IsLegalTransition(testCase.from, testCase.to)
-		expected := testCase.isLegal
-		if actual != expected {
-			t.Errorf("expected %t for %s to %s, got %t", expected, testCase.from, testCase.to, actual)
+func RunTestLegalScanStatusTransitions() {
+	It("should allow and disallow specific transitions", func() {
+		for _, testCase := range cases {
+			Expect(IsLegalTransition(testCase.from, testCase.to)).To(Equal(testCase.isLegal))
 		}
-	}
+	})
 }

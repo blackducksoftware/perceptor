@@ -26,9 +26,10 @@ type Image struct {
 	Repository string
 	Tag        string
 	Sha        string
+	Priority   *int
 }
 
 // NewImage .....
-func NewImage(repository string, tag string, sha string) *Image {
-	return &Image{Repository: repository, Tag: tag, Sha: sha}
+func NewImage(repository string, tag string, sha string, priority *int) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority}
 }

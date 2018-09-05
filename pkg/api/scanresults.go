@@ -23,17 +23,13 @@ package api
 
 // ScanResults .....
 type ScanResults struct {
-	HubScanClientVersion string
-	HubVersion           string
-	Pods                 []ScannedPod
-	Images               []ScannedImage
+	Pods   []ScannedPod
+	Images []ScannedImage
 }
 
 // NewScanResults .....
-func NewScanResults(hubScanClientVersion string, hubVersion string, pods []ScannedPod, images []ScannedImage) *ScanResults {
+func NewScanResults(pods []ScannedPod, images []ScannedImage) *ScanResults {
 	return &ScanResults{
-		HubScanClientVersion: hubScanClientVersion,
-		HubVersion:           hubVersion,
-		Pods:                 pods,
-		Images:               images}
+		Pods:   pods,
+		Images: images}
 }

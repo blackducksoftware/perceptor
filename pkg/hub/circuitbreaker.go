@@ -25,57 +25,56 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/blackducksoftware/perceptor/pkg/api"
 )
 
 // CircuitBreaker .....
 type CircuitBreaker struct {
-	State               CircuitBreakerState
-	NextCheckTime       *time.Time
-	MaxBackoffDuration  time.Duration
-	ConsecutiveFailures int
-	//	IsEnabledChannel    chan bool
+	state               CircuitBreakerState
+	nextCheckTime       *time.Time
+	maxBackoffDuration  time.Duration
+	consecutiveFailures int
 }
 
 // NewCircuitBreaker .....
 func NewCircuitBreaker(maxBackoffDuration time.Duration) *CircuitBreaker {
 	cb := &CircuitBreaker{
-		NextCheckTime:       nil,
-		MaxBackoffDuration:  maxBackoffDuration,
-		ConsecutiveFailures: 0,
-		//		IsEnabledChannel:    make(chan bool),
+		nextCheckTime:       nil,
+		maxBackoffDuration:  maxBackoffDuration,
+		consecutiveFailures: 0,
 	}
 	cb.setState(CircuitBreakerStateEnabled)
 	return cb
+}
+
+// Model dumps the current state of the circuit breaker
+func (cb *CircuitBreaker) Model() *api.ModelCircuitBreaker {
+	return &api.ModelCircuitBreaker{
+		State:               cb.state.String(),
+		ConsecutiveFailures: cb.consecutiveFailures,
+		MaxBackoffDuration:  cb.maxBackoffDuration,
+		NextCheckTime:       cb.nextCheckTime,
+	}
 }
 
 // Reset reenables the circuit breaker regardless of its current state,
 // and clears out ConsecutiveFailures and NextCheckTime
 func (cb *CircuitBreaker) Reset() {
 	cb.setState(CircuitBreakerStateEnabled)
-	cb.ConsecutiveFailures = 0
-	cb.NextCheckTime = nil
+	cb.consecutiveFailures = 0
+	cb.nextCheckTime = nil
 }
 
 func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
 	recordCircuitBreakerState(state)
-	recordCircuitBreakerTransition(cb.State, state)
-	cb.State = state
-	// go func() {
-	// 	// TODO this goroutine may be leaked if nothing is reading from the channel
-	// 	switch state {
-	// 	case CircuitBreakerStateEnabled:
-	// 		cb.IsEnabledChannel <- true
-	// 	case CircuitBreakerStateDisabled:
-	// 		cb.IsEnabledChannel <- false
-	// 	case CircuitBreakerStateChecking:
-	// 		break
-	// 	}
-	// }()
+	recordCircuitBreakerTransition(cb.state, state)
+	cb.state = state
 }
 
 // IsEnabled .....
 func (cb *CircuitBreaker) IsEnabled() bool {
-	return cb.State != CircuitBreakerStateDisabled
+	return cb.state != CircuitBreakerStateDisabled
 }
 
 // isAbleToIssueRequest does 3 things:
@@ -83,7 +82,7 @@ func (cb *CircuitBreaker) IsEnabled() bool {
 // 2. increments a metric of the circuit breaker state
 // 3. returns whether the circuit breaker is enabled
 func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
-	if cb.State == CircuitBreakerStateDisabled && time.Now().After(*cb.NextCheckTime) {
+	if cb.state == CircuitBreakerStateDisabled && time.Now().After(*cb.nextCheckTime) {
 		cb.setState(CircuitBreakerStateChecking)
 	}
 	isEnabled := cb.IsEnabled()
@@ -92,38 +91,38 @@ func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
 }
 
 func (cb *CircuitBreaker) failure() {
-	switch cb.State {
+	switch cb.state {
 	case CircuitBreakerStateEnabled:
 		cb.setState(CircuitBreakerStateDisabled)
-		cb.ConsecutiveFailures = 1
+		cb.consecutiveFailures = 1
 		cb.setNextCheckTime()
 	case CircuitBreakerStateDisabled:
 		break
 	case CircuitBreakerStateChecking:
 		cb.setState(CircuitBreakerStateDisabled)
-		cb.ConsecutiveFailures++
+		cb.consecutiveFailures++
 		cb.setNextCheckTime()
 	}
 }
 
 func (cb *CircuitBreaker) success() {
-	switch cb.State {
+	switch cb.state {
 	case CircuitBreakerStateEnabled:
 		break
 	case CircuitBreakerStateDisabled:
 		break
 	case CircuitBreakerStateChecking:
 		cb.setState(CircuitBreakerStateEnabled)
-		cb.ConsecutiveFailures = 0
-		cb.NextCheckTime = nil
+		cb.consecutiveFailures = 0
+		cb.nextCheckTime = nil
 	}
 }
 
 func (cb *CircuitBreaker) setNextCheckTime() {
-	nextExponentialSeconds := math.Pow(2, float64(cb.ConsecutiveFailures))
-	nextCheckDuration := MinDuration(cb.MaxBackoffDuration, time.Duration(nextExponentialSeconds)*time.Second)
+	nextExponentialSeconds := math.Pow(2, float64(cb.consecutiveFailures))
+	nextCheckDuration := MinDuration(cb.maxBackoffDuration, time.Duration(nextExponentialSeconds)*time.Second)
 	nextCheckTime := time.Now().Add(nextCheckDuration)
-	cb.NextCheckTime = &nextCheckTime
+	cb.nextCheckTime = &nextCheckTime
 }
 
 // IssueRequest synchronously:

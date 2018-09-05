@@ -48,6 +48,25 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 
+	http.HandleFunc("/sethubs", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			var hubs PutHubs
+			err = json.Unmarshal(body, &hubs)
+			if err != nil {
+				responder.Error(w, r, err, 400)
+				return
+			}
+			responder.PutHubs(&hubs)
+		} else {
+			responder.NotFound(w, r)
+		}
+	})
+
 	// for receiving data from perceiver
 	http.HandleFunc("/pod", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

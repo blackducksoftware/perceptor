@@ -24,6 +24,8 @@ package federation
 import (
 	"fmt"
 	"os"
+
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
 // HubCreator ...
@@ -51,9 +53,9 @@ func (hc *HubCreator) createHubs(hubURLs map[string]bool) {
 		port := hc.hubConfig.Port
 		timeout := hc.hubConfig.ClientTimeout()
 		fetchAllProjectsPause := hc.hubConfig.FetchAllProjectsPause()
-		hub := NewHub(user, hc.hubPassword, hubURL, port, timeout, fetchAllProjectsPause)
+		client := hub.NewClient(user, hc.hubPassword, hubURL, port, timeout, fetchAllProjectsPause)
 		go func() {
-			hc.didFinishHubCreation <- &HubCreationResult{hub: hub}
+			hc.didFinishHubCreation <- &HubCreationResult{hub: client}
 		}()
 	}
 }

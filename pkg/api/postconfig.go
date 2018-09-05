@@ -23,9 +23,8 @@ package api
 
 // PostConfig allows certain config parameters to be changed.
 type PostConfig struct {
-	ConcurrentScanLimit                 *int
-	HubClientTimeoutMilliseconds        *int
-	LogLevel                            *string
-	ImageRefreshThresholdSeconds        *int
-	EnqueueImagesForRefreshPauseSeconds *int
+	ConcurrentScanLimit          *int
+	HubClientTimeoutMilliseconds *int
+	LogLevel                     *string
+	ImageRefreshThresholdSeconds *int
 }

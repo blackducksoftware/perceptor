@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,7 +39,7 @@ type Federator struct {
 	hubCreator *HubCreator
 	// model
 	config *Config
-	hubs   map[string]*Hub
+	hubs   map[string]*hub.Client
 	// channels
 	stop    chan struct{}
 	actions chan FedAction
@@ -68,7 +69,7 @@ func NewFederator(config *Config) (*Federator, error) {
 		responder:  responder,
 		hubCreator: hubCreator,
 		config:     config,
-		hubs:       map[string]*Hub{},
+		hubs:       map[string]*hub.Client{},
 		stop:       make(chan struct{}),
 		actions:    actions}
 	// process actions

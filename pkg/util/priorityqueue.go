@@ -52,7 +52,7 @@ func newPriorityQueueWithInitialCapacity(capacity int) *PriorityQueue {
 	}
 }
 
-// Values .....
+// Values should only be used for debugging.
 func (pq *PriorityQueue) Values() []interface{} {
 	elems := make([]interface{}, pq.size)
 	for i := 0; i < pq.size; i++ {
@@ -61,7 +61,7 @@ func (pq *PriorityQueue) Values() []interface{} {
 	return elems
 }
 
-// Dump .....
+// Dump should only be used for debugging.
 func (pq *PriorityQueue) Dump() []map[string]interface{} {
 	elems := make([]map[string]interface{}, pq.size)
 	for i := 0; i < pq.size; i++ {
@@ -109,6 +109,14 @@ func (pq *PriorityQueue) Add(key string, priority int, value interface{}) error 
 	pq.siftUp(pq.size)
 	pq.size++
 	return nil
+}
+
+// Peek returns the highest priority item, or nil if empty.
+func (pq *PriorityQueue) Peek() interface{} {
+	if pq.size == 0 {
+		return nil
+	}
+	return pq.items[0].value
 }
 
 // Pop removes the highest priority element, returning an error if empty.

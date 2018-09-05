@@ -22,17 +22,15 @@ under the License.
 package model
 
 import (
-	"testing"
-
-	log "github.com/sirupsen/logrus"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// TestMetrics .....
-func TestMetrics(t *testing.T) {
-	recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
-	recordEvent("abc")
-
-	message := "finished test case"
-	t.Log(message)
-	log.Info(message)
+func RunTestMetrics() {
+	It("should handle metrics without panicing", func() {
+		recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
+		recordEvent("abc")
+		recordError("def", "ghi")
+		Expect(1).To(Equal(1))
+	})
 }

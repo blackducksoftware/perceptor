@@ -27,23 +27,62 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Config contains all configuration for Perceptor
-type Config struct {
-	HubHost                         string
-	HubUser                         string
-	HubUserPasswordEnvVar           string
-	HubClientTimeoutMilliseconds    int
-	HubPort                         int
-	PruneOrphanedImagesPauseMinutes int
-	ConcurrentScanLimit             int
-	UseMockMode                     bool
-	Port                            int
-	LogLevel                        string
+// HubConfig handles Hub-specific configuration
+type HubConfig struct {
+	User                      string
+	PasswordEnvVar            string
+	ClientTimeoutMilliseconds int
+	Port                      int
+	ConcurrentScanLimit       int
+	TotalScanLimit            int
 }
 
-// HubClientTimeout converts the milliseconds to a duration
-func (config *Config) HubClientTimeout() time.Duration {
-	return time.Duration(config.HubClientTimeoutMilliseconds) * time.Millisecond
+// ClientTimeout converts the milliseconds to a duration
+func (config *HubConfig) ClientTimeout() time.Duration {
+	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
+}
+
+// Timings ...
+type Timings struct {
+	CheckForStalledScansPauseHours  int
+	StalledScanClientTimeoutHours   int
+	ModelMetricsPauseSeconds        int
+	UnknownImagePauseMilliseconds   int
+	PruneOrphanedImagesPauseMinutes int
+}
+
+// CheckForStalledScansPause ...
+func (t *Timings) CheckForStalledScansPause() time.Duration {
+	return time.Duration(t.CheckForStalledScansPauseHours) * time.Hour
+}
+
+// StalledScanClientTimeout ...
+func (t *Timings) StalledScanClientTimeout() time.Duration {
+	return time.Duration(t.StalledScanClientTimeoutHours) * time.Hour
+}
+
+// ModelMetricsPause ...
+func (t *Timings) ModelMetricsPause() time.Duration {
+	return time.Duration(t.ModelMetricsPauseSeconds) * time.Second
+}
+
+// UnknownImagePause ...
+func (t *Timings) UnknownImagePause() time.Duration {
+	return time.Duration(t.UnknownImagePauseMilliseconds) * time.Millisecond
+}
+
+// PruneOrphanedImagesPause ...
+func (t *Timings) PruneOrphanedImagesPause() time.Duration {
+	return time.Duration(t.PruneOrphanedImagesPauseMinutes) * time.Minute
+}
+
+// Config contains all configuration for Perceptor
+type Config struct {
+	Hub         *HubConfig
+	Timings     *Timings
+	UseMockMode bool
+	Port        int
+	LogLevel    string
 }
 
 // GetLogLevel .....

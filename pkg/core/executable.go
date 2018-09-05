@@ -25,14 +25,27 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
+
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 
 	log "github.com/sirupsen/logrus"
 )
+
+func createMockHub(hubURL string) hub.ClientInterface {
+	return hub.NewMockClient(hubURL)
+}
+
+func createHubClient(username string, password string, port int, httpTimeout time.Duration) func(hubURL string) hub.ClientInterface {
+	return func(hubURL string) hub.ClientInterface {
+		return hub.NewClient(username, password, hubURL, port, httpTimeout, 999999*time.Hour)
+	}
+}
 
 // RunPerceptor .....
 func RunPerceptor(configPath string) {
@@ -64,21 +77,39 @@ func RunPerceptor(configPath string) {
 
 	http.Handle("/metrics", prometheus.Handler())
 
-	if config.UseMockMode {
-		responder := api.NewMockResponder()
-		api.SetupHTTPServer(responder)
-		log.Info("instantiated responder in mock mode")
-	} else {
-		perceptor, err := NewPerceptor(config)
-		if err != nil {
-			log.Errorf("unable to instantiate percepter: %s", err.Error())
-			panic(err)
-		}
+	stop := make(chan struct{})
 
-		log.Infof("instantiated perceptor in real mode: %+v", perceptor)
+	var newHub func(string) hub.ClientInterface
+	if config.UseMockMode {
+		log.Infof("instantiating perceptor in mock mode")
+		newHub = createMockHub
+	} else {
+		log.Infof("instantiating perceptor in real mode")
+		password, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
+		if !ok {
+			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.Hub.PasswordEnvVar))
+		}
+		newHub = createHubClient(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout())
 	}
 
+	manager := NewHubManager(newHub, stop)
+	scanScheduler := &ScanScheduler{
+		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
+		TotalScanLimit:      config.Hub.TotalScanLimit,
+		HubManager:          manager}
+	perceptor, err := NewPerceptor(config.Timings, scanScheduler, manager)
+	if err != nil {
+		log.Errorf("unable to instantiate percepter: %s", err.Error())
+		panic(err)
+	}
+
+	log.Infof("instantiated perceptor: %+v", perceptor)
+	api.SetupHTTPServer(perceptor)
+
 	addr := fmt.Sprintf(":%d", config.Port)
-	http.ListenAndServe(addr, nil)
-	log.Info("Http server started!")
+	go func() {
+		log.Infof("starting HTTP server on port %d", config.Port)
+		http.ListenAndServe(addr, nil)
+	}()
+	<-stop
 }

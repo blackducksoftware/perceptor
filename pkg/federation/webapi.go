@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 
 	log "github.com/sirupsen/logrus"
@@ -175,12 +176,10 @@ func NewMockResponder() *MockResponder {
 
 // GetModel ...
 func (mr *MockResponder) GetModel() *APIModel {
-	return &APIModel{Hubs: map[string]*APIModelHub{
+	return &APIModel{Hubs: map[string]*api.ModelHub{
 		"http://blackducksoftware/com": {
-			HasLoadedAllProjects:    false,
-			IsCircuitBreakerEnabled: false,
-			IsLoggedIn:              false,
-			Projects:                map[string]string{},
+			//			HasLoadedAllProjects:    false,
+			//			Projects:                map[string]string{},
 		},
 	}}
 }
@@ -205,7 +204,7 @@ func (mr *MockResponder) Error(w http.ResponseWriter, r *http.Request, err error
 // APIModel ...
 type APIModel struct {
 	// map of hub URL to ... ? hub info?
-	Hubs map[string]*APIModelHub
+	Hubs map[string]*api.ModelHub
 }
 
 // APISetHubsRequest ...
@@ -233,24 +232,6 @@ type APIProjectSearchResponse struct {
 type APIProject struct {
 	Name string
 	URL  string
-}
-
-// APIModelHub ...
-type APIModelHub struct {
-	// can we log in to the hub?
-	IsLoggedIn bool
-	// have all the projects been sucked in?
-	HasLoadedAllProjects bool
-	// is circuit breaker enabled?
-	IsCircuitBreakerEnabled bool
-	// map of project name to ... ? hub URL?
-	Projects map[string]string
-	// map of code location name to mapped project version url
-	CodeLocations map[string]string
-	// bad things that have happened
-	Errors []string
-	// status
-	Status string
 }
 
 // HTTPResponder ...

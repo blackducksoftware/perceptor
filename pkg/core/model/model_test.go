@@ -25,27 +25,11 @@ import (
 	"encoding/json"
 	"sort"
 
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	sha1   = DockerImageSha("sha1")
-	image1 = *NewImage("image1", "1", sha1)
-	sha2   = DockerImageSha("sha2")
-	image2 = *NewImage("image2", "2", sha2)
-	sha3   = DockerImageSha("sha3")
-	image3 = *NewImage("image3", "3", sha3)
-	cont1  = *NewContainer(image1, "cont1")
-	cont2  = *NewContainer(image2, "cont2")
-	cont3  = *NewContainer(image3, "cont3")
-	pod1   = *NewPod("pod1", "pod1uid", "ns1", []Container{cont1, cont2})
-	pod2   = *NewPod("pod2", "pod2uid", "ns1", []Container{cont1})
-	pod3   = *NewPod("pod3", "pod3uid", "ns3", []Container{cont3})
-	// this is ridiculous, but let's create a pod with 0 containers
-	pod4 = *NewPod("pod4", "pod4uid", "ns4", []Container{})
 )
 
 func sortedValues(pq *util.PriorityQueue) []interface{} {
@@ -59,21 +43,16 @@ func sortedValues(pq *util.PriorityQueue) []interface{} {
 func RunModelTests() {
 	Describe("Model", func() {
 		It("add image without pod, then same image in pod", func() {
-			model := NewModel("abc", &Config{ConcurrentScanLimit: 2}, nil)
+			model := NewModel()
 
-			model.AddImage(image1, -2)
-			model.AddImage(image3, -1)
-			model.SetImageScanStatus(sha1, ScanStatusInQueue)
-			model.SetImageScanStatus(sha3, ScanStatusInQueue)
-			Expect(model.ImagePriority[sha1]).To(Equal(-2))
-			Expect(model.ImagePriority[sha3]).To(Equal(-1))
+			model.addImage(image1)
+			model.addImage(image3)
+			model.setImageScanStatus(sha1, ScanStatusInQueue)
+			model.setImageScanStatus(sha3, ScanStatusInQueue)
 			Expect(model.ImageScanQueue.Values()[0]).To(Equal(sha3))
 
-			model.AddPod(pod1)
-			model.SetImageScanStatus(sha2, ScanStatusInQueue)
-			Expect(model.ImagePriority[sha1]).To(Equal(1))
-			Expect(model.ImagePriority[sha2]).To(Equal(1))
-			Expect(model.ImagePriority[sha3]).To(Equal(-1))
+			model.addPod(pod1)
+			model.setImageScanStatus(sha2, ScanStatusInQueue)
 
 			// This is destructive!
 			values := []interface{}{}
@@ -84,131 +63,83 @@ func RunModelTests() {
 				}
 				values = append(values, next)
 			}
-			Expect(values).To(Equal([]interface{}{sha1, sha2, sha3}))
+			Expect(values).To(Equal([]interface{}{sha3, sha2, sha1}))
 		})
 
-		removeItemModel := func() *Model {
-			model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
-			model.AddImage(image1, 0)
-			model.AddImage(image2, 0)
-			model.AddImage(image3, 0)
-			return model
-		}
-
 		removeScanItemModel := func() *Model {
-			model := NewModel("zzz", &Config{ConcurrentScanLimit: 1}, nil)
-			model.AddImage(image1, 0)
-			model.AddImage(image2, 0)
-			model.AddImage(image3, 0)
-			model.SetImageScanStatus(image1.Sha, ScanStatusInQueue)
-			model.SetImageScanStatus(image2.Sha, ScanStatusInQueue)
-			model.SetImageScanStatus(image3.Sha, ScanStatusInQueue)
+			model := NewModel()
+			model.addImage(image1)
+			model.addImage(image2)
+			model.addImage(image3)
+			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
+			model.setImageScanStatus(image2.Sha, ScanStatusInQueue)
+			model.setImageScanStatus(image3.Sha, ScanStatusInQueue)
 			return model
 		}
 
 		It("Model JSON Serialization", func() {
-			m := NewModel("test version", &Config{ConcurrentScanLimit: 3}, nil)
+			m := NewModel()
 			jsonBytes, err := json.Marshal(m)
 			Expect(err).To(BeNil())
 			log.Infof("json bytes: %s", string(jsonBytes))
 		})
 
-		Describe("Hub check queue operations", func() {
-			It("TestModelRemoveItemFromFrontOfHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image1.Sha)
-				// "remove item from front of hub check queue"
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image2.Sha, image3.Sha}))
-			})
-
-			It("TestModelRemoveItemFromMiddleOfHubCheckQueue", func() {
-				model := removeItemModel()
-				err := model.removeImageFromHubCheckQueue(image2.Sha)
-				Expect(err).To(BeNil())
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image3.Sha}))
-			})
-
-			It("TestModelRemoveItemFromEndOfHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image3.Sha)
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha}))
-			})
-
-			It("TestModelRemoveAllItemsFromHubCheckQueue", func() {
-				model := removeItemModel()
-				model.removeImageFromHubCheckQueue(image1.Sha)
-				model.removeImageFromHubCheckQueue(image2.Sha)
-				model.removeImageFromHubCheckQueue(image3.Sha)
-				Expect(model.ImageHubCheckQueue).To(Equal([]DockerImageSha{}))
-			})
-		})
-
 		Describe("Image scan queue operations", func() {
 			It("TestModelRemoveItemFromFrontOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image2.Sha, image3.Sha}))
 			})
 
 			It("TestModelRemoveItemFromMiddleOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image3.Sha}))
 			})
 
 			It("TestModelRemoveItemFromEndOfScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{image1.Sha, image2.Sha}))
 			})
 
 			It("TestModelRemoveAllItemsFromScanQueue", func() {
 				model := removeScanItemModel()
-				model.SetImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
-				model.SetImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
-				model.SetImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image1.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image2.Sha, ScanStatusRunningScanClient)
+				model.setImageScanStatus(image3.Sha, ScanStatusRunningScanClient)
 				Expect(sortedValues(model.ImageScanQueue)).To(Equal([]interface{}{}))
 			})
 		})
 
-		Describe("Refresh queue operations", func() {
-			model := removeItemModel()
-			It("should add all 3 images to the refresh queue", func() {
-				for _, image := range []Image{image1, image2, image3} {
-					model.SetImageScanStatus(image.Sha, ScanStatusComplete)
-					err := model.AddImageToRefreshQueue(image.Sha)
-					Expect(err).To(BeNil())
+		Describe("Image status operations", func() {
+			It("moves an image Unknown->InQueue->RunningScanClient->RunningHubScan->Complete", func() {
+				model := NewModel()
+				model.addImage(image1)
+				model.addImage(image2)
+				// 1. Unknown
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusUnknown))
+				// 2. InQueue
+				Expect(model.scanDidFinish(sha1, nil)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusInQueue))
+				// 3. RunningScanClient
+				Expect(model.StartScanClient(sha1)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusRunningScanClient))
+				// 4. RunningHubScan
+				model.finishRunningScanClient(&image1, nil)
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusRunningHubScan))
+				// 5. Complete
+				results := &hub.ScanResults{
+					ScanSummaries: []hub.ScanSummary{
+						{
+							CreatedAt: "maintenant",
+							Status:    hub.ScanSummaryStatusSuccess,
+							UpdatedAt: "demain",
+						},
+					},
 				}
-			})
-
-			It("should start out with all 3 images", func() {
-				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha, image3.Sha}))
-			})
-
-			It("should produce image1 next, but still leave all 3 in the queue", func() {
-				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image1))
-				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image2.Sha, image3.Sha}))
-			})
-
-			It("should remove 2 from the queue, leaving behind 1 and 3", func() {
-				err := model.RemoveImageFromRefreshQueue(image2.Sha)
-				Expect(err).To(BeNil())
-				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image1.Sha, image3.Sha}))
-				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image1))
-			})
-
-			It("should remove 1 from the queue, leaving behind 3", func() {
-				err := model.RemoveImageFromRefreshQueue(image1.Sha)
-				Expect(err).To(BeNil())
-				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{image3.Sha}))
-				Expect(*model.GetNextImageFromRefreshQueue()).To(Equal(image3))
-			})
-
-			It("should remove 3 from the queue, leaving behind nothing", func() {
-				err := model.RemoveImageFromRefreshQueue(image3.Sha)
-				Expect(err).To(BeNil())
-				Expect(model.ImageRefreshQueue).To(Equal([]DockerImageSha{}))
-				Expect(model.GetNextImageFromRefreshQueue()).To(BeNil())
+				Expect(model.scanDidFinish(sha1, results)).To(BeNil())
+				Expect(model.Images[sha1].ScanStatus).To(Equal(ScanStatusComplete))
 			})
 		})
 	})

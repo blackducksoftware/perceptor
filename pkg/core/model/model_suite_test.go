@@ -30,7 +30,18 @@ import (
 
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
+	RunActionTests()
+	RunGetNextImageTests()
 	RunImageTests()
 	RunModelTests()
+	RunTestAddImageAction()
+	RunTestAddPodAction()
+	RunTestAllImages()
+	RunTestAllPods()
+	RunTestFinishScanClient()
+	RunTestGetFullScanResults()
+	RunTestGetModel()
+	RunTestLegalScanStatusTransitions()
+	RunTestMetrics()
 	RunSpecs(t, "model suite")
 }

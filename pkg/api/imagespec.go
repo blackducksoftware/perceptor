@@ -26,18 +26,9 @@ type ImageSpec struct {
 	Repository            string
 	Tag                   string
 	Sha                   string
+	HubURL                string
 	HubProjectName        string
 	HubProjectVersionName string
 	HubScanName           string
-}
-
-// NewImageSpec .....
-func NewImageSpec(repository string, tag string, sha string, hubProjectName string, hubProjectVersionName string, hubScanName string) *ImageSpec {
-	return &ImageSpec{
-		Repository:            repository,
-		Tag:                   tag,
-		Sha:                   sha,
-		HubProjectName:        hubProjectName,
-		HubProjectVersionName: hubProjectVersionName,
-		HubScanName:           hubScanName}
+	Priority              int
 }
