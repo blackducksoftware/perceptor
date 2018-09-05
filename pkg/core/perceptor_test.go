@@ -143,7 +143,6 @@ func RunTestPerceptor() {
 
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
-			//			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{ImageSpec: makeImageSpec(&image4, "hub1")}))
 		})
 	})
 }

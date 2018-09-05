@@ -63,7 +63,7 @@ func RunModelTests() {
 				}
 				values = append(values, next)
 			}
-			Expect(values).To(Equal([]interface{}{sha1, sha2, sha3}))
+			Expect(values).To(Equal([]interface{}{sha3, sha2, sha1}))
 		})
 
 		removeScanItemModel := func() *Model {

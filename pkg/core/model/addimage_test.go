@@ -33,7 +33,7 @@ func RunTestAddImageAction() {
 		//  - image gets added to .Images
 		//  - image gets added to hub check queue
 		expected := *NewModel()
-		imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 0)
+		imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 1)
 		imageInfo.ScanStatus = ScanStatusUnknown
 		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 		expected.Images[testSha] = imageInfo
