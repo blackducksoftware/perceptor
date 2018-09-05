@@ -399,18 +399,24 @@ func (model *Model) startScanClient(sha DockerImageSha) error {
 
 // FinishRunningScanClient .....
 func (model *Model) finishRunningScanClient(image *Image, scanClientError error) {
-	_, ok := model.Images[image.Sha]
+	imageInfo, ok := model.Images[image.Sha]
 
 	// if we don't have this sha already, let's add it to the model,
 	// but *NOT* to the scan queue
 	if !ok {
 		log.Warnf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
 		_ = model.createImage(*image)
+
+		imageInfo, ok = model.Images[image.Sha]
+		if !ok {
+			log.Errorf("created image info for sha %s, but sha still not found", image.Sha)
+			return
+		}
 	}
 
 	scanStatus := ScanStatusRunningHubScan
 	if scanClientError != nil {
-		model.ImagePriority[image.Sha] = -1
+		imageInfo.Priority = -1
 		scanStatus = ScanStatusInQueue
 		log.Errorf("error running scan client -- %s", scanClientError.Error())
 	}

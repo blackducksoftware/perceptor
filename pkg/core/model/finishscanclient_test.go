@@ -32,7 +32,7 @@ func RunTestFinishScanClient() {
 	Describe("FinishScanClient", func() {
 		It("handles failures", func() {
 			model := NewModel()
-			image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"), 0)
+			image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"), -1)
 			model.setImageScanStatus(image.Sha, ScanStatusInQueue)
 			model.setImageScanStatus(image.Sha, ScanStatusRunningScanClient)
 			model.finishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
