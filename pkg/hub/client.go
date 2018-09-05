@@ -313,6 +313,7 @@ func (hub *Client) apiModel() *api.ModelHub {
 		HasLoadedAllCodeLocations: hub.codeLocations != nil,
 		CodeLocations:             codeLocations,
 		CircuitBreaker:            hub.circuitBreaker.Model(),
+		Host:                      hub.host,
 	}
 }
 

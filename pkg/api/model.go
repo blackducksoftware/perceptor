@@ -27,11 +27,16 @@ import (
 
 // Model ...
 type Model struct {
-	Hubs              map[string]*ModelHub
-	CoreModel         CoreModel
-	Config            *ModelConfig
-	Timings           *ModelTimings
-	HubCircuitBreaker *ModelCircuitBreaker
+	Hubs      map[string]*ModelHub
+	CoreModel CoreModel
+	Config    *ModelConfig
+	Scheduler *ModelScanScheduler
+}
+
+// ModelScanScheduler ...
+type ModelScanScheduler struct {
+	ConcurrentScanLimit int
+	TotalScanLimit      int
 }
 
 // CoreModel .....
@@ -41,15 +46,22 @@ type CoreModel struct {
 	ImageScanQueue []map[string]interface{}
 }
 
+// ModelHubConfig ...
+type ModelHubConfig struct {
+	User                string
+	PasswordEnvVar      string
+	ClientTimeout       ModelTime
+	Port                int
+	ConcurrentScanLimit int
+	TotalScanLimit      int
+}
+
 // ModelConfig .....
 type ModelConfig struct {
-	HubHost string
-	HubUser string
-	//	HubPasswordEnvVar   string
-	HubPort             int
-	Port                int
-	LogLevel            string
-	ConcurrentScanLimit int
+	Timings  *ModelTimings
+	Hub      *ModelHubConfig
+	Port     int
+	LogLevel string
 }
 
 // ModelTime ...
@@ -73,16 +85,11 @@ func NewModelTime(duration time.Duration) *ModelTime {
 
 // ModelTimings ...
 type ModelTimings struct {
-	HubClientTimeout               ModelTime
-	CheckHubForCompletedScansPause ModelTime
-	CheckHubThrottle               ModelTime
-	CheckForStalledScansPause      ModelTime
-	StalledScanClientTimeout       ModelTime
-	RefreshImagePause              ModelTime
-	EnqueueImagesForRefreshPause   ModelTime
-	RefreshThresholdDuration       ModelTime
-	ModelMetricsPause              ModelTime
-	HubReloginPause                ModelTime
+	CheckForStalledScansPause ModelTime
+	StalledScanClientTimeout  ModelTime
+	ModelMetricsPause         ModelTime
+	UnknownImagePause         ModelTime
+	PruneOrphanedImagesPause  ModelTime
 }
 
 // ModelImageInfo .....
@@ -105,7 +112,7 @@ type ModelRepoTag struct {
 type ModelCircuitBreaker struct {
 	State               string
 	NextCheckTime       *time.Time
-	MaxBackoffDuration  time.Duration
+	MaxBackoffDuration  ModelTime
 	ConsecutiveFailures int
 }
 
@@ -122,6 +129,7 @@ type ModelHub struct {
 	Errors         []string
 	Status         string
 	CircuitBreaker *ModelCircuitBreaker
+	Host           string
 }
 
 // ModelCodeLocation ...

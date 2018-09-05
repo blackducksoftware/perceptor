@@ -24,6 +24,7 @@ package core
 import (
 	"time"
 
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -83,6 +84,28 @@ type Config struct {
 	UseMockMode bool
 	Port        int
 	LogLevel    string
+}
+
+func (config *Config) model() *api.ModelConfig {
+	return &api.ModelConfig{
+		Hub: &api.ModelHubConfig{
+			ClientTimeout:       *api.NewModelTime(config.Hub.ClientTimeout()),
+			ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
+			PasswordEnvVar:      config.Hub.PasswordEnvVar,
+			Port:                config.Hub.Port,
+			TotalScanLimit:      config.Hub.TotalScanLimit,
+			User:                config.Hub.User,
+		},
+		LogLevel: config.LogLevel,
+		Port:     config.Port,
+		Timings: &api.ModelTimings{
+			CheckForStalledScansPause: *api.NewModelTime(config.Timings.CheckForStalledScansPause()),
+			ModelMetricsPause:         *api.NewModelTime(config.Timings.ModelMetricsPause()),
+			PruneOrphanedImagesPause:  *api.NewModelTime(config.Timings.PruneOrphanedImagesPause()),
+			StalledScanClientTimeout:  *api.NewModelTime(config.Timings.StalledScanClientTimeout()),
+			UnknownImagePause:         *api.NewModelTime(config.Timings.UnknownImagePause()),
+		},
+	}
 }
 
 // GetLogLevel .....

@@ -40,7 +40,8 @@ func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 		StalledScanClientTimeoutHours:  9999,
 		UnknownImagePauseMilliseconds:  500,
 	}
-	pcp, err := NewPerceptor(timings,
+	config := &Config{}
+	pcp, err := NewPerceptor(config, timings,
 		&ScanScheduler{
 			HubManager:          manager,
 			ConcurrentScanLimit: concurrentScanLimit,
