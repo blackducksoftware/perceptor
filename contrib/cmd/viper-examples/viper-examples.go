@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	fsnotify "gopkg.in/fsnotify.v1"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -17,13 +17,13 @@ func main() {
 		configPath = os.Args[1]
 	}
 	handleConfig(configPath)
-	// viper.OnConfigChange(func(in fsnotify.Event) {
-	// 	handleConfig(configPath)
-	// })
-	// viper.WatchConfig()
-	// log.Info("Viper examples are running!")
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		handleConfig(configPath)
+	})
+	viper.WatchConfig()
+	log.Info("Viper examples are running!")
 
-	// select {}
+	select {}
 }
 
 func handleConfig(configPath string) {
@@ -78,6 +78,7 @@ func getConfig(configPath string) (*Config, error) {
 		viper.AutomaticEnv()
 	}
 
+	fmt.Println("get", viper.Get("A"), viper.Get("VPE_A"))
 	err := viper.Unmarshal(&config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
