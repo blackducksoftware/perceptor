@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	fsnotify "gopkg.in/fsnotify.v1"
 
 	log "github.com/sirupsen/logrus"
 )
