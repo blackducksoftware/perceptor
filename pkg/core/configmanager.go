@@ -23,6 +23,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -45,7 +46,29 @@ func NewConfigManager(configPath string) *ConfigManager {
 func (cm *ConfigManager) GetConfig() (*Config, error) {
 	var config *Config
 
-	viper.SetConfigFile(cm.ConfigPath)
+	if cm.ConfigPath != "" {
+		viper.SetConfigFile(cm.ConfigPath)
+	} else {
+		viper.SetEnvPrefix("PCP")
+		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		viper.BindEnv("Timings_CheckForStalledScansPauseHours")
+		viper.BindEnv("Timings_ModelMetricsPauseSeconds")
+		viper.BindEnv("Timings_PruneOrphanedImagesPauseMinutes")
+		viper.BindEnv("Timings_StalledScanClientTimeoutHours")
+		viper.BindEnv("Timings_UnknownImagePauseMilliseconds")
+		viper.BindEnv("Hub_User")
+		viper.BindEnv("Hub_TotalScanLimit")
+		viper.BindEnv("Hub_Port")
+		viper.BindEnv("Hub_PasswordEnvVar")
+		viper.BindEnv("Hub_ConcurrentScanLimit")
+		viper.BindEnv("Hub_ClientTimeoutMilliseconds")
+		viper.BindEnv("LogLevel")
+		viper.BindEnv("Port")
+		viper.BindEnv("UseMockMode")
+		viper.BindEnv("E.F")
+		viper.BindEnv("E.G")
+		viper.AutomaticEnv()
+	}
 
 	err := viper.ReadInConfig()
 	if err != nil {

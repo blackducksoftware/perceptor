@@ -29,7 +29,10 @@ import (
 )
 
 func main() {
-	configPath := os.Args[1]
+	var configPath string
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
+	}
 	log.Infof("Config path: %s", configPath)
 	core.RunPerceptor(configPath)
 }
