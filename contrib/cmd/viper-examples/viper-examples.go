@@ -58,6 +58,9 @@ func getConfig(configPath string) (*Config, error) {
 		viper.BindEnv("A")
 		viper.BindEnv("B")
 		viper.BindEnv("C")
+		// What exactly does `AutomaticEnv` do?  Maybe not what you'd expect:
+		// - https://github.com/spf13/viper/issues/188
+		// - https://github.com/spf13/viper/issues/522#issuecomment-401427070
 		viper.AutomaticEnv()
 	}
 
