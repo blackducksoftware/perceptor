@@ -39,8 +39,6 @@ const (
 
 // Client .....
 type Client struct {
-	// TODO add a second hub client -- so that there's one for rare, slow requests (all projects,
-	//   all code locations) and one for frequent, quick requests
 	client         RawClientInterface
 	circuitBreaker *CircuitBreaker
 	// basic hub info

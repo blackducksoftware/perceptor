@@ -62,10 +62,6 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 			select {
 			case <-stop:
 				return
-			// case imageShas := <-routineTaskManager.orphanedImages:
-			// 	// TODO reenable deletion with appropriate throttling
-			// 	// hubClient.DeleteScans(imageShas)
-			// 	log.Errorf("deletion temporarily disabled, ignoring shas %+v", imageShas)
 			case <-routineTaskManager.metricsCh:
 				recordModelMetrics(model.GetMetrics())
 			case <-routineTaskManager.unknownImagesCh:
@@ -115,14 +111,6 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 				return
 			case update := <-updates:
 				switch u := update.Update.(type) {
-				// TODO this logic is probably wrong.  We should distinguish between:
-				// - first find (success)
-				// - first find (nothing)
-				// - first find (in progress)
-				// - first find (failed)
-				// - scan finished (success)
-				// - scan finished (failed)
-				// - scan refreshed
 				case *hub.DidFindScan:
 					model.ScanDidFinish(m.DockerImageSha(u.Name), u.Results)
 				case *hub.DidFinishScan:

@@ -108,8 +108,6 @@ func metrics(model *Model) *Metrics {
 		}
 	}
 
-	// TODO
-	// number of images without a pod pointing to them
 	return &Metrics{
 		ScanStatusCounts:      statusCounts,
 		NumberOfImages:        len(model.Images),
