@@ -358,6 +358,7 @@ func (model *Model) FinishRunningScanClient(image *Image, scanClientError error)
 
 	scanStatus := ScanStatusRunningHubScan
 	if scanClientError != nil {
+		model.ImagePriority[image.Sha] = -1
 		scanStatus = ScanStatusInQueue
 		log.Errorf("error running scan client -- %s", scanClientError.Error())
 	}
