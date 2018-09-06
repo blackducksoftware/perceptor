@@ -23,6 +23,7 @@ package hub
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 )
@@ -38,6 +39,38 @@ func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (
 		return nil, fmt.Errorf("unable to fetch code locations list")
 	}
 	return &hubapi.CodeLocationList{}, nil
+}
+
+// CurrentVersion ...
+func (mhc *MockRawClient) CurrentVersion() (*hubapi.CurrentVersion, error) {
+	if mhc.ShouldFail {
+		return nil, fmt.Errorf("unable to fetch current version")
+	}
+	return &hubapi.CurrentVersion{}, nil
+}
+
+// ListProjects ...
+func (mhc *MockRawClient) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectList, error) {
+	if mhc.ShouldFail {
+		return nil, fmt.Errorf("unable to fetch project list")
+	}
+	return &hubapi.ProjectList{}, nil
+}
+
+// DeleteCodeLocation ...
+func (mhc *MockRawClient) DeleteCodeLocation(scanName string) error {
+	if mhc.ShouldFail {
+		return fmt.Errorf("unable to delete code location %s", scanName)
+	}
+	return nil
+}
+
+// DeleteProjectVersion ...
+func (mhc *MockRawClient) DeleteProjectVersion(name string) error {
+	if mhc.ShouldFail {
+		return fmt.Errorf("unable to delete project %s", name)
+	}
+	return nil
 }
 
 // GetProject ...
@@ -63,6 +96,17 @@ func (mhc *MockRawClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.S
 	}
 	return &hubapi.ScanSummaryList{}, nil
 }
+
+// Login ...
+func (mhc *MockRawClient) Login(username string, password string) error {
+	if mhc.ShouldFail {
+		return fmt.Errorf("unable to login")
+	}
+	return nil
+}
+
+// SetTimeout ...
+func (mhc *MockRawClient) SetTimeout(timeout time.Duration) {}
 
 // GetProjectVersionRiskProfile ...
 func (mhc *MockRawClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {

@@ -33,7 +33,7 @@ import (
 
 func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 	stop := make(chan struct{})
-	manager := NewHubManager(createMockHub, stop)
+	manager := NewHubManager(createMockHubClient, stop)
 	timings := &Timings{
 		CheckForStalledScansPauseHours: 9999,
 		ModelMetricsPauseSeconds:       15,

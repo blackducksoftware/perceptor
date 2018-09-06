@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
@@ -47,13 +48,19 @@ func NewHubCreator(hubConfig *HubConfig) (*HubCreator, error) {
 		didFinishHubCreation: make(chan *HubCreationResult)}, nil
 }
 
-func (hc *HubCreator) createHubs(hubURLs map[string]bool) {
-	for hubURL := range hubURLs {
+func (hc *HubCreator) createHubs(hubHosts map[string]bool) {
+	for host := range hubHosts {
 		user := hc.hubConfig.User
 		port := hc.hubConfig.Port
 		timeout := hc.hubConfig.ClientTimeout()
 		fetchAllProjectsPause := hc.hubConfig.FetchAllProjectsPause()
-		client := hub.NewClient(user, hc.hubPassword, hubURL, port, timeout, fetchAllProjectsPause)
+		baseURL := fmt.Sprintf("https://%s:%d", host, port)
+		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, timeout)
+		if err != nil {
+			panic(fmt.Errorf("TODO -- don't panic.  handle.  unable to create client for hub %s: %s", host, err.Error()))
+		}
+
+		client := hub.NewClient(user, hc.hubPassword, host, rawClient, fetchAllProjectsPause)
 		go func() {
 			hc.didFinishHubCreation <- &HubCreationResult{hub: client}
 		}()

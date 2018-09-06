@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
-	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -45,7 +44,6 @@ type Client struct {
 	username string
 	password string
 	host     string
-	port     int
 	status   ClientStatus
 	// data
 	codeLocations   map[string]*Scan
@@ -79,13 +77,13 @@ type Client struct {
 }
 
 // NewClient returns a new Client.  It will not be logged in.
-func NewClient(username string, password string, host string, port int, hubClientTimeout time.Duration, fetchAllProjectsPause time.Duration) *Client {
+func NewClient(username string, password string, host string, client RawClientInterface, fetchAllProjectsPause time.Duration) *Client {
 	hub := &Client{
+		client:         client,
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
 		username:       username,
 		password:       password,
 		host:           host,
-		port:           port,
 		status:         ClientStatusDown,
 		//
 		codeLocations:   nil, // nil == codeLocations not yet fetched
@@ -111,13 +109,6 @@ func NewClient(username string, password string, host string, port int, hubClien
 		hasFetchedCodeLocationsCh: make(chan chan bool),
 		getCodeLocationsCh:        make(chan chan map[string]bool),
 		unknownCodeLocationsCh:    make(chan chan []string)}
-	// initialize hub client
-	baseURL := fmt.Sprintf("https://%s:%d", host, port)
-	client, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, hubClientTimeout)
-	if err != nil {
-		hub.status = ClientStatusError
-	}
-	hub.client = client
 	// action processing
 	go func() {
 		for {
@@ -301,6 +292,7 @@ func (hub *Client) apiModel() *api.ModelHub {
 	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, scan := range hub.codeLocations {
 		codeLocations[name] = &api.ModelCodeLocation{
+			Status:               "TODO",
 			Href:                 scan.CodeLocation.Meta.Href,
 			URL:                  scan.CodeLocation.URL,
 			MappedProjectVersion: scan.CodeLocation.MappedProjectVersion,

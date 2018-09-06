@@ -23,10 +23,29 @@ package core
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
+
+type hubClientCreator func(host string) (hub.ClientInterface, error)
+
+func createMockHubClient(hubURL string) (hub.ClientInterface, error) {
+	return hub.NewMockClient(hubURL), nil
+}
+
+func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
+	return func(host string) (hub.ClientInterface, error) {
+		baseURL := fmt.Sprintf("https://%s:%d", host, port)
+		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
+		if err != nil {
+			return nil, err
+		}
+		return hub.NewClient(username, password, host, rawClient, 999999*time.Hour), nil
+	}
+}
 
 // Update is a wrapper around hub.Update which also tracks which Hub was the source.
 type Update struct {
@@ -46,7 +65,7 @@ type HubManagerInterface interface {
 
 // HubManager ...
 type HubManager struct {
-	newHub func(hubURL string) hub.ClientInterface
+	newHub hubClientCreator
 	//
 	stop    <-chan struct{}
 	updates chan *Update
@@ -57,7 +76,7 @@ type HubManager struct {
 }
 
 // NewHubManager ...
-func NewHubManager(newHub func(hubURL string) hub.ClientInterface, stop <-chan struct{}) *HubManager {
+func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 	// TODO needs to be made concurrent-safe
 	return &HubManager{
 		newHub:                newHub,
@@ -103,7 +122,10 @@ func (hm *HubManager) create(hubURL string) error {
 	if _, ok := hm.hubs[hubURL]; ok {
 		return fmt.Errorf("cannot create hub %s: already exists", hubURL)
 	}
-	hubClient := hm.newHub(hubURL)
+	hubClient, err := hm.newHub(hubURL)
+	if err != nil {
+		return err
+	}
 	hm.hubs[hubURL] = hubClient
 	go func() {
 		stop := hubClient.StopCh()
