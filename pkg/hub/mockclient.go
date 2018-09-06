@@ -31,7 +31,7 @@ import (
 
 // MockClient is a mock implementation of ClientInterface.
 type MockClient struct {
-	images  map[string]bool
+	images  map[string]ScanStage
 	host    string
 	stop    chan struct{}
 	updates chan Update
@@ -40,7 +40,7 @@ type MockClient struct {
 // NewMockClient .....
 func NewMockClient(host string) *MockClient {
 	return &MockClient{
-		images:  map[string]bool{},
+		images:  map[string]ScanStage{},
 		host:    host,
 		stop:    make(chan struct{}),
 		updates: make(chan Update),
@@ -133,20 +133,20 @@ func (hub *MockClient) CodeLocationsCount() <-chan int {
 
 // StartScanClient ...
 func (hub *MockClient) StartScanClient(scanName string) {
-	hub.images[scanName] = false
+	hub.images[scanName] = ScanStageScanClient
 }
 
 // FinishScanClient ...
 func (hub *MockClient) FinishScanClient(scanName string) {
-	//
+	hub.images[scanName] = ScanStageHubScan
 }
 
 // InProgressScans ...
 func (hub *MockClient) InProgressScans() <-chan []string {
 	ch := make(chan []string)
 	inProgress := []string{}
-	for sha, isDone := range hub.images {
-		if !isDone {
+	for sha, stage := range hub.images {
+		if stage == ScanStageHubScan || stage == ScanStageScanClient {
 			inProgress = append(inProgress, sha)
 		}
 	}
@@ -193,11 +193,11 @@ func (hub *MockClient) HasFetchedCodeLocations() <-chan bool {
 }
 
 // CodeLocations ...
-func (hub *MockClient) CodeLocations() <-chan map[string]bool {
-	ch := make(chan map[string]bool)
-	cls := map[string]bool{}
-	for sha := range hub.images {
-		cls[sha] = true
+func (hub *MockClient) CodeLocations() <-chan map[string]ScanStage {
+	ch := make(chan map[string]ScanStage)
+	cls := map[string]ScanStage{}
+	for sha, stage := range hub.images {
+		cls[sha] = stage
 	}
 	go func() {
 		ch <- cls

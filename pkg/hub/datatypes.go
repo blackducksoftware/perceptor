@@ -341,11 +341,38 @@ func (r *RiskProfileStatusCounts) HighRiskVulnerabilityCount() int {
 	return highCount
 }
 
+// ScanStage describes the current stage of the scan
+type ScanStage int
+
+// ...
+const (
+	ScanStageUnknown    ScanStage = iota
+	ScanStageScanClient ScanStage = iota
+	ScanStageHubScan    ScanStage = iota
+	ScanStageComplete   ScanStage = iota
+)
+
+// String .....
+func (s ScanStage) String() string {
+	switch s {
+	case ScanStageUnknown:
+		return "ScanStageUnknown"
+	case ScanStageScanClient:
+		return "ScanStageScanClient"
+	case ScanStageHubScan:
+		return "ScanStageHubScan"
+	case ScanStageComplete:
+		return "ScanStageComplete"
+	default:
+		panic(fmt.Errorf("invalid ScanStage value: %d", s))
+	}
+}
+
 // Scan is a wrapper around a Hub code location, and full scan results.
 // If `ScanResults` is nil, that means the ScanResults have not been fetched yet.
 type Scan struct {
-	CodeLocation hubapi.CodeLocation
-	ScanResults  *ScanResults
+	Stage       ScanStage
+	ScanResults *ScanResults
 }
 
 // ScanResults models the results that we expect to get from the hub after
@@ -356,6 +383,7 @@ type ScanResults struct {
 	ScanSummaries                    []ScanSummary
 	ComponentsHref                   string
 	CodeLocationCreatedAt            string
+	CodeLocationHref                 string
 	CodeLocationMappedProjectVersion string
 	CodeLocationName                 string
 	CodeLocationType                 string

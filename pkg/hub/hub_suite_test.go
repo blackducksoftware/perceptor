@@ -22,32 +22,14 @@ under the License.
 package hub
 
 import (
-	"time"
+	"testing"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// ClientInterface .....
-type ClientInterface interface {
-	// commands coming in
-	DeleteScan(scanName string)
-	StartScanClient(scanName string)
-	FinishScanClient(scanName string)
-	SetTimeout(timeout time.Duration)
-	ResetCircuitBreaker()
-	// read-only queries
-	Host() string
-	Version() (string, error)
-	// read-only, async queries (the channel produces a single event)
-	Model() <-chan *api.ModelHub
-	HasFetchedCodeLocations() <-chan bool
-	CodeLocations() <-chan map[string]ScanStage
-	CodeLocationsCount() <-chan int
-	InProgressScans() <-chan []string
-	ScanResults() <-chan map[string]*ScanResults
-	Updates() <-chan Update
-	//	IsEnabled() <-chan bool
-	// prelude to clean-up
-	Stop()
-	StopCh() <-chan struct{}
+func TestHub(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunClientTests()
+	RunSpecs(t, "hub suite")
 }

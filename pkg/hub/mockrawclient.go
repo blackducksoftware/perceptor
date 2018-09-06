@@ -23,6 +23,7 @@ package hub
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
@@ -30,15 +31,53 @@ import (
 
 // MockRawClient ...
 type MockRawClient struct {
-	ShouldFail bool
+	IsLoggedIn    bool
+	ShouldFail    bool
+	CodeLocations map[string]ScanStage
+}
+
+// NewMockRawClient ...
+func NewMockRawClient(shouldFail bool, initialCodeLocationNames []string) *MockRawClient {
+	codeLocations := map[string]ScanStage{}
+	for _, name := range initialCodeLocationNames {
+		codeLocations[name] = ScanStageComplete
+	}
+	return &MockRawClient{
+		IsLoggedIn:    false,
+		ShouldFail:    shouldFail,
+		CodeLocations: codeLocations,
+	}
 }
 
 // ListAllCodeLocations ...
 func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch code locations list")
 	}
-	return &hubapi.CodeLocationList{}, nil
+	cls := []hubapi.CodeLocation{}
+	for name := range mhc.CodeLocations {
+		if options != nil && options.Q != nil && strings.Contains(name, (*options.Q)[5:]) {
+			cls = append(cls,
+				hubapi.CodeLocation{
+					CreatedAt:            "",
+					MappedProjectVersion: "",
+					Meta:                 hubapi.Meta{},
+					Name:                 name,
+					Type:                 "",
+					UpdatedAt:            "",
+					URL:                  "",
+				})
+		}
+	}
+	clList := &hubapi.CodeLocationList{
+		Items:      cls,
+		Meta:       hubapi.Meta{},
+		TotalCount: uint32(len(cls)),
+	}
+	return clList, nil
 }
 
 // CurrentVersion ...
@@ -46,11 +85,17 @@ func (mhc *MockRawClient) CurrentVersion() (*hubapi.CurrentVersion, error) {
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch current version")
 	}
-	return &hubapi.CurrentVersion{}, nil
+	return &hubapi.CurrentVersion{
+		Meta:    hubapi.Meta{},
+		Version: "4.7.0",
+	}, nil
 }
 
 // ListProjects ...
 func (mhc *MockRawClient) ListProjects(options *hubapi.GetListOptions) (*hubapi.ProjectList, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project list")
 	}
@@ -59,6 +104,9 @@ func (mhc *MockRawClient) ListProjects(options *hubapi.GetListOptions) (*hubapi.
 
 // DeleteCodeLocation ...
 func (mhc *MockRawClient) DeleteCodeLocation(scanName string) error {
+	if !mhc.IsLoggedIn {
+		return fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return fmt.Errorf("unable to delete code location %s", scanName)
 	}
@@ -67,6 +115,9 @@ func (mhc *MockRawClient) DeleteCodeLocation(scanName string) error {
 
 // DeleteProjectVersion ...
 func (mhc *MockRawClient) DeleteProjectVersion(name string) error {
+	if !mhc.IsLoggedIn {
+		return fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return fmt.Errorf("unable to delete project %s", name)
 	}
@@ -75,6 +126,9 @@ func (mhc *MockRawClient) DeleteProjectVersion(name string) error {
 
 // GetProject ...
 func (mhc *MockRawClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project")
 	}
@@ -83,6 +137,9 @@ func (mhc *MockRawClient) GetProject(link hubapi.ResourceLink) (*hubapi.Project,
 
 // GetProjectVersion ...
 func (mhc *MockRawClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version")
 	}
@@ -91,17 +148,34 @@ func (mhc *MockRawClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.P
 
 // ListScanSummaries ...
 func (mhc *MockRawClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch scan summary list")
 	}
-	return &hubapi.ScanSummaryList{}, nil
+	scanSummaries := []hubapi.ScanSummary{
+		hubapi.ScanSummary{
+			CreatedAt: "",
+			Meta:      hubapi.Meta{},
+			Status:    "COMPLETE",
+			UpdatedAt: "",
+		},
+	}
+	return &hubapi.ScanSummaryList{
+		Items:      scanSummaries,
+		Meta:       hubapi.Meta{},
+		TotalCount: uint32(len(scanSummaries)),
+	}, nil
 }
 
 // Login ...
 func (mhc *MockRawClient) Login(username string, password string) error {
 	if mhc.ShouldFail {
+		mhc.IsLoggedIn = false
 		return fmt.Errorf("unable to login")
 	}
+	mhc.IsLoggedIn = true
 	return nil
 }
 
@@ -110,6 +184,9 @@ func (mhc *MockRawClient) SetTimeout(timeout time.Duration) {}
 
 // GetProjectVersionRiskProfile ...
 func (mhc *MockRawClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version risk profile")
 	}
@@ -118,6 +195,9 @@ func (mhc *MockRawClient) GetProjectVersionRiskProfile(link hubapi.ResourceLink)
 
 // GetProjectVersionPolicyStatus ...
 func (mhc *MockRawClient) GetProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
+	if !mhc.IsLoggedIn {
+		return nil, fmt.Errorf("not logged in")
+	}
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version policy status")
 	}

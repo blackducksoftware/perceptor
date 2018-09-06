@@ -46,9 +46,9 @@ type Client struct {
 	host     string
 	status   ClientStatus
 	// data
-	codeLocations   map[string]*Scan
-	errors          []error
-	inProgressScans map[string]bool
+	hasFetchedCodeLocations bool
+	codeLocations           map[string]*Scan
+	errors                  []error
 	// timers
 	loginTimer                   *util.Timer
 	fetchAllCodeLocationsTimer   *util.Timer
@@ -72,12 +72,12 @@ type Client struct {
 	didFetchCodeLocationsCh   chan *Result
 	didFetchScanResultsCh     chan *ScanResults
 	hasFetchedCodeLocationsCh chan chan bool
-	getCodeLocationsCh        chan chan map[string]bool
+	getCodeLocationsCh        chan chan map[string]ScanStage
 	unknownCodeLocationsCh    chan chan []string
 }
 
 // NewClient returns a new Client.  It will not be logged in.
-func NewClient(username string, password string, host string, client RawClientInterface, fetchAllProjectsPause time.Duration) *Client {
+func NewClient(username string, password string, host string, client RawClientInterface, fetchAllScansPause time.Duration) *Client {
 	hub := &Client{
 		client:         client,
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
@@ -86,9 +86,9 @@ func NewClient(username string, password string, host string, client RawClientIn
 		host:           host,
 		status:         ClientStatusDown,
 		//
-		codeLocations:   nil, // nil == codeLocations not yet fetched
-		errors:          []error{},
-		inProgressScans: map[string]bool{},
+		hasFetchedCodeLocations: false,
+		codeLocations:           map[string]*Scan{},
+		errors:                  []error{},
 		//
 		publishUpdatesCh: make(chan Update),
 		//
@@ -107,7 +107,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 		didFetchCodeLocationsCh:   make(chan *Result),
 		didFetchScanResultsCh:     make(chan *ScanResults),
 		hasFetchedCodeLocationsCh: make(chan chan bool),
-		getCodeLocationsCh:        make(chan chan map[string]bool),
+		getCodeLocationsCh:        make(chan chan map[string]ScanStage),
 		unknownCodeLocationsCh:    make(chan chan []string)}
 	// action processing
 	go func() {
@@ -134,6 +134,24 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 				ch <- allScanResults
 			case scanResults := <-hub.didFetchScanResultsCh:
+				scan, ok := hub.codeLocations[scanResults.CodeLocationName]
+				if !ok {
+					scan = &Scan{
+						ScanResults: scanResults,
+						Stage:       ScanStageUnknown,
+					}
+					hub.codeLocations[scanResults.CodeLocationName] = scan
+				}
+				switch scanResults.ScanSummaryStatus() {
+				case ScanSummaryStatusSuccess:
+					scan.Stage = ScanStageComplete
+				case ScanSummaryStatusInProgress:
+					// TODO any way to distinguish between scanclient and hubscan?
+					scan.Stage = ScanStageHubScan
+				case ScanSummaryStatusFailure:
+					// TODO add a failure state?
+					scan.Stage = ScanStageUnknown
+				}
 				hub.codeLocations[scanResults.CodeLocationName].ScanResults = scanResults
 				update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
 				hub.publish(update)
@@ -148,42 +166,59 @@ func NewClient(username string, password string, host string, client RawClientIn
 			case result := <-hub.didFetchCodeLocationsCh:
 				hub.recordError(result.Err)
 				if result.Err == nil {
-					if hub.codeLocations == nil {
-						hub.codeLocations = map[string]*Scan{}
-					}
+					hub.hasFetchedCodeLocations = true
 					cls := result.Value.([]hubapi.CodeLocation)
-					scanNames := make([]string, len(cls))
-					for ix, cl := range cls {
+					for _, cl := range cls {
 						if _, ok := hub.codeLocations[cl.Name]; !ok {
-							hub.codeLocations[cl.Name] = &Scan{CodeLocation: cl, ScanResults: nil}
+							hub.codeLocations[cl.Name] = &Scan{Stage: ScanStageUnknown, ScanResults: nil}
 						}
-						scanNames[ix] = cl.Name
 					}
 				}
 			case scanName := <-hub.startScanClientCh:
-				// anything to do?
-				log.Warnf("nothing to do: received scan client start for scan %s", scanName)
+				hub.codeLocations[scanName] = &Scan{Stage: ScanStageScanClient}
 			case scanName := <-hub.finishScanClientCh:
-				hub.inProgressScans[scanName] = true
+				scan, ok := hub.codeLocations[scanName]
+				if !ok {
+					log.Errorf("unable to handle finishScanClient for %s: not found", scanName)
+					break
+				}
+				if scan.Stage != ScanStageScanClient {
+					log.Warnf("unable to handle finishScanClient for %s: expected stage ScanClient, found %s", scanName, scan.Stage.String())
+					break
+				}
+				scan.Stage = ScanStageHubScan
 			case sr := <-hub.scanDidFinishCh:
-				delete(hub.inProgressScans, sr.CodeLocationName)
+				scanName := sr.CodeLocationName
+				scan, ok := hub.codeLocations[scanName]
+				if !ok {
+					log.Errorf("unable to handle scanDidFinish for %s: not found", scanName)
+					break
+				}
+				if scan.Stage != ScanStageHubScan {
+					log.Warnf("unable to handle scanDidFinsh for %s: expected stage HubScan, found %s", scanName, scan.Stage.String())
+					break
+				}
+				scan.Stage = ScanStageComplete
 				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr}
 				hub.publish(update)
 			case get := <-hub.getCodeLocationsCountCh:
 				get <- len(hub.codeLocations)
 			case get := <-hub.getInProgressScansCh:
 				scans := []string{}
-				for scanName := range hub.inProgressScans {
-					scans = append(scans, scanName)
+				for scanName, scan := range hub.codeLocations {
+					if scan.Stage == ScanStageHubScan || scan.Stage == ScanStageScanClient {
+						scans = append(scans, scanName)
+					}
 				}
 				get <- scans
 			case ch := <-hub.hasFetchedCodeLocationsCh:
-				ch <- hub.codeLocations != nil
+				ch <- hub.hasFetchedCodeLocations
 			case ch := <-hub.getCodeLocationsCh:
-				codeLocations := map[string]bool{}
-				for key := range hub.codeLocations {
-					codeLocations[key] = true
+				codeLocations := map[string]ScanStage{}
+				for scanName, scan := range hub.codeLocations {
+					codeLocations[scanName] = scan.Stage
 				}
+				log.Warnf("found codelocations: %+v", codeLocations)
 				ch <- codeLocations
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
@@ -203,7 +238,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 	}()
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(1 * time.Minute)
 	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Second)
-	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllProjectsPause)
+	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllScansPause)
 	hub.loginTimer = hub.startLoginTimer(30 * time.Minute)
 	return hub
 }
@@ -247,8 +282,8 @@ func (hub *Client) Model() <-chan *api.ModelHub {
 }
 
 // CodeLocations ...
-func (hub *Client) CodeLocations() <-chan map[string]bool {
-	ch := make(chan map[string]bool)
+func (hub *Client) CodeLocations() <-chan map[string]ScanStage {
+	ch := make(chan map[string]ScanStage)
 	hub.getCodeLocationsCh <- ch
 	return ch
 }
@@ -291,13 +326,16 @@ func (hub *Client) apiModel() *api.ModelHub {
 	}
 	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, scan := range hub.codeLocations {
-		codeLocations[name] = &api.ModelCodeLocation{
-			Status:               "TODO",
-			Href:                 scan.CodeLocation.Meta.Href,
-			URL:                  scan.CodeLocation.URL,
-			MappedProjectVersion: scan.CodeLocation.MappedProjectVersion,
-			UpdatedAt:            scan.CodeLocation.UpdatedAt,
+		cl := &api.ModelCodeLocation{Stage: scan.Stage.String()}
+		sr := scan.ScanResults
+		if sr != nil {
+			cl.Href = sr.CodeLocationHref
+			cl.URL = sr.CodeLocationURL
+			cl.MappedProjectVersion = sr.CodeLocationMappedProjectVersion
+			cl.UpdatedAt = sr.CodeLocationUpdatedAt
+			cl.ComponentsHref = sr.ComponentsHref
 		}
+		codeLocations[name] = cl
 	}
 	return &api.ModelHub{
 		Errors:                    errors,
@@ -380,6 +418,10 @@ func (hub *Client) startCheckScansForCompletionTimer(pause time.Duration) *util.
 				log.Errorf("unable to fetch scan %s: %s", scanName, err.Error())
 				continue
 			}
+			if scanResults == nil {
+				log.Debugf("nothing found for scan %s", scanName)
+				continue
+			}
 			switch scanResults.ScanSummaryStatus() {
 			case ScanSummaryStatusInProgress:
 				// nothing to do
@@ -442,8 +484,8 @@ func (hub *Client) deleteScanAndProjectVersion(scanName string) error {
 	if !ok {
 		return fmt.Errorf("unable to delete scan %s, not found", scanName)
 	}
-	clURL := scan.CodeLocation.Meta.Href
-	projectVersionURL := scan.CodeLocation.MappedProjectVersion
+	clURL := scan.ScanResults.CodeLocationHref
+	projectVersionURL := scan.ScanResults.CodeLocationMappedProjectVersion
 	finish := func(err error) {
 		select {
 		case hub.didDeleteScanCh <- &Result{Value: scanName, Err: err}:
@@ -614,15 +656,17 @@ func (hub *Client) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 	}
 
 	scan := ScanResults{
-		RiskProfile:           *mappedRiskProfile,
-		PolicyStatus:          *mappedPolicyStatus,
-		ComponentsHref:        componentsLink.Href,
-		ScanSummaries:         scanSummaries,
-		CodeLocationCreatedAt: codeLocation.CreatedAt,
-		CodeLocationName:      codeLocation.Name,
-		CodeLocationType:      codeLocation.Type,
-		CodeLocationURL:       codeLocation.URL,
-		CodeLocationUpdatedAt: codeLocation.UpdatedAt,
+		RiskProfile:                      *mappedRiskProfile,
+		PolicyStatus:                     *mappedPolicyStatus,
+		ComponentsHref:                   componentsLink.Href,
+		ScanSummaries:                    scanSummaries,
+		CodeLocationCreatedAt:            codeLocation.CreatedAt,
+		CodeLocationHref:                 codeLocation.Meta.Href,
+		CodeLocationMappedProjectVersion: codeLocation.MappedProjectVersion,
+		CodeLocationName:                 codeLocation.Name,
+		CodeLocationType:                 codeLocation.Type,
+		CodeLocationURL:                  codeLocation.URL,
+		CodeLocationUpdatedAt:            codeLocation.UpdatedAt,
 	}
 
 	return &scan, nil

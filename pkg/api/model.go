@@ -134,9 +134,10 @@ type ModelHub struct {
 
 // ModelCodeLocation ...
 type ModelCodeLocation struct {
-	Status               string
+	Stage                string
 	Href                 string
 	URL                  string
 	MappedProjectVersion string
 	UpdatedAt            string
+	ComponentsHref       string
 }
