@@ -77,7 +77,7 @@ type Client struct {
 }
 
 // NewClient returns a new Client.  It will not be logged in.
-func NewClient(username string, password string, host string, client RawClientInterface, fetchAllScansPause time.Duration) *Client {
+func NewClient(username string, password string, host string, client RawClientInterface, fetchUnknownScansPause time.Duration, fetchAllScansPause time.Duration) *Client {
 	hub := &Client{
 		client:         client,
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
@@ -195,7 +195,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 					break
 				}
 				if scan.Stage != ScanStageHubScan {
-					log.Warnf("unable to handle scanDidFinsh for %s: expected stage HubScan, found %s", scanName, scan.Stage.String())
+					log.Warnf("unable to handle scanDidFinish for %s: expected stage HubScan, found %s", scanName, scan.Stage.String())
 					break
 				}
 				scan.Stage = ScanStageComplete
@@ -218,7 +218,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 				for scanName, scan := range hub.codeLocations {
 					codeLocations[scanName] = scan.Stage
 				}
-				log.Warnf("found codelocations: %+v", codeLocations)
+				log.Debugf("handle getCodeLocations: found codelocations: %+v", codeLocations)
 				ch <- codeLocations
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
@@ -237,7 +237,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 		}
 	}()
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(1 * time.Minute)
-	hub.fetchScansTimer = hub.startFetchScansTimer(30 * time.Second)
+	hub.fetchScansTimer = hub.startFetchUnknownScansTimer(fetchUnknownScansPause)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllScansPause)
 	hub.loginTimer = hub.startLoginTimer(30 * time.Minute)
 	return hub
@@ -379,10 +379,10 @@ func (hub *Client) unknownCodeLocations() []string {
 	return <-ch
 }
 
-func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("fetchScans-%s", hub.host)
+func (hub *Client) startFetchUnknownScansTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("fetchUnknownScans-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch scans")
+		log.Debugf("starting to fetch unknown scans")
 		unknownCodeLocations := hub.unknownCodeLocations()
 		log.Debugf("found %d unknown code locations", len(unknownCodeLocations))
 		for _, codeLocationName := range unknownCodeLocations {
@@ -398,7 +398,7 @@ func (hub *Client) startFetchScansTimer(pause time.Duration) *util.Timer {
 				return
 			}
 		}
-		log.Debugf("finished fetching unknown code locations")
+		log.Debugf("finished fetching unknown scans")
 	})
 }
 

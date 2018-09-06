@@ -43,7 +43,7 @@ func createHubClient(username string, password string, port int, httpTimeout tim
 		if err != nil {
 			return nil, err
 		}
-		return hub.NewClient(username, password, host, rawClient, 999999*time.Hour), nil
+		return hub.NewClient(username, password, host, rawClient, 30*time.Second, 999999*time.Hour), nil
 	}
 }
 

@@ -59,16 +59,23 @@ func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (
 	}
 	cls := []hubapi.CodeLocation{}
 	for name := range mhc.CodeLocations {
-		if options != nil && options.Q != nil && strings.Contains(name, (*options.Q)[5:]) {
+		shouldAdd := (options != nil && options.Q != nil && strings.Contains(name, (*options.Q)[5:])) || options == nil || options.Q == nil
+		if shouldAdd {
 			cls = append(cls,
 				hubapi.CodeLocation{
 					CreatedAt:            "",
-					MappedProjectVersion: "",
-					Meta:                 hubapi.Meta{},
-					Name:                 name,
-					Type:                 "",
-					UpdatedAt:            "",
-					URL:                  "",
+					MappedProjectVersion: fmt.Sprintf("http://something-something-mapped-project-version-%s", name),
+					Meta: hubapi.Meta{
+						Links: []hubapi.ResourceLink{
+							{
+								Rel: "scans",
+							},
+						},
+					},
+					Name:      name,
+					Type:      "",
+					UpdatedAt: "",
+					URL:       "",
 				})
 		}
 	}
@@ -143,7 +150,21 @@ func (mhc *MockRawClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.P
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version")
 	}
-	return &hubapi.ProjectVersion{}, nil
+	return &hubapi.ProjectVersion{
+		Meta: hubapi.Meta{
+			Links: []hubapi.ResourceLink{
+				hubapi.ResourceLink{
+					Rel: "riskProfile",
+				},
+				{
+					Rel: "policy-status",
+				},
+				{
+					Rel: "components",
+				},
+			},
+		},
+	}, nil
 }
 
 // ListScanSummaries ...

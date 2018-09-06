@@ -26,10 +26,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestHub(t *testing.T) {
 	RegisterFailHandler(Fail)
+	log.SetLevel(log.DebugLevel)
 	RunClientTests()
 	RunSpecs(t, "hub suite")
 }

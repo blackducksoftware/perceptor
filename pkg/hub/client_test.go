@@ -30,7 +30,7 @@ import (
 
 func newClient() ClientInterface {
 	rawClient := NewMockRawClient(false, []string{"a", "b", "c"})
-	return NewClient("sysadmin", "password", "host1", rawClient, 500*time.Millisecond)
+	return NewClient("sysadmin", "password", "host1", rawClient, 250*time.Millisecond, 500*time.Millisecond)
 }
 
 func RunClientTests() {
