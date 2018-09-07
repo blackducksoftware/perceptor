@@ -53,7 +53,7 @@ func (cb *CircuitBreaker) Model() *api.ModelCircuitBreaker {
 	return &api.ModelCircuitBreaker{
 		State:               cb.state.String(),
 		ConsecutiveFailures: cb.consecutiveFailures,
-		MaxBackoffDuration:  cb.maxBackoffDuration,
+		MaxBackoffDuration:  *api.NewModelTime(cb.maxBackoffDuration),
 		NextCheckTime:       cb.nextCheckTime,
 	}
 }

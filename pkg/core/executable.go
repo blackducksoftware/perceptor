@@ -25,10 +25,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
@@ -36,16 +34,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-func createMockHub(hubURL string) hub.ClientInterface {
-	return hub.NewMockClient(hubURL)
-}
-
-func createHubClient(username string, password string, port int, httpTimeout time.Duration) func(hubURL string) hub.ClientInterface {
-	return func(hubURL string) hub.ClientInterface {
-		return hub.NewClient(username, password, hubURL, port, httpTimeout, 999999*time.Hour)
-	}
-}
 
 // RunPerceptor .....
 func RunPerceptor(configPath string) {
@@ -79,10 +67,10 @@ func RunPerceptor(configPath string) {
 
 	stop := make(chan struct{})
 
-	var newHub func(string) hub.ClientInterface
+	var newHub hubClientCreator
 	if config.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
-		newHub = createMockHub
+		newHub = createMockHubClient
 	} else {
 		log.Infof("instantiating perceptor in real mode")
 		password, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
@@ -97,7 +85,7 @@ func RunPerceptor(configPath string) {
 		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
 		TotalScanLimit:      config.Hub.TotalScanLimit,
 		HubManager:          manager}
-	perceptor, err := NewPerceptor(config.Timings, scanScheduler, manager)
+	perceptor, err := NewPerceptor(config, config.Timings, scanScheduler, manager)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)

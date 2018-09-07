@@ -33,14 +33,15 @@ import (
 
 func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 	stop := make(chan struct{})
-	manager := NewHubManager(createMockHub, stop)
+	manager := NewHubManager(createMockHubClient, stop)
 	timings := &Timings{
 		CheckForStalledScansPauseHours: 9999,
 		ModelMetricsPauseSeconds:       15,
 		StalledScanClientTimeoutHours:  9999,
 		UnknownImagePauseMilliseconds:  500,
 	}
-	pcp, err := NewPerceptor(timings,
+	config := &Config{}
+	pcp, err := NewPerceptor(config, timings,
 		&ScanScheduler{
 			HubManager:          manager,
 			ConcurrentScanLimit: concurrentScanLimit,

@@ -22,6 +22,7 @@ under the License.
 package core
 
 import (
+	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
@@ -42,4 +43,11 @@ func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
 	}
 	// TODO eventually, could look through projects
 	return nil
+}
+
+func (s *ScanScheduler) model() *api.ModelScanScheduler {
+	return &api.ModelScanScheduler{
+		ConcurrentScanLimit: s.ConcurrentScanLimit,
+		TotalScanLimit:      s.TotalScanLimit,
+	}
 }

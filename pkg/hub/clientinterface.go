@@ -41,7 +41,7 @@ type ClientInterface interface {
 	// read-only, async queries (the channel produces a single event)
 	Model() <-chan *api.ModelHub
 	HasFetchedCodeLocations() <-chan bool
-	CodeLocations() <-chan map[string]bool
+	CodeLocations() <-chan map[string]ScanStage
 	CodeLocationsCount() <-chan int
 	InProgressScans() <-chan []string
 	ScanResults() <-chan map[string]*ScanResults

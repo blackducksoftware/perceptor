@@ -19,24 +19,19 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package federation
+package hub
 
 import (
-	"time"
+	"testing"
 
-	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	log "github.com/sirupsen/logrus"
 )
 
-func RunActionsTests() {
-	Describe("API model", func() {
-		It("should convert from model, including errors", func() {
-			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, 30*time.Second, 30*time.Second, 999999*time.Hour)
-			time.Sleep(2 * time.Second)
-			apiHub := <-hub.Model()
-			Expect(len(apiHub.Errors)).NotTo(Equal(0))
-			Expect(apiHub).NotTo(BeNil())
-		})
-	})
+func TestHub(t *testing.T) {
+	RegisterFailHandler(Fail)
+	log.SetLevel(log.DebugLevel)
+	RunClientTests()
+	RunSpecs(t, "hub suite")
 }

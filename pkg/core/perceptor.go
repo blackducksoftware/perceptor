@@ -46,12 +46,13 @@ type Perceptor struct {
 	routineTaskManager *RoutineTaskManager
 	scanScheduler      *ScanScheduler
 	hubManager         HubManagerInterface
+	config             *Config
 	// channels
 	stop <-chan struct{}
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
-func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager HubManagerInterface) (*Perceptor, error) {
+func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler, hubManager HubManagerInterface) (*Perceptor, error) {
 	model := m.NewModel()
 
 	// 1. routine task manager
@@ -128,6 +129,7 @@ func NewPerceptor(timings *Timings, scanScheduler *ScanScheduler, hubManager Hub
 		routineTaskManager: routineTaskManager,
 		scanScheduler:      scanScheduler,
 		hubManager:         hubManager,
+		config:             config,
 		stop:               stop,
 	}
 
@@ -144,7 +146,12 @@ func (pcp *Perceptor) GetModel() api.Model {
 	for hubURL, hub := range pcp.hubManager.HubClients() {
 		hubModels[hubURL] = <-hub.Model()
 	}
-	return api.Model{CoreModel: coreModel, Hubs: hubModels}
+	return api.Model{
+		CoreModel: coreModel,
+		Hubs:      hubModels,
+		Config:    pcp.config.model(),
+		Scheduler: pcp.scanScheduler.model(),
+	}
 }
 
 // PutHubs ...
