@@ -24,6 +24,7 @@ package federation
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
@@ -60,7 +61,7 @@ func (hc *HubCreator) createHubs(hubHosts map[string]bool) {
 			panic(fmt.Errorf("TODO -- don't panic.  handle.  unable to create client for hub %s: %s", host, err.Error()))
 		}
 
-		client := hub.NewClient(user, hc.hubPassword, host, rawClient, fetchAllProjectsPause)
+		client := hub.NewClient(user, hc.hubPassword, host, rawClient, 30*time.Second, 30*time.Second, fetchAllProjectsPause)
 		go func() {
 			hc.didFinishHubCreation <- &HubCreationResult{hub: client}
 		}()

@@ -32,7 +32,7 @@ import (
 func RunActionsTests() {
 	Describe("API model", func() {
 		It("should convert from model, including errors", func() {
-			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, time.Minute)
+			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, 30*time.Second, 30*time.Second, 999999*time.Hour)
 			time.Sleep(2 * time.Second)
 			apiHub := <-hub.Model()
 			Expect(len(apiHub.Errors)).NotTo(Equal(0))
