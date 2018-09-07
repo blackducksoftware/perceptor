@@ -166,6 +166,8 @@ func RunTestPerceptor() {
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+
+			Expect(<-pcp.hubManager.HubClients()["hub1"].CodeLocationsCount()).To(Equal(0))
 		})
 	})
 }
