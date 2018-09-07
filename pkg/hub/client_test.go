@@ -22,6 +22,7 @@ under the License.
 package hub
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -61,7 +62,7 @@ func RunClientTests() {
 			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageScanClient, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
 
-			client.FinishScanClient("abc")
+			client.FinishScanClient("abc", fmt.Errorf("planned failure"))
 			time.Sleep(250 * time.Millisecond)
 			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageHubScan, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))

@@ -283,14 +283,12 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 	go func() {
 		log.Debugf("handle didFinishScanClient")
 		var scanErr error
-		if job.Err == "" {
-			scanErr = nil
-			err := pcp.hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
-			if err != nil {
-				log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
-			}
-		} else {
+		if job.Err != "" {
 			scanErr = fmt.Errorf(job.Err)
+		}
+		err := pcp.hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName, scanErr)
+		if err != nil {
+			log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
 		}
 		image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority)
 		pcp.model.FinishScanJob(image, scanErr)

@@ -59,7 +59,7 @@ type HubManagerInterface interface {
 	SetHubs(hubURLs []string)
 	HubClients() map[string]hub.ClientInterface
 	StartScanClient(hubURL string, scanName string) error
-	FinishScanClient(hubURL string, scanName string) error
+	FinishScanClient(hubURL string, scanName string, err error) error
 	ScanResults() map[string]map[string]*hub.ScanResults
 	Updates() <-chan *Update
 }
@@ -165,12 +165,12 @@ func (hm *HubManager) StartScanClient(hubURL string, scanName string) error {
 
 // FinishScanClient tells the appropriate hub client to start polling for
 // scan completion.
-func (hm *HubManager) FinishScanClient(hubURL string, scanName string) error {
+func (hm *HubManager) FinishScanClient(hubURL string, scanName string, scanErr error) error {
 	hub, ok := hm.hubs[hubURL]
 	if !ok {
 		return fmt.Errorf("hub %s not found", hubURL)
 	}
-	hub.FinishScanClient(scanName)
+	hub.FinishScanClient(scanName, scanErr)
 	return nil
 }
 

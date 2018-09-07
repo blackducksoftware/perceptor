@@ -36,6 +36,11 @@ const (
 	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
+type finishScanClient struct {
+	scanName string
+	err      error
+}
+
 // Client .....
 type Client struct {
 	client         RawClientInterface
@@ -64,7 +69,7 @@ type Client struct {
 	didDeleteScanCh           chan *Result
 	didLoginCh                chan error
 	startScanClientCh         chan string
-	finishScanClientCh        chan string
+	finishScanClientCh        chan *finishScanClient
 	getScanResultsCh          chan chan map[string]*ScanResults
 	scanDidFinishCh           chan *ScanResults
 	getCodeLocationsCountCh   chan chan int
@@ -99,7 +104,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 		didDeleteScanCh:           make(chan *Result),
 		didLoginCh:                make(chan error),
 		startScanClientCh:         make(chan string),
-		finishScanClientCh:        make(chan string),
+		finishScanClientCh:        make(chan *finishScanClient),
 		getScanResultsCh:          make(chan chan map[string]*ScanResults),
 		scanDidFinishCh:           make(chan *ScanResults),
 		getCodeLocationsCountCh:   make(chan chan int),
@@ -149,8 +154,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 					// TODO any way to distinguish between scanclient and hubscan?
 					scan.Stage = ScanStageHubScan
 				case ScanSummaryStatusFailure:
-					// TODO add a failure state?
-					scan.Stage = ScanStageUnknown
+					scan.Stage = ScanStageFailure
 				}
 				hub.codeLocations[scanResults.CodeLocationName].ScanResults = scanResults
 				update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
@@ -176,7 +180,9 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 			case scanName := <-hub.startScanClientCh:
 				hub.codeLocations[scanName] = &Scan{Stage: ScanStageScanClient}
-			case scanName := <-hub.finishScanClientCh:
+			case obj := <-hub.finishScanClientCh:
+				scanName := obj.scanName
+				scanErr := obj.err
 				scan, ok := hub.codeLocations[scanName]
 				if !ok {
 					log.Errorf("unable to handle finishScanClient for %s: not found", scanName)
@@ -186,7 +192,11 @@ func NewClient(username string, password string, host string, client RawClientIn
 					log.Warnf("unable to handle finishScanClient for %s: expected stage ScanClient, found %s", scanName, scan.Stage.String())
 					break
 				}
-				scan.Stage = ScanStageHubScan
+				if scanErr == nil {
+					scan.Stage = ScanStageHubScan
+				} else {
+					scan.Stage = ScanStageFailure
+				}
 			case sr := <-hub.scanDidFinishCh:
 				scanName := sr.CodeLocationName
 				scan, ok := hub.codeLocations[scanName]
@@ -202,7 +212,13 @@ func NewClient(username string, password string, host string, client RawClientIn
 				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr}
 				hub.publish(update)
 			case get := <-hub.getCodeLocationsCountCh:
-				get <- len(hub.codeLocations)
+				count := 0
+				for _, cl := range hub.codeLocations {
+					if cl.Stage != ScanStageFailure {
+						count++
+					}
+				}
+				get <- count
 			case get := <-hub.getInProgressScansCh:
 				scans := []string{}
 				for scanName, scan := range hub.codeLocations {
@@ -513,8 +529,8 @@ func (hub *Client) StartScanClient(scanName string) {
 }
 
 // FinishScanClient ...
-func (hub *Client) FinishScanClient(scanName string) {
-	hub.finishScanClientCh <- scanName
+func (hub *Client) FinishScanClient(scanName string, scanErr error) {
+	hub.finishScanClientCh <- &finishScanClient{scanName, scanErr}
 }
 
 // CodeLocationsCount ...

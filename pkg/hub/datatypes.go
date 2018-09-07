@@ -350,6 +350,7 @@ const (
 	ScanStageScanClient ScanStage = iota
 	ScanStageHubScan    ScanStage = iota
 	ScanStageComplete   ScanStage = iota
+	ScanStageFailure    ScanStage = iota
 )
 
 // String .....
@@ -363,6 +364,8 @@ func (s ScanStage) String() string {
 		return "ScanStageHubScan"
 	case ScanStageComplete:
 		return "ScanStageComplete"
+	case ScanStageFailure:
+		return "ScanStageFailure"
 	default:
 		panic(fmt.Errorf("invalid ScanStage value: %d", s))
 	}
