@@ -28,27 +28,47 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func newClient() ClientInterface {
+func newClient(ignoreEvents bool) ClientInterface {
 	rawClient := NewMockRawClient(false, []string{"a", "b", "c"})
-	return NewClient("sysadmin", "password", "host1", rawClient, 250*time.Millisecond, 500*time.Millisecond)
+	client := NewClient("sysadmin", "password", "host1", rawClient, 125*time.Millisecond, 250*time.Millisecond, 500*time.Millisecond)
+	if ignoreEvents {
+		go func() {
+			updates := client.Updates()
+			for {
+				<-updates
+			}
+		}()
+	}
+	return client
 }
 
 func RunClientTests() {
 	Describe("Client", func() {
 		It("should fetch initial code locations", func() {
-			client := newClient()
+			client := newClient(true)
 			time.Sleep(1 * time.Second)
 			cls := <-client.CodeLocations()
-			Expect(cls).To(Equal(map[string]ScanStage{"a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(cls).To(Equal(map[string]ScanStage{"a": ScanStageComplete, "b": ScanStageComplete, "c": ScanStageComplete}))
 		})
 
 		It("should add code locations as they're scanned", func() {
-			client := newClient()
+			client := newClient(true)
+			time.Sleep(250 * time.Millisecond)
+			Expect(<-client.InProgressScans()).To(Equal([]string{}))
+
 			client.StartScanClient("abc")
-			Expect(len(<-client.CodeLocations())).To(Equal(4))
-			time.Sleep(1 * time.Second)
+			time.Sleep(250 * time.Millisecond)
+			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageScanClient, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
+
 			client.FinishScanClient("abc")
-			Expect(len(<-client.CodeLocations())).To(Equal(4))
+			time.Sleep(250 * time.Millisecond)
+			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageHubScan, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
+
+			time.Sleep(999 * time.Millisecond)
+			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageComplete, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(<-client.InProgressScans()).To(Equal([]string{}))
 		})
 	})
 }

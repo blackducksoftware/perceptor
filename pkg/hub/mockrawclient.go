@@ -222,5 +222,7 @@ func (mhc *MockRawClient) GetProjectVersionPolicyStatus(link hubapi.ResourceLink
 	if mhc.ShouldFail {
 		return nil, fmt.Errorf("unable to fetch project version policy status")
 	}
-	return &hubapi.ProjectVersionPolicyStatus{}, nil
+	return &hubapi.ProjectVersionPolicyStatus{
+		OverallStatus: "NOT_IN_VIOLATION",
+	}, nil
 }

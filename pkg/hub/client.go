@@ -77,7 +77,7 @@ type Client struct {
 }
 
 // NewClient returns a new Client.  It will not be logged in.
-func NewClient(username string, password string, host string, client RawClientInterface, fetchUnknownScansPause time.Duration, fetchAllScansPause time.Duration) *Client {
+func NewClient(username string, password string, host string, client RawClientInterface, scanCompletionPause time.Duration, fetchUnknownScansPause time.Duration, fetchAllScansPause time.Duration) *Client {
 	hub := &Client{
 		client:         client,
 		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
@@ -236,7 +236,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 			}
 		}
 	}()
-	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(1 * time.Minute)
+	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(scanCompletionPause)
 	hub.fetchScansTimer = hub.startFetchUnknownScansTimer(fetchUnknownScansPause)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllScansPause)
 	hub.loginTimer = hub.startLoginTimer(30 * time.Minute)
@@ -390,6 +390,10 @@ func (hub *Client) startFetchUnknownScansTimer(pause time.Duration) *util.Timer 
 			log.Debugf("fetched scan %s: %+v", codeLocationName, err)
 			if err != nil {
 				log.Error(err.Error())
+				continue
+			}
+			if scanResults == nil {
+				log.Debugf("found nil scan for unknown code location %s", codeLocationName)
 				continue
 			}
 			select {

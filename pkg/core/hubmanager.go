@@ -34,7 +34,7 @@ type hubClientCreator func(host string) (hub.ClientInterface, error)
 
 func createMockHubClient(hubURL string) (hub.ClientInterface, error) {
 	mockRawClient := hub.NewMockRawClient(false, []string{})
-	return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 30*time.Second, 999999*time.Hour), nil
+	return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 1*time.Minute, 30*time.Second, 999999*time.Hour), nil
 }
 
 func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
@@ -44,7 +44,7 @@ func createHubClient(username string, password string, port int, httpTimeout tim
 		if err != nil {
 			return nil, err
 		}
-		return hub.NewClient(username, password, host, rawClient, 30*time.Second, 999999*time.Hour), nil
+		return hub.NewClient(username, password, host, rawClient, 1*time.Minute, 30*time.Second, 999999*time.Hour), nil
 	}
 }
 
