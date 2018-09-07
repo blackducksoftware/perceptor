@@ -145,5 +145,27 @@ func RunTestPerceptor() {
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 		})
+
+		It("should handle scan client failure", func() {
+			pcp := newPerceptor(2, 5)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1, image2},
+			})
+			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1"}})
+			time.Sleep(1 * time.Second)
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+
+			next1 := pcp.GetNextImage()
+			Expect(next1.ImageSpec.Sha).To(Equal(image2.Sha))
+			time.Sleep(500 * time.Millisecond)
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(1))
+
+			pcp.PostFinishScan(api.FinishedScanClientJob{Err: "planned error", ImageSpec: *next1.ImageSpec})
+			time.Sleep(500 * time.Millisecond)
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+		})
 	})
 }
