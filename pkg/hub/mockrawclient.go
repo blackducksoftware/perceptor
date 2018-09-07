@@ -153,7 +153,7 @@ func (mhc *MockRawClient) GetProjectVersion(link hubapi.ResourceLink) (*hubapi.P
 	return &hubapi.ProjectVersion{
 		Meta: hubapi.Meta{
 			Links: []hubapi.ResourceLink{
-				hubapi.ResourceLink{
+				{
 					Rel: "riskProfile",
 				},
 				{
@@ -176,7 +176,7 @@ func (mhc *MockRawClient) ListScanSummaries(link hubapi.ResourceLink) (*hubapi.S
 		return nil, fmt.Errorf("unable to fetch scan summary list")
 	}
 	scanSummaries := []hubapi.ScanSummary{
-		hubapi.ScanSummary{
+		{
 			CreatedAt: "",
 			Meta:      hubapi.Meta{},
 			Status:    "COMPLETE",
