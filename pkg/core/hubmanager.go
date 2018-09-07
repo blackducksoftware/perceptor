@@ -33,7 +33,8 @@ import (
 type hubClientCreator func(host string) (hub.ClientInterface, error)
 
 func createMockHubClient(hubURL string) (hub.ClientInterface, error) {
-	return hub.NewMockClient(hubURL), nil
+	mockRawClient := hub.NewMockRawClient(false, []string{})
+	return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 30*time.Second, 999999*time.Hour), nil
 }
 
 func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
