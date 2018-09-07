@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func newClient(ignoreEvents bool) ClientInterface {
+func newClient(ignoreEvents bool) (*MockRawClient, ClientInterface) {
 	rawClient := NewMockRawClient(false, []string{"a", "b", "c"})
 	client := NewClient("sysadmin", "password", "host1", rawClient, 125*time.Millisecond, 250*time.Millisecond, 500*time.Millisecond)
 	if ignoreEvents {
@@ -39,20 +39,20 @@ func newClient(ignoreEvents bool) ClientInterface {
 			}
 		}()
 	}
-	return client
+	return rawClient, client
 }
 
 func RunClientTests() {
 	Describe("Client", func() {
 		It("should fetch initial code locations", func() {
-			client := newClient(true)
+			_, client := newClient(true)
 			time.Sleep(1 * time.Second)
 			cls := <-client.CodeLocations()
 			Expect(cls).To(Equal(map[string]ScanStage{"a": ScanStageComplete, "b": ScanStageComplete, "c": ScanStageComplete}))
 		})
 
 		It("should add code locations as they're scanned", func() {
-			client := newClient(true)
+			rawClient, client := newClient(true)
 			time.Sleep(250 * time.Millisecond)
 			Expect(<-client.InProgressScans()).To(Equal([]string{}))
 
@@ -66,7 +66,8 @@ func RunClientTests() {
 			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageHubScan, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
 
-			time.Sleep(999 * time.Millisecond)
+			rawClient.addCodeLocation("abc", ScanStageComplete)
+			time.Sleep(250 * time.Millisecond)
 			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageComplete, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{}))
 		})

@@ -122,7 +122,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 			case ch := <-hub.unknownCodeLocationsCh:
 				unknownCodeLocations := []string{}
 				for name, scan := range hub.codeLocations {
-					if scan.ScanResults == nil {
+					if scan.Stage == ScanStageUnknown {
 						unknownCodeLocations = append(unknownCodeLocations, name)
 					}
 				}
@@ -409,13 +409,13 @@ func (hub *Client) startFetchUnknownScansTimer(pause time.Duration) *util.Timer 
 func (hub *Client) startCheckScansForCompletionTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("checkScansForCompletion-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to check scans for completion")
 		var scanNames []string
 		select {
 		case scanNames = <-hub.InProgressScans():
 		case <-hub.stop:
 			return
 		}
+		log.Debugf("starting to check scans for completion: %+v", scanNames)
 		for _, scanName := range scanNames {
 			scanResults, err := hub.fetchScan(scanName)
 			if err != nil {

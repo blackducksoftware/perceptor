@@ -22,11 +22,13 @@ under the License.
 package hub
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
+	log "github.com/sirupsen/logrus"
 )
 
 // MockRawClient ...
@@ -49,6 +51,22 @@ func NewMockRawClient(shouldFail bool, initialCodeLocationNames []string) *MockR
 	}
 }
 
+func (mhc *MockRawClient) addCodeLocation(name string, stage ScanStage) error {
+	if _, ok := mhc.CodeLocations[name]; ok {
+		return fmt.Errorf("code location %s already found", name)
+	}
+	mhc.CodeLocations[name] = stage
+	return nil
+}
+
+func (mhc *MockRawClient) setCodeLocationStage(name string, stage ScanStage) error {
+	if _, ok := mhc.CodeLocations[name]; !ok {
+		return fmt.Errorf("code location %s not found", name)
+	}
+	mhc.CodeLocations[name] = stage
+	return nil
+}
+
 // ListAllCodeLocations ...
 func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (*hubapi.CodeLocationList, error) {
 	if !mhc.IsLoggedIn {
@@ -59,7 +77,9 @@ func (mhc *MockRawClient) ListAllCodeLocations(options *hubapi.GetListOptions) (
 	}
 	cls := []hubapi.CodeLocation{}
 	for name := range mhc.CodeLocations {
+		jsonBytes, err := json.Marshal(options)
 		shouldAdd := (options != nil && options.Q != nil && strings.Contains(name, (*options.Q)[5:])) || options == nil || options.Q == nil
+		log.Debugf("ListAllCodeLocations: %s, %+v, %s, %t", string(jsonBytes), err, name, shouldAdd)
 		if shouldAdd {
 			cls = append(cls,
 				hubapi.CodeLocation{
