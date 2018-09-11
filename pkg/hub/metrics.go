@@ -34,8 +34,8 @@ var hubResponseTime *prometheus.HistogramVec
 var circuitBreakerState *prometheus.GaugeVec
 var hubRequestIsCircuitBreakerEnabled *prometheus.CounterVec
 var circuitBreakerTransitions *prometheus.CounterVec
-var scanCounts *prometheus.CounterVec
 var scanStageGauge *prometheus.GaugeVec
+var eventCounter *prometheus.CounterVec
 
 func recordHubResponse(host string, name string, isSuccessful bool) {
 	isSuccessString := fmt.Sprintf("%t", isSuccessful)
@@ -78,7 +78,11 @@ func recordClientState(host string, metrics *clientStateMetrics) {
 		status := fmt.Sprintf("scan_stage_%s", key.String())
 		scanStageGauge.With(prometheus.Labels{"host": host, "name": status}).Set(float64(val))
 	}
+	// TODO errors?
+}
 
+func recordEvent(host string, event string) {
+	eventCounter.With(prometheus.Labels{"host": host, "event": event}).Inc()
 }
 
 func init() {
@@ -142,4 +146,12 @@ func init() {
 		Help:      "a gauge of scan stages for the hub client",
 	}, []string{"host", "name"})
 	prometheus.MustRegister(scanStageGauge)
+
+	eventCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "hub_event_counter",
+		Help:      "a counter of interesting events happening to each client",
+	}, []string{"host", "event"})
+	prometheus.MustRegister(eventCounter)
 }

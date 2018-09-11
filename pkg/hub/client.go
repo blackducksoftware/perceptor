@@ -124,10 +124,13 @@ func NewClient(username string, password string, host string, client RawClientIn
 			case <-hub.stop:
 				return
 			case <-hub.resetCircuitBreakerCh:
+				recordEvent(hub.host, "resetCircuitBreaker")
 				hub.circuitBreaker.Reset()
 			case ch := <-hub.getModel:
+				recordEvent(hub.host, "getModel")
 				ch <- hub.apiModel()
 			case ch := <-hub.unknownCodeLocationsCh:
+				recordEvent(hub.host, "getUnknownCodeLocations")
 				unknownCodeLocations := []string{}
 				for name, scan := range hub.codeLocations {
 					if scan.Stage == ScanStageUnknown {
@@ -136,12 +139,14 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 				ch <- unknownCodeLocations
 			case ch := <-hub.getScanResultsCh:
+				recordEvent(hub.host, "getScanResults")
 				allScanResults := map[string]*ScanResults{}
 				for name, scan := range hub.codeLocations {
 					allScanResults[name] = scan.ScanResults
 				}
 				ch <- allScanResults
 			case scanResults := <-hub.didFetchScanResultsCh:
+				recordEvent(hub.host, "didFetchScanResults")
 				scan, ok := hub.codeLocations[scanResults.CodeLocationName]
 				if !ok {
 					scan = &Scan{
@@ -163,14 +168,17 @@ func NewClient(username string, password string, host string, client RawClientIn
 				update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
 				hub.publish(update)
 			case scanName := <-hub.deleteScanCh:
+				recordEvent(hub.host, "deleteScan")
 				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
 			case result := <-hub.didDeleteScanCh:
+				recordEvent(hub.host, "didDeleteScan")
 				hub.recordError(result.Err)
 				if result.Err == nil {
 					scanName := result.Value.(string)
 					delete(hub.codeLocations, scanName)
 				}
 			case result := <-hub.didFetchCodeLocationsCh:
+				recordEvent(hub.host, "didFetchCodeLocations")
 				hub.recordError(result.Err)
 				if result.Err == nil {
 					hub.hasFetchedCodeLocations = true
@@ -182,8 +190,10 @@ func NewClient(username string, password string, host string, client RawClientIn
 					}
 				}
 			case scanName := <-hub.startScanClientCh:
+				recordEvent(hub.host, "startScanClient")
 				hub.codeLocations[scanName] = &Scan{Stage: ScanStageScanClient}
 			case obj := <-hub.finishScanClientCh:
+				recordEvent(hub.host, "finishScanClient")
 				scanName := obj.scanName
 				scanErr := obj.err
 				scan, ok := hub.codeLocations[scanName]
@@ -201,6 +211,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 					scan.Stage = ScanStageFailure
 				}
 			case sr := <-hub.scanDidFinishCh:
+				recordEvent(hub.host, "scanDidFinish")
 				scanName := sr.CodeLocationName
 				scan, ok := hub.codeLocations[scanName]
 				if !ok {
@@ -215,6 +226,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 				update := &DidFinishScan{Name: sr.CodeLocationName, Results: sr}
 				hub.publish(update)
 			case get := <-hub.getCodeLocationsCountCh:
+				recordEvent(hub.host, "getCodeLocationsCount")
 				count := 0
 				for _, cl := range hub.codeLocations {
 					if cl.Stage != ScanStageFailure {
@@ -223,6 +235,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 				get <- count
 			case get := <-hub.getInProgressScansCh:
+				recordEvent(hub.host, "getInProgressScans")
 				scans := []string{}
 				for scanName, scan := range hub.codeLocations {
 					if scan.Stage == ScanStageHubScan || scan.Stage == ScanStageScanClient {
@@ -231,8 +244,10 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 				get <- scans
 			case ch := <-hub.hasFetchedCodeLocationsCh:
+				recordEvent(hub.host, "hasFetchedCodeLocations")
 				ch <- hub.hasFetchedCodeLocations
 			case ch := <-hub.getCodeLocationsCh:
+				recordEvent(hub.host, "getCodeLocations")
 				codeLocations := map[string]ScanStage{}
 				for scanName, scan := range hub.codeLocations {
 					codeLocations[scanName] = scan.Stage
@@ -240,6 +255,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 				log.Debugf("handle getCodeLocations: found codelocations: %+v", codeLocations)
 				ch <- codeLocations
 			case ch := <-hub.getClientStateMetricsCh:
+				recordEvent(hub.host, "getClientStateMetrics")
 				scanStageCounts := map[ScanStage]int{}
 				for _, scan := range hub.codeLocations {
 					scanStageCounts[scan.Stage]++
@@ -249,6 +265,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 					scanStageCounts: scanStageCounts,
 				}
 			case err := <-hub.didLoginCh:
+				recordEvent(hub.host, "didLogin")
 				hub.recordError(err)
 				if err != nil && hub.status == ClientStatusUp {
 					hub.status = ClientStatusDown
