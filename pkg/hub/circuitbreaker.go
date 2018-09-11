@@ -35,10 +35,11 @@ type CircuitBreaker struct {
 	nextCheckTime       *time.Time
 	maxBackoffDuration  time.Duration
 	consecutiveFailures int
+	host                string
 }
 
 // NewCircuitBreaker .....
-func NewCircuitBreaker(maxBackoffDuration time.Duration) *CircuitBreaker {
+func NewCircuitBreaker(host string, maxBackoffDuration time.Duration) *CircuitBreaker {
 	cb := &CircuitBreaker{
 		nextCheckTime:       nil,
 		maxBackoffDuration:  maxBackoffDuration,
@@ -67,8 +68,8 @@ func (cb *CircuitBreaker) Reset() {
 }
 
 func (cb *CircuitBreaker) setState(state CircuitBreakerState) {
-	recordCircuitBreakerState(state)
-	recordCircuitBreakerTransition(cb.state, state)
+	recordCircuitBreakerState(cb.host, state)
+	recordCircuitBreakerTransition(cb.host, cb.state, state)
 	cb.state = state
 }
 
@@ -86,7 +87,7 @@ func (cb *CircuitBreaker) isAbleToIssueRequest() bool {
 		cb.setState(CircuitBreakerStateChecking)
 	}
 	isEnabled := cb.IsEnabled()
-	recordCircuitBreakerIsEnabled(isEnabled)
+	recordCircuitBreakerIsEnabled(cb.host, isEnabled)
 	return isEnabled
 }
 
@@ -135,8 +136,8 @@ func (cb *CircuitBreaker) IssueRequest(description string, request func() error)
 	}
 	start := time.Now()
 	err := request()
-	recordHubResponseTime(description, time.Now().Sub(start))
-	recordHubResponse(description, err == nil)
+	recordHubResponseTime(cb.host, description, time.Now().Sub(start))
+	recordHubResponse(cb.host, description, err == nil)
 	if err == nil {
 		cb.success()
 	} else {

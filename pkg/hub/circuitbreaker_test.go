@@ -30,7 +30,7 @@ import (
 // TestCircuitBreaker .....
 func TestCircuitBreaker(t *testing.T) {
 	hubClient := &MockRawClient{ShouldFail: false}
-	cb := NewCircuitBreaker(10 * time.Minute)
+	cb := NewCircuitBreaker("testhost", 10*time.Minute)
 	if cb.state != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
@@ -99,7 +99,7 @@ func TestCircuitBreaker(t *testing.T) {
 
 // TestCircuitBreakerConsecutiveFailures .....
 func TestCircuitBreakerConsecutiveFailures(t *testing.T) {
-	cb := NewCircuitBreaker(10 * time.Minute)
+	cb := NewCircuitBreaker("testhost", 10*time.Minute)
 	if cb.state != CircuitBreakerStateEnabled {
 		t.Errorf("expected CircuitBreakerStateEnabled, found %s", cb.state)
 	}
