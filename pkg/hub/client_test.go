@@ -53,7 +53,7 @@ func RunClientTests() {
 		})
 
 		It("should add code locations as they're scanned", func() {
-			rawClient, client := newClient(true)
+			_, client := newClient(true)
 			time.Sleep(250 * time.Millisecond)
 			Expect(<-client.InProgressScans()).To(Equal([]string{}))
 
@@ -64,13 +64,14 @@ func RunClientTests() {
 
 			client.FinishScanClient("abc", fmt.Errorf("planned failure"))
 			time.Sleep(250 * time.Millisecond)
-			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageHubScan, "a": ScanStageComplete, "b": ScanStageComplete}))
-			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
-
-			rawClient.addCodeLocation("abc", ScanStageComplete)
-			time.Sleep(250 * time.Millisecond)
-			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageComplete, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageFailure, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{}))
+
+			// TODO is there a reasonable test case here?
+			// rawClient.addCodeLocation("abc", ScanStageComplete)
+			// time.Sleep(250 * time.Millisecond)
+			// Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageComplete, "a": ScanStageComplete, "b": ScanStageComplete}))
+			// Expect(<-client.InProgressScans()).To(Equal([]string{}))
 		})
 	})
 }
