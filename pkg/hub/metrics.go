@@ -34,6 +34,8 @@ var hubResponseTime *prometheus.HistogramVec
 var circuitBreakerState *prometheus.GaugeVec
 var hubRequestIsCircuitBreakerEnabled *prometheus.CounterVec
 var circuitBreakerTransitions *prometheus.CounterVec
+var scanCounts *prometheus.CounterVec
+var scanStageGauge *prometheus.GaugeVec
 
 func recordHubResponse(host string, name string, isSuccessful bool) {
 	isSuccessString := fmt.Sprintf("%t", isSuccessful)
@@ -61,6 +63,22 @@ func recordCircuitBreakerIsEnabled(host string, isEnabled bool) {
 
 func recordCircuitBreakerTransition(host string, from CircuitBreakerState, to CircuitBreakerState) {
 	circuitBreakerTransitions.With(prometheus.Labels{"host": host, "from": from.String(), "to": to.String()}).Inc()
+}
+
+func recordClientState(host string, metrics *clientStateMetrics) {
+	keys := []ScanStage{
+		ScanStageUnknown,
+		ScanStageScanClient,
+		ScanStageHubScan,
+		ScanStageComplete,
+		ScanStageFailure,
+	}
+	for _, key := range keys {
+		val := metrics.scanStageCounts[key]
+		status := fmt.Sprintf("scan_stage_%s", key.String())
+		scanStageGauge.With(prometheus.Labels{"host": host, "name": status}).Set(float64(val))
+	}
+
 }
 
 func init() {
@@ -116,4 +134,12 @@ func init() {
 		ConstLabels: map[string]string{},
 	}, []string{"host", "from", "to"})
 	prometheus.MustRegister(circuitBreakerTransitions)
+
+	scanStageGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "hub_scan_stage_gauge",
+		Help:      "a gauge of scan stages for the hub client",
+	}, []string{"host", "name"})
+	prometheus.MustRegister(scanStageGauge)
 }

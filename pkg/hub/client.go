@@ -55,6 +55,7 @@ type Client struct {
 	codeLocations           map[string]*Scan
 	errors                  []error
 	// timers
+	getMetricsTimer              *util.Timer
 	loginTimer                   *util.Timer
 	fetchAllCodeLocationsTimer   *util.Timer
 	fetchScansTimer              *util.Timer
@@ -78,6 +79,7 @@ type Client struct {
 	didFetchScanResultsCh     chan *ScanResults
 	hasFetchedCodeLocationsCh chan chan bool
 	getCodeLocationsCh        chan chan map[string]ScanStage
+	getClientStateMetricsCh   chan chan *clientStateMetrics
 	unknownCodeLocationsCh    chan chan []string
 }
 
@@ -113,6 +115,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 		didFetchScanResultsCh:     make(chan *ScanResults),
 		hasFetchedCodeLocationsCh: make(chan chan bool),
 		getCodeLocationsCh:        make(chan chan map[string]ScanStage),
+		getClientStateMetricsCh:   make(chan chan *clientStateMetrics),
 		unknownCodeLocationsCh:    make(chan chan []string)}
 	// action processing
 	go func() {
@@ -236,6 +239,15 @@ func NewClient(username string, password string, host string, client RawClientIn
 				}
 				log.Debugf("handle getCodeLocations: found codelocations: %+v", codeLocations)
 				ch <- codeLocations
+			case ch := <-hub.getClientStateMetricsCh:
+				scanStageCounts := map[ScanStage]int{}
+				for _, scan := range hub.codeLocations {
+					scanStageCounts[scan.Stage]++
+				}
+				ch <- &clientStateMetrics{
+					errorsCount:     len(hub.errors),
+					scanStageCounts: scanStageCounts,
+				}
 			case err := <-hub.didLoginCh:
 				hub.recordError(err)
 				if err != nil && hub.status == ClientStatusUp {
@@ -252,6 +264,7 @@ func NewClient(username string, password string, host string, client RawClientIn
 			}
 		}
 	}()
+	hub.getMetricsTimer = hub.startGetMetricsTimer(15 * time.Second)
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(scanCompletionPause)
 	hub.fetchScansTimer = hub.startFetchUnknownScansTimer(fetchUnknownScansPause)
 	hub.fetchAllCodeLocationsTimer = hub.startFetchAllCodeLocationsTimer(fetchAllScansPause)
@@ -308,6 +321,12 @@ func (hub *Client) CodeLocations() <-chan map[string]ScanStage {
 func (hub *Client) HasFetchedCodeLocations() <-chan bool {
 	ch := make(chan bool)
 	hub.hasFetchedCodeLocationsCh <- ch
+	return ch
+}
+
+func (hub *Client) getStateMetrics() <-chan *clientStateMetrics {
+	ch := make(chan *clientStateMetrics)
+	hub.getClientStateMetricsCh <- ch
 	return ch
 }
 
@@ -419,6 +438,20 @@ func (hub *Client) startFetchUnknownScansTimer(pause time.Duration) *util.Timer 
 			}
 		}
 		log.Debugf("finished fetching unknown scans")
+	})
+}
+
+func (hub *Client) startGetMetricsTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("getMetrics-%s", hub.host)
+	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
+		var metrics *clientStateMetrics
+		select {
+		case <-hub.stop:
+			return
+		case m := <-hub.getStateMetrics():
+			metrics = m
+		}
+		recordClientState(hub.host, metrics)
 	})
 }
 
