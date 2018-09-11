@@ -85,9 +85,9 @@ func RunTestPerceptor() {
 			Expect(pcp.AddImage(image1)).To(BeNil())
 			time.Sleep(500 * time.Millisecond)
 			Expect(len(pcp.model.Images)).To(Equal(1))
+			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusUnknown))
 
 			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1"}})
-			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusUnknown))
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
@@ -96,7 +96,6 @@ func RunTestPerceptor() {
 			time.Sleep(500 * time.Millisecond)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusRunningHubScan))
-			//			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{})).To(BeNil())
 		})
 
 		It("should not assign scans when there are no hubs", func() {
