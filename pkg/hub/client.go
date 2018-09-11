@@ -439,15 +439,15 @@ func (hub *Client) startFetchUnknownScansTimer(pause time.Duration) *util.Timer 
 		log.Debugf("found %d unknown code locations", len(unknownCodeLocations))
 		for _, codeLocationName := range unknownCodeLocations {
 			scanResults, err := hub.fetchScan(codeLocationName)
-			log.Debugf("fetched scan %s: %+v", codeLocationName, err)
 			if err != nil {
-				log.Error(err.Error())
+				log.Errorf("unable to fetch scan %s: %s", codeLocationName, err.Error())
 				continue
 			}
 			if scanResults == nil {
 				log.Debugf("found nil scan for unknown code location %s", codeLocationName)
 				continue
 			}
+			log.Debugf("fetched scan %s", codeLocationName)
 			select {
 			case hub.didFetchScanResultsCh <- scanResults:
 			case <-hub.stop:
@@ -627,6 +627,7 @@ func (hub *Client) fetchScan(scanNameSearchString string) (*ScanResults, error) 
 	codeLocationList, err := hub.listCodeLocations(scanNameSearchString)
 
 	if err != nil {
+		recordError(hub.host, "fetch code location list")
 		log.Errorf("error fetching code location list: %v", err)
 		return nil, err
 	}
@@ -649,52 +650,61 @@ func (hub *Client) fetchScan(scanNameSearchString string) (*ScanResults, error) 
 func (hub *Client) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLocation, scanNameSearchString string) (*ScanResults, error) {
 	versionLink, err := codeLocation.GetProjectVersionLink()
 	if err != nil {
+		recordError(hub.host, "get project version link")
 		log.Errorf("unable to get project version link: %s", err.Error())
 		return nil, err
 	}
 
 	version, err := hub.getProjectVersion(*versionLink)
 	if err != nil {
+		recordError(hub.host, "fetch project version")
 		log.Errorf("unable to fetch project version: %s", err.Error())
 		return nil, err
 	}
 
 	riskProfileLink, err := version.GetProjectVersionRiskProfileLink()
 	if err != nil {
+		recordError(hub.host, "get risk profile link")
 		log.Errorf("error getting risk profile link: %v", err)
 		return nil, err
 	}
 
 	riskProfile, err := hub.getProjectVersionRiskProfile(*riskProfileLink)
 	if err != nil {
+		recordError(hub.host, "fetch project version risk profile")
 		log.Errorf("error fetching project version risk profile: %v", err)
 		return nil, err
 	}
 
 	policyStatusLink, err := version.GetProjectVersionPolicyStatusLink()
 	if err != nil {
+		recordError(hub.host, "get policy status link")
 		log.Errorf("error getting policy status link: %v", err)
 		return nil, err
 	}
 	policyStatus, err := hub.getProjectVersionPolicyStatus(*policyStatusLink)
 	if err != nil {
+		recordError(hub.host, "fetch policy status")
 		log.Errorf("error fetching project version policy status: %v", err)
 		return nil, err
 	}
 
 	componentsLink, err := version.GetComponentsLink()
 	if err != nil {
+		recordError(hub.host, "get components link")
 		log.Errorf("error getting components link: %v", err)
 		return nil, err
 	}
 
 	scanSummariesLink, err := codeLocation.GetScanSummariesLink()
 	if err != nil {
+		recordError(hub.host, "get scan summaries link")
 		log.Errorf("error getting scan summaries link: %v", err)
 		return nil, err
 	}
 	scanSummariesList, err := hub.listScanSummaries(*scanSummariesLink)
 	if err != nil {
+		recordError(hub.host, "fetch scan summaries")
 		log.Errorf("error fetching scan summaries: %v", err)
 		return nil, err
 	}
@@ -712,11 +722,13 @@ func (hub *Client) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 
 	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
 	if err != nil {
+		recordError(hub.host, "map risk profile")
 		return nil, err
 	}
 
 	mappedPolicyStatus, err := newPolicyStatus(policyStatus.OverallStatus, policyStatus.UpdatedAt, policyStatus.ComponentVersionStatusCounts)
 	if err != nil {
+		recordError(hub.host, "map policy status")
 		return nil, err
 	}
 
