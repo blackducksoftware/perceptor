@@ -24,7 +24,10 @@ package core
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	fsnotify "github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -37,9 +40,13 @@ type ConfigManager struct {
 
 // NewConfigManager ...
 func NewConfigManager(configPath string) *ConfigManager {
-	return &ConfigManager{
+	cm := &ConfigManager{
 		ConfigPath: configPath,
 	}
+	cm.StartWatch(func(conf *Config, err error) {
+		log.Infof("watch config: %+v, %+v", conf, err)
+	})
+	return cm
 }
 
 // GetConfig returns a configuration object to configure Perceptor
@@ -85,13 +92,18 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 	return config, nil
 }
 
-//
-// // StartWatch will call `continuation` whenever the config file changes
-// func (cm *ConfigManager) StartWatch(continuation func(*model.Config, error)) {
-// 	viper.WatchConfig()
-// 	viper.OnConfigChange(func(event fsnotify.Event) {
-// 		log.Infof("config change detected: %+v", event)
-// 		continuation(cm.GetConfig())
-// 	})
-// 	viper.WatchConfig()
-// }
+// StartWatch will call `continuation` whenever the config file changes
+func (cm *ConfigManager) StartWatch(continuation func(*Config, error)) {
+	viper.WatchConfig()
+	viper.OnConfigChange(func(event fsnotify.Event) {
+		log.Infof("config change detected: %+v", event)
+		continuation(cm.GetConfig())
+	})
+	go func() {
+		for {
+			time.Sleep(15 * time.Second)
+			conf, err := cm.GetConfig()
+			fmt.Printf("pulled config: %+v, %+v\n", conf, err)
+		}
+	}()
+}
