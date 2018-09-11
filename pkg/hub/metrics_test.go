@@ -30,12 +30,12 @@ import (
 
 // TestMetrics .....
 func TestMetrics(t *testing.T) {
-	recordHubData("abc", true)
-	recordHubResponse("qrs", false)
-	recordHubResponseTime("abc", time.Now().Sub(time.Now()))
-	recordCircuitBreakerState(CircuitBreakerStateDisabled)
-	recordCircuitBreakerIsEnabled(true)
-	recordCircuitBreakerTransition(CircuitBreakerStateEnabled, CircuitBreakerStateDisabled)
+	recordHubData("testhost", "abc", true)
+	recordHubResponse("testhost", "qrs", false)
+	recordHubResponseTime("testhost", "abc", time.Now().Sub(time.Now()))
+	recordCircuitBreakerState("testhost", CircuitBreakerStateDisabled)
+	recordCircuitBreakerIsEnabled("testhost", true)
+	recordCircuitBreakerTransition("testhost", CircuitBreakerStateEnabled, CircuitBreakerStateDisabled)
 
 	message := "finished test case"
 	t.Log(message)

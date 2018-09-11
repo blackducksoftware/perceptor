@@ -85,7 +85,7 @@ type Client struct {
 func NewClient(username string, password string, host string, client RawClientInterface, scanCompletionPause time.Duration, fetchUnknownScansPause time.Duration, fetchAllScansPause time.Duration) *Client {
 	hub := &Client{
 		client:         client,
-		circuitBreaker: NewCircuitBreaker(maxHubExponentialBackoffDuration),
+		circuitBreaker: NewCircuitBreaker(host, maxHubExponentialBackoffDuration),
 		username:       username,
 		password:       password,
 		host:           host,
@@ -330,8 +330,8 @@ func (hub *Client) recordError(err error) {
 func (hub *Client) login() error {
 	start := time.Now()
 	err := hub.client.Login(hub.username, hub.password)
-	recordHubResponse("login", err == nil)
-	recordHubResponseTime("login", time.Now().Sub(start))
+	recordHubResponse(hub.host, "login", err == nil)
+	recordHubResponseTime(hub.host, "login", time.Now().Sub(start))
 	return err
 }
 
@@ -477,8 +477,8 @@ func (hub *Client) fetchAllCodeLocations() *Result {
 func (hub *Client) Version() (string, error) {
 	start := time.Now()
 	currentVersion, err := hub.client.CurrentVersion()
-	recordHubResponse("version", err == nil)
-	recordHubResponseTime("version", time.Now().Sub(start))
+	recordHubResponse(hub.host, "version", err == nil)
+	recordHubResponseTime(hub.host, "version", time.Now().Sub(start))
 	if err != nil {
 		log.Errorf("unable to get hub version: %s", err.Error())
 		return "", err
@@ -583,12 +583,12 @@ func (hub *Client) fetchScan(scanNameSearchString string) (*ScanResults, error) 
 	codeLocations := codeLocationList.Items
 	switch len(codeLocations) {
 	case 0:
-		recordHubData("codeLocations", true)
+		recordHubData(hub.host, "codeLocations", true)
 		return nil, nil
 	case 1:
-		recordHubData("codeLocations", true) // good to go
+		recordHubData(hub.host, "codeLocations", true) // good to go
 	default:
-		recordHubData("codeLocations", false)
+		recordHubData(hub.host, "codeLocations", false)
 		log.Warnf("expected 1 code location matching name search string %s, found %d", scanNameSearchString, len(codeLocations))
 	}
 
@@ -651,12 +651,12 @@ func (hub *Client) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLoc
 
 	switch len(scanSummariesList.Items) {
 	case 0:
-		recordHubData("scan summaries", true)
+		recordHubData(hub.host, "scan summaries", true)
 		return nil, nil
 	case 1:
-		recordHubData("scan summaries", true) // good to go, continue
+		recordHubData(hub.host, "scan summaries", true) // good to go, continue
 	default:
-		recordHubData("scan summaries", false)
+		recordHubData(hub.host, "scan summaries", false)
 		log.Warnf("expected to find one scan summary for code location %s, found %d", scanNameSearchString, len(scanSummariesList.Items))
 	}
 

@@ -35,32 +35,32 @@ var circuitBreakerState *prometheus.GaugeVec
 var hubRequestIsCircuitBreakerEnabled *prometheus.CounterVec
 var circuitBreakerTransitions *prometheus.CounterVec
 
-func recordHubResponse(name string, isSuccessful bool) {
+func recordHubResponse(host string, name string, isSuccessful bool) {
 	isSuccessString := fmt.Sprintf("%t", isSuccessful)
-	hubResponse.With(prometheus.Labels{"name": name, "isSuccess": isSuccessString}).Inc()
+	hubResponse.With(prometheus.Labels{"host": host, "name": name, "isSuccess": isSuccessString}).Inc()
 }
 
-func recordHubData(name string, isOkay bool) {
+func recordHubData(host string, name string, isOkay bool) {
 	isOkayString := fmt.Sprintf("%t", isOkay)
-	hubData.With(prometheus.Labels{"name": name, "okay": isOkayString}).Inc()
+	hubData.With(prometheus.Labels{"host": host, "name": name, "okay": isOkayString}).Inc()
 }
 
-func recordHubResponseTime(name string, duration time.Duration) {
+func recordHubResponseTime(host string, name string, duration time.Duration) {
 	milliseconds := float64(duration / time.Millisecond)
-	hubResponseTime.With(prometheus.Labels{"name": name}).Observe(milliseconds)
+	hubResponseTime.With(prometheus.Labels{"host": host, "name": name}).Observe(milliseconds)
 }
 
-func recordCircuitBreakerState(state CircuitBreakerState) {
-	circuitBreakerState.With(prometheus.Labels{}).Set(float64(state))
+func recordCircuitBreakerState(host string, state CircuitBreakerState) {
+	circuitBreakerState.With(prometheus.Labels{"host": host}).Set(float64(state))
 }
 
-func recordCircuitBreakerIsEnabled(isEnabled bool) {
+func recordCircuitBreakerIsEnabled(host string, isEnabled bool) {
 	isEnabledString := fmt.Sprintf("%t", isEnabled)
-	hubRequestIsCircuitBreakerEnabled.With(prometheus.Labels{"isEnabled": isEnabledString}).Inc()
+	hubRequestIsCircuitBreakerEnabled.With(prometheus.Labels{"host": host, "isEnabled": isEnabledString}).Inc()
 }
 
-func recordCircuitBreakerTransition(from CircuitBreakerState, to CircuitBreakerState) {
-	circuitBreakerTransitions.With(prometheus.Labels{"from": from.String(), "to": to.String()}).Inc()
+func recordCircuitBreakerTransition(host string, from CircuitBreakerState, to CircuitBreakerState) {
+	circuitBreakerTransitions.With(prometheus.Labels{"host": host, "from": from.String(), "to": to.String()}).Inc()
 }
 
 func init() {
@@ -70,7 +70,7 @@ func init() {
 		Name:        "http_hub_requests",
 		Help:        "names and status codes for HTTP requests issued by perceptor to the hub",
 		ConstLabels: map[string]string{},
-	}, []string{"name", "isSuccess"})
+	}, []string{"host", "name", "isSuccess"})
 	prometheus.MustRegister(hubResponse)
 
 	hubData = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -79,7 +79,7 @@ func init() {
 		Name:        "hub_data_integrity",
 		Help:        "tracks hub data integrity: whether data fetched from the hub meets Perceptor's expectations",
 		ConstLabels: map[string]string{},
-	}, []string{"name", "okay"})
+	}, []string{"host", "name", "okay"})
 	prometheus.MustRegister(hubData)
 
 	hubResponseTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -88,7 +88,7 @@ func init() {
 		Name:      "hub_response_time",
 		Help:      "tracks the response times of Hub requests in milliseconds",
 		Buckets:   prometheus.ExponentialBuckets(1, 2, 20),
-	}, []string{"name"})
+	}, []string{"host", "name"})
 	prometheus.MustRegister(hubResponseTime)
 
 	circuitBreakerState = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -96,7 +96,7 @@ func init() {
 		Subsystem: "core",
 		Name:      "hub_circuit_breaker_state",
 		Help:      "tracks the state of the circuit breaker; 0 = disabled; 1 = enabled; 2 = checking;",
-	}, []string{})
+	}, []string{"host"})
 	prometheus.MustRegister(circuitBreakerState)
 
 	hubRequestIsCircuitBreakerEnabled = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -105,7 +105,7 @@ func init() {
 		Name:        "hub_request_is_circuit_breaker_enabled",
 		Help:        "tracks whether the circuit breaker is enabled or disabled when a Hub http request is issued",
 		ConstLabels: map[string]string{},
-	}, []string{"isEnabled"})
+	}, []string{"host", "isEnabled"})
 	prometheus.MustRegister(hubRequestIsCircuitBreakerEnabled)
 
 	circuitBreakerTransitions = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -114,6 +114,6 @@ func init() {
 		Name:        "hub_circuit_breaker_transitions",
 		Help:        "tracks circuit breaker state transitions",
 		ConstLabels: map[string]string{},
-	}, []string{"from", "to"})
+	}, []string{"host", "from", "to"})
 	prometheus.MustRegister(circuitBreakerTransitions)
 }
