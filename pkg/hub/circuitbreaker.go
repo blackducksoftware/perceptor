@@ -44,6 +44,7 @@ func NewCircuitBreaker(host string, maxBackoffDuration time.Duration) *CircuitBr
 		nextCheckTime:       nil,
 		maxBackoffDuration:  maxBackoffDuration,
 		consecutiveFailures: 0,
+		host:                host,
 	}
 	cb.setState(CircuitBreakerStateEnabled)
 	return cb

@@ -39,7 +39,8 @@ import (
 func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	configManager := NewConfigManager(configPath)
+	stop := make(chan struct{})
+	configManager := NewConfigManager(configPath, stop)
 
 	config, err := configManager.GetConfig()
 	if err != nil {
@@ -65,8 +66,6 @@ func RunPerceptor(configPath string) {
 
 	http.Handle("/metrics", prometheus.Handler())
 
-	stop := make(chan struct{})
-
 	var newHub hubClientCreator
 	if config.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
@@ -90,6 +89,18 @@ func RunPerceptor(configPath string) {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
 	}
+
+	go func() {
+		updateConfig := configManager.DidReadConfig()
+		for {
+			select {
+			case <-stop:
+				return
+			case newConfig := <-updateConfig:
+				perceptor.UpdateConfig(newConfig)
+			}
+		}
+	}()
 
 	log.Infof("instantiated perceptor: %+v", perceptor)
 	api.SetupHTTPServer(perceptor)
