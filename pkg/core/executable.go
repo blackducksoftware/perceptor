@@ -39,7 +39,8 @@ import (
 func RunPerceptor(configPath string) {
 	log.Info("start")
 
-	configManager := NewConfigManager(configPath)
+	stop := make(chan struct{})
+	configManager := NewConfigManager(configPath, stop)
 
 	config, err := configManager.GetConfig()
 	if err != nil {
@@ -64,8 +65,6 @@ func RunPerceptor(configPath string) {
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	http.Handle("/metrics", prometheus.Handler())
-
-	stop := make(chan struct{})
 
 	var newHub hubClientCreator
 	if config.UseMockMode {

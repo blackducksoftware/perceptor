@@ -22,6 +22,7 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -111,4 +112,12 @@ func (config *Config) model() *api.ModelConfig {
 // GetLogLevel .....
 func (config *Config) GetLogLevel() (log.Level, error) {
 	return log.ParseLevel(config.LogLevel)
+}
+
+func (config *Config) dump() (string, error) {
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }

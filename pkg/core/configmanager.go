@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	fsnotify "github.com/fsnotify/fsnotify"
+	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -35,17 +35,22 @@ import (
 //   - getting initial config
 //   - reporting ongoing changes to config
 type ConfigManager struct {
-	ConfigPath string
+	ConfigPath      string
+	stop            <-chan struct{}
+	didReadConfig   chan *Config
+	readConfigPause time.Duration
+	readConfigTimer *util.Timer
 }
 
 // NewConfigManager ...
-func NewConfigManager(configPath string) *ConfigManager {
+func NewConfigManager(configPath string, stop <-chan struct{}) *ConfigManager {
 	cm := &ConfigManager{
-		ConfigPath: configPath,
+		ConfigPath:      configPath,
+		stop:            stop,
+		didReadConfig:   make(chan *Config),
+		readConfigPause: 15 * time.Second,
 	}
-	cm.StartWatch(func(conf *Config, err error) {
-		log.Infof("watch config: %+v, %+v", conf, err)
-	})
+	cm.startReadConfigTimer()
 	return cm
 }
 
@@ -92,18 +97,22 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 	return config, nil
 }
 
-// StartWatch will call `continuation` whenever the config file changes
-func (cm *ConfigManager) StartWatch(continuation func(*Config, error)) {
-	viper.WatchConfig()
-	viper.OnConfigChange(func(event fsnotify.Event) {
-		log.Infof("config change detected: %+v", event)
-		continuation(cm.GetConfig())
-	})
-	go func() {
-		for {
-			time.Sleep(15 * time.Second)
-			conf, err := cm.GetConfig()
-			fmt.Printf("pulled config: %+v, %+v\n", conf, err)
+func (cm *ConfigManager) startReadConfigTimer() {
+	cm.readConfigTimer = util.NewRunningTimer("configManager-readConfig", cm.readConfigPause, cm.stop, false, func() {
+		config, err := cm.GetConfig()
+		if err != nil {
+			log.Errorf("unable to read config: %s", err.Error())
+			return
 		}
-	}()
+		select {
+		case <-cm.stop:
+			return
+		case cm.didReadConfig <- config:
+		}
+	})
+}
+
+// DidReadConfig ...
+func (cm *ConfigManager) DidReadConfig() <-chan *Config {
+	return cm.didReadConfig
 }
