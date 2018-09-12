@@ -137,6 +137,13 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 	return perceptor, nil
 }
 
+// UpdateConfig ...
+func (pcp *Perceptor) UpdateConfig(config *Config) {
+	pcp.hubManager.SetHubs(config.Hub.Hosts)
+	// config.Timings
+	// logLevel, err := config.GetLogLevel()
+}
+
 // Section: api.Responder implementation
 
 // GetModel .....

@@ -31,6 +31,7 @@ import (
 
 // HubConfig handles Hub-specific configuration
 type HubConfig struct {
+	Hosts                     []string
 	User                      string
 	PasswordEnvVar            string
 	ClientTimeoutMilliseconds int

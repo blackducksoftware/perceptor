@@ -90,6 +90,18 @@ func RunPerceptor(configPath string) {
 		panic(err)
 	}
 
+	go func() {
+		updateConfig := configManager.DidReadConfig()
+		for {
+			select {
+			case <-stop:
+				return
+			case newConfig := <-updateConfig:
+				perceptor.UpdateConfig(newConfig)
+			}
+		}
+	}()
+
 	log.Infof("instantiated perceptor: %+v", perceptor)
 	api.SetupHTTPServer(perceptor)
 
