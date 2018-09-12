@@ -38,11 +38,9 @@ type RoutineTaskManager struct {
 	// timers
 	modelMetricsTimer      *util.Timer
 	stalledScanClientTimer *util.Timer
-	//	pruneOrphanedImagesTimer *util.Timer
-	unknownImagesTimer *util.Timer
+	unknownImagesTimer     *util.Timer
 	// channels
-	metricsCh chan bool
-	//	orphanedImages  chan []string
+	metricsCh       chan bool
 	unknownImagesCh chan bool
 }
 
@@ -116,13 +114,6 @@ func (rtm *RoutineTaskManager) startGeneratingModelMetrics() *util.Timer {
 		}
 	})
 }
-
-// func (rtm *RoutineTaskManager) startPruningOrphanedImages(pause time.Duration) *util.Timer {
-// 	return util.NewRunningTimer("orphanedImagePruning", pause, rtm.stop, false, func() {
-// 		log.Debug("cleaning up orphaned images")
-// 		// TODO write to a channel or something?
-// 	})
-// }
 
 func (rtm *RoutineTaskManager) startCheckingForUnknownImages(pause time.Duration) *util.Timer {
 	return util.NewRunningTimer("unknownImageHandler", pause, rtm.stop, false, func() {
