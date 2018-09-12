@@ -89,7 +89,6 @@ type ModelTimings struct {
 	StalledScanClientTimeout  ModelTime
 	ModelMetricsPause         ModelTime
 	UnknownImagePause         ModelTime
-	PruneOrphanedImagesPause  ModelTime
 }
 
 // ModelImageInfo .....
