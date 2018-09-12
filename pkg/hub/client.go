@@ -33,7 +33,6 @@ import (
 
 const (
 	maxHubExponentialBackoffDuration = 1 * time.Hour
-	// hubDeleteTimeout                 = 1 * time.Hour
 )
 
 type finishScanClient struct {
@@ -66,8 +65,6 @@ type Client struct {
 	stop                      chan struct{}
 	resetCircuitBreakerCh     chan struct{}
 	getModel                  chan chan *api.ModelHub
-	deleteScanCh              chan string
-	didDeleteScanCh           chan *Result
 	didLoginCh                chan error
 	startScanClientCh         chan string
 	finishScanClientCh        chan *finishScanClient
@@ -102,8 +99,6 @@ func NewClient(username string, password string, host string, client RawClientIn
 		stop:                      make(chan struct{}),
 		resetCircuitBreakerCh:     make(chan struct{}),
 		getModel:                  make(chan chan *api.ModelHub),
-		deleteScanCh:              make(chan string),
-		didDeleteScanCh:           make(chan *Result),
 		didLoginCh:                make(chan error),
 		startScanClientCh:         make(chan string),
 		finishScanClientCh:        make(chan *finishScanClient),
@@ -167,16 +162,6 @@ func NewClient(username string, password string, host string, client RawClientIn
 				hub.codeLocations[scanResults.CodeLocationName].ScanResults = scanResults
 				update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
 				hub.publish(update)
-			case scanName := <-hub.deleteScanCh:
-				recordEvent(hub.host, "deleteScan")
-				hub.recordError(hub.deleteScanAndProjectVersion(scanName))
-			case result := <-hub.didDeleteScanCh:
-				recordEvent(hub.host, "didDeleteScan")
-				hub.recordError(result.Err)
-				if result.Err == nil {
-					scanName := result.Value.(string)
-					delete(hub.codeLocations, scanName)
-				}
 			case result := <-hub.didFetchCodeLocationsCh:
 				recordEvent(hub.host, "didFetchCodeLocations")
 				hub.recordError(result.Err)
@@ -541,36 +526,6 @@ func (hub *Client) Version() (string, error) {
 // SetTimeout is currently not concurrent-safe, and should be made so TODO
 func (hub *Client) SetTimeout(timeout time.Duration) {
 	hub.client.SetTimeout(timeout)
-}
-
-// DeleteScan deletes the code location and project version (but NOT the project)
-// associated with the given scan name.
-func (hub *Client) DeleteScan(scanName string) {
-	hub.deleteScanCh <- scanName
-}
-
-func (hub *Client) deleteScanAndProjectVersion(scanName string) error {
-	scan, ok := hub.codeLocations[scanName]
-	if !ok {
-		return fmt.Errorf("unable to delete scan %s, not found", scanName)
-	}
-	clURL := scan.ScanResults.CodeLocationHref
-	projectVersionURL := scan.ScanResults.CodeLocationMappedProjectVersion
-	finish := func(err error) {
-		select {
-		case hub.didDeleteScanCh <- &Result{Value: scanName, Err: err}:
-		case <-hub.stop:
-		}
-	}
-	go func() {
-		err := hub.deleteCodeLocation(clURL)
-		if err != nil {
-			finish(err)
-			return
-		}
-		finish(hub.deleteProjectVersion(projectVersionURL))
-	}()
-	return nil
 }
 
 // StartScanClient ...

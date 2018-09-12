@@ -30,7 +30,6 @@ import (
 // ClientInterface .....
 type ClientInterface interface {
 	// commands coming in
-	DeleteScan(scanName string)
 	StartScanClient(scanName string)
 	FinishScanClient(scanName string, scanErr error)
 	SetTimeout(timeout time.Duration)
