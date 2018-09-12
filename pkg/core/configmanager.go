@@ -70,6 +70,7 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 		viper.BindEnv("Timings_StalledScanClientTimeoutHours")
 		viper.BindEnv("Timings_UnknownImagePauseMilliseconds")
 
+		viper.BindEnv("Hub_Hosts")
 		viper.BindEnv("Hub_User")
 		viper.BindEnv("Hub_TotalScanLimit")
 		viper.BindEnv("Hub_Port")
