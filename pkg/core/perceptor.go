@@ -139,9 +139,15 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 
 // UpdateConfig ...
 func (pcp *Perceptor) UpdateConfig(config *Config) {
+	log.Infof("set config")
 	pcp.hubManager.SetHubs(config.Hub.Hosts)
+	logLevel, err := config.GetLogLevel()
+	if err != nil {
+		log.Errorf("unable to get log level: %s", err.Error())
+	} else {
+		log.SetLevel(logLevel)
+	}
 	// config.Timings
-	// logLevel, err := config.GetLogLevel()
 }
 
 // Section: api.Responder implementation
