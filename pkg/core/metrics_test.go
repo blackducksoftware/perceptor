@@ -59,6 +59,7 @@ func RunTestMetrics() {
 			})
 			recordGetScanResults()
 			recordPostFinishedScan()
+			recordEvent("um", "found hub")
 			Expect(1).To(Equal(1))
 		})
 	})

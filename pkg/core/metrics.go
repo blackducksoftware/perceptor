@@ -46,8 +46,14 @@ var imageStatusGauge *prometheus.GaugeVec
 var imagePolicyViolationsGauge *prometheus.GaugeVec
 var imageVulnerabilitiesGauge *prometheus.GaugeVec
 
+var eventCounter *prometheus.CounterVec
+
 // prometheus' terminology is so confusing ... a histogram isn't a histogram.  sometimes.
 var statusHistogram *prometheus.GaugeVec
+
+func recordEvent(subsystem string, name string) {
+	eventCounter.With(prometheus.Labels{"subsystem": subsystem, "name": name}).Inc()
+}
 
 func recordModelMetrics(modelMetrics *model.Metrics) {
 	keys := []model.ScanStatus{
@@ -158,12 +164,6 @@ func recordHTTPError(request *http.Request, err error, statusCode int) {
 	handledHTTPRequest.With(prometheus.Labels{"path": path, "method": method, "code": statusCodeString}).Inc()
 }
 
-// http requests issued
-
-// results from checking hub for completed projects (errors, unexpected things, etc.)
-
-// TODO
-
 func init() {
 	statusHistogram = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",
@@ -237,4 +237,12 @@ func init() {
 		Help:      "buckets of image policy violation counts (-1 means not yet scanned)",
 	}, []string{policyViolationsLabel})
 	prometheus.MustRegister(imagePolicyViolationsGauge)
+
+	eventCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "event_counter",
+		Help:      "various events happening in perceptor core",
+	}, []string{"subsystem", "name"})
+	prometheus.MustRegister(eventCounter)
 }

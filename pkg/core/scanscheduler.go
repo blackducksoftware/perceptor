@@ -38,9 +38,11 @@ type ScanScheduler struct {
 func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
 	for _, hub := range s.HubManager.HubClients() {
 		if <-hub.CodeLocationsCount() < s.TotalScanLimit && len(<-hub.InProgressScans()) < s.ConcurrentScanLimit {
+			recordEvent("scanScheduler", "found hub")
 			return hub
 		}
 	}
+	recordEvent("scanScheduler", "did not find hub")
 	return nil
 }
 
