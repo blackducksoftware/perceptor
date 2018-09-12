@@ -41,7 +41,6 @@ func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
 			return hub
 		}
 	}
-	// TODO eventually, could look through projects
 	return nil
 }
 

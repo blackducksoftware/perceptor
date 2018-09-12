@@ -66,7 +66,6 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 
 		viper.BindEnv("Timings_CheckForStalledScansPauseHours")
 		viper.BindEnv("Timings_ModelMetricsPauseSeconds")
-		viper.BindEnv("Timings_PruneOrphanedImagesPauseMinutes")
 		viper.BindEnv("Timings_StalledScanClientTimeoutHours")
 		viper.BindEnv("Timings_UnknownImagePauseMilliseconds")
 

@@ -47,11 +47,10 @@ func (config *HubConfig) ClientTimeout() time.Duration {
 
 // Timings ...
 type Timings struct {
-	CheckForStalledScansPauseHours  int
-	StalledScanClientTimeoutHours   int
-	ModelMetricsPauseSeconds        int
-	UnknownImagePauseMilliseconds   int
-	PruneOrphanedImagesPauseMinutes int
+	CheckForStalledScansPauseHours int
+	StalledScanClientTimeoutHours  int
+	ModelMetricsPauseSeconds       int
+	UnknownImagePauseMilliseconds  int
 }
 
 // CheckForStalledScansPause ...
@@ -72,11 +71,6 @@ func (t *Timings) ModelMetricsPause() time.Duration {
 // UnknownImagePause ...
 func (t *Timings) UnknownImagePause() time.Duration {
 	return time.Duration(t.UnknownImagePauseMilliseconds) * time.Millisecond
-}
-
-// PruneOrphanedImagesPause ...
-func (t *Timings) PruneOrphanedImagesPause() time.Duration {
-	return time.Duration(t.PruneOrphanedImagesPauseMinutes) * time.Minute
 }
 
 // Config contains all configuration for Perceptor
@@ -103,7 +97,6 @@ func (config *Config) model() *api.ModelConfig {
 		Timings: &api.ModelTimings{
 			CheckForStalledScansPause: *api.NewModelTime(config.Timings.CheckForStalledScansPause()),
 			ModelMetricsPause:         *api.NewModelTime(config.Timings.ModelMetricsPause()),
-			PruneOrphanedImagesPause:  *api.NewModelTime(config.Timings.PruneOrphanedImagesPause()),
 			StalledScanClientTimeout:  *api.NewModelTime(config.Timings.StalledScanClientTimeout()),
 			UnknownImagePause:         *api.NewModelTime(config.Timings.UnknownImagePause()),
 		},

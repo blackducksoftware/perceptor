@@ -58,10 +58,6 @@ func NewRoutineTaskManager(stop <-chan struct{}, timings *Timings) *RoutineTaskM
 	}
 	rtm.stalledScanClientTimer = rtm.startCheckingForStalledScanClientScans()
 	rtm.modelMetricsTimer = rtm.startGeneratingModelMetrics()
-	// if pruneOrphanedImagesPause > 0 {
-	// 	rtm.pruneOrphanedImagesTimer = rtm.startPruningOrphanedImages(pruneOrphanedImagesPause)
-	// 	rtm.orphanedImages = make(chan []string)
-	// }
 	rtm.unknownImagesTimer = rtm.startCheckingForUnknownImages(timings.UnknownImagePause())
 	go func() {
 		for {
