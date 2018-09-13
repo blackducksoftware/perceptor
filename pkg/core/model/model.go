@@ -292,8 +292,9 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 }
 
 // createImage adds the image to the model, but not to the scan queue
-func (model *Model) createImage(image Image) (ok bool) {
+func (model *Model) createImage(image Image) (added bool) {
 	imageInfo, ok := model.Images[image.Sha]
+	added = !ok
 	if ok {
 		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
 		if image.Priority <= imageInfo.Priority {
