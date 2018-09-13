@@ -37,7 +37,7 @@ type ScanScheduler struct {
 // AssignImage finds a Hub that is available to scan `image`.
 func (s *ScanScheduler) AssignImage(image *m.Image) hub.ClientInterface {
 	for _, hub := range s.HubManager.HubClients() {
-		if <-hub.CodeLocationsCount() < s.TotalScanLimit && len(<-hub.InProgressScans()) < s.ConcurrentScanLimit {
+		if <-hub.ScansCount() < s.TotalScanLimit && len(<-hub.InProgressScans()) < s.ConcurrentScanLimit {
 			recordEvent("scanScheduler", "found hub")
 			return hub
 		}

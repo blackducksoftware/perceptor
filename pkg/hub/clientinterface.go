@@ -39,13 +39,11 @@ type ClientInterface interface {
 	Version() (string, error)
 	// read-only, async queries (the channel produces a single event)
 	Model() <-chan *api.ModelHub
-	HasFetchedCodeLocations() <-chan bool
-	CodeLocations() <-chan map[string]ScanStage
-	CodeLocationsCount() <-chan int
+	HasFetchedScans() <-chan bool
+	ScansCount() <-chan int
 	InProgressScans() <-chan []string
-	ScanResults() <-chan map[string]*ScanResults
+	ScanResults() <-chan map[string]*Scan
 	Updates() <-chan Update
-	//	IsEnabled() <-chan bool
 	// prelude to clean-up
 	Stop()
 	StopCh() <-chan struct{}

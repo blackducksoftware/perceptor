@@ -80,24 +80,41 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 					break
 				}
 				isHubNotReady := false
-				scans := map[string]bool{}
+				scans := map[string]*hub.Scan{}
 				for _, hub := range hubManager.HubClients() {
-					if !<-hub.HasFetchedCodeLocations() {
+					if !<-hub.HasFetchedScans() {
 						isHubNotReady = true
 						log.Debugf("found hub %s which is not ready", hub.Host())
 						break
 					}
-					for scanName := range <-hub.CodeLocations() {
-						scans[scanName] = true
+					for scanName, results := range <-hub.ScanResults() {
+						scans[scanName] = results
 					}
 				}
+				// jbs, _ := json.MarshalIndent(scans, "", "  ")
+				// fmt.Printf("%t\n%s\n", isHubNotReady, string(jbs))
 				if isHubNotReady {
 					log.Debugf("one or more hubs not ready")
 					break
 				}
 				log.Debugf("about to change status of %d shas", len(unknownShas))
 				for _, sha := range unknownShas {
-					if _, ok := scans[string(sha)]; !ok {
+					results, ok := scans[string(sha)]
+					if ok {
+						switch results.Stage {
+						case hub.ScanStageComplete:
+							model.ScanDidFinish(sha, results.ScanResults)
+						case hub.ScanStageFailure:
+							model.ScanDidFinish(sha, nil)
+						default:
+							log.Warnf("TODO: implement for other cases.  currently ignoring scan results for sha %s, %+v", sha, results)
+							// case hub.ScanStageScanClient:
+							// 	model.SetImageStatus(sha, m.ScanStatusRunningScanClient)
+							// case hub.ScanStageHubScan:
+							// 	model.SetImageStatus(sha, m.ScanStatusRunningHubScan)
+						}
+					} else {
+						// didn't find the scan -> move it into the queue
 						model.ScanDidFinish(sha, nil)
 					}
 				}

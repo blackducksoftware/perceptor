@@ -43,13 +43,20 @@ func newClient(ignoreEvents bool) (*MockRawClient, ClientInterface) {
 	return rawClient, client
 }
 
+func getScanResults(client ClientInterface) map[string]ScanStage {
+	cls := map[string]ScanStage{}
+	for key, val := range <-client.ScanResults() {
+		cls[key] = val.Stage
+	}
+	return cls
+}
+
 func RunClientTests() {
 	Describe("Client", func() {
 		It("should fetch initial code locations", func() {
 			_, client := newClient(true)
 			time.Sleep(1 * time.Second)
-			cls := <-client.CodeLocations()
-			Expect(cls).To(Equal(map[string]ScanStage{"a": ScanStageComplete, "b": ScanStageComplete, "c": ScanStageComplete}))
+			Expect(getScanResults(client)).To(Equal(map[string]ScanStage{"a": ScanStageComplete, "b": ScanStageComplete, "c": ScanStageComplete}))
 		})
 
 		It("should add code locations as they're scanned", func() {
@@ -59,12 +66,12 @@ func RunClientTests() {
 
 			client.StartScanClient("abc")
 			time.Sleep(250 * time.Millisecond)
-			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageScanClient, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(getScanResults(client)).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageScanClient, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{"abc"}))
 
 			client.FinishScanClient("abc", fmt.Errorf("planned failure"))
 			time.Sleep(250 * time.Millisecond)
-			Expect(<-client.CodeLocations()).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageFailure, "a": ScanStageComplete, "b": ScanStageComplete}))
+			Expect(getScanResults(client)).To(Equal(map[string]ScanStage{"c": ScanStageComplete, "abc": ScanStageFailure, "a": ScanStageComplete, "b": ScanStageComplete}))
 			Expect(<-client.InProgressScans()).To(Equal([]string{}))
 
 			// TODO is there a reasonable test case here?
