@@ -60,7 +60,7 @@ type HubManagerInterface interface {
 	HubClients() map[string]hub.ClientInterface
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string, err error) error
-	ScanResults() map[string]map[string]*hub.ScanResults
+	ScanResults() map[string]map[string]*hub.Scan
 	Updates() <-chan *Update
 }
 
@@ -175,8 +175,8 @@ func (hm *HubManager) FinishScanClient(hubURL string, scanName string, scanErr e
 }
 
 // ScanResults ...
-func (hm *HubManager) ScanResults() map[string]map[string]*hub.ScanResults {
-	allScanResults := map[string]map[string]*hub.ScanResults{}
+func (hm *HubManager) ScanResults() map[string]map[string]*hub.Scan {
+	allScanResults := map[string]map[string]*hub.Scan{}
 	for hubURL, hub := range hm.hubs {
 		// TODO could cache to avoid blocking
 		allScanResults[hubURL] = <-hub.ScanResults()

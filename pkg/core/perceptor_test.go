@@ -27,8 +27,25 @@ import (
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
+	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+)
+
+var (
+	one      = 1
+	image1   = api.Image{Sha: "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs", Repository: "repo1", Tag: "tag1", Priority: &one}
+	two      = 2
+	image2   = api.Image{Sha: "sha2222222222222222222222222222222222222222222222222222222222222", Repository: "repo2", Tag: "tag2", Priority: &two}
+	three    = 3
+	image3   = api.Image{Sha: "sha1333333333333333333333333333333333333333333333333333333333333", Repository: "repo3", Tag: "tag3", Priority: &three}
+	four     = 4
+	image4   = api.Image{Sha: "sha1444444444444444444444444444444444444444444444444444444444444", Repository: "repo4", Tag: "tag4", Priority: &four}
+	five     = 5
+	image5   = api.Image{Sha: "sha1555555555555555555555555555555555555555555555555555555555555", Repository: "repo5", Tag: "tag5", Priority: &five}
+	hub1Host = "hub1"
+	hub2Host = "hub2"
+	hub3Host = "hub3"
 )
 
 func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
@@ -41,6 +58,41 @@ func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 		UnknownImagePauseMilliseconds:  500,
 	}
 	config := &Config{}
+	pcp, err := NewPerceptor(config, timings,
+		&ScanScheduler{
+			HubManager:          manager,
+			ConcurrentScanLimit: concurrentScanLimit,
+			TotalScanLimit:      totalScanLimit},
+		manager)
+	Expect(err).To(BeNil())
+	return pcp
+}
+
+func newPerceptorPrepopulatedClients() *Perceptor {
+	concurrentScanLimit := 2
+	totalScanLimit := 5
+	scans := map[string][]string{
+		hub1Host: {image1.Sha, image2.Sha},
+		hub2Host: {image3.Sha},
+		hub3Host: {},
+	}
+	createClient := func(hubURL string) (hub.ClientInterface, error) {
+		mockRawClient := hub.NewMockRawClient(false, scans[hubURL])
+		return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 1*time.Minute, 500*time.Millisecond, 999999*time.Hour), nil
+	}
+
+	stop := make(chan struct{})
+	manager := NewHubManager(createClient, stop)
+	timings := &Timings{
+		CheckForStalledScansPauseHours: 9999,
+		ModelMetricsPauseSeconds:       15,
+		StalledScanClientTimeoutHours:  9999,
+		UnknownImagePauseMilliseconds:  500,
+	}
+	config := &Config{
+		Timings: &Timings{},
+		Hub:     &HubConfig{},
+	}
 	pcp, err := NewPerceptor(config, timings,
 		&ScanScheduler{
 			HubManager:          manager,
@@ -65,16 +117,6 @@ func makeImageSpec(image *api.Image, hub string) *api.ImageSpec {
 }
 
 func RunTestPerceptor() {
-	one := 1
-	image1 := api.Image{Sha: "sha1abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzeightchs", Repository: "repo1", Tag: "tag1", Priority: &one}
-	two := 2
-	image2 := api.Image{Sha: "sha2222222222222222222222222222222222222222222222222222222222222", Repository: "repo2", Tag: "tag2", Priority: &two}
-	three := 3
-	image3 := api.Image{Sha: "sha1333333333333333333333333333333333333333333333333333333333333", Repository: "repo3", Tag: "tag3", Priority: &three}
-	four := 4
-	image4 := api.Image{Sha: "sha1444444444444444444444444444444444444444444444444444444444444", Repository: "repo4", Tag: "tag4", Priority: &four}
-	five := 5
-	image5 := api.Image{Sha: "sha1555555555555555555555555555555555555555555555555555555555555", Repository: "repo5", Tag: "tag5", Priority: &five}
 	Describe("Perceptor", func() {
 		It("should experience unblocked channel communication", func() {
 			pcp := newPerceptor(2, 5)
@@ -166,7 +208,26 @@ func RunTestPerceptor() {
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
 
-			Expect(<-pcp.hubManager.HubClients()["hub1"].CodeLocationsCount()).To(Equal(0))
+			Expect(<-pcp.hubManager.HubClients()["hub1"].ScansCount()).To(Equal(0))
+		})
+
+		It("should recognize scan status of scans already in hubs when first starting up, or after a restart", func() {
+			pcp := newPerceptorPrepopulatedClients()
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1, image2, image3, image4, image5},
+			})
+			pcp.PutHubs(&api.PutHubs{HubURLs: []string{hub1Host, hub2Host, hub3Host}})
+			time.Sleep(1 * time.Second)
+
+			// jbs, _ := json.MarshalIndent(pcp.GetModel(), "", "  ")
+			// fmt.Printf("%s\n", string(jbs))
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image2.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
 		})
 	})
 }
