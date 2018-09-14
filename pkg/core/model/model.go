@@ -356,12 +356,12 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
 // SetImageScanStatus .....
 func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) {
 	log.Debugf("setImageScanStatus for %s to %s", sha, newScanStatus)
-	err := model.setImageScanStatusForSha(sha, newScanStatus)
 	imageInfo, ok := model.Images[sha]
 	statusString := "sha not found"
 	if ok {
 		statusString = imageInfo.ScanStatus.String()
 	}
+	err := model.setImageScanStatusForSha(sha, newScanStatus)
 	if err != nil {
 		log.Errorf("unable to transition image state for sha %s from <%s> to %s: %s", sha, statusString, newScanStatus, err.Error())
 	} else {
