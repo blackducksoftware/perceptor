@@ -129,7 +129,7 @@ func RunTestPerceptor() {
 			Expect(len(pcp.model.Images)).To(Equal(1))
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusUnknown))
 
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1"}})
+			pcp.hubManager.SetHubs([]string{"hub1"})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
@@ -153,7 +153,7 @@ func RunTestPerceptor() {
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1},
 			})
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1", "hub2", "hub3"}})
+			pcp.hubManager.SetHubs([]string{"hub1", "hub2", "hub3"})
 			time.Sleep(1 * time.Second)
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
 		})
@@ -163,7 +163,7 @@ func RunTestPerceptor() {
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1", "hub2", "hub3"}})
+			pcp.hubManager.SetHubs([]string{"hub1", "hub2", "hub3"})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(5))
@@ -192,7 +192,7 @@ func RunTestPerceptor() {
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2},
 			})
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{"hub1"}})
+			pcp.hubManager.SetHubs([]string{"hub1"})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
@@ -216,7 +216,7 @@ func RunTestPerceptor() {
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{hub1Host, hub2Host, hub3Host}})
+			pcp.hubManager.SetHubs([]string{hub1Host, hub2Host, hub3Host})
 			time.Sleep(1 * time.Second)
 
 			// jbs, _ := json.MarshalIndent(pcp.GetModel(), "", "  ")
