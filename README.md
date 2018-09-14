@@ -52,7 +52,7 @@ Scanners are responsible for performing scan jobs by pulling from the Perceptor 
 curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
 chmod +x ~/bin/gimme
 export PATH=$PATH:~/bin/
-gimme 1.9
+gimme 1.11
 ```
 
 2. If necessary, set up your `GOPATH` and `GOROOT` environment variables.
