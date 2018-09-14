@@ -229,30 +229,5 @@ func RunTestPerceptor() {
 			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
 			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
 		})
-
-		It("waits for unknown images to become known", func() {
-			pcp := newPerceptorPrepopulatedClients(1500 * time.Millisecond)
-			pcp.UpdateAllImages(api.AllImages{
-				Images: []api.Image{image1, image2, image3, image4, image5},
-			})
-			pcp.PutHubs(&api.PutHubs{HubURLs: []string{hub1Host, hub2Host, hub3Host}})
-			time.Sleep(1 * time.Second)
-
-			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
-			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
-			Expect(pcp.model.Images[m.DockerImageSha(image2.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
-			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
-			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
-			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
-
-			time.Sleep(1 * time.Second)
-
-			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
-			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
-			Expect(pcp.model.Images[m.DockerImageSha(image2.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
-			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
-			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
-			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
-		})
 	})
 }
