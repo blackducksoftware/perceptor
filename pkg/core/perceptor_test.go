@@ -68,7 +68,7 @@ func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 	return pcp
 }
 
-func newPerceptorPrepopulatedClients() *Perceptor {
+func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perceptor {
 	concurrentScanLimit := 2
 	totalScanLimit := 5
 	scans := map[string][]string{
@@ -78,7 +78,7 @@ func newPerceptorPrepopulatedClients() *Perceptor {
 	}
 	createClient := func(hubURL string) (hub.ClientInterface, error) {
 		mockRawClient := hub.NewMockRawClient(false, scans[hubURL])
-		return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 1*time.Minute, 500*time.Millisecond, 999999*time.Hour), nil
+		return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, 1*time.Minute, fetchUnknownScansPause, 999999*time.Hour), nil
 	}
 
 	stop := make(chan struct{})
@@ -212,7 +212,7 @@ func RunTestPerceptor() {
 		})
 
 		It("should recognize scan status of scans already in hubs when first starting up, or after a restart", func() {
-			pcp := newPerceptorPrepopulatedClients()
+			pcp := newPerceptorPrepopulatedClients(500 * time.Millisecond)
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
@@ -221,6 +221,31 @@ func RunTestPerceptor() {
 
 			// jbs, _ := json.MarshalIndent(pcp.GetModel(), "", "  ")
 			// fmt.Printf("%s\n", string(jbs))
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image2.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
+			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+		})
+
+		It("waits for unknown images to become known", func() {
+			pcp := newPerceptorPrepopulatedClients(1500 * time.Millisecond)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1, image2, image3, image4, image5},
+			})
+			pcp.PutHubs(&api.PutHubs{HubURLs: []string{hub1Host, hub2Host, hub3Host}})
+			time.Sleep(1 * time.Second)
+
+			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
+			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
+			Expect(pcp.model.Images[m.DockerImageSha(image2.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
+			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusUnknown))
+			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+
+			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
 			Expect(pcp.model.Images[m.DockerImageSha(image1.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
