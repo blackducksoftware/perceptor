@@ -28,7 +28,6 @@ import (
 // Responder .....
 type Responder interface {
 	GetModel() Model
-	PutHubs(hubs *PutHubs)
 
 	// perceiver
 	AddPod(pod Pod) error
@@ -44,7 +43,6 @@ type Responder interface {
 	PostFinishScan(job FinishedScanClientJob) error
 
 	// internal use
-	PostConfig(config *PostConfig)
 	PostCommand(commands *PostCommand)
 
 	// errors

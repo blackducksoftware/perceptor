@@ -48,25 +48,6 @@ func SetupHTTPServer(responder Responder) {
 		}
 	})
 
-	http.HandleFunc("/sethubs", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" {
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				responder.Error(w, r, err, 400)
-				return
-			}
-			var hubs PutHubs
-			err = json.Unmarshal(body, &hubs)
-			if err != nil {
-				responder.Error(w, r, err, 400)
-				return
-			}
-			responder.PutHubs(&hubs)
-		} else {
-			responder.NotFound(w, r)
-		}
-	})
-
 	// for receiving data from perceiver
 	http.HandleFunc("/pod", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -235,27 +216,6 @@ func SetupHTTPServer(responder Responder) {
 				return
 			}
 			responder.PostFinishScan(scanResults)
-			fmt.Fprint(w, "")
-		} else {
-			responder.NotFound(w, r)
-		}
-	})
-
-	// internal use
-	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				responder.Error(w, r, err, 400)
-				return
-			}
-			var config PostConfig
-			err = json.Unmarshal(body, &config)
-			if err != nil {
-				responder.Error(w, r, err, 400)
-				return
-			}
-			responder.PostConfig(&config)
 			fmt.Fprint(w, "")
 		} else {
 			responder.NotFound(w, r)
