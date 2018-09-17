@@ -184,11 +184,6 @@ func (pcp *Perceptor) GetModel() api.Model {
 	}
 }
 
-// PutHubs ...
-func (pcp *Perceptor) PutHubs(hubs *api.PutHubs) {
-	pcp.hubManager.SetHubs(hubs.HubURLs)
-}
-
 // AddPod .....
 func (pcp *Perceptor) AddPod(apiPod api.Pod) error {
 	recordAddPod()
@@ -328,14 +323,6 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 }
 
 // internal use
-
-// PostConfig .....
-func (pcp *Perceptor) PostConfig(config *api.PostConfig) {
-	log.Warnf("TODO unimplemented: post config %+v", config)
-	// case isEnabled := <-hubClient.IsEnabled():
-	// 	actions <- &model.SetIsHubEnabled{IsEnabled: isEnabled}
-	log.Debugf("handled post config -- %+v", config)
-}
 
 // PostCommand .....
 func (pcp *Perceptor) PostCommand(command *api.PostCommand) {

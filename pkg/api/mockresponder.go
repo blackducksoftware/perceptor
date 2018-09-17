@@ -84,11 +84,6 @@ func (mr *MockResponder) GetModel() Model {
 	return Model{}
 }
 
-// PutHubs ....
-func (mr *MockResponder) PutHubs(hubs *PutHubs) {
-	// TODO
-}
-
 // perceiver
 
 // AddPod .....
@@ -220,11 +215,6 @@ func (mr *MockResponder) PostFinishScan(job FinishedScanClientJob) error {
 }
 
 // internal use
-
-// PostConfig .....
-func (mr *MockResponder) PostConfig(config *PostConfig) {
-	// TODO
-}
 
 // PostCommand ...
 func (mr *MockResponder) PostCommand(command *PostCommand) {
