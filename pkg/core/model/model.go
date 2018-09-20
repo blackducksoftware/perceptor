@@ -101,7 +101,7 @@ func (model *Model) UpdatePod(pod Pod) {
 	model.actions <- &UpdatePod{Pod: pod}
 }
 
-// DeletePod remove the record of a pod, but does not touch its images
+// DeletePod removes the record of a pod, but does not touch its images
 func (model *Model) DeletePod(podName string) {
 	model.actions <- &DeletePod{PodName: podName}
 }
@@ -447,16 +447,4 @@ func (model *Model) inProgressScans() []DockerImageSha {
 // InProgressScanCount .....
 func (model *Model) inProgressScanCount() int {
 	return len(model.inProgressScans())
-}
-
-// InProgressHubScans .....
-func (model *Model) inProgressHubScans() *([]Image) {
-	inProgressHubScans := []Image{}
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case ScanStatusRunningHubScan:
-			inProgressHubScans = append(inProgressHubScans, imageInfo.Image())
-		}
-	}
-	return &inProgressHubScans
 }
