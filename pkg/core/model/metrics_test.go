@@ -31,6 +31,7 @@ func RunTestMetrics() {
 		recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
 		recordEvent("abc")
 		recordActionError("def")
+		recordSetImagePriority(0, 1)
 		Expect(1).To(Equal(1))
 	})
 }

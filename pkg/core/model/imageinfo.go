@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
+	log "github.com/sirupsen/logrus"
 )
 
 // ImageInfo .....
@@ -54,6 +55,13 @@ func NewImageInfo(sha DockerImageSha, repoTag *RepoTag, priority int) *ImageInfo
 func (imageInfo *ImageInfo) setScanStatus(newStatus ScanStatus) {
 	imageInfo.ScanStatus = newStatus
 	imageInfo.TimeOfLastStatusChange = time.Now()
+}
+
+// SetPriority ...
+func (imageInfo *ImageInfo) SetPriority(priority int) {
+	recordSetImagePriority(imageInfo.Priority, priority)
+	log.Debugf("changing priority for %s from %d to %d", imageInfo.ImageSha, imageInfo.Priority, priority)
+	imageInfo.Priority = priority
 }
 
 // SetScanResults .....

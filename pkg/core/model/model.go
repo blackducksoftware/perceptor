@@ -321,7 +321,7 @@ func (model *Model) createImage(image Image) (bool, error) {
 			return added, nil
 		}
 		log.Debugf("upgrading priority for image %s to %d", image.Sha, image.Priority)
-		imageInfo.Priority = image.Priority
+		imageInfo.SetPriority(image.Priority)
 		if imageInfo.ScanStatus != ScanStatusInQueue {
 			return added, nil
 		}
@@ -428,7 +428,7 @@ func (model *Model) finishRunningScanClient(image *Image, scanClientError error)
 
 	scanStatus := ScanStatusRunningHubScan
 	if scanClientError != nil {
-		imageInfo.Priority = -1
+		imageInfo.SetPriority(-1)
 		scanStatus = ScanStatusInQueue
 	}
 
