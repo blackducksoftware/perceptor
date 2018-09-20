@@ -30,15 +30,22 @@ import (
 
 var eventsCounter *prometheus.CounterVec
 var stateTransitionCounter *prometheus.CounterVec
-var errorCounter *prometheus.CounterVec
+var actionErrorCounter *prometheus.CounterVec
+
+// var errorCounter *prometheus.CounterVec
 
 var statusGauge *prometheus.GaugeVec
 var reducerActivityCounter *prometheus.CounterVec
 var reducerMessageCounter *prometheus.CounterVec
 
-func recordError(action string, name string) {
-	errorCounter.With(prometheus.Labels{"action": action, "name": name}).Inc()
+func recordActionError(action string) {
+	actionErrorCounter.With(prometheus.Labels{"action": action}).Inc()
 }
+
+// TODO
+// func recordError(action string, name string) {
+// 	errorCounter.With(prometheus.Labels{"action": action, "name": name}).Inc()
+// }
 
 func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
 	stateTransitionCounter.With(prometheus.Labels{
@@ -87,13 +94,21 @@ func init() {
 	}, []string{"event"})
 	prometheus.MustRegister(eventsCounter)
 
-	errorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	// errorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	// 	Namespace: "perceptor",
+	// 	Subsystem: "core",
+	// 	Name:      "model_errors_counter",
+	// 	Help:      "records errors encounted in the model package",
+	// }, []string{"action", "name"})
+	// prometheus.MustRegister(errorCounter)
+
+	actionErrorCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "perceptor",
 		Subsystem: "core",
 		Name:      "action_errors_counter",
-		Help:      "records errors encounted during core action processing",
-	}, []string{"action", "name"})
-	prometheus.MustRegister(errorCounter)
+		Help:      "records errors encounted during model action processing",
+	}, []string{"action"})
+	prometheus.MustRegister(actionErrorCounter)
 
 	statusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",

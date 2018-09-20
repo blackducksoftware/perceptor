@@ -30,7 +30,7 @@ func RunTestMetrics() {
 	It("should handle metrics without panicing", func() {
 		recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
 		recordEvent("abc")
-		recordError("def", "ghi")
+		recordActionError("def")
 		Expect(1).To(Equal(1))
 	})
 }
