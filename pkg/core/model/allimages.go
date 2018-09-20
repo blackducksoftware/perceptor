@@ -21,19 +21,19 @@ under the License.
 
 package model
 
-import "fmt"
-
-// DeletePod .....
-type DeletePod struct {
-	PodName string
+// AllImages .....
+type AllImages struct {
+	Images []Image
 }
 
-// Apply .....
-func (d *DeletePod) Apply(model *Model) error {
-	_, ok := model.Pods[d.PodName]
-	if !ok {
-		return fmt.Errorf("unable to delete pod %s, pod not found", d.PodName)
+// Apply just adds new images.  It currently does not delete any images.
+func (a *AllImages) Apply(model *Model) error {
+	errors := []error{}
+	for _, image := range a.Images {
+		err := model.addImage(image)
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
-	delete(model.Pods, d.PodName)
-	return nil
+	return combineErrors("allImages", errors)
 }

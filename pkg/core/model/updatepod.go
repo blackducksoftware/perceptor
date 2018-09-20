@@ -27,6 +27,6 @@ type UpdatePod struct {
 }
 
 // Apply .....
-func (u *UpdatePod) Apply(model *Model) {
-	model.addPod(u.Pod)
+func (u *UpdatePod) Apply(model *Model) error {
+	return model.addPod(u.Pod)
 }

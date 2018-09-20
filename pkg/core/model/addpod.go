@@ -27,6 +27,6 @@ type AddPod struct {
 }
 
 // Apply .....
-func (a *AddPod) Apply(model *Model) {
-	model.addPod(a.Pod)
+func (a *AddPod) Apply(model *Model) error {
+	return model.addPod(a.Pod)
 }

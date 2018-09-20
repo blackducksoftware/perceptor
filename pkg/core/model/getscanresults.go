@@ -26,6 +26,7 @@ import (
 
 	"github.com/blackducksoftware/perceptor/pkg/api" // TODO I hate how this package depends on the api package
 	"github.com/blackducksoftware/perceptor/pkg/hub"
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,11 +41,12 @@ func NewGetScanResults() *GetScanResults {
 }
 
 // Apply .....
-func (g *GetScanResults) Apply(model *Model) {
-	scanResults := ScanResults(model)
+func (g *GetScanResults) Apply(model *Model) error {
+	scanResults, err := ScanResults(model)
 	go func() {
 		g.Done <- scanResults
 	}()
+	return err
 }
 
 func scanResultsForPod(model *Model, podName string) (*Scan, error) {
@@ -59,8 +61,7 @@ func scanResultsForPod(model *Model, podName string) (*Scan, error) {
 	for _, container := range pod.Containers {
 		imageScan, err := scanResultsForImage(model, container.Image.Sha)
 		if err != nil {
-			log.Errorf("unable to get scan results for image %s: %s", container.Image.Sha, err.Error())
-			return nil, err
+			return nil, errors.Annotatef(err, "unable to get scan results for image %s", container.Image.Sha)
 		}
 		if imageScan == nil {
 			return nil, nil
@@ -100,13 +101,14 @@ func scanResultsForImage(model *Model, sha DockerImageSha) (*Scan, error) {
 }
 
 // ScanResults .....
-func ScanResults(model *Model) api.ScanResults {
+func ScanResults(model *Model) (api.ScanResults, error) {
+	errors := []error{}
 	// pods
 	pods := []api.ScannedPod{}
 	for podName, pod := range model.Pods {
 		podScan, err := scanResultsForPod(model, podName)
 		if err != nil {
-			log.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error())
+			errors = append(errors, fmt.Errorf("unable to retrieve scan results for Pod %s: %s", podName, err.Error()))
 			continue
 		}
 		if podScan == nil {
@@ -128,7 +130,7 @@ func ScanResults(model *Model) api.ScanResults {
 			continue
 		}
 		if imageInfo.ScanResults == nil {
-			log.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo)
+			errors = append(errors, fmt.Errorf("model inconsistency: found ScanStatusComplete for image %s, but nil ScanResults (imageInfo %+v)", sha, imageInfo))
 			continue
 		}
 		image := imageInfo.Image()
@@ -143,5 +145,5 @@ func ScanResults(model *Model) api.ScanResults {
 		images = append(images, apiImage)
 	}
 
-	return *api.NewScanResults(pods, images)
+	return *api.NewScanResults(pods, images), combineErrors("scanResults", errors)
 }

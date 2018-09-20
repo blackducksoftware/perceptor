@@ -27,6 +27,6 @@ type AddImage struct {
 }
 
 // Apply .....
-func (a *AddImage) Apply(model *Model) {
-	model.addImage(a.Image)
+func (a *AddImage) Apply(model *Model) error {
+	return model.addImage(a.Image)
 }

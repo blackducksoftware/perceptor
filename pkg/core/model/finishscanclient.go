@@ -32,7 +32,7 @@ type FinishScanClient struct {
 }
 
 // Apply .....
-func (f *FinishScanClient) Apply(model *Model) {
+func (f *FinishScanClient) Apply(model *Model) error {
 	log.Infof("finished scan client job action: error was empty? %t, %+v", f.Err == nil, f.Image.Sha)
-	model.finishRunningScanClient(f.Image, f.Err)
+	return model.finishRunningScanClient(f.Image, f.Err)
 }

@@ -37,7 +37,9 @@ func RunTestFinishScanClient() {
 			model.setImageScanStatus(image.Sha, ScanStatusRunningScanClient)
 			model.finishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
 			Expect(model.Images[image.Sha].ScanStatus).To(Equal(ScanStatusInQueue))
-			Expect(*model.getNextImageFromScanQueue()).To(Equal(image))
+			nextImage, err := model.getNextImageFromScanQueue()
+			Expect(*nextImage).To(Equal(image))
+			Expect(err).To(BeNil())
 		})
 	})
 }

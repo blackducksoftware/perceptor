@@ -23,7 +23,6 @@ package model
 
 import (
 	"github.com/blackducksoftware/perceptor/pkg/hub"
-	log "github.com/sirupsen/logrus"
 )
 
 // DidFetchScanResults .....
@@ -33,9 +32,6 @@ type DidFetchScanResults struct {
 }
 
 // Apply .....
-func (d *DidFetchScanResults) Apply(model *Model) {
-	err := model.scanDidFinish(d.Sha, d.ScanResults)
-	if err != nil {
-		log.Errorf("unable to handle didFetchScanResults: %s", err.Error())
-	}
+func (d *DidFetchScanResults) Apply(model *Model) error {
+	return model.scanDidFinish(d.Sha, d.ScanResults)
 }
