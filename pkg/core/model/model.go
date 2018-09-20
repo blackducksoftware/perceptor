@@ -427,24 +427,3 @@ func (model *Model) finishRunningScanClient(image *Image, scanClientError error)
 
 	return model.setImageScanStatus(image.Sha, scanStatus)
 }
-
-// additional methods
-
-// InProgressScans .....
-func (model *Model) inProgressScans() []DockerImageSha {
-	inProgressShas := []DockerImageSha{}
-	for sha, results := range model.Images {
-		switch results.ScanStatus {
-		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			inProgressShas = append(inProgressShas, sha)
-		default:
-			break
-		}
-	}
-	return inProgressShas
-}
-
-// InProgressScanCount .....
-func (model *Model) inProgressScanCount() int {
-	return len(model.inProgressScans())
-}
