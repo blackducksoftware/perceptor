@@ -27,9 +27,14 @@ type AllPods struct {
 }
 
 // Apply .....
-func (a *AllPods) Apply(model *Model) {
+func (a *AllPods) Apply(model *Model) error {
 	model.Pods = map[string]Pod{}
+	errors := []error{}
 	for _, pod := range a.Pods {
-		model.addPod(pod)
+		err := model.addPod(pod)
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
+	return combineErrors("allPods", errors)
 }

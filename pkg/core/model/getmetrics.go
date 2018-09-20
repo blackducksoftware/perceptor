@@ -36,11 +36,12 @@ func NewGetMetrics() *GetMetrics {
 }
 
 // Apply .....
-func (g *GetMetrics) Apply(model *Model) {
+func (g *GetMetrics) Apply(model *Model) error {
 	modelMetrics := metrics(model)
 	go func() {
 		g.Done <- modelMetrics
 	}()
+	return nil
 }
 
 func metrics(model *Model) *Metrics {

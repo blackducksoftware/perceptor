@@ -23,5 +23,5 @@ package model
 
 // Action .....
 type Action interface {
-	Apply(model *Model)
+	Apply(model *Model) error
 }

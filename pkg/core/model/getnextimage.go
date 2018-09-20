@@ -36,10 +36,11 @@ func NewGetNextImage() *GetNextImage {
 }
 
 // Apply .....
-func (g *GetNextImage) Apply(model *Model) {
+func (g *GetNextImage) Apply(model *Model) error {
 	log.Debugf("looking for next image to scan, %d currently in progress", model.inProgressScanCount())
-	image := model.getNextImageFromScanQueue()
+	image, err := model.getNextImageFromScanQueue()
 	go func() {
 		g.Done <- image
 	}()
+	return err
 }

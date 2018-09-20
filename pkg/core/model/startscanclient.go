@@ -33,9 +33,10 @@ func NewStartScanClient(sha DockerImageSha) *StartScanClient {
 }
 
 // Apply ...
-func (s *StartScanClient) Apply(model *Model) {
+func (s *StartScanClient) Apply(model *Model) error {
 	err := model.startScanClient(s.Sha)
 	go func() {
 		s.Error <- err
 	}()
+	return err
 }

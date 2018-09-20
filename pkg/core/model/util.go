@@ -21,14 +21,13 @@ under the License.
 
 package model
 
-// AllImages .....
-type AllImages struct {
-	Images []Image
-}
+import (
+	"fmt"
+)
 
-// Apply just adds new images.  It currently does not delete any images.
-func (a *AllImages) Apply(model *Model) {
-	for _, image := range a.Images {
-		model.addImage(image)
+func combineErrors(message string, errs []error) error {
+	if len(errs) == 0 {
+		return nil
 	}
+	return fmt.Errorf("combined errors from %s: %+v", message, errs)
 }

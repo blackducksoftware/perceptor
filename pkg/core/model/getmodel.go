@@ -36,11 +36,12 @@ func NewGetModel() *GetModel {
 }
 
 // Apply .....
-func (g *GetModel) Apply(model *Model) {
+func (g *GetModel) Apply(model *Model) error {
 	apiModel := CoreModelToAPIModel(model)
 	go func() {
 		g.Done <- apiModel
 	}()
+	return nil
 }
 
 // CoreContainerToAPIContainer .....

@@ -21,9 +21,7 @@ under the License.
 
 package model
 
-import (
-	log "github.com/sirupsen/logrus"
-)
+import "fmt"
 
 // DeletePod .....
 type DeletePod struct {
@@ -31,11 +29,11 @@ type DeletePod struct {
 }
 
 // Apply .....
-func (d *DeletePod) Apply(model *Model) {
+func (d *DeletePod) Apply(model *Model) error {
 	_, ok := model.Pods[d.PodName]
 	if !ok {
-		log.Warnf("unable to delete pod %s, pod not found", d.PodName)
-		return
+		return fmt.Errorf("unable to delete pod %s, pod not found", d.PodName)
 	}
 	delete(model.Pods, d.PodName)
+	return nil
 }
