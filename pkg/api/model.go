@@ -28,7 +28,7 @@ import (
 // Model ...
 type Model struct {
 	Hubs      map[string]*ModelHub
-	CoreModel CoreModel
+	CoreModel *CoreModel
 	Config    *ModelConfig
 	Scheduler *ModelScanScheduler
 }
@@ -41,9 +41,19 @@ type ModelScanScheduler struct {
 
 // CoreModel .....
 type CoreModel struct {
-	Pods           map[string]*Pod
-	Images         map[string]*ModelImageInfo
-	ImageScanQueue []map[string]interface{}
+	Pods             map[string]*Pod
+	Images           map[string]*ModelImageInfo
+	ImageScanQueue   []map[string]interface{}
+	ImageTransitions []*ModelImageTransition
+}
+
+// ModelImageTransition .....
+type ModelImageTransition struct {
+	Sha  string
+	From string
+	To   string
+	Err  string
+	Time string
 }
 
 // ModelHubConfig ...

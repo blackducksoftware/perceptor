@@ -144,7 +144,7 @@ func (model *Model) GetScanResults() api.ScanResults {
 }
 
 // GetModel ...
-func (model *Model) GetModel() api.CoreModel {
+func (model *Model) GetModel() *api.CoreModel {
 	get := NewGetModel()
 	model.actions <- get
 	return <-get.Done
