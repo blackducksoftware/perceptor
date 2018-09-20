@@ -21,17 +21,24 @@ under the License.
 
 package model
 
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-)
+import "time"
 
-func RunTestMetrics() {
-	It("should handle metrics without panicing", func() {
-		recordStateTransition(ScanStatusUnknown, ScanStatusComplete, false)
-		recordEvent("abc")
-		recordActionError("def")
-		recordSetImagePriority(0, 1)
-		Expect(1).To(Equal(1))
-	})
+// ImageTransition .....
+type ImageTransition struct {
+	Sha  DockerImageSha
+	From string
+	To   ScanStatus
+	Err  error
+	Time time.Time
+}
+
+// NewImageTransition .....
+func NewImageTransition(sha DockerImageSha, from string, to ScanStatus, err error) *ImageTransition {
+	return &ImageTransition{
+		Sha:  sha,
+		From: from,
+		To:   to,
+		Err:  err,
+		Time: time.Now(),
+	}
 }

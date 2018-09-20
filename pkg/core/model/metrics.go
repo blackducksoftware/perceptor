@@ -37,6 +37,7 @@ var actionErrorCounter *prometheus.CounterVec
 var statusGauge *prometheus.GaugeVec
 var reducerActivityCounter *prometheus.CounterVec
 var reducerMessageCounter *prometheus.CounterVec
+var setImagePriorityCounter *prometheus.CounterVec
 
 func recordActionError(action string) {
 	actionErrorCounter.With(prometheus.Labels{"action": action}).Inc()
@@ -46,6 +47,12 @@ func recordActionError(action string) {
 // func recordError(action string, name string) {
 // 	errorCounter.With(prometheus.Labels{"action": action, "name": name}).Inc()
 // }
+
+func recordSetImagePriority(from int, to int) {
+	setImagePriorityCounter.With(prometheus.Labels{
+		"from": fmt.Sprintf("%d", from),
+		"to":   fmt.Sprintf("%d", to)}).Inc()
+}
 
 func recordStateTransition(from ScanStatus, to ScanStatus, isLegal bool) {
 	stateTransitionCounter.With(prometheus.Labels{
@@ -109,6 +116,14 @@ func init() {
 		Help:      "records errors encounted during model action processing",
 	}, []string{"action"})
 	prometheus.MustRegister(actionErrorCounter)
+
+	setImagePriorityCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "perceptor",
+		Subsystem: "core",
+		Name:      "set_image_priority",
+		Help:      "records image priority changes",
+	}, []string{"from", "to"})
+	prometheus.MustRegister(setImagePriorityCounter)
 
 	statusGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "perceptor",

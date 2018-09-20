@@ -40,9 +40,10 @@ const (
 // Model is the root of the core model
 type Model struct {
 	// Pods is a map of qualified name ("<namespace>/<name>") to pod
-	Pods           map[string]Pod
-	Images         map[DockerImageSha]*ImageInfo
-	ImageScanQueue *util.PriorityQueue
+	Pods             map[string]Pod
+	Images           map[DockerImageSha]*ImageInfo
+	ImageScanQueue   *util.PriorityQueue
+	ImageTransitions []*ImageTransition
 	//
 	actions chan Action
 }
@@ -50,10 +51,11 @@ type Model struct {
 // NewModel .....
 func NewModel() *Model {
 	model := &Model{
-		Pods:           make(map[string]Pod),
-		Images:         make(map[DockerImageSha]*ImageInfo),
-		ImageScanQueue: util.NewPriorityQueue(),
-		actions:        make(chan Action, actionChannelSize),
+		Pods:             make(map[string]Pod),
+		Images:           make(map[DockerImageSha]*ImageInfo),
+		ImageScanQueue:   util.NewPriorityQueue(),
+		ImageTransitions: []*ImageTransition{},
+		actions:          make(chan Action, actionChannelSize),
 	}
 	go func() {
 		stop := time.Now()
@@ -101,7 +103,7 @@ func (model *Model) UpdatePod(pod Pod) {
 	model.actions <- &UpdatePod{Pod: pod}
 }
 
-// DeletePod remove the record of a pod, but does not touch its images
+// DeletePod removes the record of a pod, but does not touch its images
 func (model *Model) DeletePod(podName string) {
 	model.actions <- &DeletePod{PodName: podName}
 }
@@ -219,7 +221,7 @@ func (model *Model) scanDidFinish(sha DockerImageSha, scanResults *hub.ScanResul
 	if scanResults == nil {
 		switch imageInfo.ScanStatus {
 		case ScanStatusUnknown:
-			model.setImageScanStatus(sha, ScanStatusInQueue)
+			return model.setImageScanStatus(sha, ScanStatusInQueue)
 		default:
 			return fmt.Errorf("unexpectedly found nil ScanResults for image %s in state %s", sha, imageInfo.ScanStatus)
 		}
@@ -227,26 +229,25 @@ func (model *Model) scanDidFinish(sha DockerImageSha, scanResults *hub.ScanResul
 		imageInfo.ScanResults = scanResults
 		switch imageInfo.ScanStatus {
 		case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			model.setImageScanStatus(sha, ScanStatusComplete)
-		case ScanStatusComplete:
-			// nothing to do
+			return model.setImageScanStatus(sha, ScanStatusComplete)
+		default: // case ScanStatusComplete:
+			return nil // nothing to do
 		}
 	} else if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
 		switch imageInfo.ScanStatus {
 		case ScanStatusUnknown, ScanStatusInQueue:
-			model.setImageScanStatus(sha, ScanStatusRunningHubScan)
-		case ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
-			// nothing to do
+			return model.setImageScanStatus(sha, ScanStatusRunningHubScan)
+		default: // case ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
+			return nil // nothing to do
 		}
 	} else { // hub.ScanSummaryStatusFailure
 		switch imageInfo.ScanStatus {
 		case ScanStatusUnknown, ScanStatusRunningHubScan:
-			model.setImageScanStatus(sha, ScanStatusInQueue)
-		case ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusComplete:
+			return model.setImageScanStatus(sha, ScanStatusInQueue)
+		default: // case ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusComplete:
 			return fmt.Errorf("cannot handle scanDidFinish %s for image %s: cannot transition from state %s", imageInfo.ScanStatus, sha, imageInfo.ScanStatus.String())
 		}
 	}
-	return nil
 }
 
 // DeleteImage removes an image from the model.
@@ -297,8 +298,14 @@ func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus S
 		return fmt.Errorf("illegal image state transition from %s to %s for sha %s", imageInfo.ScanStatus, newScanStatus, sha)
 	}
 
-	model.leaveState(sha, imageInfo.ScanStatus)
-	model.enterState(sha, newScanStatus)
+	err := model.leaveState(sha, imageInfo.ScanStatus)
+	if err != nil {
+		return errors.Annotatef(err, "unable to leaveState %s for sha %s", imageInfo.ScanStatus.String(), sha)
+	}
+	err = model.enterState(sha, newScanStatus)
+	if err != nil {
+		return errors.Annotatef(err, "unable to enter state %s for sha %s", newScanStatus, sha)
+	}
 	imageInfo.setScanStatus(newScanStatus)
 
 	return nil
@@ -314,7 +321,7 @@ func (model *Model) createImage(image Image) (bool, error) {
 			return added, nil
 		}
 		log.Debugf("upgrading priority for image %s to %d", image.Sha, image.Priority)
-		imageInfo.Priority = image.Priority
+		imageInfo.SetPriority(image.Priority)
 		if imageInfo.ScanStatus != ScanStatusInQueue {
 			return added, nil
 		}
@@ -374,6 +381,7 @@ func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanSta
 		statusString = imageInfo.ScanStatus.String()
 	}
 	err := model.setImageScanStatusForSha(sha, newScanStatus)
+	model.ImageTransitions = append(model.ImageTransitions, NewImageTransition(sha, statusString, newScanStatus, err))
 	if err != nil {
 		return errors.Annotatef(err, "unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
 	}
@@ -406,8 +414,7 @@ func (model *Model) startScanClient(sha DockerImageSha) error {
 	if imageInfo.ScanStatus != ScanStatusInQueue {
 		return fmt.Errorf("unable to start scan client for image %s, not in state InQueue", sha)
 	}
-	model.setImageScanStatus(sha, ScanStatusRunningScanClient)
-	return nil
+	return model.setImageScanStatus(sha, ScanStatusRunningScanClient)
 }
 
 // FinishRunningScanClient .....
@@ -421,42 +428,9 @@ func (model *Model) finishRunningScanClient(image *Image, scanClientError error)
 
 	scanStatus := ScanStatusRunningHubScan
 	if scanClientError != nil {
-		imageInfo.Priority = -1
+		imageInfo.SetPriority(-1)
 		scanStatus = ScanStatusInQueue
 	}
 
 	return model.setImageScanStatus(image.Sha, scanStatus)
-}
-
-// additional methods
-
-// InProgressScans .....
-func (model *Model) inProgressScans() []DockerImageSha {
-	inProgressShas := []DockerImageSha{}
-	for sha, results := range model.Images {
-		switch results.ScanStatus {
-		case ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			inProgressShas = append(inProgressShas, sha)
-		default:
-			break
-		}
-	}
-	return inProgressShas
-}
-
-// InProgressScanCount .....
-func (model *Model) inProgressScanCount() int {
-	return len(model.inProgressScans())
-}
-
-// InProgressHubScans .....
-func (model *Model) inProgressHubScans() *([]Image) {
-	inProgressHubScans := []Image{}
-	for _, imageInfo := range model.Images {
-		switch imageInfo.ScanStatus {
-		case ScanStatusRunningHubScan:
-			inProgressHubScans = append(inProgressHubScans, imageInfo.Image())
-		}
-	}
-	return &inProgressHubScans
 }
