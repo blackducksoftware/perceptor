@@ -23,6 +23,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
@@ -82,6 +83,24 @@ func RunModelTests() {
 			jsonBytes, err := json.Marshal(m)
 			Expect(err).To(BeNil())
 			log.Infof("json bytes: %s", string(jsonBytes))
+		})
+
+		It("Image scan failure, then re-receive perceiver event of image -- what's the priority?", func() {
+			model := removeScanItemModel()
+			image, err := model.getNextImageFromScanQueue()
+			Expect(*image).To(Equal(image3))
+			Expect(err).To(BeNil())
+
+			Expect(model.startScanClient(image3.Sha)).To(BeNil())
+			Expect(model.Images[image3.Sha].ScanStatus).To(Equal(ScanStatusRunningScanClient))
+
+			Expect(model.finishRunningScanClient(image, fmt.Errorf("planned failure"))).To(BeNil())
+			Expect(model.Images[image3.Sha].ScanStatus).To(Equal(ScanStatusInQueue))
+			Expect(model.Images[image3.Sha].Priority).To(Equal(-1))
+
+			model.addImage(image3)
+			Expect(model.Images[image3.Sha].ScanStatus).To(Equal(ScanStatusInQueue))
+			Expect(model.Images[image3.Sha].Priority).To(Equal(-1))
 		})
 
 		Describe("Image scan queue operations", func() {

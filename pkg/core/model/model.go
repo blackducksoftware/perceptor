@@ -144,7 +144,7 @@ func (model *Model) GetScanResults() api.ScanResults {
 }
 
 // GetModel ...
-func (model *Model) GetModel() api.CoreModel {
+func (model *Model) GetModel() *api.CoreModel {
 	get := NewGetModel()
 	model.actions <- get
 	return <-get.Done
@@ -316,22 +316,24 @@ func (model *Model) createImage(image Image) (bool, error) {
 	imageInfo, ok := model.Images[image.Sha]
 	added := !ok
 	if ok {
+		newPriority, oldPriority := image.Priority, imageInfo.Priority
 		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
-		if image.Priority <= imageInfo.Priority {
+		if newPriority <= oldPriority {
+			log.Debugf("not decreasing priority for image %s", image.PullSpec())
 			return added, nil
 		}
-		log.Debugf("upgrading priority for image %s to %d", image.Sha, image.Priority)
+		if oldPriority < 0 {
+			log.Debugf("not increasing priority for image %s, old priority was %d", image.PullSpec(), oldPriority)
+			return added, nil
+		}
+		log.Debugf("upgrading priority for image %s to %d", image.PullSpec(), image.Priority)
 		imageInfo.SetPriority(image.Priority)
 		if imageInfo.ScanStatus != ScanStatusInQueue {
 			return added, nil
 		}
-		err := model.removeImageFromScanQueue(image.Sha)
+		err := model.setImagePriority(image.Sha, image.Priority)
 		if err != nil {
-			return added, errors.Annotatef(err, "unable to remove image %s from scan queue", image.Sha)
-		}
-		err = model.addImageToScanQueue(image.Sha)
-		if err != nil {
-			return added, errors.Annotatef(err, "unable to re-add image %s to scan queue", image.Sha)
+			return added, errors.Annotatef(err, "unable to set image %s priority in scan queue to %d", image.Sha, image.Priority)
 		}
 		return added, nil
 	}
@@ -363,6 +365,10 @@ func (model *Model) addImageToScanQueue(sha DockerImageSha) error {
 		return fmt.Errorf("unable to add image %s to scan queue: not found", sha)
 	}
 	return model.ImageScanQueue.Add(string(sha), imageInfo.Priority, sha)
+}
+
+func (model *Model) setImagePriority(sha DockerImageSha, newPriority int) error {
+	return model.ImageScanQueue.Set(string(sha), newPriority)
 }
 
 func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
