@@ -101,10 +101,7 @@ func RunActionTests() {
 	Describe("Actions", func() {
 		It("implement interface", func() {
 			processAction(&AnyAction{F: func(model *Model) error { return nil }})
-			processAction(&DeletePod{})
-			processAction(&AllPods{})
 			processAction(&FinishScanClient{})
-			processAction(&AllImages{})
 			processAction(&GetModel{})
 			processAction(&GetMetrics{})
 			processAction(&GetScanResults{})

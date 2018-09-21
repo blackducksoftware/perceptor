@@ -29,7 +29,7 @@ import (
 func RunTestAllPods() {
 	It("should remove pre-existing pods", func() {
 		actual := createNewModel1()
-		(&AllPods{}).Apply(actual)
+		Expect(actual.allPods([]Pod{})).To(BeNil())
 		Expect(len(actual.Pods)).To(Equal(0))
 	})
 }

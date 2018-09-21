@@ -109,12 +109,16 @@ func (model *Model) UpdatePod(pod Pod) {
 
 // DeletePod removes the record of a pod, but does not touch its images
 func (model *Model) DeletePod(podName string) {
-	model.actions <- &DeletePod{PodName: podName}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.deletePod(podName)
+	}}
 }
 
 // SetPods ...
 func (model *Model) SetPods(pods []Pod) {
-	model.actions <- &AllPods{Pods: pods}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.allPods(pods)
+	}}
 }
 
 // AddImage ...
@@ -126,7 +130,9 @@ func (model *Model) AddImage(image Image) {
 
 // SetImages ...
 func (model *Model) SetImages(images []Image) {
-	model.actions <- &AllImages{Images: images}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.allImages(images)
+	}}
 }
 
 // FinishScanJob should be called when the scan client has finished.
@@ -139,7 +145,9 @@ func (model *Model) FinishScanJob(image *Image, err error) {
 // - the Hub scan finishes
 // - upon startup, when scan results are first fetched
 func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) {
-	model.actions <- &DidFetchScanResults{Sha: sha, ScanResults: scanResults}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.scanDidFinish(sha, scanResults)
+	}}
 }
 
 // GetScanResults ...
@@ -453,4 +461,36 @@ func (model *Model) getShas(status ScanStatus) []DockerImageSha {
 		}
 	}
 	return shas
+}
+
+func (model *Model) deletePod(podName string) error {
+	_, ok := model.Pods[podName]
+	if !ok {
+		return fmt.Errorf("unable to delete pod %s, pod not found", podName)
+	}
+	delete(model.Pods, podName)
+	return nil
+}
+
+func (model *Model) allPods(pods []Pod) error {
+	model.Pods = map[string]Pod{}
+	errors := []error{}
+	for _, pod := range pods {
+		err := model.addPod(pod)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return combineErrors("allPods", errors)
+}
+
+func (model *Model) allImages(images []Image) error {
+	errors := []error{}
+	for _, image := range images {
+		err := model.addImage(image)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return combineErrors("allImages", errors)
 }

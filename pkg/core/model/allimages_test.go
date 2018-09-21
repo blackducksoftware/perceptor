@@ -29,7 +29,7 @@ import (
 func RunTestAllImages() {
 	It("should not remove pre-existing images", func() {
 		actual := createNewModel1()
-		(&AllImages{}).Apply(actual)
+		Expect(actual.allImages([]Image{})).To(BeNil())
 		Expect(len(actual.Images)).To(Equal(2))
 	})
 }
