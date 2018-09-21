@@ -378,7 +378,6 @@ func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
 
 // "Public" methods
 
-// setImageScanStatus .....
 func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) error {
 	log.Debugf("setImageScanStatus for %s to %s", sha, newScanStatus)
 	imageInfo, ok := model.Images[sha]
@@ -423,7 +422,6 @@ func (model *Model) startScanClient(sha DockerImageSha) error {
 	return model.setImageScanStatus(sha, ScanStatusRunningScanClient)
 }
 
-// FinishRunningScanClient .....
 func (model *Model) finishRunningScanClient(image *Image, scanClientError error) error {
 	imageInfo, ok := model.Images[image.Sha]
 
@@ -439,4 +437,14 @@ func (model *Model) finishRunningScanClient(image *Image, scanClientError error)
 	}
 
 	return model.setImageScanStatus(image.Sha, scanStatus)
+}
+
+func (model *Model) getShas(status ScanStatus) []DockerImageSha {
+	shas := []DockerImageSha{}
+	for sha, imageInfo := range model.Images {
+		if imageInfo.ScanStatus == status {
+			shas = append(shas, sha)
+		}
+	}
+	return shas
 }

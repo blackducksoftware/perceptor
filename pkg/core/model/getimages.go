@@ -34,12 +34,7 @@ func NewGetImages(status ScanStatus) *GetImages {
 
 // Apply .....
 func (g *GetImages) Apply(model *Model) error {
-	shas := []DockerImageSha{}
-	for sha, imageInfo := range model.Images {
-		if imageInfo.ScanStatus == g.Status {
-			shas = append(shas, sha)
-		}
-	}
+	shas := model.getShas(g.Status)
 	go func() {
 		g.Done <- shas
 	}()
