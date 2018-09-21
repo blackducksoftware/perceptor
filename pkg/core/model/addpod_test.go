@@ -23,12 +23,13 @@ package model
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func RunTestAddPodAction() {
 	It("should add a pod and all the pod's containers' images", func() {
 		actual := NewModel()
-		(&AddPod{testPod}).Apply(actual)
+		Expect(actual.addPod(testPod)).To(BeNil())
 		// expected (a bit hacky to get the times set up):
 		//  - pod gets added to .Pods
 		//  - all images within pod get added to .Images

@@ -100,10 +100,8 @@ func createNewModel2() *Model {
 func RunActionTests() {
 	Describe("Actions", func() {
 		It("implement interface", func() {
-			processAction(&AddPod{Pod{}})
-			processAction(&UpdatePod{Pod{}})
+			processAction(&AnyAction{F: func(model *Model) error { return nil }})
 			processAction(&DeletePod{})
-			processAction(&AddImage{})
 			processAction(&AllPods{})
 			processAction(&FinishScanClient{})
 			processAction(&AllImages{})

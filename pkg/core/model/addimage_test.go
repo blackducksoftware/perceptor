@@ -23,12 +23,13 @@ package model
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func RunTestAddImageAction() {
 	It("should add an image", func() {
 		actual := NewModel()
-		(&AddImage{testImage}).Apply(actual)
+		Expect(actual.addImage(testImage)).To(BeNil())
 		// expected (a bit hacky to get the times set up):
 		//  - image gets added to .Images
 		//  - image gets added to hub check queue

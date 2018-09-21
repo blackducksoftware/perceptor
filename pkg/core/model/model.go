@@ -95,12 +95,16 @@ func NewModel() *Model {
 
 // AddPod ...
 func (model *Model) AddPod(pod Pod) {
-	model.actions <- &AddPod{Pod: pod}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.addPod(pod)
+	}}
 }
 
 // UpdatePod ...
 func (model *Model) UpdatePod(pod Pod) {
-	model.actions <- &UpdatePod{Pod: pod}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.addPod(pod)
+	}}
 }
 
 // DeletePod removes the record of a pod, but does not touch its images
@@ -115,7 +119,9 @@ func (model *Model) SetPods(pods []Pod) {
 
 // AddImage ...
 func (model *Model) AddImage(image Image) {
-	model.actions <- &AddImage{Image: image}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.addImage(image)
+	}}
 }
 
 // SetImages ...

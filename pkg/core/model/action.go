@@ -25,3 +25,13 @@ package model
 type Action interface {
 	Apply(model *Model) error
 }
+
+// AnyAction ...
+type AnyAction struct {
+	F func(model *Model) error
+}
+
+// Apply ...
+func (aa *AnyAction) Apply(model *Model) error {
+	return aa.F(model)
+}
