@@ -48,7 +48,8 @@ type Perceptor struct {
 	hubManager         HubManagerInterface
 	config             *Config
 	// channels
-	stop <-chan struct{}
+	stop           <-chan struct{}
+	getNextImageCh chan chan *api.ImageSpec
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
@@ -148,9 +149,21 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 		hubManager:         hubManager,
 		config:             config,
 		stop:               stop,
+		getNextImageCh:     make(chan chan *api.ImageSpec),
 	}
 
-	// 5. done
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case ch := <-perceptor.getNextImageCh:
+				perceptor.getNextImage(ch)
+			}
+		}
+	}()
+
+	// 3. done
 	return perceptor, nil
 }
 
@@ -269,21 +282,27 @@ func (pcp *Perceptor) GetScanResults() api.ScanResults {
 	return pcp.model.GetScanResults()
 }
 
-// GetNextImage .....
-func (pcp *Perceptor) GetNextImage() api.NextImage {
-	recordGetNextImage()
-	log.Debugf("handling GET next image")
+func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
+	finish := func(spec *api.ImageSpec) {
+		select {
+		case <-pcp.stop:
+		case ch <- spec:
+		}
+	}
 	image := pcp.model.GetNextImage()
 	if image == nil {
 		log.Debug("get next image: no image found")
-		return *api.NewNextImage(nil)
+		finish(nil)
+		return
 	}
 	hub := pcp.scanScheduler.AssignImage(image)
 	if hub == nil {
 		log.Debug("get next image: no available hub found")
-		return *api.NewNextImage(nil)
+		finish(nil)
+		return
 	}
-	imageSpec := &api.ImageSpec{
+
+	finish(&api.ImageSpec{
 		Repository:            image.Repository,
 		Tag:                   image.Tag,
 		Sha:                   string(image.Sha),
@@ -291,14 +310,20 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 		HubProjectName:        image.HubProjectName(),
 		HubProjectVersionName: image.HubProjectVersionName(),
 		HubScanName:           image.HubScanName(),
-		Priority:              image.Priority}
-	go func() {
-		log.Debugf("handle didStartScan")
-		pcp.model.StartScanClient(image.Sha)
-		pcp.hubManager.StartScanClient(hub.Host(), string(image.Sha))
-	}()
-	nextImage := *api.NewNextImage(imageSpec)
-	log.Debugf("handled GET next image -- %s", image.PullSpec())
+		Priority:              image.Priority})
+	log.Debugf("handle didStartScan")
+	pcp.model.StartScanClient(image.Sha)
+	pcp.hubManager.StartScanClient(hub.Host(), string(image.Sha))
+}
+
+// GetNextImage .....
+func (pcp *Perceptor) GetNextImage() api.NextImage {
+	recordGetNextImage()
+	log.Debugf("handling GET next image")
+	ch := make(chan *api.ImageSpec)
+	pcp.getNextImageCh <- ch
+	nextImage := *api.NewNextImage(<-ch)
+	log.Debugf("handled GET next image -- %s", nextImage.ImageSpec.Sha)
 	return nextImage
 }
 
