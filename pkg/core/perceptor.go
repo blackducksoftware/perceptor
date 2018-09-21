@@ -323,7 +323,7 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 	ch := make(chan *api.ImageSpec)
 	pcp.getNextImageCh <- ch
 	nextImage := *api.NewNextImage(<-ch)
-	log.Debugf("handled GET next image -- %s", nextImage.ImageSpec.Sha)
+	log.Debugf("handled GET next image -- %+v", nextImage)
 	return nextImage
 }
 
