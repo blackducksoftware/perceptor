@@ -23,6 +23,7 @@ package core
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
@@ -228,6 +229,32 @@ func RunTestPerceptor() {
 			Expect(pcp.model.Images[m.DockerImageSha(image3.Sha)].ScanStatus).To(Equal(m.ScanStatusComplete))
 			Expect(pcp.model.Images[m.DockerImageSha(image4.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
 			Expect(pcp.model.Images[m.DockerImageSha(image5.Sha)].ScanStatus).To(Equal(m.ScanStatusInQueue))
+		})
+
+		It("should not return the same image to scan twice", func() {
+			pcp := newPerceptor(2, 5)
+			pcp.UpdateAllImages(api.AllImages{
+				Images: []api.Image{image1, image2, image3, image4, image5},
+			})
+			pcp.hubManager.SetHubs([]string{"hub1"})
+			time.Sleep(1 * time.Second)
+
+			var i1 *api.NextImage
+			var i2 *api.NextImage
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go func() {
+				i := pcp.GetNextImage()
+				i1 = &i
+				wg.Done()
+			}()
+			go func() {
+				i := pcp.GetNextImage()
+				i2 = &i
+				wg.Done()
+			}()
+			wg.Wait()
+			Expect(i1).NotTo(Equal(i2))
 		})
 	})
 }
