@@ -93,6 +93,7 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 			case <-hub.stop:
 				return
 			case action := <-hub.actions:
+				// TODO what other logging, metrics, etc. would help here?
 				recordEvent(hub.host, action.name)
 				err := action.apply()
 				if err != nil {
@@ -208,12 +209,12 @@ func (hub *Hub) startLoginTimer(pause time.Duration) *util.Timer {
 	})
 }
 
-func (hub *Hub) didFetchScans(cls []hubapi.CodeLocation, err error) {
+func (hub *Hub) didFetchScans(cls *hubapi.CodeLocationList, err error) {
 	hub.actions <- &clientAction{"didFetchScans", func() error {
 		hub.recordError(err)
 		if err == nil {
 			hub.hasFetchedScans = true
-			for _, cl := range cls {
+			for _, cl := range cls.Items {
 				if _, ok := hub.scans[cl.Name]; !ok {
 					hub.scans[cl.Name] = &Scan{Stage: ScanStageUnknown, ScanResults: nil}
 				}
@@ -227,7 +228,7 @@ func (hub *Hub) startFetchAllScansTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("fetchScans-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
 		log.Debugf("starting to fetch all scans")
-		cls, err := hub.fetchAllCodeLocations()
+		cls, err := hub.client.listAllCodeLocations()
 		hub.didFetchScans(cls, err)
 	})
 }
@@ -479,15 +480,4 @@ func (hub *Hub) HasFetchedScans() <-chan bool {
 		return nil
 	}}
 	return ch
-}
-
-// Hub api calls
-
-func (hub *Hub) fetchAllCodeLocations() ([]hubapi.CodeLocation, error) {
-	codeLocationList, err := hub.client.listAllCodeLocations()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("fetched all code locations: found %d, expected %d", len(codeLocationList.Items), codeLocationList.TotalCount)
-	return codeLocationList.Items, nil
 }
