@@ -97,7 +97,7 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 				recordEvent(hub.host, action.name)
 				err := action.apply()
 				if err != nil {
-					log.Error(err.Error())
+					log.Errorf("while processing action %s: %s", action.name, err.Error())
 					recordError(hub.host, action.name)
 				}
 			}
@@ -118,7 +118,7 @@ func (hub *Hub) publish(update Update) {
 	}()
 }
 
-func (hub *Hub) getStateMetrics() <-chan *clientStateMetrics {
+func (hub *Hub) getStateMetrics() {
 	ch := make(chan *clientStateMetrics)
 	hub.actions <- &clientAction{"getClientStateMetrics", func() error {
 		scanStageCounts := map[ScanStage]int{}
@@ -131,7 +131,7 @@ func (hub *Hub) getStateMetrics() <-chan *clientStateMetrics {
 		}
 		return nil
 	}}
-	return ch
+	recordClientState(hub.host, <-ch)
 }
 
 func (hub *Hub) recordError(err error) {
@@ -300,14 +300,7 @@ func (hub *Hub) startFetchUnknownScansTimer(pause time.Duration) *util.Timer {
 func (hub *Hub) startGetMetricsTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("getMetrics-%s", hub.host)
 	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
-		var metrics *clientStateMetrics
-		select {
-		case <-hub.stop:
-			return
-		case m := <-hub.getStateMetrics():
-			metrics = m
-		}
-		recordClientState(hub.host, metrics)
+		hub.getStateMetrics()
 	})
 }
 
