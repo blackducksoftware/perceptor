@@ -77,7 +77,7 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 		hub2Host: {image3.Sha},
 		hub3Host: {},
 	}
-	createClient := func(hubURL string) (hub.ClientInterface, error) {
+	createClient := func(hubURL string) (*hub.Hub, error) {
 		mockRawClient := hub.NewMockRawClient(false, scans[hubURL])
 		hubTimings := &hub.Timings{
 			ScanCompletionPause:    1 * time.Minute,
@@ -87,7 +87,7 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 			LoginPause:             hub.DefaultTimings.LoginPause,
 			RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
 		}
-		return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, hubTimings), nil
+		return hub.NewHub("mock-username", "mock-password", hubURL, mockRawClient, hubTimings), nil
 	}
 
 	stop := make(chan struct{})

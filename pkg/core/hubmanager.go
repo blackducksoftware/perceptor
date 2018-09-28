@@ -30,21 +30,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type hubClientCreator func(host string) (hub.ClientInterface, error)
+type hubClientCreator func(host string) (*hub.Hub, error)
 
-func createMockHubClient(hubURL string) (hub.ClientInterface, error) {
+func createMockHubClient(hubURL string) (*hub.Hub, error) {
 	mockRawClient := hub.NewMockRawClient(false, []string{})
-	return hub.NewClient("mock-username", "mock-password", hubURL, mockRawClient, hub.DefaultTimings), nil
+	return hub.NewHub("mock-username", "mock-password", hubURL, mockRawClient, hub.DefaultTimings), nil
 }
 
 func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
-	return func(host string) (hub.ClientInterface, error) {
+	return func(host string) (*hub.Hub, error) {
 		baseURL := fmt.Sprintf("https://%s:%d", host, port)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
 			return nil, err
 		}
-		return hub.NewClient(username, password, host, rawClient, hub.DefaultTimings), nil
+		return hub.NewHub(username, password, host, rawClient, hub.DefaultTimings), nil
 	}
 }
 
@@ -57,7 +57,7 @@ type Update struct {
 // HubManagerInterface ...
 type HubManagerInterface interface {
 	SetHubs(hubURLs []string)
-	HubClients() map[string]hub.ClientInterface
+	HubClients() map[string]*hub.Hub
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string, err error) error
 	ScanResults() map[string]map[string]*hub.Scan
@@ -71,7 +71,7 @@ type HubManager struct {
 	stop    <-chan struct{}
 	updates chan *Update
 	//
-	hubs                  map[string]hub.ClientInterface
+	hubs                  map[string]*hub.Hub
 	didFetchScanResults   chan *hub.ScanResults
 	didFetchCodeLocations chan []string
 }
@@ -83,7 +83,7 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 		newHub:                newHub,
 		stop:                  stop,
 		updates:               make(chan *Update),
-		hubs:                  map[string]hub.ClientInterface{},
+		hubs:                  map[string]*hub.Hub{},
 		didFetchScanResults:   make(chan *hub.ScanResults),
 		didFetchCodeLocations: make(chan []string)}
 }
@@ -149,7 +149,7 @@ func (hm *HubManager) Updates() <-chan *Update {
 }
 
 // HubClients ...
-func (hm *HubManager) HubClients() map[string]hub.ClientInterface {
+func (hm *HubManager) HubClients() map[string]*hub.Hub {
 	return hm.hubs
 }
 

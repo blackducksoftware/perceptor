@@ -29,7 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func newClient(ignoreEvents bool) (*MockRawClient, ClientInterface) {
+func newClient(ignoreEvents bool) (*MockRawClient, *Hub) {
 	rawClient := NewMockRawClient(false, []string{"a", "b", "c"})
 	timings := &Timings{
 		ScanCompletionPause:    125 * time.Millisecond,
@@ -39,21 +39,21 @@ func newClient(ignoreEvents bool) (*MockRawClient, ClientInterface) {
 		LoginPause:             DefaultTimings.LoginPause,
 		RefreshScanThreshold:   DefaultTimings.RefreshScanThreshold,
 	}
-	client := NewClient("sysadmin", "password", "host1", rawClient, timings)
+	hub := NewHub("sysadmin", "password", "host1", rawClient, timings)
 	if ignoreEvents {
 		go func() {
-			updates := client.Updates()
+			updates := hub.Updates()
 			for {
 				<-updates
 			}
 		}()
 	}
-	return rawClient, client
+	return rawClient, hub
 }
 
-func getScanResults(client ClientInterface) map[string]ScanStage {
+func getScanResults(hub *Hub) map[string]ScanStage {
 	cls := map[string]ScanStage{}
-	for key, val := range <-client.ScanResults() {
+	for key, val := range <-hub.ScanResults() {
 		cls[key] = val.Stage
 	}
 	return cls
