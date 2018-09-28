@@ -261,7 +261,6 @@ func NewClient(username string, password string, host string, client RawClientIn
 					hub.recordError(hub.checkScansForCompletionTimer.Resume(true))
 					hub.recordError(hub.fetchScansTimer.Resume(true))
 					hub.recordError(hub.fetchAllScansTimer.Resume(true))
-					fmt.Printf("hub: %+v\n, timer: %+v\n", hub, hub.refreshScansTimer)
 					hub.recordError(hub.refreshScansTimer.Resume(true))
 				}
 			}
