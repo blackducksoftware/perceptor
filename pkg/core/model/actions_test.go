@@ -24,7 +24,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	. "github.com/onsi/ginkgo"
@@ -99,11 +98,6 @@ func createNewModel2() *Model {
 }
 
 func RunActionTests() {
-	Describe("Actions", func() {
-		It("implement interface", func() {
-			processAction(&AnyAction{F: func(model *Model) error { return nil }})
-		})
-	})
 	Describe("addImage", func() {
 		It("should add an image", func() {
 			actual := NewModel()
@@ -303,8 +297,4 @@ func RunActionTests() {
 			Expect(1).To(Equal(1))
 		})
 	})
-}
-
-func processAction(nextAction Action) {
-	log.Infof("received actions: %+v, %s", nextAction, reflect.TypeOf(nextAction))
 }
