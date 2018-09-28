@@ -56,6 +56,7 @@ type Client struct {
 	// timers
 	getMetricsTimer              *util.Timer
 	loginTimer                   *util.Timer
+	refreshScansTimer            *util.Timer
 	fetchAllScansTimer           *util.Timer
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
@@ -265,7 +266,6 @@ func NewClient(username string, password string, host string, client RawClientIn
 }
 
 func (hub *Client) publish(update Update) {
-	// TODO also handle scan refreshes
 	go func() {
 		select {
 		case <-hub.stop:
