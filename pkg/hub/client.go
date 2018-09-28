@@ -81,7 +81,7 @@ type Client struct {
 }
 
 // NewClient returns a new Client.  It will not be logged in.
-func NewClient(username string, password string, host string, client RawClientInterface, scanCompletionPause time.Duration, fetchUnknownScansPause time.Duration, fetchAllScansPause time.Duration) *Client {
+func NewClient(username string, password string, host string, client RawClientInterface, timings *Timings) *Client {
 	hub := &Client{
 		client:         client,
 		circuitBreaker: NewCircuitBreaker(host, maxHubExponentialBackoffDuration),
@@ -111,6 +111,13 @@ func NewClient(username string, password string, host string, client RawClientIn
 		hasFetchedScansCh:       make(chan chan bool),
 		getClientStateMetricsCh: make(chan chan *clientStateMetrics),
 		unknownScansCh:          make(chan chan []string)}
+	// timers
+	hub.getMetricsTimer = hub.startGetMetricsTimer(timings.GetMetricsPause)
+	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(timings.ScanCompletionPause)
+	hub.fetchScansTimer = hub.startFetchUnknownScansTimer(timings.FetchUnknownScansPause)
+	hub.fetchAllScansTimer = hub.startFetchAllScansTimer(timings.FetchAllScansPause)
+	hub.loginTimer = hub.startLoginTimer(timings.LoginPause)
+	hub.refreshScansTimer = hub.startRefreshScansTimer(timings.RefreshScanThreshold)
 	// action processing
 	go func() {
 		for {
@@ -248,20 +255,18 @@ func NewClient(username string, password string, host string, client RawClientIn
 					hub.recordError(hub.checkScansForCompletionTimer.Pause())
 					hub.recordError(hub.fetchScansTimer.Pause())
 					hub.recordError(hub.fetchAllScansTimer.Pause())
+					hub.recordError(hub.refreshScansTimer.Pause())
 				} else if err == nil && hub.status == ClientStatusDown {
 					hub.status = ClientStatusUp
 					hub.recordError(hub.checkScansForCompletionTimer.Resume(true))
 					hub.recordError(hub.fetchScansTimer.Resume(true))
 					hub.recordError(hub.fetchAllScansTimer.Resume(true))
+					fmt.Printf("hub: %+v\n, timer: %+v\n", hub, hub.refreshScansTimer)
+					hub.recordError(hub.refreshScansTimer.Resume(true))
 				}
 			}
 		}
 	}()
-	hub.getMetricsTimer = hub.startGetMetricsTimer(15 * time.Second)
-	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(scanCompletionPause)
-	hub.fetchScansTimer = hub.startFetchUnknownScansTimer(fetchUnknownScansPause)
-	hub.fetchAllScansTimer = hub.startFetchAllScansTimer(fetchAllScansPause)
-	hub.loginTimer = hub.startLoginTimer(30 * time.Minute)
 	return hub
 }
 
@@ -368,6 +373,13 @@ func (hub *Client) apiModel() *api.ModelHub {
 }
 
 // Regular jobs
+
+func (hub *Client) startRefreshScansTimer(pause time.Duration) *util.Timer {
+	name := fmt.Sprintf("refresh-scans-%s", hub.host)
+	return util.NewTimer(name, pause, hub.stop, func() {
+		// TODO implement
+	})
+}
 
 func (hub *Client) startLoginTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("login-%s", hub.host)

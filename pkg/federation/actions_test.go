@@ -32,7 +32,15 @@ import (
 func RunActionsTests() {
 	Describe("API model", func() {
 		It("should convert from model, including errors", func() {
-			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, 30*time.Second, 30*time.Second, 999999*time.Hour)
+			timings := &hub.Timings{
+				ScanCompletionPause:    30 * time.Second,
+				FetchUnknownScansPause: 30 * time.Second,
+				FetchAllScansPause:     999999 * time.Hour,
+				GetMetricsPause:        hub.DefaultTimings.GetMetricsPause,
+				LoginPause:             hub.DefaultTimings.LoginPause,
+				RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
+			}
+			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, timings)
 			time.Sleep(2 * time.Second)
 			apiHub := <-hub.Model()
 			Expect(len(apiHub.Errors)).NotTo(Equal(0))
