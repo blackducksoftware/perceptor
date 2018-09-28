@@ -76,7 +76,7 @@ func NewModel() *Model {
 				recordReducerActivity(false, start.Sub(stop))
 
 				// actually do the work
-				err := nextAction.apply(model)
+				err := nextAction.apply()
 				if err != nil {
 					log.Errorf("problem processing action %s: %v", actionName, err)
 					recordActionError(actionName)
@@ -95,42 +95,42 @@ func NewModel() *Model {
 
 // AddPod ...
 func (model *Model) AddPod(pod Pod) {
-	model.actions <- &action{"addPod", func(model *Model) error {
+	model.actions <- &action{"addPod", func() error {
 		return model.addPod(pod)
 	}}
 }
 
 // UpdatePod ...
 func (model *Model) UpdatePod(pod Pod) {
-	model.actions <- &action{"updatePod", func(model *Model) error {
+	model.actions <- &action{"updatePod", func() error {
 		return model.addPod(pod)
 	}}
 }
 
 // DeletePod removes the record of a pod, but does not touch its images
 func (model *Model) DeletePod(podName string) {
-	model.actions <- &action{"deletePod", func(model *Model) error {
+	model.actions <- &action{"deletePod", func() error {
 		return model.deletePod(podName)
 	}}
 }
 
 // SetPods ...
 func (model *Model) SetPods(pods []Pod) {
-	model.actions <- &action{"allPods", func(model *Model) error {
+	model.actions <- &action{"allPods", func() error {
 		return model.allPods(pods)
 	}}
 }
 
 // AddImage ...
 func (model *Model) AddImage(image Image) {
-	model.actions <- &action{"addImage", func(model *Model) error {
+	model.actions <- &action{"addImage", func() error {
 		return model.addImage(image)
 	}}
 }
 
 // SetImages ...
 func (model *Model) SetImages(images []Image) {
-	model.actions <- &action{"allImages", func(model *Model) error {
+	model.actions <- &action{"allImages", func() error {
 		return model.allImages(images)
 	}}
 }
@@ -138,7 +138,7 @@ func (model *Model) SetImages(images []Image) {
 // FinishScanJob should be called when the scan client has finished.
 func (model *Model) FinishScanJob(image *Image, err error) {
 	log.Infof("finish scan job: %+v, %v", image, err)
-	model.actions <- &action{"finishScanJob", func(model *Model) error {
+	model.actions <- &action{"finishScanJob", func() error {
 		return model.finishRunningScanClient(image, err)
 	}}
 }
@@ -147,7 +147,7 @@ func (model *Model) FinishScanJob(image *Image, err error) {
 // - the Hub scan finishes
 // - upon startup, when scan results are first fetched
 func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) {
-	model.actions <- &action{"scanDidFinish", func(model *Model) error {
+	model.actions <- &action{"scanDidFinish", func() error {
 		return model.scanDidFinish(sha, scanResults)
 	}}
 }
@@ -155,7 +155,7 @@ func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResul
 // GetScanResults ...
 func (model *Model) GetScanResults() api.ScanResults {
 	done := make(chan api.ScanResults)
-	model.actions <- &action{"getScanResults", func(model *Model) error {
+	model.actions <- &action{"getScanResults", func() error {
 		scanResults, err := ScanResults(model)
 		go func() {
 			done <- scanResults
@@ -168,7 +168,7 @@ func (model *Model) GetScanResults() api.ScanResults {
 // GetModel ...
 func (model *Model) GetModel() *api.CoreModel {
 	done := make(chan *api.CoreModel)
-	model.actions <- &action{"getModel", func(model *Model) error {
+	model.actions <- &action{"getModel", func() error {
 		apiModel := CoreModelToAPIModel(model)
 		go func() {
 			done <- apiModel
@@ -181,7 +181,7 @@ func (model *Model) GetModel() *api.CoreModel {
 // GetImages returns images in that status
 func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
 	done := make(chan []DockerImageSha)
-	model.actions <- &action{"getImages", func(model *Model) error {
+	model.actions <- &action{"getImages", func() error {
 		shas := model.getShas(status)
 		go func() {
 			done <- shas
@@ -195,7 +195,7 @@ func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
 // over time.
 func (model *Model) GetMetrics() *Metrics {
 	done := make(chan *Metrics)
-	model.actions <- &action{"getMetrics", func(model *Model) error {
+	model.actions <- &action{"getMetrics", func() error {
 		modelMetrics := metrics(model)
 		go func() {
 			done <- modelMetrics
@@ -208,7 +208,7 @@ func (model *Model) GetMetrics() *Metrics {
 // GetNextImage ...
 func (model *Model) GetNextImage() *Image {
 	done := make(chan *Image)
-	model.actions <- &action{"getNextImage", func(model *Model) error {
+	model.actions <- &action{"getNextImage", func() error {
 		log.Debugf("looking for next image to scan")
 		image, err := model.getNextImageFromScanQueue()
 		go func() {
@@ -222,7 +222,7 @@ func (model *Model) GetNextImage() *Image {
 // StartScanClient ...
 func (model *Model) StartScanClient(sha DockerImageSha) error {
 	errCh := make(chan error)
-	model.actions <- &action{"startScanClient", func(model *Model) error {
+	model.actions <- &action{"startScanClient", func() error {
 		err := model.startScanClient(sha)
 		go func() {
 			errCh <- err

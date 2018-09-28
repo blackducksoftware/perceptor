@@ -23,5 +23,5 @@ package model
 
 type action struct {
 	name  string
-	apply func(*Model) error
+	apply func() error
 }
