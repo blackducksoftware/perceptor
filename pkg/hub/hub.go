@@ -47,13 +47,10 @@ type clientAction struct {
 
 // Hub .....
 type Hub struct {
-	client         RawClientInterface
-	circuitBreaker *CircuitBreaker
+	client *Client
 	// basic hub info
-	username string
-	password string
-	host     string
-	status   ClientStatus
+	host   string
+	status ClientStatus
 	// data
 	hasFetchedScans bool
 	scans           map[string]*Scan
@@ -87,14 +84,11 @@ type Hub struct {
 }
 
 // NewHub returns a new Hub.  It will not be logged in.
-func NewHub(username string, password string, host string, client RawClientInterface, timings *Timings) *Hub {
+func NewHub(username string, password string, host string, rawClient RawClientInterface, timings *Timings) *Hub {
 	hub := &Hub{
-		client:         client,
-		circuitBreaker: NewCircuitBreaker(host, maxHubExponentialBackoffDuration),
-		username:       username,
-		password:       password,
-		host:           host,
-		status:         ClientStatusDown,
+		client: NewClient(username, password, host, rawClient),
+		host:   host,
+		status: ClientStatusDown,
 		//
 		hasFetchedScans: false,
 		scans:           map[string]*Scan{},
@@ -132,7 +126,7 @@ func NewHub(username string, password string, host string, client RawClientInter
 				return
 			case <-hub.resetCircuitBreakerCh:
 				recordEvent(hub.host, "resetCircuitBreaker")
-				hub.circuitBreaker.Reset()
+				hub.client.resetCircuitBreaker()
 			case ch := <-hub.getModel:
 				recordEvent(hub.host, "getModel")
 				ch <- hub.apiModel()
@@ -336,19 +330,6 @@ func (hub *Hub) recordError(err error) {
 	}
 }
 
-// login ignores the circuit breaker, just in case the circuit breaker
-// is closed because the calls were failing due to being unauthenticated.
-// Or maybe TODO we need to distinguish between different types of
-// request failure (network vs. 400 vs. 500 etc.)
-// TODO could reset circuit breaker on success
-func (hub *Hub) login() error {
-	start := time.Now()
-	err := hub.client.Login(hub.username, hub.password)
-	recordHubResponse(hub.host, "login", err == nil)
-	recordHubResponseTime(hub.host, "login", time.Now().Sub(start))
-	return err
-}
-
 func (hub *Hub) apiModel() *api.ModelHub {
 	errors := make([]string, len(hub.errors))
 	for ix, err := range hub.errors {
@@ -372,7 +353,7 @@ func (hub *Hub) apiModel() *api.ModelHub {
 		Status:                    hub.status.String(),
 		HasLoadedAllCodeLocations: hub.scans != nil,
 		CodeLocations:             codeLocations,
-		CircuitBreaker:            hub.circuitBreaker.Model(),
+		CircuitBreaker:            hub.client.circuitBreaker.Model(),
 		Host:                      hub.host,
 	}
 }
@@ -390,7 +371,7 @@ func (hub *Hub) startLoginTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("login-%s", hub.host)
 	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
 		log.Debugf("starting to login to hub")
-		err := hub.login()
+		err := hub.client.login()
 		select {
 		case hub.didLoginCh <- err:
 		case <-hub.stop:
@@ -423,7 +404,7 @@ func (hub *Hub) startFetchUnknownScansTimer(pause time.Duration) *util.Timer {
 		unknownScans := hub.getUnknownScans()
 		log.Debugf("found %d unknown code locations", len(unknownScans))
 		for _, codeLocationName := range unknownScans {
-			scanResults, err := hub.fetchScan(codeLocationName)
+			scanResults, err := hub.client.fetchScan(codeLocationName)
 			if err != nil {
 				log.Errorf("unable to fetch scan %s: %s", codeLocationName, err.Error())
 				continue
@@ -468,7 +449,7 @@ func (hub *Hub) startCheckScansForCompletionTimer(pause time.Duration) *util.Tim
 		}
 		log.Debugf("starting to check scans for completion: %+v", scanNames)
 		for _, scanName := range scanNames {
-			scanResults, err := hub.fetchScan(scanName)
+			scanResults, err := hub.client.fetchScan(scanName)
 			if err != nil {
 				log.Errorf("unable to fetch scan %s: %s", scanName, err.Error())
 				continue
@@ -494,32 +475,12 @@ func (hub *Hub) startCheckScansForCompletionTimer(pause time.Duration) *util.Tim
 // Hub api calls
 
 func (hub *Hub) fetchAllCodeLocations() *Result {
-	codeLocationList, err := hub.listAllCodeLocations()
+	codeLocationList, err := hub.client.listAllCodeLocations()
 	if err != nil {
 		return &Result{Value: nil, Err: err}
 	}
 	log.Debugf("fetched all code locations: found %d, expected %d", len(codeLocationList.Items), codeLocationList.TotalCount)
 	return &Result{Value: codeLocationList.Items, Err: nil}
-}
-
-// Version fetches the hub version
-func (hub *Hub) Version() (string, error) {
-	start := time.Now()
-	currentVersion, err := hub.client.CurrentVersion()
-	recordHubResponse(hub.host, "version", err == nil)
-	recordHubResponseTime(hub.host, "version", time.Now().Sub(start))
-	if err != nil {
-		log.Errorf("unable to get hub version: %s", err.Error())
-		return "", err
-	}
-
-	log.Infof("successfully got hub version %s", currentVersion.Version)
-	return currentVersion.Version, nil
-}
-
-// SetTimeout is currently not concurrent-safe, and should be made so TODO
-func (hub *Hub) SetTimeout(timeout time.Duration) {
-	hub.client.SetTimeout(timeout)
 }
 
 // StartScanClient ...
@@ -559,292 +520,4 @@ func (hub *Hub) ScanResults() <-chan map[string]*Scan {
 // - when a finished scan is repulled (to get any changes to its vulnerabilities, policies, etc.)
 func (hub *Hub) Updates() <-chan Update {
 	return hub.publishUpdatesCh
-}
-
-// FetchScan finds ScanResults by starting from a code location,
-// and following links from there.
-// It returns:
-//  - nil, if there's no code location with a matching name
-//  - nil, if there's 0 scan summaries for the code location
-//  - an error, if there were any HTTP problems or link problems
-//  - an ScanResults, but possibly with garbage data, in all other cases
-// Weird cases to watch out for:
-//  - multiple code locations with a matching name
-//  - multiple scan summaries for a code location
-//  - zero scan summaries for a code location
-func (hub *Hub) fetchScan(scanNameSearchString string) (*ScanResults, error) {
-	codeLocationList, err := hub.listCodeLocations(scanNameSearchString)
-
-	if err != nil {
-		recordError(hub.host, "fetch code location list")
-		log.Errorf("error fetching code location list: %v", err)
-		return nil, err
-	}
-	codeLocations := codeLocationList.Items
-	switch len(codeLocations) {
-	case 0:
-		recordHubData(hub.host, "codeLocations", true)
-		return nil, nil
-	case 1:
-		recordHubData(hub.host, "codeLocations", true) // good to go
-	default:
-		recordHubData(hub.host, "codeLocations", false)
-		log.Warnf("expected 1 code location matching name search string %s, found %d", scanNameSearchString, len(codeLocations))
-	}
-
-	codeLocation := codeLocations[0]
-	return hub.fetchScanResultsUsingCodeLocation(codeLocation, scanNameSearchString)
-}
-
-func (hub *Hub) fetchScanResultsUsingCodeLocation(codeLocation hubapi.CodeLocation, scanNameSearchString string) (*ScanResults, error) {
-	versionLink, err := codeLocation.GetProjectVersionLink()
-	if err != nil {
-		recordError(hub.host, "get project version link")
-		log.Errorf("unable to get project version link: %s", err.Error())
-		return nil, err
-	}
-
-	version, err := hub.getProjectVersion(*versionLink)
-	if err != nil {
-		recordError(hub.host, "fetch project version")
-		log.Errorf("unable to fetch project version: %s", err.Error())
-		return nil, err
-	}
-
-	riskProfileLink, err := version.GetProjectVersionRiskProfileLink()
-	if err != nil {
-		recordError(hub.host, "get risk profile link")
-		log.Errorf("error getting risk profile link: %v", err)
-		return nil, err
-	}
-
-	riskProfile, err := hub.getProjectVersionRiskProfile(*riskProfileLink)
-	if err != nil {
-		recordError(hub.host, "fetch project version risk profile")
-		log.Errorf("error fetching project version risk profile: %v", err)
-		return nil, err
-	}
-
-	policyStatusLink, err := version.GetProjectVersionPolicyStatusLink()
-	if err != nil {
-		recordError(hub.host, "get policy status link")
-		log.Errorf("error getting policy status link: %v", err)
-		return nil, err
-	}
-	policyStatus, err := hub.getProjectVersionPolicyStatus(*policyStatusLink)
-	if err != nil {
-		recordError(hub.host, "fetch policy status")
-		log.Errorf("error fetching project version policy status: %v", err)
-		return nil, err
-	}
-
-	componentsLink, err := version.GetComponentsLink()
-	if err != nil {
-		recordError(hub.host, "get components link")
-		log.Errorf("error getting components link: %v", err)
-		return nil, err
-	}
-
-	scanSummariesLink, err := codeLocation.GetScanSummariesLink()
-	if err != nil {
-		recordError(hub.host, "get scan summaries link")
-		log.Errorf("error getting scan summaries link: %v", err)
-		return nil, err
-	}
-	scanSummariesList, err := hub.listScanSummaries(*scanSummariesLink)
-	if err != nil {
-		recordError(hub.host, "fetch scan summaries")
-		log.Errorf("error fetching scan summaries: %v", err)
-		return nil, err
-	}
-
-	switch len(scanSummariesList.Items) {
-	case 0:
-		recordHubData(hub.host, "scan summaries", true)
-		return nil, nil
-	case 1:
-		recordHubData(hub.host, "scan summaries", true) // good to go, continue
-	default:
-		recordHubData(hub.host, "scan summaries", false)
-		log.Warnf("expected to find one scan summary for code location %s, found %d", scanNameSearchString, len(scanSummariesList.Items))
-	}
-
-	mappedRiskProfile, err := newRiskProfile(riskProfile.BomLastUpdatedAt, riskProfile.Categories)
-	if err != nil {
-		recordError(hub.host, "map risk profile")
-		return nil, err
-	}
-
-	mappedPolicyStatus, err := newPolicyStatus(policyStatus.OverallStatus, policyStatus.UpdatedAt, policyStatus.ComponentVersionStatusCounts)
-	if err != nil {
-		recordError(hub.host, "map policy status")
-		return nil, err
-	}
-
-	scanSummaries := make([]ScanSummary, len(scanSummariesList.Items))
-	for i, scanSummary := range scanSummariesList.Items {
-		scanSummaries[i] = *NewScanSummaryFromHub(scanSummary)
-	}
-
-	scan := ScanResults{
-		RiskProfile:                      *mappedRiskProfile,
-		PolicyStatus:                     *mappedPolicyStatus,
-		ComponentsHref:                   componentsLink.Href,
-		ScanSummaries:                    scanSummaries,
-		CodeLocationCreatedAt:            codeLocation.CreatedAt,
-		CodeLocationHref:                 codeLocation.Meta.Href,
-		CodeLocationMappedProjectVersion: codeLocation.MappedProjectVersion,
-		CodeLocationName:                 codeLocation.Name,
-		CodeLocationType:                 codeLocation.Type,
-		CodeLocationURL:                  codeLocation.URL,
-		CodeLocationUpdatedAt:            codeLocation.UpdatedAt,
-	}
-
-	return &scan, nil
-}
-
-// "Raw" API calls
-
-// listAllProjects pulls in all projects in a single API call.
-func (hub *Hub) listAllProjects() (*hubapi.ProjectList, error) {
-	var list *hubapi.ProjectList
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("allProjects", func() error {
-		limit := 2000000
-		list, fetchError = hub.client.ListProjects(&hubapi.GetListOptions{Limit: &limit})
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return list, fetchError
-}
-
-// ListAllCodeLocations pulls in all code locations in a single API call.
-func (hub *Hub) listAllCodeLocations() (*hubapi.CodeLocationList, error) {
-	var list *hubapi.CodeLocationList
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("allCodeLocations", func() error {
-		limit := 2000000
-		list, fetchError = hub.client.ListAllCodeLocations(&hubapi.GetListOptions{Limit: &limit})
-		if fetchError != nil {
-			log.Errorf("fetch error: %s", fetchError.Error())
-		}
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return list, fetchError
-}
-
-// ListCodeLocations ...
-func (hub *Hub) listCodeLocations(codeLocationName string) (*hubapi.CodeLocationList, error) {
-	var list *hubapi.CodeLocationList
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("codeLocations", func() error {
-		queryString := fmt.Sprintf("name:%s", codeLocationName)
-		list, fetchError = hub.client.ListAllCodeLocations(&hubapi.GetListOptions{Q: &queryString})
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return list, fetchError
-}
-
-// GetProjectVersion ...
-func (hub *Hub) getProjectVersion(link hubapi.ResourceLink) (*hubapi.ProjectVersion, error) {
-	var pv *hubapi.ProjectVersion
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("projectVersion", func() error {
-		pv, fetchError = hub.client.GetProjectVersion(link)
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return pv, fetchError
-}
-
-// GetProject ...
-func (hub *Hub) getProject(link hubapi.ResourceLink) (*hubapi.Project, error) {
-	var val *hubapi.Project
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("project", func() error {
-		val, fetchError = hub.client.GetProject(link)
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return val, fetchError
-}
-
-// GetProjectVersionRiskProfile ...
-func (hub *Hub) getProjectVersionRiskProfile(link hubapi.ResourceLink) (*hubapi.ProjectVersionRiskProfile, error) {
-	var val *hubapi.ProjectVersionRiskProfile
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("projectVersionRiskProfile", func() error {
-		val, fetchError = hub.client.GetProjectVersionRiskProfile(link)
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return val, fetchError
-}
-
-// GetProjectVersionPolicyStatus ...
-func (hub *Hub) getProjectVersionPolicyStatus(link hubapi.ResourceLink) (*hubapi.ProjectVersionPolicyStatus, error) {
-	var val *hubapi.ProjectVersionPolicyStatus
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("projectVersionPolicyStatus", func() error {
-		val, fetchError = hub.client.GetProjectVersionPolicyStatus(link)
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return val, fetchError
-}
-
-// ListScanSummaries ...
-func (hub *Hub) listScanSummaries(link hubapi.ResourceLink) (*hubapi.ScanSummaryList, error) {
-	var val *hubapi.ScanSummaryList
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("scanSummaries", func() error {
-		val, fetchError = hub.client.ListScanSummaries(link)
-		return fetchError
-	})
-	if err != nil {
-		return nil, err
-	}
-	return val, fetchError
-}
-
-// DeleteProjectVersion ...
-func (hub *Hub) deleteProjectVersion(projectVersionHRef string) error {
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("deleteVersion", func() error {
-		fetchError = hub.client.DeleteProjectVersion(projectVersionHRef)
-		return fetchError
-	})
-	if err != nil {
-		return err
-	}
-	return fetchError
-}
-
-// DeleteCodeLocation ...
-func (hub *Hub) deleteCodeLocation(codeLocationHRef string) error {
-	var fetchError error
-	err := hub.circuitBreaker.IssueRequest("deleteCodeLocation", func() error {
-		fetchError = hub.client.DeleteCodeLocation(codeLocationHRef)
-		return fetchError
-	})
-	if err != nil {
-		return err
-	}
-	return fetchError
 }

@@ -69,9 +69,9 @@ func (hc *HubCreator) createHubs(hubHosts map[string]bool) {
 			LoginPause:             hub.DefaultTimings.LoginPause,
 			RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
 		}
-		client := hub.NewClient(user, hc.hubPassword, host, rawClient, timings)
+		hubb := hub.NewHub(user, hc.hubPassword, host, rawClient, timings)
 		go func() {
-			hc.didFinishHubCreation <- &HubCreationResult{hub: client}
+			hc.didFinishHubCreation <- &HubCreationResult{hub: hubb}
 		}()
 	}
 }

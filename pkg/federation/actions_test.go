@@ -40,9 +40,9 @@ func RunActionsTests() {
 				LoginPause:             hub.DefaultTimings.LoginPause,
 				RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
 			}
-			hub := hub.NewClient("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, timings)
+			hubb := hub.NewHub("username", "password", "host", &hub.MockRawClient{ShouldFail: true}, timings)
 			time.Sleep(2 * time.Second)
-			apiHub := <-hub.Model()
+			apiHub := <-hubb.Model()
 			Expect(len(apiHub.Errors)).NotTo(Equal(0))
 			Expect(apiHub).NotTo(BeNil())
 		})

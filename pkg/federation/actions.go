@@ -94,7 +94,7 @@ func (fconf *FedUpdateConfig) FedApply(federator *Federator) {
 
 // HubCreationResult ...
 type HubCreationResult struct {
-	hub *hub.Client
+	hub *hub.Hub
 }
 
 // FedApply ...
