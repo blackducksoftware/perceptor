@@ -32,11 +32,8 @@ func RunGetNextImageTests() {
 		It("no image available", func() {
 			// actual
 			actual := NewModel()
-			get := NewGetNextImage()
-			go func() {
-				get.Apply(actual)
-			}()
-			nextImage := <-get.Done
+			nextImage, err := actual.getNextImageFromScanQueue()
+			Expect(err).To(BeNil())
 			// expected: front image removed from scan queue, status and time of image changed
 			expected := NewModel()
 
@@ -50,9 +47,8 @@ func RunGetNextImageTests() {
 			model.addImage(image1)
 			model.setImageScanStatus(image1.Sha, ScanStatusInQueue)
 
-			get := NewGetNextImage()
-			go func() { get.Apply(model) }()
-			nextImage := <-get.Done
+			nextImage, err := model.getNextImageFromScanQueue()
+			Expect(err).To(BeNil())
 
 			expected := NewModel()
 			expected.addImage(image1)

@@ -21,48 +21,48 @@ under the License.
 
 package model
 
-import (
-	log "github.com/sirupsen/logrus"
-)
+// import (
+// 	log "github.com/sirupsen/logrus"
+// )
 
-// PruneOrphanedImages .....
-type PruneOrphanedImages struct {
-	CompletedImageShas chan []string
-}
+// // PruneOrphanedImages .....
+// type PruneOrphanedImages struct {
+// 	CompletedImageShas chan []string
+// }
 
-// Apply .....
-func (p *PruneOrphanedImages) Apply(model *Model) {
-	// find images that aren't in a pod
-	imagesInPod := map[DockerImageSha]bool{}
-	for _, pod := range model.Pods {
-		for _, cont := range pod.Containers {
-			imagesInPod[cont.Image.Sha] = true
-		}
-	}
-	//
-	completed := []string{}
-	deleteImmediately := []DockerImageSha{}
-	for sha, imageInfo := range model.Images {
-		if !imagesInPod[sha] {
-			switch imageInfo.ScanStatus {
-			case ScanStatusUnknown, ScanStatusInQueue:
-				deleteImmediately = append(deleteImmediately, sha)
-			case ScanStatusComplete:
-				completed = append(completed, string(sha))
-			default:
-				// let's leave ScanStatusRunningHubScan and ScanStatusRunningScanClient
-				// alone, so that they don't get messed up.  They can always be deleted
-				// later.
-			}
-		}
-	}
-	// 1. immediately delete any orphaned images in the scan queue or status unknown
-	for _, sha := range deleteImmediately {
-		err := model.deleteImage(sha)
-		if err != nil {
-			log.Errorf("unable to delete image: %s", err.Error())
-		}
-	}
-	// 2. get a list of completed images for further processing
-	p.CompletedImageShas <- completed
-}
+// // Apply .....
+// func (p *PruneOrphanedImages) Apply(model *Model) {
+// 	// find images that aren't in a pod
+// 	imagesInPod := map[DockerImageSha]bool{}
+// 	for _, pod := range model.Pods {
+// 		for _, cont := range pod.Containers {
+// 			imagesInPod[cont.Image.Sha] = true
+// 		}
+// 	}
+// 	//
+// 	completed := []string{}
+// 	deleteImmediately := []DockerImageSha{}
+// 	for sha, imageInfo := range model.Images {
+// 		if !imagesInPod[sha] {
+// 			switch imageInfo.ScanStatus {
+// 			case ScanStatusUnknown, ScanStatusInQueue:
+// 				deleteImmediately = append(deleteImmediately, sha)
+// 			case ScanStatusComplete:
+// 				completed = append(completed, string(sha))
+// 			default:
+// 				// let's leave ScanStatusRunningHubScan and ScanStatusRunningScanClient
+// 				// alone, so that they don't get messed up.  They can always be deleted
+// 				// later.
+// 			}
+// 		}
+// 	}
+// 	// 1. immediately delete any orphaned images in the scan queue or status unknown
+// 	for _, sha := range deleteImmediately {
+// 		err := model.deleteImage(sha)
+// 		if err != nil {
+// 			log.Errorf("unable to delete image: %s", err.Error())
+// 		}
+// 	}
+// 	// 2. get a list of completed images for further processing
+// 	p.CompletedImageShas <- completed
+// }

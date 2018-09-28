@@ -138,7 +138,9 @@ func (model *Model) SetImages(images []Image) {
 // FinishScanJob should be called when the scan client has finished.
 func (model *Model) FinishScanJob(image *Image, err error) {
 	log.Infof("finish scan job: %+v, %v", image, err)
-	model.actions <- &FinishScanClient{Image: image, Err: err}
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		return model.finishRunningScanClient(image, err)
+	}}
 }
 
 // ScanDidFinish should be called when:
@@ -152,45 +154,82 @@ func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResul
 
 // GetScanResults ...
 func (model *Model) GetScanResults() api.ScanResults {
-	get := NewGetScanResults()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan api.ScanResults)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		scanResults, err := ScanResults(model)
+		go func() {
+			done <- scanResults
+		}()
+		return err
+	}}
+	return <-done
 }
 
 // GetModel ...
 func (model *Model) GetModel() *api.CoreModel {
-	get := NewGetModel()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *api.CoreModel)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		apiModel := CoreModelToAPIModel(model)
+		go func() {
+			done <- apiModel
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetImages returns images in that status
 func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
-	get := NewGetImages(status)
-	model.actions <- get
-	return <-get.Done
+	done := make(chan []DockerImageSha)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		shas := model.getShas(status)
+		go func() {
+			done <- shas
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetMetrics calculates useful metrics for observing the progress of the model
 // over time.
 func (model *Model) GetMetrics() *Metrics {
-	get := NewGetMetrics()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *Metrics)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		modelMetrics := metrics(model)
+		go func() {
+			done <- modelMetrics
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetNextImage ...
 func (model *Model) GetNextImage() *Image {
-	get := NewGetNextImage()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *Image)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		log.Debugf("looking for next image to scan")
+		image, err := model.getNextImageFromScanQueue()
+		go func() {
+			done <- image
+		}()
+		return err
+	}}
+	return <-done
 }
 
 // StartScanClient ...
 func (model *Model) StartScanClient(sha DockerImageSha) error {
-	start := NewStartScanClient(sha)
-	model.actions <- start
-	return <-start.Error
+	errCh := make(chan error)
+	model.actions <- &AnyAction{F: func(model *Model) error {
+		err := model.startScanClient(sha)
+		go func() {
+			errCh <- err
+		}()
+		return err
+	}}
+	return <-errCh
 }
 
 // Package API
