@@ -200,7 +200,7 @@ func RunActionTests() {
 	})
 	Describe("test get full scan results", func() {
 		model := createNewModel1()
-		scanResults, err := ScanResults(model)
+		scanResults, err := scanResults(model)
 		It("should produce the right number of pods, images, data, and policy violations", func() {
 			Expect(err).To(BeNil())
 			Expect(len(scanResults.Pods)).To(Equal(1))

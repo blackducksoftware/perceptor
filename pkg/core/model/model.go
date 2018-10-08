@@ -156,7 +156,7 @@ func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResul
 func (model *Model) GetScanResults() api.ScanResults {
 	done := make(chan api.ScanResults)
 	model.actions <- &action{"getScanResults", func() error {
-		scanResults, err := ScanResults(model)
+		scanResults, err := scanResults(model)
 		go func() {
 			done <- scanResults
 		}()
@@ -169,7 +169,7 @@ func (model *Model) GetScanResults() api.ScanResults {
 func (model *Model) GetModel() *api.CoreModel {
 	done := make(chan *api.CoreModel)
 	model.actions <- &action{"getModel", func() error {
-		apiModel := CoreModelToAPIModel(model)
+		apiModel := coreModelToAPIModel(model)
 		go func() {
 			done <- apiModel
 		}()

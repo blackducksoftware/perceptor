@@ -81,8 +81,7 @@ func scanResultsForImage(model *Model, sha DockerImageSha) (*Scan, error) {
 	return imageScan, nil
 }
 
-// ScanResults .....
-func ScanResults(model *Model) (api.ScanResults, error) {
+func scanResults(model *Model) (api.ScanResults, error) {
 	errors := []error{}
 	// pods
 	pods := []api.ScannedPod{}
@@ -129,8 +128,7 @@ func ScanResults(model *Model) (api.ScanResults, error) {
 	return *api.NewScanResults(pods, images), combineErrors("scanResults", errors)
 }
 
-// CoreContainerToAPIContainer .....
-func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
+func coreContainerToAPIContainer(coreContainer Container) *api.Container {
 	image := coreContainer.Image
 	priority := image.Priority
 	return &api.Container{
@@ -139,11 +137,10 @@ func CoreContainerToAPIContainer(coreContainer Container) *api.Container {
 	}
 }
 
-// CorePodToAPIPod .....
-func CorePodToAPIPod(corePod Pod) *api.Pod {
+func corePodToAPIPod(corePod Pod) *api.Pod {
 	containers := []api.Container{}
 	for _, coreContainer := range corePod.Containers {
-		containers = append(containers, *CoreContainerToAPIContainer(coreContainer))
+		containers = append(containers, *coreContainerToAPIContainer(coreContainer))
 	}
 	return &api.Pod{
 		Containers: containers,
@@ -153,12 +150,11 @@ func CorePodToAPIPod(corePod Pod) *api.Pod {
 	}
 }
 
-// CoreModelToAPIModel .....
-func CoreModelToAPIModel(model *Model) *api.CoreModel {
+func coreModelToAPIModel(model *Model) *api.CoreModel {
 	// pods
 	pods := map[string]*api.Pod{}
 	for podName, pod := range model.Pods {
-		pods[podName] = CorePodToAPIPod(pod)
+		pods[podName] = corePodToAPIPod(pod)
 	}
 	// images
 	images := map[string]*api.ModelImageInfo{}
