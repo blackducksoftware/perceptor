@@ -180,12 +180,6 @@ type Project struct {
 	Versions []Version
 }
 
-// Result models computations that may succeed or fail.
-type Result struct {
-	Value interface{}
-	Err   error
-}
-
 // RiskProfile .....
 type RiskProfile struct {
 	Categories       map[RiskProfileCategory]RiskProfileStatusCounts

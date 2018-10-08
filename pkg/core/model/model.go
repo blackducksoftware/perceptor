@@ -45,7 +45,7 @@ type Model struct {
 	ImageScanQueue   *util.PriorityQueue
 	ImageTransitions []*ImageTransition
 	//
-	actions chan Action
+	actions chan *action
 }
 
 // NewModel .....
@@ -55,14 +55,14 @@ func NewModel() *Model {
 		Images:           make(map[DockerImageSha]*ImageInfo),
 		ImageScanQueue:   util.NewPriorityQueue(),
 		ImageTransitions: []*ImageTransition{},
-		actions:          make(chan Action, actionChannelSize),
+		actions:          make(chan *action, actionChannelSize),
 	}
 	go func() {
 		stop := time.Now()
 		for {
 			select {
 			case nextAction := <-model.actions:
-				actionName := reflect.TypeOf(nextAction).String()
+				actionName := nextAction.name
 				log.Debugf("processing model action of type %s", actionName)
 
 				// metrics: how many messages are waiting?
@@ -76,7 +76,7 @@ func NewModel() *Model {
 				recordReducerActivity(false, start.Sub(stop))
 
 				// actually do the work
-				err := nextAction.Apply(model)
+				err := nextAction.apply()
 				if err != nil {
 					log.Errorf("problem processing action %s: %v", actionName, err)
 					recordActionError(actionName)
@@ -95,88 +95,141 @@ func NewModel() *Model {
 
 // AddPod ...
 func (model *Model) AddPod(pod Pod) {
-	model.actions <- &AddPod{Pod: pod}
+	model.actions <- &action{"addPod", func() error {
+		return model.addPod(pod)
+	}}
 }
 
 // UpdatePod ...
 func (model *Model) UpdatePod(pod Pod) {
-	model.actions <- &UpdatePod{Pod: pod}
+	model.actions <- &action{"updatePod", func() error {
+		return model.addPod(pod)
+	}}
 }
 
 // DeletePod removes the record of a pod, but does not touch its images
 func (model *Model) DeletePod(podName string) {
-	model.actions <- &DeletePod{PodName: podName}
+	model.actions <- &action{"deletePod", func() error {
+		return model.deletePod(podName)
+	}}
 }
 
 // SetPods ...
 func (model *Model) SetPods(pods []Pod) {
-	model.actions <- &AllPods{Pods: pods}
+	model.actions <- &action{"allPods", func() error {
+		return model.allPods(pods)
+	}}
 }
 
 // AddImage ...
 func (model *Model) AddImage(image Image) {
-	model.actions <- &AddImage{Image: image}
+	model.actions <- &action{"addImage", func() error {
+		return model.addImage(image)
+	}}
 }
 
 // SetImages ...
 func (model *Model) SetImages(images []Image) {
-	model.actions <- &AllImages{Images: images}
+	model.actions <- &action{"allImages", func() error {
+		return model.allImages(images)
+	}}
 }
 
 // FinishScanJob should be called when the scan client has finished.
 func (model *Model) FinishScanJob(image *Image, err error) {
 	log.Infof("finish scan job: %+v, %v", image, err)
-	model.actions <- &FinishScanClient{Image: image, Err: err}
+	model.actions <- &action{"finishScanJob", func() error {
+		return model.finishRunningScanClient(image, err)
+	}}
 }
 
 // ScanDidFinish should be called when:
 // - the Hub scan finishes
 // - upon startup, when scan results are first fetched
 func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) {
-	model.actions <- &DidFetchScanResults{Sha: sha, ScanResults: scanResults}
+	model.actions <- &action{"scanDidFinish", func() error {
+		return model.scanDidFinish(sha, scanResults)
+	}}
 }
 
 // GetScanResults ...
 func (model *Model) GetScanResults() api.ScanResults {
-	get := NewGetScanResults()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan api.ScanResults)
+	model.actions <- &action{"getScanResults", func() error {
+		scanResults, err := ScanResults(model)
+		go func() {
+			done <- scanResults
+		}()
+		return err
+	}}
+	return <-done
 }
 
 // GetModel ...
 func (model *Model) GetModel() *api.CoreModel {
-	get := NewGetModel()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *api.CoreModel)
+	model.actions <- &action{"getModel", func() error {
+		apiModel := CoreModelToAPIModel(model)
+		go func() {
+			done <- apiModel
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetImages returns images in that status
 func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
-	get := NewGetImages(status)
-	model.actions <- get
-	return <-get.Done
+	done := make(chan []DockerImageSha)
+	model.actions <- &action{"getImages", func() error {
+		shas := model.getShas(status)
+		go func() {
+			done <- shas
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetMetrics calculates useful metrics for observing the progress of the model
 // over time.
 func (model *Model) GetMetrics() *Metrics {
-	get := NewGetMetrics()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *Metrics)
+	model.actions <- &action{"getMetrics", func() error {
+		modelMetrics := metrics(model)
+		go func() {
+			done <- modelMetrics
+		}()
+		return nil
+	}}
+	return <-done
 }
 
 // GetNextImage ...
 func (model *Model) GetNextImage() *Image {
-	get := NewGetNextImage()
-	model.actions <- get
-	return <-get.Done
+	done := make(chan *Image)
+	model.actions <- &action{"getNextImage", func() error {
+		log.Debugf("looking for next image to scan")
+		image, err := model.getNextImageFromScanQueue()
+		go func() {
+			done <- image
+		}()
+		return err
+	}}
+	return <-done
 }
 
 // StartScanClient ...
 func (model *Model) StartScanClient(sha DockerImageSha) error {
-	start := NewStartScanClient(sha)
-	model.actions <- start
-	return <-start.Error
+	errCh := make(chan error)
+	model.actions <- &action{"startScanClient", func() error {
+		err := model.startScanClient(sha)
+		go func() {
+			errCh <- err
+		}()
+		return err
+	}}
+	return <-errCh
 }
 
 // Package API
@@ -447,4 +500,36 @@ func (model *Model) getShas(status ScanStatus) []DockerImageSha {
 		}
 	}
 	return shas
+}
+
+func (model *Model) deletePod(podName string) error {
+	_, ok := model.Pods[podName]
+	if !ok {
+		return fmt.Errorf("unable to delete pod %s, pod not found", podName)
+	}
+	delete(model.Pods, podName)
+	return nil
+}
+
+func (model *Model) allPods(pods []Pod) error {
+	model.Pods = map[string]Pod{}
+	errors := []error{}
+	for _, pod := range pods {
+		err := model.addPod(pod)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return combineErrors("allPods", errors)
+}
+
+func (model *Model) allImages(images []Image) error {
+	errors := []error{}
+	for _, image := range images {
+		err := model.addImage(image)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return combineErrors("allImages", errors)
 }

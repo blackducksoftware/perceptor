@@ -39,7 +39,7 @@ type Federator struct {
 	hubCreator *HubCreator
 	// model
 	config *Config
-	hubs   map[string]*hub.Client
+	hubs   map[string]*hub.Hub
 	// channels
 	stop    chan struct{}
 	actions chan FedAction
@@ -69,7 +69,7 @@ func NewFederator(config *Config) (*Federator, error) {
 		responder:  responder,
 		hubCreator: hubCreator,
 		config:     config,
-		hubs:       map[string]*hub.Client{},
+		hubs:       map[string]*hub.Hub{},
 		stop:       make(chan struct{}),
 		actions:    actions}
 	// process actions

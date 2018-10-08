@@ -61,9 +61,17 @@ func (hc *HubCreator) createHubs(hubHosts map[string]bool) {
 			panic(fmt.Errorf("TODO -- don't panic.  handle.  unable to create client for hub %s: %s", host, err.Error()))
 		}
 
-		client := hub.NewClient(user, hc.hubPassword, host, rawClient, 30*time.Second, 30*time.Second, fetchAllProjectsPause)
+		timings := &hub.Timings{
+			ScanCompletionPause:    30 * time.Second,
+			FetchUnknownScansPause: 30 * time.Second,
+			FetchAllScansPause:     fetchAllProjectsPause,
+			GetMetricsPause:        hub.DefaultTimings.GetMetricsPause,
+			LoginPause:             hub.DefaultTimings.LoginPause,
+			RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
+		}
+		hubb := hub.NewHub(user, hc.hubPassword, host, rawClient, timings)
 		go func() {
-			hc.didFinishHubCreation <- &HubCreationResult{hub: client}
+			hc.didFinishHubCreation <- &HubCreationResult{hub: hubb}
 		}()
 	}
 }

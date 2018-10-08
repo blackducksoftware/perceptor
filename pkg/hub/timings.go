@@ -19,27 +19,26 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package hub
 
-import (
-	. "github.com/onsi/ginkgo"
-)
+import "time"
 
-func RunTestAddPodAction() {
-	It("should add a pod and all the pod's containers' images", func() {
-		actual := NewModel()
-		(&AddPod{testPod}).Apply(actual)
-		// expected (a bit hacky to get the times set up):
-		//  - pod gets added to .Pods
-		//  - all images within pod get added to .Images
-		//  - all new images get added to hub check queue
-		expected := *NewModel()
-		expected.Pods[testPod.QualifiedName()] = testPod
-		imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 1)
-		imageInfo.ScanStatus = ScanStatusUnknown
-		imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
-		expected.Images[testSha] = imageInfo
-		//
-		checkModelEquality(actual, &expected)
-	})
+// Timings ...
+type Timings struct {
+	ScanCompletionPause    time.Duration
+	FetchUnknownScansPause time.Duration
+	FetchAllScansPause     time.Duration
+	GetMetricsPause        time.Duration
+	LoginPause             time.Duration
+	RefreshScanThreshold   time.Duration
+}
+
+// DefaultTimings ...
+var DefaultTimings = &Timings{
+	FetchAllScansPause:     999999 * time.Hour,
+	ScanCompletionPause:    1 * time.Minute,
+	FetchUnknownScansPause: 30 * time.Second,
+	GetMetricsPause:        15 * time.Second,
+	LoginPause:             30 * time.Minute,
+	RefreshScanThreshold:   1 * time.Hour,
 }
