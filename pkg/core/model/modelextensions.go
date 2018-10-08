@@ -92,7 +92,6 @@ func scanResults(model *Model) (api.ScanResults, error) {
 			continue
 		}
 		if podScan == nil {
-			log.Debugf("image scans not complete for pod %s, skipping", podName)
 			continue
 		}
 		pods = append(pods, api.ScannedPod{
