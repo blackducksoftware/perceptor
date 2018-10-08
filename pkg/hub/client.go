@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,7 +62,7 @@ func (client *Client) Version() (string, error) {
 	recordHubResponseTime(client.host, "version", time.Now().Sub(start))
 	if err != nil {
 		log.Errorf("unable to get hub version: %s", err.Error())
-		return "", err
+		return "", errors.Trace(err)
 	}
 
 	log.Infof("successfully got hub version %s", currentVersion.Version)
@@ -83,7 +84,7 @@ func (client *Client) login() error {
 	err := client.rawClient.Login(client.username, client.password)
 	recordHubResponse(client.host, "login", err == nil)
 	recordHubResponseTime(client.host, "login", time.Now().Sub(start))
-	return err
+	return errors.Trace(err)
 }
 
 // FetchScan finds ScanResults by starting from a code location,
@@ -103,7 +104,7 @@ func (client *Client) fetchScan(scanNameSearchString string) (*ScanResults, erro
 	if err != nil {
 		recordError(client.host, "fetch code location list")
 		log.Errorf("error fetching code location list: %v", err)
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	codeLocations := codeLocationList.Items
 	switch len(codeLocations) {
