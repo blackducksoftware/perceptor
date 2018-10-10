@@ -169,7 +169,12 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 
 // UpdateConfig ...
 func (pcp *Perceptor) UpdateConfig(config *Config) {
-	log.Infof("set config")
+	configString, err := config.dump()
+	if err == nil {
+		log.Infof("set config to %s", configString)
+	} else {
+		log.Errorf("set config, but unable to dump to string: %s", err.Error())
+	}
 	pcp.hubManager.SetHubs(config.Hub.Hosts)
 	logLevel, err := config.GetLogLevel()
 	if err != nil {
