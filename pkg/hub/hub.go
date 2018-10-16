@@ -315,6 +315,9 @@ func (hub *Hub) scanDidFinish(scanResults *ScanResults) {
 			return fmt.Errorf("unable to handle scanDidFinish for %s: expected stage HubScan, found %s", scanName, scan.Stage.String())
 		}
 		scan.Stage = ScanStageComplete
+		if scanResults != nil {
+			scan.ScanResults = scanResults
+		}
 		update := &DidFinishScan{Name: scanResults.CodeLocationName, Results: scanResults}
 		hub.publish(update)
 		return nil
