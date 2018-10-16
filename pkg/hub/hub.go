@@ -51,8 +51,6 @@ type Hub struct {
 	fetchAllScansTimer           *util.Timer
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
-	// public channels
-	publishUpdatesCh chan Update
 	// channels
 	stop    chan struct{}
 	actions chan *hubAction
@@ -61,14 +59,13 @@ type Hub struct {
 // NewHub returns a new Hub.  It will not be logged in.
 func NewHub(username string, password string, host string, rawClient RawClientInterface, timings *Timings) *Hub {
 	hub := &Hub{
-		client:           NewClient(username, password, host, rawClient),
-		host:             host,
-		status:           ClientStatusDown,
-		model:            nil,
-		errors:           []error{},
-		publishUpdatesCh: make(chan Update),
-		stop:             make(chan struct{}),
-		actions:          make(chan *hubAction)}
+		client:  NewClient(username, password, host, rawClient),
+		host:    host,
+		status:  ClientStatusDown,
+		model:   nil,
+		errors:  []error{},
+		stop:    make(chan struct{}),
+		actions: make(chan *hubAction)}
 	// model setup
 	hub.model = NewModel(host, hub.stop, func(scanName string) (*ScanResults, error) {
 		return hub.client.fetchScan(scanName)
@@ -101,16 +98,6 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 }
 
 // Private methods
-
-func (hub *Hub) publish(update Update) {
-	go func() {
-		select {
-		case <-hub.stop:
-			return
-		case hub.publishUpdatesCh <- update:
-		}
-	}()
-}
 
 func (hub *Hub) getStateMetrics() {
 	hub.model.getStateMetrics()
@@ -241,7 +228,7 @@ func (hub *Hub) ScanResults() <-chan map[string]*Scan {
 // - when a hub scan finishes
 // - when a finished scan is repulled (to get any changes to its vulnerabilities, policies, etc.)
 func (hub *Hub) Updates() <-chan Update {
-	return hub.publishUpdatesCh
+	return hub.model.Updates()
 }
 
 // Stop ...

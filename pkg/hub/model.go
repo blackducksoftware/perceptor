@@ -78,6 +78,16 @@ func NewModel(host string, stop <-chan struct{}, fetchScan func(string) (*ScanRe
 
 // Private methods
 
+func (model *Model) publish(update Update) {
+	go func() {
+		select {
+		case <-model.stop:
+			return
+		case model.publishUpdatesCh <- update:
+		}
+	}()
+}
+
 func (model *Model) getStateMetrics() {
 	ch := make(chan map[ScanStage]int)
 	model.actions <- &modelAction{"getClientStateMetrics", func() error {
@@ -153,7 +163,6 @@ func (model *Model) getUnknownScans() []string {
 }
 
 func (model *Model) didFetchScanResults(scanResults *ScanResults) {
-	done := make(chan struct{})
 	model.actions <- &modelAction{"didFetchScanResults", func() error {
 		scan, ok := model.scans[scanResults.CodeLocationName]
 		if !ok {
@@ -173,10 +182,10 @@ func (model *Model) didFetchScanResults(scanResults *ScanResults) {
 			scan.Stage = ScanStageFailure
 		}
 		model.scans[scanResults.CodeLocationName].ScanResults = scanResults
-		close(done)
+		update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
+		model.publish(update)
 		return nil
 	}}
-	<-done
 }
 
 func (model *Model) fetchUnknownScans() {
@@ -200,7 +209,6 @@ func (model *Model) fetchUnknownScans() {
 }
 
 func (model *Model) scanDidFinish(scanResults *ScanResults) {
-	done := make(chan struct{})
 	model.actions <- &modelAction{"scanDidFinish", func() error {
 		scanName := scanResults.CodeLocationName
 		scan, ok := model.scans[scanName]
@@ -214,10 +222,10 @@ func (model *Model) scanDidFinish(scanResults *ScanResults) {
 		if scanResults != nil {
 			scan.ScanResults = scanResults
 		}
-		close(done)
+		update := &DidFinishScan{Name: scanResults.CodeLocationName, Results: scanResults}
+		model.publish(update)
 		return nil
 	}}
-	<-done
 }
 
 func (model *Model) checkScansForCompletion() {
@@ -335,4 +343,9 @@ func (model *Model) HasFetchedScans() <-chan bool {
 		return nil
 	}}
 	return ch
+}
+
+// Updates ...
+func (model *Model) Updates() <-chan Update {
+	return model.publishUpdatesCh
 }
