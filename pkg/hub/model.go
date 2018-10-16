@@ -24,6 +24,8 @@ package hub
 import (
 	"fmt"
 
+	"github.com/blackducksoftware/hub-client-go/hubapi"
+
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,15 +38,11 @@ type modelAction struct {
 // Model .....
 type Model struct {
 	// basic hub info
-	host   string
-	status ClientStatus
+	host string
 	// data
 	hasFetchedScans bool
 	scans           map[string]*Scan
-	errors          []error
 	// public channels
-	publishUpdatesCh chan Update
-	// channels
 	stop    chan struct{}
 	actions chan *modelAction
 }
@@ -52,17 +50,11 @@ type Model struct {
 // NewModel ...
 func NewModel(host string) *Model {
 	model := &Model{
-		host:   host,
-		status: ClientStatusDown,
-		//
+		host:            host,
 		hasFetchedScans: false,
 		scans:           map[string]*Scan{},
-		errors:          []error{},
-		//
-		publishUpdatesCh: make(chan Update),
-		//
-		stop:    make(chan struct{}),
-		actions: make(chan *modelAction)}
+		stop:            make(chan struct{}),
+		actions:         make(chan *modelAction)}
 	// action processing
 	go func() {
 		for {
@@ -80,20 +72,10 @@ func NewModel(host string) *Model {
 			}
 		}
 	}()
-	return hub
+	return model
 }
 
 // Private methods
-
-func (model *Model) publish(update Update) {
-	go func() {
-		select {
-		case <-model.stop:
-			return
-		case model.publishUpdatesCh <- update:
-		}
-	}()
-}
 
 func (model *Model) getStateMetrics() {
 	ch := make(chan *clientStateMetrics)
@@ -103,7 +85,7 @@ func (model *Model) getStateMetrics() {
 			scanStageCounts[scan.Stage]++
 		}
 		ch <- &clientStateMetrics{
-			errorsCount:     len(model.errors),
+			//			errorsCount:     len(model.errors), TODO
 			scanStageCounts: scanStageCounts,
 		}
 		return nil
@@ -111,20 +93,12 @@ func (model *Model) getStateMetrics() {
 	recordClientState(model.host, <-ch)
 }
 
-func (model *Model) recordError(err error) {
-	if err != nil {
-		model.errors = append(model.errors, err)
-	}
-	if len(model.errors) > 1000 {
-		model.errors = model.errors[500:]
-	}
-}
-
 func (model *Model) apiModel() *api.ModelHub {
-	errors := make([]string, len(model.errors))
-	for ix, err := range model.errors {
-		errors[ix] = err.Error()
-	}
+	// TODO
+	// errors := make([]string, len(model.errors))
+	// for ix, err := range model.errors {
+	// 	errors[ix] = err.Error()
+	// }
 	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, scan := range model.scans {
 		cl := &api.ModelCodeLocation{Stage: scan.Stage.String()}
@@ -139,42 +113,20 @@ func (model *Model) apiModel() *api.ModelHub {
 		codeLocations[name] = cl
 	}
 	return &api.ModelHub{
-		Errors:                    errors,
-		Status:                    model.status.String(),
+		// TODO
+		// Errors:                    errors,
+		// Status:                    model.status.String(),
 		HasLoadedAllCodeLocations: model.scans != nil,
 		CodeLocations:             codeLocations,
-		CircuitBreaker:            model.client.circuitBreaker.Model(),
-		Host:                      model.host,
+		// CircuitBreaker:            model.client.circuitBreaker.Model(),
+		Host: model.host,
 	}
 }
 
-// Regular jobs
-
-func (model *Model) didLogin(err error) {
-	model.actions <- &modelAction{"didLogin", func() error {
-		model.recordError(err)
-		if err != nil && model.status == ClientStatusUp {
-			model.status = ClientStatusDown
-			model.recordError(model.checkScansForCompletionTimer.Pause())
-			model.recordError(model.fetchScansTimer.Pause())
-			model.recordError(model.fetchAllScansTimer.Pause())
-			model.recordError(model.refreshScansTimer.Pause())
-		} else if err == nil && model.status == ClientStatusDown {
-			model.status = ClientStatusUp
-			model.recordError(model.checkScansForCompletionTimer.Resume(true))
-			model.recordError(model.fetchScansTimer.Resume(true))
-			model.recordError(model.fetchAllScansTimer.Resume(true))
-			model.recordError(model.refreshScansTimer.Resume(true))
-		}
-		return nil
-	}}
-}
-
-func (model *Model) didFetchScans() {
-	log.Debugf("starting to fetch all scans")
-	cls, err := model.client.listAllCodeLocations()
+func (model *Model) didFetchScans(cls *hubapi.CodeLocationList, err error) {
 	model.actions <- &modelAction{"didFetchScans", func() error {
-		model.recordError(err)
+		// TODO
+		//		model.recordError(err)
 		if err == nil {
 			model.hasFetchedScans = true
 			for _, cl := range cls.Items {
@@ -368,14 +320,6 @@ func (model *Model) ScanResults() <-chan map[string]*Scan {
 		return nil
 	}}
 	return ch
-}
-
-// Updates produces events for:
-// - finding a scan for the first time
-// - when a hub scan finishes
-// - when a finished scan is repulled (to get any changes to its vulnerabilities, policies, etc.)
-func (model *Model) Updates() <-chan Update {
-	return model.publishUpdatesCh
 }
 
 // Model ...
