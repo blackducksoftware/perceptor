@@ -64,10 +64,15 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 		client:           NewClient(username, password, host, rawClient),
 		host:             host,
 		status:           ClientStatusDown,
+		model:            nil,
 		errors:           []error{},
 		publishUpdatesCh: make(chan Update),
 		stop:             make(chan struct{}),
 		actions:          make(chan *hubAction)}
+	// model setup
+	hub.model = NewModel(host, hub.stop, func(scanName string) (*ScanResults, error) {
+		return hub.client.fetchScan(scanName)
+	})
 	// timers
 	hub.getMetricsTimer = hub.startGetMetricsTimer(timings.GetMetricsPause)
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(timings.ScanCompletionPause)

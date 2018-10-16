@@ -66,7 +66,7 @@ func recordCircuitBreakerTransition(host string, from CircuitBreakerState, to Ci
 	circuitBreakerTransitions.With(prometheus.Labels{"host": host, "from": from.String(), "to": to.String()}).Inc()
 }
 
-func recordClientState(host string, metrics *clientStateMetrics) {
+func recordScanStageCounts(host string, scanStageCounts map[ScanStage]int) {
 	keys := []ScanStage{
 		ScanStageUnknown,
 		ScanStageScanClient,
@@ -75,11 +75,10 @@ func recordClientState(host string, metrics *clientStateMetrics) {
 		ScanStageFailure,
 	}
 	for _, key := range keys {
-		val := metrics.scanStageCounts[key]
+		val := scanStageCounts[key]
 		status := fmt.Sprintf("scan_stage_%s", key.String())
 		scanStageGauge.With(prometheus.Labels{"host": host, "name": status}).Set(float64(val))
 	}
-	// TODO errors?
 }
 
 func recordEvent(host string, event string) {

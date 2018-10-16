@@ -37,23 +37,25 @@ type modelAction struct {
 
 // Model .....
 type Model struct {
-	host            string
-	hasFetchedScans bool
-	scans           map[string]*Scan
-	fetchScan       func(string) (*ScanResults, error)
-	stop            chan struct{}
-	actions         chan *modelAction
+	host             string
+	hasFetchedScans  bool
+	scans            map[string]*Scan
+	fetchScan        func(string) (*ScanResults, error)
+	publishUpdatesCh chan Update
+	stop             <-chan struct{}
+	actions          chan *modelAction
 }
 
 // NewModel ...
-func NewModel(host string, fetchScan func(string) (*ScanResults, error)) *Model {
+func NewModel(host string, stop <-chan struct{}, fetchScan func(string) (*ScanResults, error)) *Model {
 	model := &Model{
-		host:            host,
-		hasFetchedScans: false,
-		scans:           map[string]*Scan{},
-		fetchScan:       fetchScan,
-		stop:            make(chan struct{}),
-		actions:         make(chan *modelAction)}
+		host:             host,
+		hasFetchedScans:  false,
+		scans:            map[string]*Scan{},
+		fetchScan:        fetchScan,
+		publishUpdatesCh: make(chan Update),
+		stop:             stop,
+		actions:          make(chan *modelAction)}
 	// action processing
 	go func() {
 		for {
@@ -77,19 +79,16 @@ func NewModel(host string, fetchScan func(string) (*ScanResults, error)) *Model 
 // Private methods
 
 func (model *Model) getStateMetrics() {
-	ch := make(chan *clientStateMetrics)
+	ch := make(chan map[ScanStage]int)
 	model.actions <- &modelAction{"getClientStateMetrics", func() error {
 		scanStageCounts := map[ScanStage]int{}
 		for _, scan := range model.scans {
 			scanStageCounts[scan.Stage]++
 		}
-		ch <- &clientStateMetrics{
-			//			errorsCount:     len(model.errors), TODO
-			scanStageCounts: scanStageCounts,
-		}
+		ch <- scanStageCounts
 		return nil
 	}}
-	recordClientState(model.host, <-ch)
+	recordScanStageCounts(model.host, <-ch)
 }
 
 func (model *Model) apiModel() *api.ModelHub {
