@@ -102,11 +102,6 @@ func (model *Model) getStateMetrics() {
 }
 
 func (model *Model) apiModel() *api.ModelHub {
-	// TODO
-	// errors := make([]string, len(model.errors))
-	// for ix, err := range model.errors {
-	// 	errors[ix] = err.Error()
-	// }
 	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, scan := range model.scans {
 		cl := &api.ModelCodeLocation{Stage: scan.Stage.String()}
@@ -121,20 +116,17 @@ func (model *Model) apiModel() *api.ModelHub {
 		codeLocations[name] = cl
 	}
 	return &api.ModelHub{
-		// TODO
-		// Errors:                    errors,
-		// Status:                    model.status.String(),
+		Errors:                    nil,
+		Status:                    "",
 		HasLoadedAllCodeLocations: model.scans != nil,
 		CodeLocations:             codeLocations,
-		// CircuitBreaker:            model.client.circuitBreaker.Model(),
-		Host: model.host,
+		CircuitBreaker:            nil,
+		Host:                      model.host,
 	}
 }
 
 func (model *Model) didFetchScans(cls *hubapi.CodeLocationList, err error) {
 	model.actions <- &modelAction{"didFetchScans", func() error {
-		// TODO
-		//		model.recordError(err)
 		if err == nil {
 			model.hasFetchedScans = true
 			for _, cl := range cls.Items {

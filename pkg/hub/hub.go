@@ -118,6 +118,7 @@ func (hub *Hub) apiModel() *api.ModelHub {
 		errors[ix] = err.Error()
 	}
 	apiModel := hub.model.apiModel()
+	apiModel.Errors = errors
 	apiModel.Status = hub.status.String()
 	apiModel.CircuitBreaker = hub.client.circuitBreaker.Model()
 	return apiModel
@@ -148,6 +149,7 @@ func (hub *Hub) login() {
 func (hub *Hub) fetchAllScans() {
 	log.Debugf("starting to fetch all scans")
 	cls, err := hub.client.listAllCodeLocations()
+	hub.recordError(err)
 	hub.model.didFetchScans(cls, err)
 }
 
