@@ -30,11 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	maxHubExponentialBackoffDuration = 1 * time.Hour
-)
-
-type clientAction struct {
+type hubAction struct {
 	name  string
 	apply func() error
 }
@@ -59,7 +55,7 @@ type Hub struct {
 	publishUpdatesCh chan Update
 	// channels
 	stop    chan struct{}
-	actions chan *clientAction
+	actions chan *hubAction
 }
 
 // NewHub returns a new Hub.  It will not be logged in.
@@ -71,7 +67,7 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 		errors:           []error{},
 		publishUpdatesCh: make(chan Update),
 		stop:             make(chan struct{}),
-		actions:          make(chan *clientAction)}
+		actions:          make(chan *hubAction)}
 	// timers
 	hub.getMetricsTimer = hub.startGetMetricsTimer(timings.GetMetricsPause)
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(timings.ScanCompletionPause)
@@ -135,17 +131,10 @@ func (hub *Hub) apiModel() *api.ModelHub {
 	return apiModel
 }
 
-// Regular jobs
-
-func (hub *Hub) startRefreshScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("refresh-scans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		// TODO implement
-	})
-}
-
-func (hub *Hub) didLogin(err error) {
-	hub.actions <- &clientAction{"didLogin", func() error {
+func (hub *Hub) login() {
+	log.Debugf("starting to login to hub")
+	err := hub.client.login()
+	hub.actions <- &hubAction{"didLogin", func() error {
 		hub.recordError(err)
 		if err != nil && hub.status == ClientStatusUp {
 			hub.status = ClientStatusDown
@@ -164,29 +153,40 @@ func (hub *Hub) didLogin(err error) {
 	}}
 }
 
+func (hub *Hub) fetchAllScans() {
+	log.Debugf("starting to fetch all scans")
+	cls, err := hub.client.listAllCodeLocations()
+	hub.model.didFetchScans(cls, err)
+}
+
+func (hub *Hub) fetchUnknownScans() {
+	log.Debugf("starting to fetch unknown scans")
+	hub.model.fetchUnknownScans()
+}
+
+// Regular jobs
+
+func (hub *Hub) startRefreshScansTimer(pause time.Duration) *util.Timer {
+	return util.NewTimer(fmt.Sprintf("refresh-scans-%s", hub.host), pause, hub.stop, func() {
+		// TODO implement
+	})
+}
+
 func (hub *Hub) startLoginTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("login-%s", hub.host)
-	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
-		log.Debugf("starting to login to hub")
-		err := hub.client.login()
-		hub.didLogin(err)
+	return util.NewRunningTimer(fmt.Sprintf("login-%s", hub.host), pause, hub.stop, true, func() {
+		hub.login()
 	})
 }
 
 func (hub *Hub) startFetchAllScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("fetchScans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch all scans")
-		cls, err := hub.client.listAllCodeLocations()
-		hub.model.didFetchScans(cls, err)
+	return util.NewTimer(fmt.Sprintf("fetchScans-%s", hub.host), pause, hub.stop, func() {
+		hub.fetchAllScans()
 	})
 }
 
 func (hub *Hub) startFetchUnknownScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("fetchUnknownScans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch unknown scans")
-		hub.model.fetchUnknownScans()
+	return util.NewTimer(fmt.Sprintf("fetchUnknownScans-%s", hub.host), pause, hub.stop, func() {
+		hub.fetchUnknownScans()
 	})
 }
 
@@ -263,7 +263,7 @@ func (hub *Hub) ResetCircuitBreaker() {
 // Model ...
 func (hub *Hub) Model() <-chan *api.ModelHub {
 	ch := make(chan *api.ModelHub)
-	hub.actions <- &clientAction{"getModel", func() error {
+	hub.actions <- &hubAction{"getModel", func() error {
 		ch <- hub.apiModel()
 		return nil
 	}}

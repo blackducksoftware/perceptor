@@ -37,22 +37,21 @@ type modelAction struct {
 
 // Model .....
 type Model struct {
-	// basic hub info
-	host string
-	// data
+	host            string
 	hasFetchedScans bool
 	scans           map[string]*Scan
-	// public channels
-	stop    chan struct{}
-	actions chan *modelAction
+	fetchScan       func(string) (*ScanResults, error)
+	stop            chan struct{}
+	actions         chan *modelAction
 }
 
 // NewModel ...
-func NewModel(host string) *Model {
+func NewModel(host string, fetchScan func(string) (*ScanResults, error)) *Model {
 	model := &Model{
 		host:            host,
 		hasFetchedScans: false,
 		scans:           map[string]*Scan{},
+		fetchScan:       fetchScan,
 		stop:            make(chan struct{}),
 		actions:         make(chan *modelAction)}
 	// action processing
@@ -155,6 +154,7 @@ func (model *Model) getUnknownScans() []string {
 }
 
 func (model *Model) didFetchScanResults(scanResults *ScanResults) {
+	done := make(chan struct{})
 	model.actions <- &modelAction{"didFetchScanResults", func() error {
 		scan, ok := model.scans[scanResults.CodeLocationName]
 		if !ok {
@@ -174,10 +174,10 @@ func (model *Model) didFetchScanResults(scanResults *ScanResults) {
 			scan.Stage = ScanStageFailure
 		}
 		model.scans[scanResults.CodeLocationName].ScanResults = scanResults
-		update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
-		model.publish(update)
+		close(done)
 		return nil
 	}}
+	<-done
 }
 
 func (model *Model) fetchUnknownScans() {
@@ -185,7 +185,7 @@ func (model *Model) fetchUnknownScans() {
 	unknownScans := model.getUnknownScans()
 	log.Debugf("found %d unknown code locations", len(unknownScans))
 	for _, codeLocationName := range unknownScans {
-		scanResults, err := model.client.fetchScan(codeLocationName)
+		scanResults, err := model.fetchScan(codeLocationName)
 		if err != nil {
 			log.Errorf("unable to fetch scan %s: %s", codeLocationName, err.Error())
 			continue
@@ -201,6 +201,7 @@ func (model *Model) fetchUnknownScans() {
 }
 
 func (model *Model) scanDidFinish(scanResults *ScanResults) {
+	done := make(chan struct{})
 	model.actions <- &modelAction{"scanDidFinish", func() error {
 		scanName := scanResults.CodeLocationName
 		scan, ok := model.scans[scanName]
@@ -214,22 +215,17 @@ func (model *Model) scanDidFinish(scanResults *ScanResults) {
 		if scanResults != nil {
 			scan.ScanResults = scanResults
 		}
-		update := &DidFinishScan{Name: scanResults.CodeLocationName, Results: scanResults}
-		model.publish(update)
+		close(done)
 		return nil
 	}}
+	<-done
 }
 
 func (model *Model) checkScansForCompletion() {
-	var scanNames []string
-	select {
-	case scanNames = <-model.InProgressScans():
-	case <-model.stop:
-		return
-	}
+	scanNames := <-model.InProgressScans()
 	log.Debugf("starting to check scans for completion: %+v", scanNames)
 	for _, scanName := range scanNames {
-		scanResults, err := model.client.fetchScan(scanName)
+		scanResults, err := model.fetchScan(scanName)
 		if err != nil {
 			log.Errorf("unable to fetch scan %s: %s", scanName, err.Error())
 			continue

@@ -30,6 +30,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	maxHubExponentialBackoffDuration = 5 * time.Minute
+)
+
 // Client combines a raw hub client with a circuit breaker
 type Client struct {
 	rawClient      RawClientInterface
