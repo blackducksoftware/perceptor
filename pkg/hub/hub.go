@@ -84,7 +84,6 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 			case <-hub.stop:
 				return
 			case action := <-hub.actions:
-				// TODO what other logging, metrics, etc. would help here?
 				recordEvent(hub.host, action.name)
 				err := action.apply()
 				if err != nil {
