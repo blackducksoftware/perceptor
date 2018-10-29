@@ -67,7 +67,7 @@ func RunPerceptor(configPath string) {
 	http.Handle("/metrics", prometheus.Handler())
 
 	var newHub hubClientCreator
-	if config.UseMockMode {
+	if config.Perceptor.UseMockMode {
 		log.Infof("instantiating perceptor in mock mode")
 		newHub = createMockHubClient
 	} else {
@@ -76,7 +76,7 @@ func RunPerceptor(configPath string) {
 		if !ok {
 			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.Hub.PasswordEnvVar))
 		}
-		newHub = createHubClient(config.Hub.User, password, config.Hub.Port, config.Hub.ClientTimeout())
+		newHub = createHubClient(config.Hub.User, password, config.Hub.Port, config.Perceptor.Timings.ClientTimeout())
 	}
 
 	manager := NewHubManager(newHub, stop)
@@ -84,7 +84,7 @@ func RunPerceptor(configPath string) {
 		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
 		TotalScanLimit:      config.Hub.TotalScanLimit,
 		HubManager:          manager}
-	perceptor, err := NewPerceptor(config, config.Timings, scanScheduler, manager)
+	perceptor, err := NewPerceptor(config, config.Perceptor.Timings, scanScheduler, manager)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())
 		panic(err)
@@ -105,9 +105,9 @@ func RunPerceptor(configPath string) {
 	log.Infof("instantiated perceptor: %+v", perceptor)
 	api.SetupHTTPServer(perceptor)
 
-	addr := fmt.Sprintf(":%d", config.Port)
+	addr := fmt.Sprintf(":%d", config.Perceptor.Port)
 	go func() {
-		log.Infof("starting HTTP server on port %d", config.Port)
+		log.Infof("starting HTTP server on port %d", config.Perceptor.Port)
 		http.ListenAndServe(addr, nil)
 	}()
 	<-stop
