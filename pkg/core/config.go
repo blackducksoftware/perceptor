@@ -45,12 +45,12 @@ type Timings struct {
 	StalledScanClientTimeoutHours  int
 	ModelMetricsPauseSeconds       int
 	UnknownImagePauseMilliseconds  int
-	ClientTimeoutMilliseconds      int
+	HubClientTimeoutMilliseconds   int
 }
 
 // ClientTimeout ...
 func (t *Timings) ClientTimeout() time.Duration {
-	return time.Duration(t.ClientTimeoutMilliseconds) * time.Millisecond
+	return time.Duration(t.HubClientTimeoutMilliseconds) * time.Millisecond
 }
 
 // CheckForStalledScansPause ...
