@@ -34,7 +34,6 @@ type HubConfig struct {
 	Hosts                     []string
 	User                      string
 	PasswordEnvVar            string
-	ClientTimeoutMilliseconds int
 	Port                      int
 	ConcurrentScanLimit       int
 	TotalScanLimit            int
@@ -51,6 +50,7 @@ type Timings struct {
 	StalledScanClientTimeoutHours  int
 	ModelMetricsPauseSeconds       int
 	UnknownImagePauseMilliseconds  int
+	ClientTimeoutMilliseconds      int
 }
 
 // CheckForStalledScansPause ...
@@ -73,13 +73,18 @@ func (t *Timings) UnknownImagePause() time.Duration {
 	return time.Duration(t.UnknownImagePauseMilliseconds) * time.Millisecond
 }
 
-// Config contains all configuration for Perceptor
-type Config struct {
-	Hub         *HubConfig
+// PerceptorConfig ...
+type PerceptorConfig struct {
 	Timings     *Timings
 	UseMockMode bool
 	Port        int
-	LogLevel    string
+}
+
+// Config ...
+type Config struct {
+	Hub       *HubConfig
+	Perceptor *PerceptorConfig
+	LogLevel  string
 }
 
 func (config *Config) model() *api.ModelConfig {
