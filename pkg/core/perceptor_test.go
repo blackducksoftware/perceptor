@@ -99,8 +99,10 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 		UnknownImagePauseMilliseconds:  500,
 	}
 	config := &Config{
-		Timings: &Timings{},
-		Hub:     &HubConfig{},
+		Perceptor: &PerceptorConfig{
+			Timings: &Timings{},
+		},
+		Hub: &HubConfig{},
 	}
 	pcp, err := NewPerceptor(config, timings,
 		&ScanScheduler{

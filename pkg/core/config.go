@@ -31,17 +31,12 @@ import (
 
 // HubConfig handles Hub-specific configuration
 type HubConfig struct {
-	Hosts                     []string
-	User                      string
-	PasswordEnvVar            string
-	Port                      int
-	ConcurrentScanLimit       int
-	TotalScanLimit            int
-}
-
-// ClientTimeout converts the milliseconds to a duration
-func (config *HubConfig) ClientTimeout() time.Duration {
-	return time.Duration(config.ClientTimeoutMilliseconds) * time.Millisecond
+	Hosts               []string
+	User                string
+	PasswordEnvVar      string
+	Port                int
+	ConcurrentScanLimit int
+	TotalScanLimit      int
 }
 
 // Timings ...
@@ -51,6 +46,11 @@ type Timings struct {
 	ModelMetricsPauseSeconds       int
 	UnknownImagePauseMilliseconds  int
 	ClientTimeoutMilliseconds      int
+}
+
+// ClientTimeout ...
+func (t *Timings) ClientTimeout() time.Duration {
+	return time.Duration(t.ClientTimeoutMilliseconds) * time.Millisecond
 }
 
 // CheckForStalledScansPause ...
@@ -90,7 +90,7 @@ type Config struct {
 func (config *Config) model() *api.ModelConfig {
 	return &api.ModelConfig{
 		Hub: &api.ModelHubConfig{
-			ClientTimeout:       *api.NewModelTime(config.Hub.ClientTimeout()),
+			ClientTimeout:       *api.NewModelTime(config.Perceptor.Timings.ClientTimeout()),
 			ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
 			PasswordEnvVar:      config.Hub.PasswordEnvVar,
 			Port:                config.Hub.Port,
@@ -98,12 +98,12 @@ func (config *Config) model() *api.ModelConfig {
 			User:                config.Hub.User,
 		},
 		LogLevel: config.LogLevel,
-		Port:     config.Port,
+		Port:     config.Perceptor.Port,
 		Timings: &api.ModelTimings{
-			CheckForStalledScansPause: *api.NewModelTime(config.Timings.CheckForStalledScansPause()),
-			ModelMetricsPause:         *api.NewModelTime(config.Timings.ModelMetricsPause()),
-			StalledScanClientTimeout:  *api.NewModelTime(config.Timings.StalledScanClientTimeout()),
-			UnknownImagePause:         *api.NewModelTime(config.Timings.UnknownImagePause()),
+			CheckForStalledScansPause: *api.NewModelTime(config.Perceptor.Timings.CheckForStalledScansPause()),
+			ModelMetricsPause:         *api.NewModelTime(config.Perceptor.Timings.ModelMetricsPause()),
+			StalledScanClientTimeout:  *api.NewModelTime(config.Perceptor.Timings.StalledScanClientTimeout()),
+			UnknownImagePause:         *api.NewModelTime(config.Perceptor.Timings.UnknownImagePause()),
 		},
 	}
 }
