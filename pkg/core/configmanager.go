@@ -64,10 +64,13 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 		viper.SetEnvPrefix("PCP")
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-		viper.BindEnv("Timings_CheckForStalledScansPauseHours")
-		viper.BindEnv("Timings_ModelMetricsPauseSeconds")
-		viper.BindEnv("Timings_StalledScanClientTimeoutHours")
-		viper.BindEnv("Timings_UnknownImagePauseMilliseconds")
+		viper.BindEnv("Perceptor_Port")
+		viper.BindEnv("Perceptor_UseMockMode")
+		viper.BindEnv("Perceptor_Timings_CheckForStalledScansPauseHours")
+		viper.BindEnv("Perceptor_Timings_ModelMetricsPauseSeconds")
+		viper.BindEnv("Perceptor_Timings_StalledScanClientTimeoutHours")
+		viper.BindEnv("Perceptor_Timings_UnknownImagePauseMilliseconds")
+		viper.BindEnv("Perceptor_Timings_ClientTimeoutMilliseconds")
 
 		viper.BindEnv("Hub_Hosts")
 		viper.BindEnv("Hub_User")
@@ -75,11 +78,8 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 		viper.BindEnv("Hub_Port")
 		viper.BindEnv("Hub_PasswordEnvVar")
 		viper.BindEnv("Hub_ConcurrentScanLimit")
-		viper.BindEnv("Hub_ClientTimeoutMilliseconds")
 
 		viper.BindEnv("LogLevel")
-		viper.BindEnv("Port")
-		viper.BindEnv("UseMockMode")
 
 		viper.AutomaticEnv()
 	}
