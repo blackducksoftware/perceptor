@@ -22,6 +22,7 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -52,6 +53,9 @@ func RunPerceptor(configPath string) {
 		log.Errorf(err.Error())
 		panic(err)
 	}
+
+	bytes, _ := json.Marshal(config)
+	log.Infof("config: %s", string(bytes))
 
 	level, err := config.GetLogLevel()
 	if err != nil {
