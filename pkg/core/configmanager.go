@@ -88,7 +88,7 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 		viper.AutomaticEnv()
 	}
 
-	err = viper.Unmarshal(&config)
+	err := viper.Unmarshal(&config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
