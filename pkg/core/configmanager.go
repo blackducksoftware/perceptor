@@ -60,33 +60,32 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 
 	if cm.ConfigPath != "" {
 		viper.SetConfigFile(cm.ConfigPath)
+		err := viper.ReadInConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file: %v", err)
+		}
 	} else {
 		viper.SetEnvPrefix("PCP")
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-		viper.BindEnv("Perceptor_Port")
-		viper.BindEnv("Perceptor_UseMockMode")
-		viper.BindEnv("Perceptor_Timings_CheckForStalledScansPauseHours")
-		viper.BindEnv("Perceptor_Timings_ModelMetricsPauseSeconds")
-		viper.BindEnv("Perceptor_Timings_StalledScanClientTimeoutHours")
-		viper.BindEnv("Perceptor_Timings_UnknownImagePauseMilliseconds")
-		viper.BindEnv("Perceptor_Timings_ClientTimeoutMilliseconds")
+		viper.BindEnv("Perceptor.Port")
+		viper.BindEnv("Perceptor.UseMockMode")
+		viper.BindEnv("Perceptor.Timings.CheckForStalledScansPauseHours")
+		viper.BindEnv("Perceptor.Timings.ModelMetricsPauseSeconds")
+		viper.BindEnv("Perceptor.Timings.StalledScanClientTimeoutHours")
+		viper.BindEnv("Perceptor.Timings.UnknownImagePauseMilliseconds")
+		viper.BindEnv("Perceptor.Timings.ClientTimeoutMilliseconds")
 
-		viper.BindEnv("Hub_Hosts")
-		viper.BindEnv("Hub_User")
-		viper.BindEnv("Hub_TotalScanLimit")
-		viper.BindEnv("Hub_Port")
-		viper.BindEnv("Hub_PasswordEnvVar")
-		viper.BindEnv("Hub_ConcurrentScanLimit")
+		viper.BindEnv("Hub.Hosts")
+		viper.BindEnv("Hub.User")
+		viper.BindEnv("Hub.TotalScanLimit")
+		viper.BindEnv("Hub.Port")
+		viper.BindEnv("Hub.PasswordEnvVar")
+		viper.BindEnv("Hub.ConcurrentScanLimit")
 
 		viper.BindEnv("LogLevel")
 
 		viper.AutomaticEnv()
-	}
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 
 	err = viper.Unmarshal(&config)
