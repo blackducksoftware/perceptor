@@ -25,17 +25,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blackducksoftware/hub-client-go/hubapi"
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/blackducksoftware/perceptor/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	maxHubExponentialBackoffDuration = 1 * time.Hour
-)
-
-type clientAction struct {
+type hubAction struct {
 	name  string
 	apply func() error
 }
@@ -47,9 +42,8 @@ type Hub struct {
 	host   string
 	status ClientStatus
 	// data
-	hasFetchedScans bool
-	scans           map[string]*Scan
-	errors          []error
+	model  *Model
+	errors []error
 	// timers
 	getMetricsTimer              *util.Timer
 	loginTimer                   *util.Timer
@@ -57,28 +51,25 @@ type Hub struct {
 	fetchAllScansTimer           *util.Timer
 	fetchScansTimer              *util.Timer
 	checkScansForCompletionTimer *util.Timer
-	// public channels
-	publishUpdatesCh chan Update
 	// channels
 	stop    chan struct{}
-	actions chan *clientAction
+	actions chan *hubAction
 }
 
 // NewHub returns a new Hub.  It will not be logged in.
 func NewHub(username string, password string, host string, rawClient RawClientInterface, timings *Timings) *Hub {
 	hub := &Hub{
-		client: NewClient(username, password, host, rawClient),
-		host:   host,
-		status: ClientStatusDown,
-		//
-		hasFetchedScans: false,
-		scans:           map[string]*Scan{},
-		errors:          []error{},
-		//
-		publishUpdatesCh: make(chan Update),
-		//
+		client:  NewClient(username, password, host, rawClient),
+		host:    host,
+		status:  ClientStatusDown,
+		model:   nil,
+		errors:  []error{},
 		stop:    make(chan struct{}),
-		actions: make(chan *clientAction)}
+		actions: make(chan *hubAction)}
+	// model setup
+	hub.model = NewModel(host, hub.stop, func(scanName string) (*ScanResults, error) {
+		return hub.client.fetchScan(scanName)
+	})
 	// timers
 	hub.getMetricsTimer = hub.startGetMetricsTimer(timings.GetMetricsPause)
 	hub.checkScansForCompletionTimer = hub.startCheckScansForCompletionTimer(timings.ScanCompletionPause)
@@ -93,7 +84,6 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 			case <-hub.stop:
 				return
 			case action := <-hub.actions:
-				// TODO what other logging, metrics, etc. would help here?
 				recordEvent(hub.host, action.name)
 				err := action.apply()
 				if err != nil {
@@ -108,30 +98,8 @@ func NewHub(username string, password string, host string, rawClient RawClientIn
 
 // Private methods
 
-func (hub *Hub) publish(update Update) {
-	go func() {
-		select {
-		case <-hub.stop:
-			return
-		case hub.publishUpdatesCh <- update:
-		}
-	}()
-}
-
 func (hub *Hub) getStateMetrics() {
-	ch := make(chan *clientStateMetrics)
-	hub.actions <- &clientAction{"getClientStateMetrics", func() error {
-		scanStageCounts := map[ScanStage]int{}
-		for _, scan := range hub.scans {
-			scanStageCounts[scan.Stage]++
-		}
-		ch <- &clientStateMetrics{
-			errorsCount:     len(hub.errors),
-			scanStageCounts: scanStageCounts,
-		}
-		return nil
-	}}
-	recordClientState(hub.host, <-ch)
+	hub.model.getStateMetrics()
 }
 
 func (hub *Hub) recordError(err error) {
@@ -148,40 +116,17 @@ func (hub *Hub) apiModel() *api.ModelHub {
 	for ix, err := range hub.errors {
 		errors[ix] = err.Error()
 	}
-	codeLocations := map[string]*api.ModelCodeLocation{}
-	for name, scan := range hub.scans {
-		cl := &api.ModelCodeLocation{Stage: scan.Stage.String()}
-		sr := scan.ScanResults
-		if sr != nil {
-			cl.Href = sr.CodeLocationHref
-			cl.URL = sr.CodeLocationURL
-			cl.MappedProjectVersion = sr.CodeLocationMappedProjectVersion
-			cl.UpdatedAt = sr.CodeLocationUpdatedAt
-			cl.ComponentsHref = sr.ComponentsHref
-		}
-		codeLocations[name] = cl
-	}
-	return &api.ModelHub{
-		Errors:                    errors,
-		Status:                    hub.status.String(),
-		HasLoadedAllCodeLocations: hub.scans != nil,
-		CodeLocations:             codeLocations,
-		CircuitBreaker:            hub.client.circuitBreaker.Model(),
-		Host:                      hub.host,
-	}
+	apiModel := hub.model.apiModel()
+	apiModel.Errors = errors
+	apiModel.Status = hub.status.String()
+	apiModel.CircuitBreaker = hub.client.circuitBreaker.Model()
+	return apiModel
 }
 
-// Regular jobs
-
-func (hub *Hub) startRefreshScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("refresh-scans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		// TODO implement
-	})
-}
-
-func (hub *Hub) didLogin(err error) {
-	hub.actions <- &clientAction{"didLogin", func() error {
+func (hub *Hub) login() {
+	log.Debugf("starting to login to hub")
+	err := hub.client.login()
+	hub.actions <- &hubAction{"didLogin", func() error {
 		hub.recordError(err)
 		if err != nil && hub.status == ClientStatusUp {
 			hub.status = ClientStatusDown
@@ -200,100 +145,41 @@ func (hub *Hub) didLogin(err error) {
 	}}
 }
 
-func (hub *Hub) startLoginTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("login-%s", hub.host)
-	return util.NewRunningTimer(name, pause, hub.stop, true, func() {
-		log.Debugf("starting to login to hub")
-		err := hub.client.login()
-		hub.didLogin(err)
+func (hub *Hub) fetchAllScans() {
+	log.Debugf("starting to fetch all scans")
+	cls, err := hub.client.listAllCodeLocations()
+	hub.recordError(err)
+	hub.model.didFetchScans(cls, err)
+}
+
+func (hub *Hub) fetchUnknownScans() {
+	log.Debugf("starting to fetch unknown scans")
+	hub.model.fetchUnknownScans()
+}
+
+// Regular jobs
+
+func (hub *Hub) startRefreshScansTimer(pause time.Duration) *util.Timer {
+	return util.NewTimer(fmt.Sprintf("refresh-scans-%s", hub.host), pause, hub.stop, func() {
+		// TODO implement
 	})
 }
 
-func (hub *Hub) didFetchScans(cls *hubapi.CodeLocationList, err error) {
-	hub.actions <- &clientAction{"didFetchScans", func() error {
-		hub.recordError(err)
-		if err == nil {
-			hub.hasFetchedScans = true
-			for _, cl := range cls.Items {
-				if _, ok := hub.scans[cl.Name]; !ok {
-					hub.scans[cl.Name] = &Scan{Stage: ScanStageUnknown, ScanResults: nil}
-				}
-			}
-		}
-		return nil
-	}}
+func (hub *Hub) startLoginTimer(pause time.Duration) *util.Timer {
+	return util.NewRunningTimer(fmt.Sprintf("login-%s", hub.host), pause, hub.stop, true, func() {
+		hub.login()
+	})
 }
 
 func (hub *Hub) startFetchAllScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("fetchScans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch all scans")
-		cls, err := hub.client.listAllCodeLocations()
-		hub.didFetchScans(cls, err)
+	return util.NewTimer(fmt.Sprintf("fetchScans-%s", hub.host), pause, hub.stop, func() {
+		hub.fetchAllScans()
 	})
 }
 
-func (hub *Hub) getUnknownScans() []string {
-	ch := make(chan []string)
-	hub.actions <- &clientAction{"getUnknownScans", func() error {
-		unknownScans := []string{}
-		for name, scan := range hub.scans {
-			if scan.Stage == ScanStageUnknown {
-				unknownScans = append(unknownScans, name)
-			}
-		}
-		ch <- unknownScans
-		return nil
-	}}
-	return <-ch
-}
-
-func (hub *Hub) didFetchScanResults(scanResults *ScanResults) {
-	hub.actions <- &clientAction{"didFetchScanResults", func() error {
-		scan, ok := hub.scans[scanResults.CodeLocationName]
-		if !ok {
-			scan = &Scan{
-				ScanResults: scanResults,
-				Stage:       ScanStageUnknown,
-			}
-			hub.scans[scanResults.CodeLocationName] = scan
-		}
-		switch scanResults.ScanSummaryStatus() {
-		case ScanSummaryStatusSuccess:
-			scan.Stage = ScanStageComplete
-		case ScanSummaryStatusInProgress:
-			// TODO any way to distinguish between scanclient and hubscan?
-			scan.Stage = ScanStageHubScan
-		case ScanSummaryStatusFailure:
-			scan.Stage = ScanStageFailure
-		}
-		hub.scans[scanResults.CodeLocationName].ScanResults = scanResults
-		update := &DidFindScan{Name: scanResults.CodeLocationName, Results: scanResults}
-		hub.publish(update)
-		return nil
-	}}
-}
-
 func (hub *Hub) startFetchUnknownScansTimer(pause time.Duration) *util.Timer {
-	name := fmt.Sprintf("fetchUnknownScans-%s", hub.host)
-	return util.NewTimer(name, pause, hub.stop, func() {
-		log.Debugf("starting to fetch unknown scans")
-		unknownScans := hub.getUnknownScans()
-		log.Debugf("found %d unknown code locations", len(unknownScans))
-		for _, codeLocationName := range unknownScans {
-			scanResults, err := hub.client.fetchScan(codeLocationName)
-			if err != nil {
-				log.Errorf("unable to fetch scan %s: %s", codeLocationName, err.Error())
-				continue
-			}
-			if scanResults == nil {
-				log.Debugf("found nil scan for unknown code location %s", codeLocationName)
-				continue
-			}
-			log.Debugf("fetched scan %s", codeLocationName)
-			hub.didFetchScanResults(scanResults)
-		}
-		log.Debugf("finished fetching unknown scans")
+	return util.NewTimer(fmt.Sprintf("fetchUnknownScans-%s", hub.host), pause, hub.stop, func() {
+		hub.fetchUnknownScans()
 	})
 }
 
@@ -304,50 +190,10 @@ func (hub *Hub) startGetMetricsTimer(pause time.Duration) *util.Timer {
 	})
 }
 
-func (hub *Hub) scanDidFinish(scanResults *ScanResults) {
-	hub.actions <- &clientAction{"scanDidFinish", func() error {
-		scanName := scanResults.CodeLocationName
-		scan, ok := hub.scans[scanName]
-		if !ok {
-			return fmt.Errorf("unable to handle scanDidFinish for %s: not found", scanName)
-		}
-		if scan.Stage != ScanStageHubScan {
-			return fmt.Errorf("unable to handle scanDidFinish for %s: expected stage HubScan, found %s", scanName, scan.Stage.String())
-		}
-		scan.Stage = ScanStageComplete
-		update := &DidFinishScan{Name: scanResults.CodeLocationName, Results: scanResults}
-		hub.publish(update)
-		return nil
-	}}
-}
-
 func (hub *Hub) startCheckScansForCompletionTimer(pause time.Duration) *util.Timer {
 	name := fmt.Sprintf("checkScansForCompletion-%s", hub.host)
 	return util.NewTimer(name, pause, hub.stop, func() {
-		var scanNames []string
-		select {
-		case scanNames = <-hub.InProgressScans():
-		case <-hub.stop:
-			return
-		}
-		log.Debugf("starting to check scans for completion: %+v", scanNames)
-		for _, scanName := range scanNames {
-			scanResults, err := hub.client.fetchScan(scanName)
-			if err != nil {
-				log.Errorf("unable to fetch scan %s: %s", scanName, err.Error())
-				continue
-			}
-			if scanResults == nil {
-				log.Debugf("nothing found for scan %s", scanName)
-				continue
-			}
-			switch scanResults.ScanSummaryStatus() {
-			case ScanSummaryStatusInProgress:
-				// nothing to do
-			case ScanSummaryStatusFailure, ScanSummaryStatusSuccess:
-				hub.scanDidFinish(scanResults)
-			}
-		}
+		hub.model.checkScansForCompletion()
 	})
 }
 
@@ -355,75 +201,27 @@ func (hub *Hub) startCheckScansForCompletionTimer(pause time.Duration) *util.Tim
 
 // StartScanClient ...
 func (hub *Hub) StartScanClient(scanName string) {
-	hub.actions <- &clientAction{"startScanClient", func() error {
-		hub.scans[scanName] = &Scan{Stage: ScanStageScanClient}
-		return nil
-	}}
+	hub.model.StartScanClient(scanName)
 }
 
 // FinishScanClient ...
 func (hub *Hub) FinishScanClient(scanName string, scanErr error) {
-	hub.actions <- &clientAction{"finishScanClient", func() error {
-		scan, ok := hub.scans[scanName]
-		if !ok {
-			return fmt.Errorf("unable to handle finishScanClient for %s: not found", scanName)
-		}
-		if scan.Stage != ScanStageScanClient {
-			return fmt.Errorf("unable to handle finishScanClient for %s: expected stage ScanClient, found %s", scanName, scan.Stage.String())
-		}
-		if scanErr == nil {
-			scan.Stage = ScanStageHubScan
-		} else {
-			scan.Stage = ScanStageFailure
-		}
-		return nil
-	}}
+	hub.model.FinishScanClient(scanName, scanErr)
 }
 
 // ScansCount ...
 func (hub *Hub) ScansCount() <-chan int {
-	ch := make(chan int)
-	hub.actions <- &clientAction{"getScansCount", func() error {
-		count := 0
-		for _, cl := range hub.scans {
-			if cl.Stage != ScanStageFailure {
-				count++
-			}
-		}
-		ch <- count
-		return nil
-	}}
-	return ch
+	return hub.model.ScansCount()
 }
 
 // InProgressScans ...
 func (hub *Hub) InProgressScans() <-chan []string {
-	ch := make(chan []string)
-	hub.actions <- &clientAction{"getInProgressScans", func() error {
-		scans := []string{}
-		for scanName, scan := range hub.scans {
-			if scan.Stage == ScanStageHubScan || scan.Stage == ScanStageScanClient {
-				scans = append(scans, scanName)
-			}
-		}
-		ch <- scans
-		return nil
-	}}
-	return ch
+	return hub.model.InProgressScans()
 }
 
 // ScanResults ...
 func (hub *Hub) ScanResults() <-chan map[string]*Scan {
-	ch := make(chan map[string]*Scan)
-	hub.actions <- &clientAction{"getScanResults", func() error {
-		allScanResults := map[string]*Scan{}
-		for name, scan := range hub.scans {
-			allScanResults[name] = &Scan{Stage: scan.Stage, ScanResults: scan.ScanResults}
-		}
-		ch <- allScanResults
-		return nil
-	}}
-	return ch
+	return hub.model.ScanResults()
 }
 
 // Updates produces events for:
@@ -431,7 +229,7 @@ func (hub *Hub) ScanResults() <-chan map[string]*Scan {
 // - when a hub scan finishes
 // - when a finished scan is repulled (to get any changes to its vulnerabilities, policies, etc.)
 func (hub *Hub) Updates() <-chan Update {
-	return hub.publishUpdatesCh
+	return hub.model.Updates()
 }
 
 // Stop ...
@@ -458,7 +256,7 @@ func (hub *Hub) ResetCircuitBreaker() {
 // Model ...
 func (hub *Hub) Model() <-chan *api.ModelHub {
 	ch := make(chan *api.ModelHub)
-	hub.actions <- &clientAction{"getModel", func() error {
+	hub.actions <- &hubAction{"getModel", func() error {
 		ch <- hub.apiModel()
 		return nil
 	}}
@@ -467,10 +265,5 @@ func (hub *Hub) Model() <-chan *api.ModelHub {
 
 // HasFetchedScans ...
 func (hub *Hub) HasFetchedScans() <-chan bool {
-	ch := make(chan bool)
-	hub.actions <- &clientAction{"hasFetchedScans", func() error {
-		ch <- hub.hasFetchedScans
-		return nil
-	}}
-	return ch
+	return hub.model.HasFetchedScans()
 }

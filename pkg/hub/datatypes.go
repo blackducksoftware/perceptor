@@ -107,11 +107,6 @@ func (status ClientStatus) MarshalText() (text []byte, err error) {
 	return []byte(status.String()), nil
 }
 
-type clientStateMetrics struct {
-	scanStageCounts map[ScanStage]int
-	errorsCount     int
-}
-
 // PolicyStatus .....
 type PolicyStatus struct {
 	OverallStatus                PolicyStatusType
