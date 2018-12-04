@@ -24,6 +24,7 @@ import (
 	"net/http/cookiejar"
 	"time"
 
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,7 +51,7 @@ func NewWithSession(baseURL string, debugFlags HubClientDebug, timeout time.Dura
 	jar, err := cookiejar.New(nil) // Look more at this function
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotate(err, "unable to instantiate cookie jar")
 	}
 
 	tr := &http.Transport{
@@ -105,7 +106,7 @@ func readBytes(readCloser io.ReadCloser) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	if _, err := buf.ReadFrom(readCloser); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	return buf.Bytes(), nil
@@ -128,8 +129,7 @@ func (c *Client) processResponse(resp *http.Response, result interface{}, expect
 	var err error
 
 	if err := validateHTTPResponse(resp, expectedStatusCode); err != nil {
-		log.Errorf("Error validating HTTP Response: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error validating HTTP Response")
 	}
 
 	if result == nil {
@@ -138,8 +138,7 @@ func (c *Client) processResponse(resp *http.Response, result interface{}, expect
 	}
 
 	if bodyBytes, err = readBytes(resp.Body); err != nil {
-		log.Errorf("Error reading HTTP Response: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error reading HTTP Response")
 	}
 
 	if c.debugFlags&HubClientDebugContent != 0 {
@@ -149,12 +148,7 @@ func (c *Client) processResponse(resp *http.Response, result interface{}, expect
 	}
 
 	if err := json.Unmarshal(bodyBytes, result); err != nil {
-		log.Errorf("Error parsing HTTP Response: %+v.", err)
-		log.Errorln("\n\n--------------------")
-		log.Errorln("Response:")
-		log.Errorln("--------------------\n\n")
-		log.Errorln(resp)
-		return err
+		return errors.Annotate(err, "Error parsing HTTP Response")
 	}
 
 	return nil
@@ -171,19 +165,17 @@ func (c *Client) HttpGetJSON(url string, result interface{}, expectedStatusCode 
 		log.Debugf("DEBUG HTTP STARTING GET REQUEST: %s", url)
 	}
 
-	httpStart := time.Now()
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 
 	if err != nil {
-		log.Errorf("Error making http get request: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error making http get request")
 	}
 
 	c.doPreRequest(req)
 
+	httpStart := time.Now()
 	if resp, err = c.httpClient.Do(req); err != nil {
-		log.Errorf("Error getting HTTP Response: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error getting HTTP Response")
 	}
 
 	httpElapsed := time.Since(httpStart)
@@ -209,25 +201,23 @@ func (c *Client) HttpPutJSON(url string, data interface{}, contentType string, e
 	enc := json.NewEncoder(&buf)
 
 	if err := enc.Encode(&data); err != nil {
-		log.Errorf("Error encoding json: %+v.", err)
+		return errors.Annotate(err, "Error encoding json")
 	}
 
-	httpStart := time.Now()
 	req, err := http.NewRequest(http.MethodPut, url, &buf)
-	req.Header.Set(HeaderNameContentType, contentType)
-
 	if err != nil {
-		log.Errorf("Error making http put request: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error making http put request")
 	}
+
+	req.Header.Set(HeaderNameContentType, contentType)
 
 	c.doPreRequest(req)
 	log.Debugf("PUT Request: %+v.", req)
 
+	httpStart := time.Now()
 	if resp, err = c.httpClient.Do(req); err != nil {
-		log.Errorf("Error getting HTTP Response: %+v.", err)
 		readResponseBody(resp)
-		return err
+		return errors.Annotate(err, "Error getting HTTP Response")
 	}
 
 	httpElapsed := time.Since(httpStart)
@@ -253,25 +243,23 @@ func (c *Client) HttpPostJSON(url string, data interface{}, contentType string, 
 	enc := json.NewEncoder(&buf)
 
 	if err := enc.Encode(&data); err != nil {
-		log.Errorf("Error encoding json: %+v.", err)
+		return "", errors.Annotate(err, "Error encoding json")
 	}
 
-	httpStart := time.Now()
 	req, err := http.NewRequest(http.MethodPost, url, &buf)
-	req.Header.Set(HeaderNameContentType, contentType)
-
 	if err != nil {
-		log.Errorf("Error making http post request: %+v.", err)
-		return "", err
+		return "", errors.Annotate(err, "Error making http post request")
 	}
+
+	req.Header.Set(HeaderNameContentType, contentType)
 
 	c.doPreRequest(req)
 	log.Debugf("POST Request: %+v.", req)
 
+	httpStart := time.Now()
 	if resp, err = c.httpClient.Do(req); err != nil {
-		log.Errorf("Error getting HTTP Response: %+v.", err)
 		readResponseBody(resp)
-		return "", err
+		return "", errors.Annotate(err, "Error getting HTTP Response")
 	}
 
 	httpElapsed := time.Since(httpStart)
@@ -281,7 +269,7 @@ func (c *Client) HttpPostJSON(url string, data interface{}, contentType string, 
 	}
 
 	if err := c.processResponse(resp, nil, expectedStatusCode); err != nil {
-		return "", err
+		return "", errors.Trace(err)
 	}
 
 	return resp.Header.Get("Location"), nil
@@ -301,25 +289,23 @@ func (c *Client) HttpPostJSONExpectResult(url string, data interface{}, result i
 	enc := json.NewEncoder(&buf)
 
 	if err := enc.Encode(&data); err != nil {
-		log.Errorf("Error encoding json: %+v.", err)
+		return "", errors.Annotate(err, "Error encoding json")
 	}
 
-	httpStart := time.Now()
 	req, err := http.NewRequest(http.MethodPost, url, &buf)
-	req.Header.Set(HeaderNameContentType, contentType)
-
 	if err != nil {
-		log.Errorf("Error making http post request: %+v.", err)
-		return "", err
+		return "", errors.Annotate(err, "Error making http post request")
 	}
+
+	req.Header.Set(HeaderNameContentType, contentType)
 
 	c.doPreRequest(req)
 	log.Debugf("POST Request: %+v.", req)
 
+	httpStart := time.Now()
 	if resp, err = c.httpClient.Do(req); err != nil {
-		log.Errorf("Error getting HTTP Response: %+v.", err)
 		readResponseBody(resp)
-		return "", err
+		return "", errors.Annotate(err, "Error getting HTTP Response")
 	}
 
 	httpElapsed := time.Since(httpStart)
@@ -329,7 +315,7 @@ func (c *Client) HttpPostJSONExpectResult(url string, data interface{}, result i
 	}
 
 	if err := c.processResponse(resp, result, expectedStatusCode); err != nil {
-		return "", err
+		return "", errors.Trace(err)
 	}
 
 	return resp.Header.Get("Location"), nil
@@ -344,22 +330,20 @@ func (c *Client) HttpDelete(url string, contentType string, expectedStatusCode i
 		log.Debugf("DEBUG HTTP STARTING DELETE REQUEST: %s", url)
 	}
 
-	httpStart := time.Now()
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer([]byte{}))
-	req.Header.Set(HeaderNameContentType, contentType)
-
 	if err != nil {
-		log.Errorf("Error making http delete request: %+v.", err)
-		return err
+		return errors.Annotate(err, "Error making http delete request")
 	}
+
+	req.Header.Set(HeaderNameContentType, contentType)
 
 	c.doPreRequest(req)
 	log.Debugf("DELETE Request: %+v.", req)
 
+	httpStart := time.Now()
 	if resp, err = c.httpClient.Do(req); err != nil {
-		log.Errorf("Error getting HTTP Response: %+v.", err)
 		readResponseBody(resp)
-		return err
+		return errors.Annotate(err, "Error getting HTTP Response")
 	}
 
 	httpElapsed := time.Since(httpStart)
