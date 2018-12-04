@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
-	log "github.com/sirupsen/logrus"
+	"github.com/juju/errors"
 )
 
 // TODO: This API should also be returning a location
@@ -29,7 +29,7 @@ func (c *Client) CreateUser(userRequest *hubapi.UserRequest) (*hubapi.User, erro
 	_, err := c.HttpPostJSONExpectResult(usersURL, userRequest, &result, "application/json", 201)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	// TODO: Warn once user creation returns a location.
@@ -53,9 +53,19 @@ func (c *Client) ListUsers(options *hubapi.GetListOptions) (*hubapi.UserList, er
 	err := c.HttpGetJSON(usersURL, &userList, 200)
 
 	if err != nil {
-		log.Errorf("Error trying to retrieve user list: %+v.", err)
-		return nil, err
+		return nil, errors.Annotate(err, "Error trying to retrieve user list")
 	}
 
 	return &userList, nil
+}
+
+func (c *Client) GetUser(link hubapi.ResourceLink) (*hubapi.User, error) {
+	var user hubapi.User
+	err := c.HttpGetJSON(link.Href, &user, 200)
+
+	if err != nil {
+		return nil, errors.Annotate(err, "Error trying to retrieve a user")
+	}
+
+	return &user, nil
 }

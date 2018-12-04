@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/blackducksoftware/hub-client-go"
-  branch = "master"
+  revision = "f1fdde519aec5ce540e9a42440fcce9bd641644a"
 
 [[constraint]]
   name = "github.com/fsnotify/fsnotify"
