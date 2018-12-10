@@ -102,9 +102,12 @@ func (hub *Hub) getStateMetrics() {
 	hub.model.getStateMetrics()
 }
 
-func (hub *Hub) recordError(err error) {
+func (hub *Hub) recordError(description string, err error) {
 	if err != nil {
+		log.Errorf("%s: %s", description, err.Error())
 		hub.errors = append(hub.errors, err)
+	} else {
+		log.Debugf("no error for %s", description)
 	}
 	if len(hub.errors) > 1000 {
 		hub.errors = hub.errors[500:]
@@ -124,22 +127,22 @@ func (hub *Hub) apiModel() *api.ModelHub {
 }
 
 func (hub *Hub) login() {
-	log.Debugf("starting to login to hub")
+	log.Debugf("starting to login to hub %s", hub.host)
 	err := hub.client.login()
 	hub.actions <- &hubAction{"didLogin", func() error {
-		hub.recordError(err)
+		hub.recordError(fmt.Sprintf("login to hub %s", hub.host), err)
 		if err != nil && hub.status == ClientStatusUp {
 			hub.status = ClientStatusDown
-			hub.recordError(hub.checkScansForCompletionTimer.Pause())
-			hub.recordError(hub.fetchScansTimer.Pause())
-			hub.recordError(hub.fetchAllScansTimer.Pause())
-			hub.recordError(hub.refreshScansTimer.Pause())
+			hub.recordError(fmt.Sprintf("pause check scans for completion timer %s", hub.host), hub.checkScansForCompletionTimer.Pause())
+			hub.recordError(fmt.Sprintf("pause fetch scans timer %s", hub.host), hub.fetchScansTimer.Pause())
+			hub.recordError(fmt.Sprintf("pause fetch all scans timer %s", hub.host), hub.fetchAllScansTimer.Pause())
+			hub.recordError(fmt.Sprintf("pause refresh scans timer %s", hub.host), hub.refreshScansTimer.Pause())
 		} else if err == nil && hub.status == ClientStatusDown {
 			hub.status = ClientStatusUp
-			hub.recordError(hub.checkScansForCompletionTimer.Resume(true))
-			hub.recordError(hub.fetchScansTimer.Resume(true))
-			hub.recordError(hub.fetchAllScansTimer.Resume(true))
-			hub.recordError(hub.refreshScansTimer.Resume(true))
+			hub.recordError(fmt.Sprintf("resume check scans for completion timer %s", hub.host), hub.checkScansForCompletionTimer.Resume(true))
+			hub.recordError(fmt.Sprintf("resume fetch scans timer  %s", hub.host), hub.fetchScansTimer.Resume(true))
+			hub.recordError(fmt.Sprintf("resume fetch all scans timer  %s", hub.host), hub.fetchAllScansTimer.Resume(true))
+			hub.recordError(fmt.Sprintf("resume refresh scans timer  %s", hub.host), hub.refreshScansTimer.Resume(true))
 		}
 		return nil
 	}}
@@ -148,7 +151,7 @@ func (hub *Hub) login() {
 func (hub *Hub) fetchAllScans() {
 	log.Debugf("starting to fetch all scans")
 	cls, err := hub.client.listAllCodeLocations()
-	hub.recordError(err)
+	hub.recordError(fmt.Sprintf("fetch all code locations for hub %s", hub.host), err)
 	hub.model.didFetchScans(cls, err)
 }
 
