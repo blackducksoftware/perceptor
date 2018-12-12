@@ -23,12 +23,15 @@ package core
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/blackducksoftware/hub-client-go/hubclient"
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 	log "github.com/sirupsen/logrus"
 )
+
+var commonMistakesRegex = regexp.MustCompile("(http|://|:\\d+)")
 
 type hubClientCreator func(host string) (*hub.Hub, error)
 
@@ -39,6 +42,10 @@ func createMockHubClient(hubURL string) (*hub.Hub, error) {
 
 func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
 	return func(host string) (*hub.Hub, error) {
+		potentialProblems := commonMistakesRegex.FindAllString(host, -1)
+		if len(potentialProblems) > 0 {
+			log.Warnf("Hub host %s may be invalid, potential problems are: %s", host, potentialProblems)
+		}
 		baseURL := fmt.Sprintf("https://%s:%d", host, port)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
