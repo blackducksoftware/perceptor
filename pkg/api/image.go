@@ -23,13 +23,15 @@ package api
 
 // Image .....
 type Image struct {
-	Repository string
-	Tag        string
-	Sha        string
-	Priority   *int
+	Repository              string
+	Tag                     string
+	Sha                     string
+	Priority                *int
+	BlackDuckProjectName    string
+	BlackDuckProjectVersion string
 }
 
 // NewImage .....
-func NewImage(repository string, tag string, sha string, priority *int) *Image {
-	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority}
+func NewImage(repository string, tag string, sha string, priority *int, blackDuckProjectName string, blackDuckProjectVersion string) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority, BlackDuckProjectName: blackDuckProjectName, BlackDuckProjectVersion: blackDuckProjectVersion}
 }

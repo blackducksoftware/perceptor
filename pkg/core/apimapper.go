@@ -38,7 +38,7 @@ func APIImageToCoreImage(apiImage api.Image) (*model.Image, error) {
 	if apiImage.Priority != nil {
 		priority = *apiImage.Priority
 	}
-	return model.NewImage(apiImage.Repository, apiImage.Tag, sha, priority), nil
+	return model.NewImage(apiImage.Repository, apiImage.Tag, sha, priority, apiImage.BlackDuckProjectName, apiImage.BlackDuckProjectVersion), nil
 }
 
 // APIContainerToCoreContainer .....
