@@ -124,7 +124,7 @@ func RunActionTests() {
 			//  - all new images get added to hub check queue
 			expected := *NewModel()
 			expected.Pods[testPod.QualifiedName()] = testPod
-			imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 1)
+			imageInfo := NewImageInfo(testImage, &RepoTag{Repository: "image1", Tag: ""})
 			imageInfo.ScanStatus = ScanStatusUnknown
 			imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 			expected.Images[testSha] = imageInfo
