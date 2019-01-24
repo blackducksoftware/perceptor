@@ -37,7 +37,7 @@ var (
 	sha2   = DockerImageSha("sha2")
 	image2 = *NewImage("image2", "2", sha2, 2, "Project Image2", "2.0")
 	sha3   = DockerImageSha("sha3")
-	image3 = *NewImage("image3", "3", sha3, 3, "Project Image3". "3.0")
+	image3 = *NewImage("image3", "3", sha3, 3, "Project Image3", "3.0")
 	cont1  = *NewContainer(image1, "cont1")
 	cont2  = *NewContainer(image2, "cont2")
 	cont3  = *NewContainer(image3, "cont3")
@@ -288,12 +288,12 @@ func RunActionTests() {
 			Expect(image.HubScanName()).To(Equal(sha))
 		})
 		It("specific hub data", func() {
-	    sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	    image := NewImage("abc", "", DockerImageSha(sha), 0, "def", "ghi")
-	    Expect(image.HubProjectName()).To(Equal("def"))
-	    Expect(image.HubProjectVersionName()).To(Equal("ghi"))
-	    Expect(image.HubScanName()).To(Equal(sha))
-	  })
+			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			image := NewImage("abc", "", DockerImageSha(sha), 0, "def", "ghi")
+			Expect(image.HubProjectName()).To(Equal("def"))
+			Expect(image.HubProjectVersionName()).To(Equal("ghi"))
+			Expect(image.HubScanName()).To(Equal(sha))
+		})
 	})
 	Describe("metrics", func() {
 		It("should handle metrics without panicing", func() {
