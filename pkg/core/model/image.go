@@ -27,15 +27,17 @@ import (
 
 // Image .....
 type Image struct {
-	Repository string
-	Tag        string
-	Sha        DockerImageSha
-	Priority   int
+	Repository              string
+	Tag                     string
+	Sha                     DockerImageSha
+	Priority                int
+	BlackDuckProjectName    string
+	BlackDuckProjectVersion string
 }
 
 // NewImage .....
-func NewImage(repository string, tag string, sha DockerImageSha, priority int) *Image {
-	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority}
+func NewImage(repository string, tag string, sha DockerImageSha, priority int, blackDuckProjectName string, blackDuckProjectVersion string) *Image {
+	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority, BlackDuckProjectName: blackDuckProjectName, BlackDuckProjectVersion: blackDuckProjectVersion}
 }
 
 func (image Image) shaPrefix() string {
@@ -46,11 +48,18 @@ func (image Image) shaPrefix() string {
 
 // HubProjectName .....
 func (image Image) HubProjectName() string {
+	if image.BlackDuckProjectName != "" {
+		return image.BlackDuckProjectName
+	}
 	return image.Repository
 }
 
 // HubProjectVersionName .....
 func (image Image) HubProjectVersionName() string {
+	if image.BlackDuckProjectVersion != "" {
+		return image.BlackDuckProjectVersion
+	}
+
 	tag := ""
 	if image.Tag != "" {
 		tag = image.Tag + "-"

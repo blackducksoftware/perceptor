@@ -31,22 +31,26 @@ import (
 
 // ImageInfo .....
 type ImageInfo struct {
-	ScanStatus             ScanStatus
-	TimeOfLastStatusChange time.Time
-	TimeOfLastRefresh      time.Time
-	ScanResults            *hub.ScanResults
-	ImageSha               DockerImageSha
-	RepoTags               []*RepoTag
-	Priority               int
+	ScanStatus              ScanStatus
+	TimeOfLastStatusChange  time.Time
+	TimeOfLastRefresh       time.Time
+	ScanResults             *hub.ScanResults
+	ImageSha                DockerImageSha
+	RepoTags                []*RepoTag
+	Priority                int
+	BlackDuckProjectName    string
+	BlackDuckProjectVersion string
 }
 
 // NewImageInfo .....
-func NewImageInfo(sha DockerImageSha, repoTag *RepoTag, priority int) *ImageInfo {
+func NewImageInfo(image Image, repoTag *RepoTag) *ImageInfo {
 	imageInfo := &ImageInfo{
-		ScanResults: nil,
-		ImageSha:    sha,
-		RepoTags:    []*RepoTag{repoTag},
-		Priority:    priority,
+		ScanResults:             nil,
+		ImageSha:                image.Sha,
+		RepoTags:                []*RepoTag{repoTag},
+		Priority:                image.Priority,
+		BlackDuckProjectName:    image.BlackDuckProjectName,
+		BlackDuckProjectVersion: image.BlackDuckProjectVersion,
 	}
 	imageInfo.setScanStatus(ScanStatusUnknown)
 	return imageInfo
@@ -78,7 +82,7 @@ func (imageInfo *ImageInfo) TimeInCurrentScanStatus() time.Duration {
 // Image .....
 func (imageInfo *ImageInfo) Image() Image {
 	repoTag := imageInfo.FirstRepoTag()
-	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha, imageInfo.Priority)
+	return *NewImage(repoTag.Repository, repoTag.Tag, imageInfo.ImageSha, imageInfo.Priority, imageInfo.BlackDuckProjectName, imageInfo.BlackDuckProjectVersion)
 }
 
 // AddRepoTag .....

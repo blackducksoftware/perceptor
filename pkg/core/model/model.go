@@ -390,7 +390,7 @@ func (model *Model) createImage(image Image) (bool, error) {
 		}
 		return added, nil
 	}
-	newInfo := NewImageInfo(image.Sha, &RepoTag{Repository: image.Repository, Tag: image.Tag}, image.Priority)
+	newInfo := NewImageInfo(image, &RepoTag{Repository: image.Repository, Tag: image.Tag})
 	model.Images[image.Sha] = newInfo
 	log.Debugf("added image %s to model", image.PullSpec())
 	return added, nil

@@ -356,6 +356,19 @@
         "Sha": {
           "description": "The Docker sha of the image",
           "type": "string"
+        },
+        "Priority": {
+          "description": "The priority to scan the image where 1 has lowest priority",
+          "type": "integer",
+          "format": "int64"
+        },
+        "BlackDuckProjectName": {
+          "description": "Name to display as the Project Name in BlackDuck",
+          "type": "string"
+        },
+        "BlackDuckProjectVersion": {
+          "description": "Version to use in BlackDuck scan",
+          "type": "string"
         }
       },
       "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"
@@ -382,7 +395,8 @@
         "Sha",
         "HubProjectName",
         "HubProjectVersionName",
-        "HubScanName"
+        "HubScanName",
+        "Priority"
       ],
       "properties": {
         "Repository": {
@@ -408,6 +422,11 @@
         "HubScanName": {
           "description": "The Hub scan name",
           "type": "string"
+        },
+        "Priority": {
+          "description": "The Priority of the scan where 1 has the lowest priority",
+          "type": "integer",
+          "format": "int64"
         }
       },
       "x-go-package": "github.com/blackducksoftware/perceptor/pkg/api"

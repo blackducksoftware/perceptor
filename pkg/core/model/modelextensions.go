@@ -131,7 +131,7 @@ func coreContainerToAPIContainer(coreContainer Container) *api.Container {
 	image := coreContainer.Image
 	priority := image.Priority
 	return &api.Container{
-		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha), &priority),
+		Image: *api.NewImage(image.Repository, image.Tag, string(image.Sha), &priority, image.BlackDuckProjectName, image.BlackDuckProjectVersion),
 		Name:  coreContainer.Name,
 	}
 }

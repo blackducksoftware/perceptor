@@ -33,11 +33,11 @@ import (
 
 var (
 	sha1   = DockerImageSha("sha1")
-	image1 = *NewImage("image1", "1", sha1, 1)
+	image1 = *NewImage("image1", "1", sha1, 1, "Project Image1", "1.0")
 	sha2   = DockerImageSha("sha2")
-	image2 = *NewImage("image2", "2", sha2, 2)
+	image2 = *NewImage("image2", "2", sha2, 2, "Project Image2", "2.0")
 	sha3   = DockerImageSha("sha3")
-	image3 = *NewImage("image3", "3", sha3, 3)
+	image3 = *NewImage("image3", "3", sha3, 3, "Project Image3", "3.0")
 	cont1  = *NewContainer(image1, "cont1")
 	cont2  = *NewContainer(image2, "cont2")
 	cont3  = *NewContainer(image3, "cont3")
@@ -50,7 +50,7 @@ var (
 
 var (
 	testSha   = DockerImageSha("sha1")
-	testImage = Image{Repository: "image1", Tag: "", Sha: testSha, Priority: 1}
+	testImage = Image{Repository: "image1", Tag: "", Sha: testSha, Priority: 1, BlackDuckProjectName: "Project Image1", BlackDuckProjectVersion: "1.0"}
 	testCont  = Container{Image: testImage}
 	testPod   = Pod{Namespace: "abc", Name: "def", UID: "fff", Containers: []Container{testCont}}
 )
@@ -106,7 +106,7 @@ func RunActionTests() {
 			//  - image gets added to .Images
 			//  - image gets added to hub check queue
 			expected := *NewModel()
-			imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 1)
+			imageInfo := NewImageInfo(testImage, &RepoTag{Repository: "image1", Tag: ""})
 			imageInfo.ScanStatus = ScanStatusUnknown
 			imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 			expected.Images[testSha] = imageInfo
@@ -124,7 +124,7 @@ func RunActionTests() {
 			//  - all new images get added to hub check queue
 			expected := *NewModel()
 			expected.Pods[testPod.QualifiedName()] = testPod
-			imageInfo := NewImageInfo(testSha, &RepoTag{Repository: "image1", Tag: ""}, 1)
+			imageInfo := NewImageInfo(testImage, &RepoTag{Repository: "image1", Tag: ""})
 			imageInfo.ScanStatus = ScanStatusUnknown
 			imageInfo.TimeOfLastStatusChange = actual.Images[testSha].TimeOfLastStatusChange
 			expected.Images[testSha] = imageInfo
@@ -149,7 +149,7 @@ func RunActionTests() {
 	Describe("FinishScanClient", func() {
 		It("handles failures", func() {
 			model := NewModel()
-			image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"), -1)
+			image := *NewImage("abc", "4.0", DockerImageSha("23bcf2dae3"), -1, "", "")
 			model.setImageScanStatus(image.Sha, ScanStatusInQueue)
 			model.setImageScanStatus(image.Sha, ScanStatusRunningScanClient)
 			err := model.finishRunningScanClient(&image, fmt.Errorf("oops, unable to run scan client"))
@@ -273,18 +273,25 @@ func RunActionTests() {
 			Expect(image.Repository).To(Equal("docker.io/mfenwickbd/perceptor"))
 		})
 
-		It("hub data", func() {
+		It("default hub data", func() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			image := NewImage("abc", "latest", DockerImageSha(sha), 0)
+			image := NewImage("abc", "latest", DockerImageSha(sha), 0, "", "")
 			Expect(image.HubProjectName()).To(Equal("abc"))
 			Expect(image.HubProjectVersionName()).To(Equal("latest-" + sha[:20]))
 			Expect(image.HubScanName()).To(Equal(sha))
 		})
 		It("missing tag", func() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			image := NewImage("abc", "", DockerImageSha(sha), 0)
+			image := NewImage("abc", "", DockerImageSha(sha), 0, "", "")
 			Expect(image.HubProjectName()).To(Equal("abc"))
 			Expect(image.HubProjectVersionName()).To(Equal(sha[:20]))
+			Expect(image.HubScanName()).To(Equal(sha))
+		})
+		It("specific hub data", func() {
+			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+			image := NewImage("abc", "", DockerImageSha(sha), 0, "def", "ghi")
+			Expect(image.HubProjectName()).To(Equal("def"))
+			Expect(image.HubProjectVersionName()).To(Equal("ghi"))
 			Expect(image.HubScanName()).To(Equal(sha))
 		})
 	})
