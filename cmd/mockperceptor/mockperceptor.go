@@ -66,8 +66,8 @@ func main() {
 type MockPerceptorResponder struct{}
 
 // GetModel .....
-func (mr *MockPerceptorResponder) GetModel() api.Model {
-	return api.Model{}
+func (mr *MockPerceptorResponder) GetModel() (*api.Model, error) {
+	return &api.Model{}, nil
 }
 
 // AddPod .....
