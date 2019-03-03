@@ -55,7 +55,7 @@ type ImageInfo struct {
 }
 
 // GetModel .....
-func (mr *MockResponder) GetModel() Model {
+func (mr *MockResponder) GetModel() (*Model, error) {
 	// images := map[string]*ModelImageInfo{}
 	// for key, image := range mr.Images {
 	// 	scanResults := map[string]interface{}{
@@ -81,7 +81,7 @@ func (mr *MockResponder) GetModel() Model {
 	// 	Images: images,
 	// 	Pods:   mr.Pods,
 	// }
-	return Model{}
+	return &Model{}, nil
 }
 
 // perceiver

@@ -22,8 +22,10 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
@@ -175,7 +177,13 @@ func (pcp *Perceptor) UpdateConfig(config *Config) {
 	} else {
 		log.Errorf("set config, but unable to dump to string: %s", err.Error())
 	}
-	pcp.hubManager.SetHubs(config.Hub.Hosts)
+
+	hosts, err := pcp.getBlackDuckHosts()
+	if err != nil {
+		panic(err)
+	}
+
+	pcp.hubManager.SetHubs(hosts)
 	logLevel, err := config.GetLogLevel()
 	if err != nil {
 		log.Errorf("unable to get log level: %s", err.Error())
@@ -185,21 +193,46 @@ func (pcp *Perceptor) UpdateConfig(config *Config) {
 	// config.Timings
 }
 
+// getBlackDuckHosts will get the list of Black Duck hosts
+func (pcp *Perceptor) getBlackDuckHosts() ([]*Host, error) {
+	password, ok := os.LookupEnv(pcp.config.BlackDuck.PasswordEnvVar)
+	if !ok {
+		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable blackduck.json not found")
+	}
+
+	blackduckHosts := map[string]*Host{}
+	err := json.Unmarshal([]byte(password), &blackduckHosts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshall Black Duck hosts due to %+v", err)
+	}
+
+	hosts := []*Host{}
+	for _, host := range blackduckHosts {
+		hosts = append(hosts, host)
+	}
+
+	return hosts, nil
+}
+
 // Section: api.Responder implementation
 
 // GetModel .....
-func (pcp *Perceptor) GetModel() api.Model {
+func (pcp *Perceptor) GetModel() (*api.Model, error) {
 	coreModel := pcp.model.GetModel()
-	hubModels := map[string]*api.ModelHub{}
+	hubModels := map[string]*api.ModelBlackDuck{}
 	for hubURL, hub := range pcp.hubManager.HubClients() {
 		hubModels[hubURL] = <-hub.Model()
 	}
-	return api.Model{
-		CoreModel: coreModel,
-		Hubs:      hubModels,
-		Config:    pcp.config.model(),
-		Scheduler: pcp.scanScheduler.model(),
+	configModel, err := pcp.config.model()
+	if err != nil {
+		return nil, err
 	}
+	return &api.Model{
+		CoreModel:  coreModel,
+		BlackDucks: hubModels,
+		Config:     configModel,
+		Scheduler:  pcp.scanScheduler.model(),
+	}, nil
 }
 
 // AddPod .....

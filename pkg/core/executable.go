@@ -76,18 +76,11 @@ func RunPerceptor(configPath string) {
 		newHub = createMockHubClient
 	} else {
 		log.Infof("instantiating perceptor in real mode")
-		password, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
-		if !ok {
-			panic(fmt.Errorf("cannot find Hub password: environment variable %s not found", config.Hub.PasswordEnvVar))
-		}
-		newHub = createHubClient(config.Hub.User, password, config.Hub.Port, config.Perceptor.Timings.ClientTimeout())
+		newHub = createHubClient(config.Perceptor.Timings.ClientTimeout())
 	}
 
 	manager := NewHubManager(newHub, stop)
-	scanScheduler := &ScanScheduler{
-		ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
-		TotalScanLimit:      config.Hub.TotalScanLimit,
-		HubManager:          manager}
+	scanScheduler := &ScanScheduler{HubManager: manager}
 	perceptor, err := NewPerceptor(config, config.Perceptor.Timings, scanScheduler, manager)
 	if err != nil {
 		log.Errorf("unable to instantiate percepter: %s", err.Error())

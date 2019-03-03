@@ -101,7 +101,7 @@ func (model *Model) getStateMetrics() {
 	recordScanStageCounts(model.host, <-ch)
 }
 
-func (model *Model) apiModel() *api.ModelHub {
+func (model *Model) apiModel() *api.ModelBlackDuck {
 	codeLocations := map[string]*api.ModelCodeLocation{}
 	for name, scan := range model.scans {
 		cl := &api.ModelCodeLocation{Stage: scan.Stage.String()}
@@ -115,7 +115,7 @@ func (model *Model) apiModel() *api.ModelHub {
 		}
 		codeLocations[name] = cl
 	}
-	return &api.ModelHub{
+	return &api.ModelBlackDuck{
 		Errors:                    nil,
 		Status:                    "",
 		HasLoadedAllCodeLocations: model.scans != nil,
@@ -318,8 +318,8 @@ func (model *Model) ScanResults() <-chan map[string]*Scan {
 }
 
 // Model ...
-func (model *Model) Model() <-chan *api.ModelHub {
-	ch := make(chan *api.ModelHub)
+func (model *Model) Model() <-chan *api.ModelBlackDuck {
+	ch := make(chan *api.ModelBlackDuck)
 	model.actions <- &modelAction{"getModel", func() error {
 		ch <- model.apiModel()
 		return nil

@@ -49,7 +49,7 @@ var (
 	hub3Host = "hub3"
 )
 
-func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
+func newPerceptor() *Perceptor {
 	stop := make(chan struct{})
 	manager := NewHubManager(createMockHubClient, stop)
 	timings := &Timings{
@@ -59,25 +59,20 @@ func newPerceptor(concurrentScanLimit int, totalScanLimit int) *Perceptor {
 		UnknownImagePauseMilliseconds:  500,
 	}
 	config := &Config{}
-	pcp, err := NewPerceptor(config, timings,
-		&ScanScheduler{
-			HubManager:          manager,
-			ConcurrentScanLimit: concurrentScanLimit,
-			TotalScanLimit:      totalScanLimit},
-		manager)
+	pcp, err := NewPerceptor(config, timings, &ScanScheduler{HubManager: manager}, manager)
 	Expect(err).To(BeNil())
 	return pcp
 }
 
 func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perceptor {
-	concurrentScanLimit := 2
-	totalScanLimit := 5
+	// concurrentScanLimit := 2
+	// totalScanLimit := 5
 	scans := map[string][]string{
 		hub1Host: {image1.Sha, image2.Sha},
 		hub2Host: {image3.Sha},
 		hub3Host: {},
 	}
-	createClient := func(hubURL string) (*hub.Hub, error) {
+	createClient := func(scheme string, hubURL string, port int, user string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 		mockRawClient := hub.NewMockRawClient(false, scans[hubURL])
 		hubTimings := &hub.Timings{
 			ScanCompletionPause:    1 * time.Minute,
@@ -87,7 +82,7 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 			LoginPause:             hub.DefaultTimings.LoginPause,
 			RefreshScanThreshold:   hub.DefaultTimings.RefreshScanThreshold,
 		}
-		return hub.NewHub("mock-username", "mock-password", hubURL, mockRawClient, hubTimings), nil
+		return hub.NewHub("mock-username", "mock-password", hubURL, concurrentScanLimit, mockRawClient, hubTimings), nil
 	}
 
 	stop := make(chan struct{})
@@ -102,13 +97,14 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 		Perceptor: &PerceptorConfig{
 			Timings: &Timings{},
 		},
-		Hub: &HubConfig{},
+		BlackDuck: &BlackDuckConfig{},
 	}
 	pcp, err := NewPerceptor(config, timings,
 		&ScanScheduler{
-			HubManager:          manager,
-			ConcurrentScanLimit: concurrentScanLimit,
-			TotalScanLimit:      totalScanLimit},
+			HubManager: manager,
+			// ConcurrentScanLimit: concurrentScanLimit,
+			// TotalScanLimit:      totalScanLimit,
+		},
 		manager)
 	Expect(err).To(BeNil())
 	return pcp
@@ -130,7 +126,7 @@ func makeImageSpec(image *api.Image, hub string) *api.ImageSpec {
 func RunTestPerceptor() {
 	Describe("Perceptor", func() {
 		It("should experience unblocked channel communication", func() {
-			pcp := newPerceptor(2, 5)
+			pcp := newPerceptor()
 			sha1, err := m.NewDockerImageSha(image1.Sha)
 			Expect(err).To(BeNil())
 			imageSpec := makeImageSpec(&image1, "hub1")
@@ -140,7 +136,7 @@ func RunTestPerceptor() {
 			Expect(len(pcp.model.Images)).To(Equal(1))
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusUnknown))
 
-			pcp.hubManager.SetHubs([]string{"hub1"})
+			pcp.hubManager.SetHubs([]*Host{{"https", "hub1", 8443, "mock-username", "mock-password", 2}})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
@@ -152,7 +148,7 @@ func RunTestPerceptor() {
 		})
 
 		It("should not assign scans when there are no hubs", func() {
-			pcp := newPerceptor(2, 5)
+			pcp := newPerceptor()
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1},
 			})
@@ -160,21 +156,29 @@ func RunTestPerceptor() {
 		})
 
 		It("should not assign scans when the concurrent scan limit is 0", func() {
-			pcp := newPerceptor(0, 5)
+			pcp := newPerceptor()
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1},
 			})
-			pcp.hubManager.SetHubs([]string{"hub1", "hub2", "hub3"})
+			pcp.hubManager.SetHubs([]*Host{
+				{"https", "hub1", 8443, "mock-username", "mock-password", 0},
+				{"https", "hub2", 8443, "mock-username", "mock-password", 0},
+				{"https", "hub3", 8443, "mock-username", "mock-password", 0},
+			})
 			time.Sleep(1 * time.Second)
 			Expect(pcp.GetNextImage()).To(Equal(api.NextImage{}))
 		})
 
 		It("should assign scans to different hubs, not exceeding the concurrent scan limit of any hub", func() {
-			pcp := newPerceptor(1, 5)
+			pcp := newPerceptor()
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
-			pcp.hubManager.SetHubs([]string{"hub1", "hub2", "hub3"})
+			pcp.hubManager.SetHubs([]*Host{
+				{"https", "hub1", 8443, "mock-username", "mock-password", 1},
+				{"https", "hub2", 8443, "mock-username", "mock-password", 1},
+				{"https", "hub3", 8443, "mock-username", "mock-password", 1},
+			})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(5))
@@ -199,11 +203,11 @@ func RunTestPerceptor() {
 		})
 
 		It("should handle scan client failure", func() {
-			pcp := newPerceptor(2, 5)
+			pcp := newPerceptor()
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2},
 			})
-			pcp.hubManager.SetHubs([]string{"hub1"})
+			pcp.hubManager.SetHubs([]*Host{{"https", "hub1", 8443, "mock-username", "mock-password", 2}})
 			time.Sleep(1 * time.Second)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
@@ -227,7 +231,11 @@ func RunTestPerceptor() {
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
-			pcp.hubManager.SetHubs([]string{hub1Host, hub2Host, hub3Host})
+			pcp.hubManager.SetHubs([]*Host{
+				{"https", "hub1", 8443, "mock-username", "mock-password", 2},
+				{"https", "hub2", 8443, "mock-username", "mock-password", 2},
+				{"https", "hub3", 8443, "mock-username", "mock-password", 2},
+			})
 			time.Sleep(1 * time.Second)
 
 			// jbs, _ := json.MarshalIndent(pcp.GetModel(), "", "  ")
@@ -242,11 +250,11 @@ func RunTestPerceptor() {
 		})
 
 		It("should not return the same image to scan twice", func() {
-			pcp := newPerceptor(2, 5)
+			pcp := newPerceptor()
 			pcp.UpdateAllImages(api.AllImages{
 				Images: []api.Image{image1, image2, image3, image4, image5},
 			})
-			pcp.hubManager.SetHubs([]string{"hub1"})
+			pcp.hubManager.SetHubs([]*Host{{"https", "hub1", 8443, "mock-username", "mock-password", 2}})
 			time.Sleep(1 * time.Second)
 
 			var i1 *api.NextImage

@@ -27,7 +27,7 @@ import (
 
 // Responder .....
 type Responder interface {
-	GetModel() Model
+	GetModel() (*Model, error)
 
 	// perceiver
 	AddPod(pod Pod) error

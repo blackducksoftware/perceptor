@@ -35,7 +35,12 @@ func SetupHTTPServer(responder Responder) {
 	// state of the program
 	http.HandleFunc("/model", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			jsonBytes, err := json.MarshalIndent(responder.GetModel(), "", "  ")
+			model, err := responder.GetModel()
+			if err != nil {
+				responder.Error(w, r, err, 500)
+				return
+			}
+			jsonBytes, err := json.MarshalIndent(model, "", "  ")
 			if err != nil {
 				responder.Error(w, r, err, 500)
 				return

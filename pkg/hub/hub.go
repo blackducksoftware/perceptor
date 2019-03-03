@@ -39,8 +39,9 @@ type hubAction struct {
 type Hub struct {
 	client *Client
 	// basic hub info
-	host   string
-	status ClientStatus
+	host                 string
+	concurrrentScanLimit int
+	status               ClientStatus
 	// data
 	model  *Model
 	errors []error
@@ -57,15 +58,16 @@ type Hub struct {
 }
 
 // NewHub returns a new Hub.  It will not be logged in.
-func NewHub(username string, password string, host string, rawClient RawClientInterface, timings *Timings) *Hub {
+func NewHub(username string, password string, host string, concurrentScanLimit int, rawClient RawClientInterface, timings *Timings) *Hub {
 	hub := &Hub{
-		client:  NewClient(username, password, host, rawClient),
-		host:    host,
-		status:  ClientStatusDown,
-		model:   nil,
-		errors:  []error{},
-		stop:    make(chan struct{}),
-		actions: make(chan *hubAction)}
+		client:               NewClient(username, password, host, rawClient),
+		host:                 host,
+		concurrrentScanLimit: concurrentScanLimit,
+		status:               ClientStatusDown,
+		model:                nil,
+		errors:               []error{},
+		stop:                 make(chan struct{}),
+		actions:              make(chan *hubAction)}
 	// model setup
 	hub.model = NewModel(host, hub.stop, func(scanName string) (*ScanResults, error) {
 		return hub.client.fetchScan(scanName)
@@ -114,7 +116,7 @@ func (hub *Hub) recordError(description string, err error) {
 	}
 }
 
-func (hub *Hub) apiModel() *api.ModelHub {
+func (hub *Hub) apiModel() *api.ModelBlackDuck {
 	errors := make([]string, len(hub.errors))
 	for ix, err := range hub.errors {
 		errors[ix] = err.Error()
@@ -250,6 +252,11 @@ func (hub *Hub) Host() string {
 	return hub.host
 }
 
+// ConcurrentScanLimit ...
+func (hub *Hub) ConcurrentScanLimit() int {
+	return hub.concurrrentScanLimit
+}
+
 // ResetCircuitBreaker ...
 func (hub *Hub) ResetCircuitBreaker() {
 	recordEvent(hub.host, "resetCircuitBreaker")
@@ -257,8 +264,8 @@ func (hub *Hub) ResetCircuitBreaker() {
 }
 
 // Model ...
-func (hub *Hub) Model() <-chan *api.ModelHub {
-	ch := make(chan *api.ModelHub)
+func (hub *Hub) Model() <-chan *api.ModelBlackDuck {
+	ch := make(chan *api.ModelBlackDuck)
 	hub.actions <- &hubAction{"getModel", func() error {
 		ch <- hub.apiModel()
 		return nil

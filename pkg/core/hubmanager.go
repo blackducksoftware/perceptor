@@ -33,25 +33,25 @@ import (
 
 var commonMistakesRegex = regexp.MustCompile("(http|://|:\\d+)")
 
-type hubClientCreator func(host string) (*hub.Hub, error)
+type hubClientCreator func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error)
 
-func createMockHubClient(hubURL string) (*hub.Hub, error) {
+func createMockHubClient(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 	mockRawClient := hub.NewMockRawClient(false, []string{})
-	return hub.NewHub("mock-username", "mock-password", hubURL, mockRawClient, hub.DefaultTimings), nil
+	return hub.NewHub(username, password, host, concurrentScanLimit, mockRawClient, hub.DefaultTimings), nil
 }
 
-func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
-	return func(host string) (*hub.Hub, error) {
+func createHubClient(httpTimeout time.Duration) hubClientCreator {
+	return func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 		potentialProblems := commonMistakesRegex.FindAllString(host, -1)
 		if len(potentialProblems) > 0 {
 			log.Warnf("Hub host %s may be invalid, potential problems are: %s", host, potentialProblems)
 		}
-		baseURL := fmt.Sprintf("https://%s:%d", host, port)
+		baseURL := fmt.Sprintf("%s://%s:%d", scheme, host, port)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
 			return nil, err
 		}
-		return hub.NewHub(username, password, host, rawClient, hub.DefaultTimings), nil
+		return hub.NewHub(username, password, host, concurrentScanLimit, rawClient, hub.DefaultTimings), nil
 	}
 }
 
@@ -63,7 +63,7 @@ type Update struct {
 
 // HubManagerInterface ...
 type HubManagerInterface interface {
-	SetHubs(hubURLs []string)
+	SetHubs(hubs []*Host)
 	HubClients() map[string]*hub.Hub
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string, err error) error
@@ -96,10 +96,10 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 }
 
 // SetHubs ...
-func (hm *HubManager) SetHubs(hubURLs []string) {
+func (hm *HubManager) SetHubs(hubs []*Host) {
 	newHubURLs := map[string]bool{}
-	for _, hubURL := range hubURLs {
-		newHubURLs[hubURL] = true
+	for _, hub := range hubs {
+		newHubURLs[hub.Domain] = true
 	}
 	hubsToCreate := map[string]bool{}
 	for hubURL := range newHubURLs {
@@ -110,10 +110,12 @@ func (hm *HubManager) SetHubs(hubURLs []string) {
 	// 1. create new hubs
 	// TODO handle retries and failures intelligently
 	go func() {
-		for hubURL := range hubsToCreate {
-			err := hm.create(hubURL)
-			if err != nil {
-				log.Errorf("unable to create Hub client for %s: %s", hubURL, err.Error())
+		for _, hub := range hubs {
+			if _, ok := hm.hubs[hub.Domain]; !ok {
+				err := hm.create(hub.Scheme, hub.Domain, hub.Port, hub.User, hub.Password, hub.ConcurrentScanLimit)
+				if err != nil {
+					log.Errorf("unable to create Hub client for %s: %s", hub.Domain, err.Error())
+				}
 			}
 		}
 	}()
@@ -126,15 +128,15 @@ func (hm *HubManager) SetHubs(hubURLs []string) {
 	}
 }
 
-func (hm *HubManager) create(hubURL string) error {
-	if _, ok := hm.hubs[hubURL]; ok {
-		return fmt.Errorf("cannot create hub %s: already exists", hubURL)
+func (hm *HubManager) create(scheme string, host string, port int, username string, password string, concurrentScanLimit int) error {
+	if _, ok := hm.hubs[host]; ok {
+		return fmt.Errorf("cannot create hub %s: already exists", host)
 	}
-	hubClient, err := hm.newHub(hubURL)
+	hubClient, err := hm.newHub(scheme, host, port, username, password, concurrentScanLimit)
 	if err != nil {
 		return err
 	}
-	hm.hubs[hubURL] = hubClient
+	hm.hubs[host] = hubClient
 	go func() {
 		stop := hubClient.StopCh()
 		updates := hubClient.Updates()
@@ -143,7 +145,7 @@ func (hm *HubManager) create(hubURL string) error {
 			case <-stop:
 				return
 			case nextUpdate := <-updates:
-				hm.updates <- &Update{HubURL: hubURL, Update: nextUpdate}
+				hm.updates <- &Update{HubURL: host, Update: nextUpdate}
 			}
 		}
 	}()
