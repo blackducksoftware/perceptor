@@ -26,7 +26,11 @@ type ImageSpec struct {
 	Repository            string
 	Tag                   string
 	Sha                   string
-	HubURL                string
+	Scheme                string
+	Domain                string
+	Port                  int
+	User                  string
+	Password              string
 	HubProjectName        string
 	HubProjectVersionName string
 	HubScanName           string

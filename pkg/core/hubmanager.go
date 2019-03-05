@@ -63,7 +63,7 @@ type Update struct {
 
 // HubManagerInterface ...
 type HubManagerInterface interface {
-	SetHubs(hubs []*Host)
+	SetHubs(hubs map[string]*Host)
 	HubClients() map[string]*hub.Hub
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string, err error) error
@@ -96,7 +96,7 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 }
 
 // SetHubs ...
-func (hm *HubManager) SetHubs(hubs []*Host) {
+func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	newHubURLs := map[string]bool{}
 	for _, hub := range hubs {
 		newHubURLs[hub.Domain] = true
