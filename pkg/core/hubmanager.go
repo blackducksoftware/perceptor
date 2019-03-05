@@ -47,6 +47,7 @@ func createHubClient(httpTimeout time.Duration) hubClientCreator {
 			log.Warnf("Hub host %s may be invalid, potential problems are: %s", host, potentialProblems)
 		}
 		baseURL := fmt.Sprintf("%s://%s:%d", scheme, host, port)
+		log.Debugf("creating Black Duck client with base URL: %s", baseURL)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
 			return nil, err
@@ -110,8 +111,9 @@ func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	// 1. create new hubs
 	// TODO handle retries and failures intelligently
 	go func() {
-		for _, hub := range hubs {
-			if _, ok := hm.hubs[hub.Domain]; !ok {
+		for host := range hubsToCreate {
+			if _, ok := hm.hubs[host]; !ok {
+				hub := hubs[host]
 				err := hm.create(hub.Scheme, hub.Domain, hub.Port, hub.User, hub.Password, hub.ConcurrentScanLimit)
 				if err != nil {
 					log.Errorf("unable to create Hub client for %s: %s", hub.Domain, err.Error())
