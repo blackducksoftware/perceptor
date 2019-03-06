@@ -47,7 +47,7 @@ func createHubClient(httpTimeout time.Duration) hubClientCreator {
 			log.Warnf("Hub host %s may be invalid, potential problems are: %s", host, potentialProblems)
 		}
 		baseURL := fmt.Sprintf("%s://%s:%d", scheme, host, port)
-		log.Debugf("creating Black Duck client with base URL: %s, username: %s, password: %s", baseURL, username, password)
+		log.Debugf("creating Black Duck client with base URL: %s", baseURL)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
 			return nil, err

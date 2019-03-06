@@ -23,6 +23,6 @@ package api
 
 // FinishedScanClientJob .....
 type FinishedScanClientJob struct {
-	ImageSpec ImageSpec
+	ImageSpec *ImageSpec
 	Err       string
 }
