@@ -163,7 +163,7 @@ func RunTestPerceptor() {
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusInQueue))
 			Expect(pcp.GetNextImage()).To(Equal(nextImage))
-			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{ImageSpec: *imageSpec, Err: ""})).To(BeNil())
+			Expect(pcp.PostFinishScan(api.FinishedScanClientJob{ImageSpec: imageSpec, Err: ""})).To(BeNil())
 			time.Sleep(500 * time.Millisecond)
 
 			Expect(pcp.model.Images[sha1].ScanStatus).To(Equal(m.ScanStatusRunningHubScan))
@@ -260,7 +260,7 @@ func RunTestPerceptor() {
 			time.Sleep(500 * time.Millisecond)
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(1))
 
-			pcp.PostFinishScan(api.FinishedScanClientJob{Err: "planned error", ImageSpec: *next1.ImageSpec})
+			pcp.PostFinishScan(api.FinishedScanClientJob{Err: "planned error", ImageSpec: next1.ImageSpec})
 			time.Sleep(500 * time.Millisecond)
 
 			Expect(pcp.model.ImageScanQueue.Size()).To(Equal(2))
