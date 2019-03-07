@@ -43,8 +43,8 @@ type Host struct {
 
 // BlackDuckConfig handles BlackDuck-specific configuration
 type BlackDuckConfig struct {
-	PasswordEnvVar  string
-	TLSVerification bool
+	BlackDuckConnectionsEnvVar string
+	TLSVerification            bool
 }
 
 // Timings ...
@@ -97,9 +97,9 @@ type Config struct {
 
 // getModelBlackDuckHosts will get the list of Black Duck hosts
 func (config *Config) getModelBlackDuckHosts() ([]*api.ModelHost, error) {
-	password, ok := os.LookupEnv(config.BlackDuck.PasswordEnvVar)
+	password, ok := os.LookupEnv(config.BlackDuck.BlackDuckConnectionsEnvVar)
 	if !ok {
-		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable blackduck.json not found")
+		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.BlackDuckConnectionsEnvVar)
 	}
 
 	blackduckHosts := map[string]*api.ModelHost{}

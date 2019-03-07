@@ -177,9 +177,9 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 
 // getBlackDuckHosts will get the list of Black Duck hosts
 func getBlackDuckHosts(config *Config) (map[string]*Host, error) {
-	password, ok := os.LookupEnv(config.BlackDuck.PasswordEnvVar)
+	password, ok := os.LookupEnv(config.BlackDuck.BlackDuckConnectionsEnvVar)
 	if !ok {
-		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.PasswordEnvVar)
+		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.BlackDuckConnectionsEnvVar)
 	}
 
 	blackduckHosts := map[string]*Host{}
