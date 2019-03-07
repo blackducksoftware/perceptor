@@ -76,12 +76,8 @@ func (cm *ConfigManager) GetConfig() (*Config, error) {
 		viper.BindEnv("Perceptor.Timings.UnknownImagePauseMilliseconds")
 		viper.BindEnv("Perceptor.Timings.ClientTimeoutMilliseconds")
 
-		viper.BindEnv("Hub.Hosts")
-		viper.BindEnv("Hub.User")
-		viper.BindEnv("Hub.TotalScanLimit")
-		viper.BindEnv("Hub.Port")
-		viper.BindEnv("Hub.PasswordEnvVar")
-		viper.BindEnv("Hub.ConcurrentScanLimit")
+		viper.BindEnv("Blackduck.ConnectionsEnvironmentVariableName")
+		viper.BindEnv("Blackduck.TLSVerification")
 
 		viper.BindEnv("LogLevel")
 
