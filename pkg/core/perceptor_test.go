@@ -60,7 +60,7 @@ func newPerceptor() *Perceptor {
 		StalledScanClientTimeoutHours:  9999,
 		UnknownImagePauseMilliseconds:  500,
 	}
-	config := &Config{BlackDuck: &BlackDuckConfig{BlackDuckConnectionsEnvVar: "blackduck.json", TLSVerification: false}}
+	config := &Config{BlackDuck: &BlackDuckConfig{ConnectionsEnvironmentVariableName: "blackduck.json", TLSVerification: false}}
 	hosts := map[string]*Host{
 		"hub1": {"https", "hub1", 8443, "mock-username", "mock-password", 2},
 		"hub2": {"https", "hub2", 8443, "mock-username", "mock-password", 2},
@@ -107,7 +107,7 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 		Perceptor: &PerceptorConfig{
 			Timings: &Timings{},
 		},
-		BlackDuck: &BlackDuckConfig{BlackDuckConnectionsEnvVar: "blackduck.json", TLSVerification: false},
+		BlackDuck: &BlackDuckConfig{ConnectionsEnvironmentVariableName: "blackduck.json", TLSVerification: false},
 	}
 	hosts := map[string]*Host{
 		"hub1": {"https", "hub1", 8443, "mock-username", "mock-password", 2},
