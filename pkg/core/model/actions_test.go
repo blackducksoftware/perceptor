@@ -276,23 +276,23 @@ func RunActionTests() {
 		It("default hub data", func() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			image := NewImage("abc", "latest", DockerImageSha(sha), 0, "", "")
-			Expect(image.HubProjectName()).To(Equal("abc"))
-			Expect(image.HubProjectVersionName()).To(Equal("latest-" + sha[:20]))
-			Expect(image.HubScanName()).To(Equal(sha))
+			Expect(image.GetBlackDuckProjectName()).To(Equal("abc"))
+			Expect(image.GetBlackDuckProjectVersionName()).To(Equal("latest-" + sha[:20]))
+			Expect(image.GetBlackDuckScanName()).To(Equal(sha))
 		})
 		It("missing tag", func() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			image := NewImage("abc", "", DockerImageSha(sha), 0, "", "")
-			Expect(image.HubProjectName()).To(Equal("abc"))
-			Expect(image.HubProjectVersionName()).To(Equal(sha[:20]))
-			Expect(image.HubScanName()).To(Equal(sha))
+			Expect(image.GetBlackDuckProjectName()).To(Equal("abc"))
+			Expect(image.GetBlackDuckProjectVersionName()).To(Equal(sha[:20]))
+			Expect(image.GetBlackDuckScanName()).To(Equal(sha))
 		})
 		It("specific hub data", func() {
 			sha := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 			image := NewImage("abc", "", DockerImageSha(sha), 0, "def", "ghi")
-			Expect(image.HubProjectName()).To(Equal("def"))
-			Expect(image.HubProjectVersionName()).To(Equal("ghi"))
-			Expect(image.HubScanName()).To(Equal(sha))
+			Expect(image.GetBlackDuckProjectName()).To(Equal("def"))
+			Expect(image.GetBlackDuckProjectVersionName()).To(Equal("ghi"))
+			Expect(image.GetBlackDuckScanName()).To(Equal(sha))
 		})
 	})
 	Describe("metrics", func() {

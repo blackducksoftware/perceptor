@@ -130,18 +130,18 @@ func newPerceptorPrepopulatedClients(fetchUnknownScansPause time.Duration) *Perc
 
 func makeImageSpec(image *api.Image, host *Host) *api.ImageSpec {
 	return &api.ImageSpec{
-		HubProjectName:        image.Repository,
-		HubProjectVersionName: fmt.Sprintf("%s-%s", image.Tag, image.Sha[:20]),
-		HubScanName:           image.Sha,
-		Scheme:                host.Scheme,
-		Domain:                host.Domain,
-		Port:                  host.Port,
-		User:                  host.User,
-		Password:              host.Password,
-		Repository:            image.Repository,
-		Sha:                   image.Sha,
-		Tag:                   image.Tag,
-		Priority:              *image.Priority,
+		BlackDuckProjectName:        image.Repository,
+		BlackDuckProjectVersionName: fmt.Sprintf("%s-%s", image.Tag, image.Sha[:20]),
+		BlackDuckScanName:           image.Sha,
+		Scheme:                      host.Scheme,
+		Domain:                      host.Domain,
+		Port:                        host.Port,
+		User:                        host.User,
+		Password:                    host.Password,
+		Repository:                  image.Repository,
+		Sha:                         image.Sha,
+		Tag:                         image.Tag,
+		Priority:                    *image.Priority,
 	}
 }
 

@@ -46,16 +46,16 @@ func (image Image) shaPrefix() string {
 
 // These strings are for the scanner
 
-// HubProjectName .....
-func (image Image) HubProjectName() string {
+// GetBlackDuckProjectName .....
+func (image Image) GetBlackDuckProjectName() string {
 	if image.BlackDuckProjectName != "" {
 		return image.BlackDuckProjectName
 	}
 	return image.Repository
 }
 
-// HubProjectVersionName .....
-func (image Image) HubProjectVersionName() string {
+// GetBlackDuckProjectVersionName .....
+func (image Image) GetBlackDuckProjectVersionName() string {
 	if image.BlackDuckProjectVersion != "" {
 		return image.BlackDuckProjectVersion
 	}
@@ -67,8 +67,8 @@ func (image Image) HubProjectVersionName() string {
 	return fmt.Sprintf("%s%s", tag, image.shaPrefix())
 }
 
-// HubScanName .....
-func (image Image) HubScanName() string {
+// GetBlackDuckScanName .....
+func (image Image) GetBlackDuckScanName() string {
 	return string(image.Sha)
 }
 

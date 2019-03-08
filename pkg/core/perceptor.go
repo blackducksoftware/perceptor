@@ -338,18 +338,18 @@ func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
 
 	if host, ok := pcp.hosts[hub.Host()]; ok {
 		finish(&api.ImageSpec{
-			Repository:            image.Repository,
-			Tag:                   image.Tag,
-			Sha:                   string(image.Sha),
-			Scheme:                host.Scheme,
-			Domain:                host.Domain,
-			Port:                  host.Port,
-			User:                  host.User,
-			Password:              host.Password,
-			HubProjectName:        image.HubProjectName(),
-			HubProjectVersionName: image.HubProjectVersionName(),
-			HubScanName:           image.HubScanName(),
-			Priority:              image.Priority})
+			Repository:                  image.Repository,
+			Tag:                         image.Tag,
+			Sha:                         string(image.Sha),
+			Scheme:                      host.Scheme,
+			Domain:                      host.Domain,
+			Port:                        host.Port,
+			User:                        host.User,
+			Password:                    host.Password,
+			BlackDuckProjectName:        image.GetBlackDuckProjectName(),
+			BlackDuckProjectVersionName: image.GetBlackDuckProjectVersionName(),
+			BlackDuckScanName:           image.GetBlackDuckScanName(),
+			Priority:                    image.Priority})
 		log.Debugf("handle didStartScan")
 		pcp.model.StartScanClient(image.Sha)
 		pcp.hubManager.StartScanClient(hub.Host(), string(image.Sha))
@@ -378,11 +378,11 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 		if job.Err != "" {
 			scanErr = fmt.Errorf(job.Err)
 		}
-		err := pcp.hubManager.FinishScanClient(job.ImageSpec.Domain, job.ImageSpec.HubScanName, scanErr)
+		err := pcp.hubManager.FinishScanClient(job.ImageSpec.Domain, job.ImageSpec.BlackDuckScanName, scanErr)
 		if err != nil {
-			log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.Domain, job.ImageSpec.HubScanName)
+			log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.Domain, job.ImageSpec.BlackDuckScanName)
 		}
-		image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority, job.ImageSpec.HubProjectName, job.ImageSpec.HubProjectVersionName)
+		image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority, job.ImageSpec.BlackDuckProjectName, job.ImageSpec.BlackDuckProjectVersionName)
 		pcp.model.FinishScanJob(image, scanErr)
 	}()
 	log.Debugf("handled finished scan job -- %v", job)

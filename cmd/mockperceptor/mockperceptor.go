@@ -119,18 +119,18 @@ func (mr *MockPerceptorResponder) GetNextImage() api.NextImage {
 	log.Info("GetNextImage")
 	start := time.Now().String()
 	imageSpec := api.ImageSpec{
-		Repository:            "docker.io/alpine",
-		Tag:                   "latest",
-		Sha:                   "621c2f39f8133acb8e64023a94dbdf0d5ca81896102b9e57c0dc184cadaf5528",
-		Scheme:                "https",
-		Domain:                "",
-		Port:                  8443,
-		User:                  "mock-username",
-		Password:              "mock-password",
-		HubProjectName:        "string",
-		HubProjectVersionName: "string",
-		HubScanName:           start,
-		Priority:              1,
+		Repository:                  "docker.io/alpine",
+		Tag:                         "latest",
+		Sha:                         "621c2f39f8133acb8e64023a94dbdf0d5ca81896102b9e57c0dc184cadaf5528",
+		Scheme:                      "https",
+		Domain:                      "",
+		Port:                        8443,
+		User:                        "mock-username",
+		Password:                    "mock-password",
+		BlackDuckProjectName:        "string",
+		BlackDuckProjectVersionName: "string",
+		BlackDuckScanName:           start,
+		Priority:                    1,
 	}
 	return api.NextImage{ImageSpec: &imageSpec}
 }
