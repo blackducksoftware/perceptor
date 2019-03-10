@@ -97,13 +97,13 @@ type Config struct {
 
 // getModelBlackDuckHosts will get the list of Black Duck hosts
 func (config *Config) getModelBlackDuckHosts() ([]*api.ModelHost, error) {
-	password, ok := os.LookupEnv(config.BlackDuck.ConnectionsEnvironmentVariableName)
+	connectionStrings, ok := os.LookupEnv(config.BlackDuck.ConnectionsEnvironmentVariableName)
 	if !ok {
 		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.ConnectionsEnvironmentVariableName)
 	}
 
 	blackduckHosts := map[string]*api.ModelHost{}
-	err := json.Unmarshal([]byte(password), &blackduckHosts)
+	err := json.Unmarshal([]byte(connectionStrings), &blackduckHosts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshall Black Duck hosts due to %+v", err)
 	}

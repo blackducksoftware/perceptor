@@ -98,12 +98,8 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 
 // SetHubs ...
 func (hm *HubManager) SetHubs(hubs map[string]*Host) {
-	newHubURLs := map[string]bool{}
-	for _, hub := range hubs {
-		newHubURLs[hub.Domain] = true
-	}
 	hubsToCreate := map[string]bool{}
-	for hubURL := range newHubURLs {
+	for hubURL := range hubs {
 		if _, ok := hm.hubs[hubURL]; !ok {
 			hubsToCreate[hubURL] = true
 		}
@@ -123,7 +119,7 @@ func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	}()
 	// 2. delete removed hubs
 	for hubURL, hub := range hm.hubs {
-		if _, ok := newHubURLs[hubURL]; !ok {
+		if _, ok := hubs[hubURL]; !ok {
 			hub.Stop()
 			delete(hm.hubs, hubURL)
 		}

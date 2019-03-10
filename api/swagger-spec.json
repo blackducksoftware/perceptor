@@ -417,11 +417,11 @@
           "type": "string"
         },
         "Scheme": {
-          "description": "The Scheme of the Black Duck instance. Currently, supported only https",
+          "description": "The Scheme of the Black Duck instance. Currently only https is supported",
           "type": "string"
         },
         "Domain": {
-          "description": "The Domain or Host name or IP address of the Black Duck instance",
+          "description": "The Domain name of the Black Duck instance",
           "type": "string"
         },
         "Port": {
@@ -430,23 +430,23 @@
           "format": "int"
         },
         "User": {
-          "description": "The User name of the Black Duck instance",
+          "description": "The name of the user that can access the Black Duck instance",
           "type": "string"
         },
         "Password": {
-          "description": "The Password of the Black Duck instance",
+          "description": "The password for the user that can access the Blackduck instance",
           "type": "string"
         },
         "BlackDuckProjectName": {
-          "description": "The Black Duck project name",
+          "description": "The name of the project to use in the Black Duck instance",
           "type": "string"
         },
         "BlackDuckProjectVersionName": {
-          "description": "The Black Duck project version name",
+          "description": "The name of the project version to use in the Black Duck instance",
           "type": "string"
         },
         "BlackDuckScanName": {
-          "description": "The Black Duck scan name",
+          "description": "The name of the scan to use in the Black Duck instance",
           "type": "string"
         },
         "Priority": {
@@ -607,7 +607,7 @@
           "type": "integer"
         },
         "ClientTimeoutMilliseconds": {
-          "description": "The timeout for HTTP requests issued to the Black Duck",
+          "description": "The timeout for HTTP requests issued to the Black Duck instance",
           "type": "integer"
         },
         "LogLevel": {
