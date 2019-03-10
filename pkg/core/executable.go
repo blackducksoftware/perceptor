@@ -28,15 +28,13 @@ import (
 	"os"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
-
 	// import just for the side-effect of changing how logrus works
 	_ "github.com/blackducksoftware/perceptor/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
-
 	log "github.com/sirupsen/logrus"
 )
 
-// RunPerceptor .....
+// RunPerceptor starts the perceptor
 func RunPerceptor(configPath string) {
 	log.Info("start")
 

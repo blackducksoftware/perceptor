@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// Responder .....
+// Responder interface stores all the methods corresponding to Perceptor api
 type Responder interface {
 	GetModel() (*Model, error)
 

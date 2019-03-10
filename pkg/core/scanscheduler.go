@@ -27,7 +27,7 @@ import (
 	"github.com/blackducksoftware/perceptor/pkg/hub"
 )
 
-// ScanScheduler ...
+// ScanScheduler stores the scan scheduler
 type ScanScheduler struct {
 	HubManager HubManagerInterface
 }

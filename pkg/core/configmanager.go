@@ -42,7 +42,7 @@ type ConfigManager struct {
 	readConfigTimer *util.Timer
 }
 
-// NewConfigManager ...
+// NewConfigManager returns the configuration manager
 func NewConfigManager(configPath string, stop <-chan struct{}) *ConfigManager {
 	cm := &ConfigManager{
 		ConfigPath:      configPath,

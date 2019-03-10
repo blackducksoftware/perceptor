@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
-
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,7 +34,7 @@ type modelAction struct {
 	apply func() error
 }
 
-// Model .....
+// Model stores the Black Duck model
 type Model struct {
 	host             string
 	hasFetchedScans  bool
@@ -46,7 +45,7 @@ type Model struct {
 	actions          chan *modelAction
 }
 
-// NewModel ...
+// NewModel return the Black Duck model
 func NewModel(host string, stop <-chan struct{}, fetchScan func(string) (*ScanResults, error)) *Model {
 	model := &Model{
 		host:             host,
@@ -244,7 +243,7 @@ func (model *Model) checkScansForCompletion() {
 
 // Some public API methods ...
 
-// StartScanClient ...
+// StartScanClient starts the scan client
 func (model *Model) StartScanClient(scanName string) {
 	model.actions <- &modelAction{"startScanClient", func() error {
 		model.scans[scanName] = &Scan{Stage: ScanStageScanClient}
@@ -252,7 +251,7 @@ func (model *Model) StartScanClient(scanName string) {
 	}}
 }
 
-// FinishScanClient ...
+// FinishScanClient finishes the scan client
 func (model *Model) FinishScanClient(scanName string, scanErr error) {
 	model.actions <- &modelAction{"finishScanClient", func() error {
 		scan, ok := model.scans[scanName]
@@ -271,7 +270,7 @@ func (model *Model) FinishScanClient(scanName string, scanErr error) {
 	}}
 }
 
-// ScansCount ...
+// ScansCount returns the scan count
 func (model *Model) ScansCount() <-chan int {
 	ch := make(chan int)
 	model.actions <- &modelAction{"getScansCount", func() error {
@@ -287,7 +286,7 @@ func (model *Model) ScansCount() <-chan int {
 	return ch
 }
 
-// InProgressScans ...
+// InProgressScans returns the inprogress scan count
 func (model *Model) InProgressScans() <-chan []string {
 	ch := make(chan []string)
 	model.actions <- &modelAction{"getInProgressScans", func() error {
@@ -303,7 +302,7 @@ func (model *Model) InProgressScans() <-chan []string {
 	return ch
 }
 
-// ScanResults ...
+// ScanResults returns the scan results
 func (model *Model) ScanResults() <-chan map[string]*Scan {
 	ch := make(chan map[string]*Scan)
 	model.actions <- &modelAction{"getScanResults", func() error {
@@ -317,7 +316,7 @@ func (model *Model) ScanResults() <-chan map[string]*Scan {
 	return ch
 }
 
-// Model ...
+// Model returns the model
 func (model *Model) Model() <-chan *api.ModelBlackDuck {
 	ch := make(chan *api.ModelBlackDuck)
 	model.actions <- &modelAction{"getModel", func() error {
@@ -327,7 +326,7 @@ func (model *Model) Model() <-chan *api.ModelBlackDuck {
 	return ch
 }
 
-// HasFetchedScans ...
+// HasFetchedScans checks whether there is any has fetched scans
 func (model *Model) HasFetchedScans() <-chan bool {
 	ch := make(chan bool)
 	model.actions <- &modelAction{"hasFetchedScans", func() error {
@@ -337,7 +336,7 @@ func (model *Model) HasFetchedScans() <-chan bool {
 	return ch
 }
 
-// Updates ...
+// Updates publish the updates
 func (model *Model) Updates() <-chan Update {
 	return model.publishUpdatesCh
 }

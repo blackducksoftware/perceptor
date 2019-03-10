@@ -21,7 +21,7 @@ under the License.
 
 package api
 
-// ImageSpec .....
+// ImageSpec stores the Image specification
 type ImageSpec struct {
 	Repository                  string
 	Tag                         string

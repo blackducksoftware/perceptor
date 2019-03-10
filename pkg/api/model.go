@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-// Model ...
+// Model stores the perceptor model
 type Model struct {
 	BlackDucks map[string]*ModelBlackDuck
 	CoreModel  *CoreModel

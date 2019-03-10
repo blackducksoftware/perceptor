@@ -21,7 +21,7 @@ under the License.
 
 package api
 
-// FinishedScanClientJob .....
+// FinishedScanClientJob stores the scan client job finished status
 type FinishedScanClientJob struct {
 	ImageSpec *ImageSpec
 	Err       string

@@ -212,7 +212,7 @@ func (pcp *Perceptor) UpdateConfig(config *Config) {
 
 // Section: api.Responder implementation
 
-// GetModel .....
+// GetModel returns the api model
 func (pcp *Perceptor) GetModel() (*api.Model, error) {
 	coreModel := pcp.model.GetModel()
 	hubModels := map[string]*api.ModelBlackDuck{}
@@ -231,7 +231,7 @@ func (pcp *Perceptor) GetModel() (*api.Model, error) {
 	}, nil
 }
 
-// AddPod .....
+// AddPod adds the pod to the model
 func (pcp *Perceptor) AddPod(apiPod api.Pod) error {
 	recordAddPod()
 	pod, err := APIPodToCorePod(apiPod)
@@ -243,14 +243,14 @@ func (pcp *Perceptor) AddPod(apiPod api.Pod) error {
 	return nil
 }
 
-// DeletePod .....
+// DeletePod deletes the pod from the model
 func (pcp *Perceptor) DeletePod(qualifiedName string) {
 	recordDeletePod()
 	pcp.model.DeletePod(qualifiedName)
 	log.Debugf("handled delete pod %s", qualifiedName)
 }
 
-// UpdatePod .....
+// UpdatePod updates the pod in the model
 func (pcp *Perceptor) UpdatePod(apiPod api.Pod) error {
 	recordUpdatePod()
 	pod, err := APIPodToCorePod(apiPod)
@@ -262,7 +262,7 @@ func (pcp *Perceptor) UpdatePod(apiPod api.Pod) error {
 	return nil
 }
 
-// AddImage .....
+// AddImage adds an image to the model
 func (pcp *Perceptor) AddImage(apiImage api.Image) error {
 	recordAddImage()
 	image, err := APIImageToCoreImage(apiImage)
@@ -274,7 +274,7 @@ func (pcp *Perceptor) AddImage(apiImage api.Image) error {
 	return nil
 }
 
-// UpdateAllPods .....
+// UpdateAllPods updates all pods in the model
 func (pcp *Perceptor) UpdateAllPods(allPods api.AllPods) error {
 	recordAllPods()
 	pods := []m.Pod{}
@@ -290,7 +290,7 @@ func (pcp *Perceptor) UpdateAllPods(allPods api.AllPods) error {
 	return nil
 }
 
-// UpdateAllImages .....
+// UpdateAllImages updates all images in the model
 func (pcp *Perceptor) UpdateAllImages(allImages api.AllImages) error {
 	recordAllImages()
 	images := []m.Image{}
@@ -316,6 +316,7 @@ func (pcp *Perceptor) GetScanResults() api.ScanResults {
 	return pcp.model.GetScanResults()
 }
 
+// getNextImage returns the next image from the queue
 func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
 	finish := func(spec *api.ImageSpec) {
 		select {
@@ -358,7 +359,7 @@ func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
 	log.Errorf("unable to find the Black Duck host %s from the secret", hub.Host())
 }
 
-// GetNextImage .....
+// GetNextImage returns the next image from the queue
 func (pcp *Perceptor) GetNextImage() api.NextImage {
 	recordGetNextImage()
 	log.Debugf("handling GET next image")
@@ -369,7 +370,7 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 	return nextImage
 }
 
-// PostFinishScan .....
+// PostFinishScan executes the post finished scan job
 func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 	recordPostFinishedScan()
 	go func() {
@@ -391,7 +392,7 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 
 // internal use
 
-// PostCommand .....
+// PostCommand resets the circuit breaker
 func (pcp *Perceptor) PostCommand(command *api.PostCommand) {
 	if command.ResetCircuitBreaker != nil {
 		for _, hub := range pcp.hubManager.HubClients() {
@@ -403,14 +404,14 @@ func (pcp *Perceptor) PostCommand(command *api.PostCommand) {
 
 // errors
 
-// NotFound .....
+// NotFound logs the http client not found error
 func (pcp *Perceptor) NotFound(w http.ResponseWriter, r *http.Request) {
 	log.Errorf("HTTPResponder not found from request %+v", r)
 	recordHTTPNotFound(r)
 	http.NotFound(w, r)
 }
 
-// Error .....
+// Error logs the http client errors
 func (pcp *Perceptor) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	log.Errorf("HTTPResponder error %s with code %d from request %+v", err.Error(), statusCode, r)
 	recordHTTPError(r, err, statusCode)

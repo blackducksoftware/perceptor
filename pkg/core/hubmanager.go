@@ -35,11 +35,13 @@ var commonMistakesRegex = regexp.MustCompile("(http|://|:\\d+)")
 
 type hubClientCreator func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error)
 
+// createMockHubClient creates the mock Black Duck client
 func createMockHubClient(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 	mockRawClient := hub.NewMockRawClient(false, []string{})
 	return hub.NewHub(username, password, host, concurrentScanLimit, mockRawClient, hub.DefaultTimings), nil
 }
 
+// createHubClient creates the Black Duck http client
 func createHubClient(httpTimeout time.Duration) hubClientCreator {
 	return func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 		potentialProblems := commonMistakesRegex.FindAllString(host, -1)
@@ -62,7 +64,7 @@ type Update struct {
 	Update hub.Update
 }
 
-// HubManagerInterface ...
+// HubManagerInterface includes all methods related to setup the Black Duck
 type HubManagerInterface interface {
 	SetHubs(hubs map[string]*Host)
 	HubClients() map[string]*hub.Hub
@@ -72,7 +74,7 @@ type HubManagerInterface interface {
 	Updates() <-chan *Update
 }
 
-// HubManager ...
+// HubManager stores the Black Duck Manager configuration
 type HubManager struct {
 	newHub hubClientCreator
 	//
@@ -84,7 +86,7 @@ type HubManager struct {
 	didFetchCodeLocations chan []string
 }
 
-// NewHubManager ...
+// NewHubManager returns the new Black Duck Manager configuration
 func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 	// TODO needs to be made concurrent-safe
 	return &HubManager{
@@ -96,7 +98,7 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 		didFetchCodeLocations: make(chan []string)}
 }
 
-// SetHubs ...
+// SetHubs setup the Black Duck
 func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	hubsToCreate := map[string]bool{}
 	for hubURL := range hubs {
@@ -126,6 +128,7 @@ func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	}
 }
 
+// create creates the Black Duck instance
 func (hm *HubManager) create(scheme string, host string, port int, username string, password string, concurrentScanLimit int) error {
 	if _, ok := hm.hubs[host]; ok {
 		return fmt.Errorf("cannot create hub %s: already exists", host)
@@ -155,12 +158,12 @@ func (hm *HubManager) Updates() <-chan *Update {
 	return hm.updates
 }
 
-// HubClients ...
+// HubClients returns the list of Black Duck instance
 func (hm *HubManager) HubClients() map[string]*hub.Hub {
 	return hm.hubs
 }
 
-// StartScanClient ...
+// StartScanClient starts the Black Duck client
 func (hm *HubManager) StartScanClient(hubURL string, scanName string) error {
 	hub, ok := hm.hubs[hubURL]
 	if !ok {
@@ -181,7 +184,7 @@ func (hm *HubManager) FinishScanClient(hubURL string, scanName string, scanErr e
 	return nil
 }
 
-// ScanResults ...
+// ScanResults returns the scan results
 func (hm *HubManager) ScanResults() map[string]map[string]*hub.Scan {
 	allScanResults := map[string]map[string]*hub.Scan{}
 	for hubURL, hub := range hm.hubs {
