@@ -39,7 +39,7 @@ func newClient(ignoreEvents bool) (*MockRawClient, *Hub) {
 		LoginPause:             DefaultTimings.LoginPause,
 		RefreshScanThreshold:   DefaultTimings.RefreshScanThreshold,
 	}
-	hub := NewHub("sysadmin", "password", "host1", rawClient, timings)
+	hub := NewHub("sysadmin", "password", "host1", 2, rawClient, timings)
 	if ignoreEvents {
 		go func() {
 			updates := hub.Updates()

@@ -393,9 +393,14 @@
         "Repository",
         "Tag",
         "Sha",
-        "HubProjectName",
-        "HubProjectVersionName",
-        "HubScanName",
+        "Scheme",
+      	"Domain",
+      	"Port",
+      	"User",
+      	"Password",
+        "BlackDuckProjectName",
+        "BlackDuckProjectVersionName",
+        "BlackDuckScanName",
         "Priority"
       ],
       "properties": {
@@ -411,16 +416,37 @@
           "description": "The SHA of the image",
           "type": "string"
         },
-        "HubProjectName": {
-          "description": "The Hub project name",
+        "Scheme": {
+          "description": "The Scheme of the Black Duck instance. Currently only https is supported",
           "type": "string"
         },
-        "HubProjectVersionName": {
-          "description": "The Hub project version name",
+        "Domain": {
+          "description": "The Domain name of the Black Duck instance",
           "type": "string"
         },
-        "HubScanName": {
-          "description": "The Hub scan name",
+        "Port": {
+          "description": "The Port of the Black Duck instance",
+          "type": "integer",
+          "format": "int"
+        },
+        "User": {
+          "description": "The name of the user that can access the Black Duck instance",
+          "type": "string"
+        },
+        "Password": {
+          "description": "The password for the user that can access the Blackduck instance",
+          "type": "string"
+        },
+        "BlackDuckProjectName": {
+          "description": "The name of the project to use in the Black Duck instance",
+          "type": "string"
+        },
+        "BlackDuckProjectVersionName": {
+          "description": "The name of the project version to use in the Black Duck instance",
+          "type": "string"
+        },
+        "BlackDuckScanName": {
+          "description": "The name of the scan to use in the Black Duck instance",
           "type": "string"
         },
         "Priority": {
@@ -580,8 +606,8 @@
           "description": "The number of scans that may be run at the same time",
           "type": "integer"
         },
-        "HubClientTimeoutMilliseconds": {
-          "description": "The timeout for HTTP requests issued to the Hub",
+        "ClientTimeoutMilliseconds": {
+          "description": "The timeout for HTTP requests issued to the Black Duck instance",
           "type": "integer"
         },
         "LogLevel": {

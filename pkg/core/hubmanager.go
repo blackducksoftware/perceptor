@@ -33,25 +33,28 @@ import (
 
 var commonMistakesRegex = regexp.MustCompile("(http|://|:\\d+)")
 
-type hubClientCreator func(host string) (*hub.Hub, error)
+type hubClientCreator func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error)
 
-func createMockHubClient(hubURL string) (*hub.Hub, error) {
+// createMockHubClient creates the mock Black Duck client
+func createMockHubClient(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 	mockRawClient := hub.NewMockRawClient(false, []string{})
-	return hub.NewHub("mock-username", "mock-password", hubURL, mockRawClient, hub.DefaultTimings), nil
+	return hub.NewHub(username, password, host, concurrentScanLimit, mockRawClient, hub.DefaultTimings), nil
 }
 
-func createHubClient(username string, password string, port int, httpTimeout time.Duration) hubClientCreator {
-	return func(host string) (*hub.Hub, error) {
+// createHubClient creates the Black Duck http client
+func createHubClient(httpTimeout time.Duration) hubClientCreator {
+	return func(scheme string, host string, port int, username string, password string, concurrentScanLimit int) (*hub.Hub, error) {
 		potentialProblems := commonMistakesRegex.FindAllString(host, -1)
 		if len(potentialProblems) > 0 {
 			log.Warnf("Hub host %s may be invalid, potential problems are: %s", host, potentialProblems)
 		}
-		baseURL := fmt.Sprintf("https://%s:%d", host, port)
+		baseURL := fmt.Sprintf("%s://%s:%d", scheme, host, port)
+		log.Debugf("creating Black Duck client with base URL: %s", baseURL)
 		rawClient, err := hubclient.NewWithSession(baseURL, hubclient.HubClientDebugTimings, httpTimeout)
 		if err != nil {
 			return nil, err
 		}
-		return hub.NewHub(username, password, host, rawClient, hub.DefaultTimings), nil
+		return hub.NewHub(username, password, host, concurrentScanLimit, rawClient, hub.DefaultTimings), nil
 	}
 }
 
@@ -61,9 +64,9 @@ type Update struct {
 	Update hub.Update
 }
 
-// HubManagerInterface ...
+// HubManagerInterface includes all methods related to setup the Black Duck
 type HubManagerInterface interface {
-	SetHubs(hubURLs []string)
+	SetHubs(hubs map[string]*Host)
 	HubClients() map[string]*hub.Hub
 	StartScanClient(hubURL string, scanName string) error
 	FinishScanClient(hubURL string, scanName string, err error) error
@@ -71,7 +74,7 @@ type HubManagerInterface interface {
 	Updates() <-chan *Update
 }
 
-// HubManager ...
+// HubManager stores the Black Duck Manager configuration
 type HubManager struct {
 	newHub hubClientCreator
 	//
@@ -83,7 +86,7 @@ type HubManager struct {
 	didFetchCodeLocations chan []string
 }
 
-// NewHubManager ...
+// NewHubManager returns the new Black Duck Manager configuration
 func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 	// TODO needs to be made concurrent-safe
 	return &HubManager{
@@ -95,14 +98,10 @@ func NewHubManager(newHub hubClientCreator, stop <-chan struct{}) *HubManager {
 		didFetchCodeLocations: make(chan []string)}
 }
 
-// SetHubs ...
-func (hm *HubManager) SetHubs(hubURLs []string) {
-	newHubURLs := map[string]bool{}
-	for _, hubURL := range hubURLs {
-		newHubURLs[hubURL] = true
-	}
+// SetHubs setup the Black Duck
+func (hm *HubManager) SetHubs(hubs map[string]*Host) {
 	hubsToCreate := map[string]bool{}
-	for hubURL := range newHubURLs {
+	for hubURL := range hubs {
 		if _, ok := hm.hubs[hubURL]; !ok {
 			hubsToCreate[hubURL] = true
 		}
@@ -110,31 +109,35 @@ func (hm *HubManager) SetHubs(hubURLs []string) {
 	// 1. create new hubs
 	// TODO handle retries and failures intelligently
 	go func() {
-		for hubURL := range hubsToCreate {
-			err := hm.create(hubURL)
-			if err != nil {
-				log.Errorf("unable to create Hub client for %s: %s", hubURL, err.Error())
+		for host := range hubsToCreate {
+			if _, ok := hm.hubs[host]; !ok {
+				hub := hubs[host]
+				err := hm.create(hub.Scheme, hub.Domain, hub.Port, hub.User, hub.Password, hub.ConcurrentScanLimit)
+				if err != nil {
+					log.Errorf("unable to create Hub client for %s: %s", hub.Domain, err.Error())
+				}
 			}
 		}
 	}()
 	// 2. delete removed hubs
 	for hubURL, hub := range hm.hubs {
-		if _, ok := newHubURLs[hubURL]; !ok {
+		if _, ok := hubs[hubURL]; !ok {
 			hub.Stop()
 			delete(hm.hubs, hubURL)
 		}
 	}
 }
 
-func (hm *HubManager) create(hubURL string) error {
-	if _, ok := hm.hubs[hubURL]; ok {
-		return fmt.Errorf("cannot create hub %s: already exists", hubURL)
+// create creates the Black Duck instance
+func (hm *HubManager) create(scheme string, host string, port int, username string, password string, concurrentScanLimit int) error {
+	if _, ok := hm.hubs[host]; ok {
+		return fmt.Errorf("cannot create hub %s: already exists", host)
 	}
-	hubClient, err := hm.newHub(hubURL)
+	hubClient, err := hm.newHub(scheme, host, port, username, password, concurrentScanLimit)
 	if err != nil {
 		return err
 	}
-	hm.hubs[hubURL] = hubClient
+	hm.hubs[host] = hubClient
 	go func() {
 		stop := hubClient.StopCh()
 		updates := hubClient.Updates()
@@ -143,7 +146,7 @@ func (hm *HubManager) create(hubURL string) error {
 			case <-stop:
 				return
 			case nextUpdate := <-updates:
-				hm.updates <- &Update{HubURL: hubURL, Update: nextUpdate}
+				hm.updates <- &Update{HubURL: host, Update: nextUpdate}
 			}
 		}
 	}()
@@ -155,12 +158,12 @@ func (hm *HubManager) Updates() <-chan *Update {
 	return hm.updates
 }
 
-// HubClients ...
+// HubClients returns the list of Black Duck instance
 func (hm *HubManager) HubClients() map[string]*hub.Hub {
 	return hm.hubs
 }
 
-// StartScanClient ...
+// StartScanClient starts the Black Duck client
 func (hm *HubManager) StartScanClient(hubURL string, scanName string) error {
 	hub, ok := hm.hubs[hubURL]
 	if !ok {
@@ -181,7 +184,7 @@ func (hm *HubManager) FinishScanClient(hubURL string, scanName string, scanErr e
 	return nil
 }
 
-// ScanResults ...
+// ScanResults returns the scan results
 func (hm *HubManager) ScanResults() map[string]map[string]*hub.Scan {
 	allScanResults := map[string]map[string]*hub.Scan{}
 	for hubURL, hub := range hm.hubs {

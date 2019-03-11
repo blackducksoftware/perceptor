@@ -25,18 +25,16 @@ import (
 	"time"
 )
 
-// Model ...
+// Model stores the perceptor model
 type Model struct {
-	Hubs      map[string]*ModelHub
-	CoreModel *CoreModel
-	Config    *ModelConfig
-	Scheduler *ModelScanScheduler
+	BlackDucks map[string]*ModelBlackDuck
+	CoreModel  *CoreModel
+	Config     *ModelConfig
+	Scheduler  *ModelScanScheduler
 }
 
 // ModelScanScheduler ...
 type ModelScanScheduler struct {
-	ConcurrentScanLimit int
-	TotalScanLimit      int
 }
 
 // CoreModel .....
@@ -56,22 +54,28 @@ type ModelImageTransition struct {
 	Time string
 }
 
-// ModelHubConfig ...
-type ModelHubConfig struct {
-	User                string
-	PasswordEnvVar      string
-	ClientTimeout       ModelTime
+// ModelHost ...
+type ModelHost struct {
+	Scheme              string
+	Domain              string // it can be domain name or ip address
 	Port                int
+	User                string
 	ConcurrentScanLimit int
-	TotalScanLimit      int
+}
+
+// ModelBlackDuckConfig ...
+type ModelBlackDuckConfig struct {
+	Hosts           []*ModelHost
+	ClientTimeout   ModelTime
+	TLSVerification bool
 }
 
 // ModelConfig .....
 type ModelConfig struct {
-	Timings  *ModelTimings
-	Hub      *ModelHubConfig
-	Port     int
-	LogLevel string
+	Timings   *ModelTimings
+	BlackDuck *ModelBlackDuckConfig
+	Port      int
+	LogLevel  string
 }
 
 // ModelTime ...
@@ -125,13 +129,13 @@ type ModelCircuitBreaker struct {
 	ConsecutiveFailures int
 }
 
-// ModelHub describes a hub client model
-type ModelHub struct {
-	// can we log in to the hub?
+// ModelBlackDuck describes a Black Duck client model
+type ModelBlackDuck struct {
+	// can we log in to the Black Duck?
 	//	IsLoggedIn bool
 	// have all the projects been sucked in?
 	HasLoadedAllCodeLocations bool
-	// map of project name to ... ? hub URL?
+	// map of project name to ... ? Black Duck URL?
 	//	Projects map[string]string
 	// map of code location name to mapped project version url
 	CodeLocations  map[string]*ModelCodeLocation

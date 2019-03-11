@@ -25,7 +25,7 @@ import (
 	"fmt"
 )
 
-// Image .....
+// Image stores the Image configuration
 type Image struct {
 	Repository              string
 	Tag                     string
@@ -35,27 +35,28 @@ type Image struct {
 	BlackDuckProjectVersion string
 }
 
-// NewImage .....
+// NewImage returns the image congifurations
 func NewImage(repository string, tag string, sha DockerImageSha, priority int, blackDuckProjectName string, blackDuckProjectVersion string) *Image {
 	return &Image{Repository: repository, Tag: tag, Sha: sha, Priority: priority, BlackDuckProjectName: blackDuckProjectName, BlackDuckProjectVersion: blackDuckProjectVersion}
 }
 
+// shaPrefix returns the sha prefix
 func (image Image) shaPrefix() string {
 	return string(image.Sha)[:20]
 }
 
 // These strings are for the scanner
 
-// HubProjectName .....
-func (image Image) HubProjectName() string {
+// GetBlackDuckProjectName returns the Black Duck project name
+func (image Image) GetBlackDuckProjectName() string {
 	if image.BlackDuckProjectName != "" {
 		return image.BlackDuckProjectName
 	}
 	return image.Repository
 }
 
-// HubProjectVersionName .....
-func (image Image) HubProjectVersionName() string {
+// GetBlackDuckProjectVersionName returns the Black Duck project version name
+func (image Image) GetBlackDuckProjectVersionName() string {
 	if image.BlackDuckProjectVersion != "" {
 		return image.BlackDuckProjectVersion
 	}
@@ -67,8 +68,8 @@ func (image Image) HubProjectVersionName() string {
 	return fmt.Sprintf("%s%s", tag, image.shaPrefix())
 }
 
-// HubScanName .....
-func (image Image) HubScanName() string {
+// GetBlackDuckScanName returns the Black Duck scan name
+func (image Image) GetBlackDuckScanName() string {
 	return string(image.Sha)
 }
 

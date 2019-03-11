@@ -55,7 +55,7 @@ type ImageInfo struct {
 }
 
 // GetModel .....
-func (mr *MockResponder) GetModel() Model {
+func (mr *MockResponder) GetModel() (*Model, error) {
 	// images := map[string]*ModelImageInfo{}
 	// for key, image := range mr.Images {
 	// 	scanResults := map[string]interface{}{
@@ -81,7 +81,7 @@ func (mr *MockResponder) GetModel() Model {
 	// 	Images: images,
 	// 	Pods:   mr.Pods,
 	// }
-	return Model{}
+	return &Model{}, nil
 }
 
 // perceiver
@@ -199,12 +199,12 @@ func (mr *MockResponder) UpdateAllImages(allImages AllImages) error {
 func (mr *MockResponder) GetNextImage() NextImage {
 	mr.NextImageCounter++
 	imageSpec := ImageSpec{
-		HubProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
-		HubProjectVersionName: fmt.Sprintf("mock-perceptor-project-version-%d", mr.NextImageCounter),
-		HubScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
-		Repository:            "abc/def/ghi",
-		Tag:                   "latest",
-		Sha:                   "123abc456def"}
+		BlackDuckProjectName:        fmt.Sprintf("mock-perceptor-%d", mr.NextImageCounter),
+		BlackDuckProjectVersionName: fmt.Sprintf("mock-perceptor-project-version-%d", mr.NextImageCounter),
+		BlackDuckScanName:           fmt.Sprintf("mock-perceptor-scan-name-%d", mr.NextImageCounter),
+		Repository:                  "abc/def/ghi",
+		Tag:                         "latest",
+		Sha:                         "123abc456def"}
 	return NextImage{ImageSpec: &imageSpec}
 }
 

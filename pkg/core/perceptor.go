@@ -22,8 +22,10 @@ under the License.
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	api "github.com/blackducksoftware/perceptor/pkg/api"
 	m "github.com/blackducksoftware/perceptor/pkg/core/model"
@@ -50,6 +52,7 @@ type Perceptor struct {
 	// channels
 	stop           <-chan struct{}
 	getNextImageCh chan chan *api.ImageSpec
+	hosts          map[string]*Host
 }
 
 // NewPerceptor creates a Perceptor using a real hub client.
@@ -142,6 +145,10 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 	}()
 
 	// 2. perceptor
+	hosts, err := getBlackDuckHosts(config)
+	if err != nil {
+		panic(err)
+	}
 	perceptor := &Perceptor{
 		model:              model,
 		routineTaskManager: routineTaskManager,
@@ -150,6 +157,7 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 		config:             config,
 		stop:               stop,
 		getNextImageCh:     make(chan chan *api.ImageSpec),
+		hosts:              hosts,
 	}
 
 	go func() {
@@ -167,6 +175,22 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 	return perceptor, nil
 }
 
+// getBlackDuckHosts will get the list of Black Duck hosts
+func getBlackDuckHosts(config *Config) (map[string]*Host, error) {
+	connectionStrings, ok := os.LookupEnv(config.BlackDuck.ConnectionsEnvironmentVariableName)
+	if !ok {
+		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.ConnectionsEnvironmentVariableName)
+	}
+
+	blackduckHosts := map[string]*Host{}
+	err := json.Unmarshal([]byte(connectionStrings), &blackduckHosts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshall Black Duck hosts due to %+v", err)
+	}
+
+	return blackduckHosts, nil
+}
+
 // UpdateConfig ...
 func (pcp *Perceptor) UpdateConfig(config *Config) {
 	configString, err := config.dump()
@@ -175,7 +199,8 @@ func (pcp *Perceptor) UpdateConfig(config *Config) {
 	} else {
 		log.Errorf("set config, but unable to dump to string: %s", err.Error())
 	}
-	pcp.hubManager.SetHubs(config.Hub.Hosts)
+
+	pcp.hubManager.SetHubs(pcp.hosts)
 	logLevel, err := config.GetLogLevel()
 	if err != nil {
 		log.Errorf("unable to get log level: %s", err.Error())
@@ -187,22 +212,26 @@ func (pcp *Perceptor) UpdateConfig(config *Config) {
 
 // Section: api.Responder implementation
 
-// GetModel .....
-func (pcp *Perceptor) GetModel() api.Model {
+// GetModel returns the api model
+func (pcp *Perceptor) GetModel() (*api.Model, error) {
 	coreModel := pcp.model.GetModel()
-	hubModels := map[string]*api.ModelHub{}
+	hubModels := map[string]*api.ModelBlackDuck{}
 	for hubURL, hub := range pcp.hubManager.HubClients() {
 		hubModels[hubURL] = <-hub.Model()
 	}
-	return api.Model{
-		CoreModel: coreModel,
-		Hubs:      hubModels,
-		Config:    pcp.config.model(),
-		Scheduler: pcp.scanScheduler.model(),
+	configModel, err := pcp.config.model()
+	if err != nil {
+		return nil, err
 	}
+	return &api.Model{
+		CoreModel:  coreModel,
+		BlackDucks: hubModels,
+		Config:     configModel,
+		Scheduler:  pcp.scanScheduler.model(),
+	}, nil
 }
 
-// AddPod .....
+// AddPod adds the pod to the model
 func (pcp *Perceptor) AddPod(apiPod api.Pod) error {
 	recordAddPod()
 	pod, err := APIPodToCorePod(apiPod)
@@ -214,14 +243,14 @@ func (pcp *Perceptor) AddPod(apiPod api.Pod) error {
 	return nil
 }
 
-// DeletePod .....
+// DeletePod deletes the pod from the model
 func (pcp *Perceptor) DeletePod(qualifiedName string) {
 	recordDeletePod()
 	pcp.model.DeletePod(qualifiedName)
 	log.Debugf("handled delete pod %s", qualifiedName)
 }
 
-// UpdatePod .....
+// UpdatePod updates the pod in the model
 func (pcp *Perceptor) UpdatePod(apiPod api.Pod) error {
 	recordUpdatePod()
 	pod, err := APIPodToCorePod(apiPod)
@@ -233,7 +262,7 @@ func (pcp *Perceptor) UpdatePod(apiPod api.Pod) error {
 	return nil
 }
 
-// AddImage .....
+// AddImage adds an image to the model
 func (pcp *Perceptor) AddImage(apiImage api.Image) error {
 	recordAddImage()
 	image, err := APIImageToCoreImage(apiImage)
@@ -245,7 +274,7 @@ func (pcp *Perceptor) AddImage(apiImage api.Image) error {
 	return nil
 }
 
-// UpdateAllPods .....
+// UpdateAllPods updates all pods in the model
 func (pcp *Perceptor) UpdateAllPods(allPods api.AllPods) error {
 	recordAllPods()
 	pods := []m.Pod{}
@@ -261,7 +290,7 @@ func (pcp *Perceptor) UpdateAllPods(allPods api.AllPods) error {
 	return nil
 }
 
-// UpdateAllImages .....
+// UpdateAllImages updates all images in the model
 func (pcp *Perceptor) UpdateAllImages(allImages api.AllImages) error {
 	recordAllImages()
 	images := []m.Image{}
@@ -287,6 +316,7 @@ func (pcp *Perceptor) GetScanResults() api.ScanResults {
 	return pcp.model.GetScanResults()
 }
 
+// getNextImage returns the next image from the queue
 func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
 	finish := func(spec *api.ImageSpec) {
 		select {
@@ -307,21 +337,29 @@ func (pcp *Perceptor) getNextImage(ch chan<- *api.ImageSpec) {
 		return
 	}
 
-	finish(&api.ImageSpec{
-		Repository:            image.Repository,
-		Tag:                   image.Tag,
-		Sha:                   string(image.Sha),
-		HubURL:                hub.Host(),
-		HubProjectName:        image.HubProjectName(),
-		HubProjectVersionName: image.HubProjectVersionName(),
-		HubScanName:           image.HubScanName(),
-		Priority:              image.Priority})
-	log.Debugf("handle didStartScan")
-	pcp.model.StartScanClient(image.Sha)
-	pcp.hubManager.StartScanClient(hub.Host(), string(image.Sha))
+	if host, ok := pcp.hosts[hub.Host()]; ok {
+		finish(&api.ImageSpec{
+			Repository:                  image.Repository,
+			Tag:                         image.Tag,
+			Sha:                         string(image.Sha),
+			Scheme:                      host.Scheme,
+			Domain:                      host.Domain,
+			Port:                        host.Port,
+			User:                        host.User,
+			Password:                    host.Password,
+			BlackDuckProjectName:        image.GetBlackDuckProjectName(),
+			BlackDuckProjectVersionName: image.GetBlackDuckProjectVersionName(),
+			BlackDuckScanName:           image.GetBlackDuckScanName(),
+			Priority:                    image.Priority})
+		log.Debugf("handle didStartScan")
+		pcp.model.StartScanClient(image.Sha)
+		pcp.hubManager.StartScanClient(hub.Host(), string(image.Sha))
+		return
+	}
+	log.Errorf("unable to find the Black Duck host %s from the secret", hub.Host())
 }
 
-// GetNextImage .....
+// GetNextImage returns the next image from the queue
 func (pcp *Perceptor) GetNextImage() api.NextImage {
 	recordGetNextImage()
 	log.Debugf("handling GET next image")
@@ -332,7 +370,7 @@ func (pcp *Perceptor) GetNextImage() api.NextImage {
 	return nextImage
 }
 
-// PostFinishScan .....
+// PostFinishScan executes the post finished scan job
 func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 	recordPostFinishedScan()
 	go func() {
@@ -341,11 +379,11 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 		if job.Err != "" {
 			scanErr = fmt.Errorf(job.Err)
 		}
-		err := pcp.hubManager.FinishScanClient(job.ImageSpec.HubURL, job.ImageSpec.HubScanName, scanErr)
+		err := pcp.hubManager.FinishScanClient(job.ImageSpec.Domain, job.ImageSpec.BlackDuckScanName, scanErr)
 		if err != nil {
-			log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.HubURL, job.ImageSpec.HubScanName)
+			log.Errorf("unable to record FinishScanClient for hub %s, image %s:", job.ImageSpec.Domain, job.ImageSpec.BlackDuckScanName)
 		}
-		image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority, job.ImageSpec.HubProjectName, job.ImageSpec.HubProjectVersionName)
+		image := m.NewImage(job.ImageSpec.Repository, job.ImageSpec.Tag, m.DockerImageSha(job.ImageSpec.Sha), job.ImageSpec.Priority, job.ImageSpec.BlackDuckProjectName, job.ImageSpec.BlackDuckProjectVersionName)
 		pcp.model.FinishScanJob(image, scanErr)
 	}()
 	log.Debugf("handled finished scan job -- %v", job)
@@ -354,7 +392,7 @@ func (pcp *Perceptor) PostFinishScan(job api.FinishedScanClientJob) error {
 
 // internal use
 
-// PostCommand .....
+// PostCommand resets the circuit breaker
 func (pcp *Perceptor) PostCommand(command *api.PostCommand) {
 	if command.ResetCircuitBreaker != nil {
 		for _, hub := range pcp.hubManager.HubClients() {
@@ -366,14 +404,14 @@ func (pcp *Perceptor) PostCommand(command *api.PostCommand) {
 
 // errors
 
-// NotFound .....
+// NotFound logs the http client not found error
 func (pcp *Perceptor) NotFound(w http.ResponseWriter, r *http.Request) {
 	log.Errorf("HTTPResponder not found from request %+v", r)
 	recordHTTPNotFound(r)
 	http.NotFound(w, r)
 }
 
-// Error .....
+// Error logs the http client errors
 func (pcp *Perceptor) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	log.Errorf("HTTPResponder error %s with code %d from request %+v", err.Error(), statusCode, r)
 	recordHTTPError(r, err, statusCode)

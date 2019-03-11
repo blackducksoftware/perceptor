@@ -23,79 +23,110 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
-// HubConfig handles Hub-specific configuration
-type HubConfig struct {
-	Hosts               []string
-	User                string
-	PasswordEnvVar      string
+// Host configures the Black Duck hosts
+type Host struct {
+	Scheme              string
+	Domain              string // it can be domain name or ip address
 	Port                int
+	User                string
+	Password            string
 	ConcurrentScanLimit int
-	TotalScanLimit      int
 }
 
-// Timings ...
+// BlackDuckConfig handles BlackDuck-specific configuration
+type BlackDuckConfig struct {
+	ConnectionsEnvironmentVariableName string
+	TLSVerification                    bool
+}
+
+// Timings stores all timings configuration that is used for various operations
 type Timings struct {
 	CheckForStalledScansPauseHours int
 	StalledScanClientTimeoutHours  int
 	ModelMetricsPauseSeconds       int
 	UnknownImagePauseMilliseconds  int
-	HubClientTimeoutMilliseconds   int
+	ClientTimeoutMilliseconds      int
 }
 
-// ClientTimeout ...
+// ClientTimeout returns the Black Duck client timeout
 func (t *Timings) ClientTimeout() time.Duration {
-	return time.Duration(t.HubClientTimeoutMilliseconds) * time.Millisecond
+	return time.Duration(t.ClientTimeoutMilliseconds) * time.Millisecond
 }
 
-// CheckForStalledScansPause ...
+// CheckForStalledScansPause returns an interval in hours to check the stalled scans
 func (t *Timings) CheckForStalledScansPause() time.Duration {
 	return time.Duration(t.CheckForStalledScansPauseHours) * time.Hour
 }
 
-// StalledScanClientTimeout ...
+// StalledScanClientTimeout returns client timeout in hours for the stalled scans
 func (t *Timings) StalledScanClientTimeout() time.Duration {
 	return time.Duration(t.StalledScanClientTimeoutHours) * time.Hour
 }
 
-// ModelMetricsPause ...
+// ModelMetricsPause returns an interval to pause the model metrics
 func (t *Timings) ModelMetricsPause() time.Duration {
 	return time.Duration(t.ModelMetricsPauseSeconds) * time.Second
 }
 
-// UnknownImagePause ...
+// UnknownImagePause returns an interval in milliseconds to check for unknown images
 func (t *Timings) UnknownImagePause() time.Duration {
 	return time.Duration(t.UnknownImagePauseMilliseconds) * time.Millisecond
 }
 
-// PerceptorConfig ...
+// PerceptorConfig stores the perceptor configuration
 type PerceptorConfig struct {
 	Timings     *Timings
 	UseMockMode bool
 	Port        int
 }
 
-// Config ...
+// Config stores the input perceptor configuration
 type Config struct {
-	Hub       *HubConfig
+	BlackDuck *BlackDuckConfig
 	Perceptor *PerceptorConfig
 	LogLevel  string
 }
 
-func (config *Config) model() *api.ModelConfig {
+// getModelBlackDuckHosts will get the list of Black Duck hosts
+func (config *Config) getModelBlackDuckHosts() ([]*api.ModelHost, error) {
+	connectionStrings, ok := os.LookupEnv(config.BlackDuck.ConnectionsEnvironmentVariableName)
+	if !ok {
+		return nil, fmt.Errorf("cannot find Black Duck hosts: environment variable %s not found", config.BlackDuck.ConnectionsEnvironmentVariableName)
+	}
+
+	blackduckHosts := map[string]*api.ModelHost{}
+	err := json.Unmarshal([]byte(connectionStrings), &blackduckHosts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshall Black Duck hosts due to %+v", err)
+	}
+
+	hosts := []*api.ModelHost{}
+	for _, host := range blackduckHosts {
+		hosts = append(hosts, host)
+	}
+
+	return hosts, nil
+}
+
+// model will return the model configurations
+func (config *Config) model() (*api.ModelConfig, error) {
+	hosts, err := config.getModelBlackDuckHosts()
+	if err != nil {
+		return nil, err
+	}
 	return &api.ModelConfig{
-		Hub: &api.ModelHubConfig{
-			ClientTimeout:       *api.NewModelTime(config.Perceptor.Timings.ClientTimeout()),
-			ConcurrentScanLimit: config.Hub.ConcurrentScanLimit,
-			PasswordEnvVar:      config.Hub.PasswordEnvVar,
-			Port:                config.Hub.Port,
-			TotalScanLimit:      config.Hub.TotalScanLimit,
-			User:                config.Hub.User,
+		BlackDuck: &api.ModelBlackDuckConfig{
+			Hosts:           hosts,
+			ClientTimeout:   *api.NewModelTime(config.Perceptor.Timings.ClientTimeout()),
+			TLSVerification: config.BlackDuck.TLSVerification,
 		},
 		LogLevel: config.LogLevel,
 		Port:     config.Perceptor.Port,
@@ -105,14 +136,15 @@ func (config *Config) model() *api.ModelConfig {
 			StalledScanClientTimeout:  *api.NewModelTime(config.Perceptor.Timings.StalledScanClientTimeout()),
 			UnknownImagePause:         *api.NewModelTime(config.Perceptor.Timings.UnknownImagePause()),
 		},
-	}
+	}, nil
 }
 
-// GetLogLevel .....
+// GetLogLevel returns the log level
 func (config *Config) GetLogLevel() (log.Level, error) {
 	return log.ParseLevel(config.LogLevel)
 }
 
+// dump will dump the perceptor configuration
 func (config *Config) dump() (string, error) {
 	bytes, err := json.Marshal(config)
 	if err != nil {

@@ -21,14 +21,18 @@ under the License.
 
 package api
 
-// ImageSpec .....
+// ImageSpec stores the Image specification
 type ImageSpec struct {
-	Repository            string
-	Tag                   string
-	Sha                   string
-	HubURL                string
-	HubProjectName        string
-	HubProjectVersionName string
-	HubScanName           string
-	Priority              int
+	Repository                  string
+	Tag                         string
+	Sha                         string
+	Scheme                      string
+	Domain                      string
+	Port                        int
+	User                        string
+	Password                    string
+	BlackDuckProjectName        string
+	BlackDuckProjectVersionName string
+	BlackDuckScanName           string
+	Priority                    int
 }
