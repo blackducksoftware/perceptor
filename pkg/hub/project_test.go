@@ -56,7 +56,7 @@ func TestProjectJSONRoundtrip(t *testing.T) {
 				Nickname:     "nini",
 				Phase:        "phs",
 				PolicyStatus: PolicyStatus{
-					ComponentVersionStatusCounts: map[PolicyStatusType]int{
+					ComponentVersionStatusCounts: map[string]int{
 						PolicyStatusTypeInViolationOverridden: 88,
 					},
 					OverallStatus: PolicyStatusTypeNotInViolation,
