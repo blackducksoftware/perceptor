@@ -22,65 +22,21 @@ under the License.
 package hub
 
 import (
-	"fmt"
-
 	"github.com/blackducksoftware/hub-client-go/hubapi"
 )
 
-func parseHubRiskProfileStatus(hubName string) (RiskProfileStatus, error) {
-	switch hubName {
-	case "HIGH":
-		return RiskProfileStatusHigh, nil
-	case "MEDIUM":
-		return RiskProfileStatusMedium, nil
-	case "LOW":
-		return RiskProfileStatusLow, nil
-	case "OK":
-		return RiskProfileStatusOK, nil
-	case "UNKNOWN":
-		return RiskProfileStatusUnknown, nil
-	default:
-		return RiskProfileStatusUnknown, fmt.Errorf("invalid hub name for risk profile status: %s", hubName)
-	}
-}
-
-func newRiskProfileStatusCounts(hubCounts map[string]int) (*RiskProfileStatusCounts, error) {
-	statusCounts := map[RiskProfileStatus]int{}
-	for hubName, count := range hubCounts {
-		status, err := parseHubRiskProfileStatus(hubName)
-		if err != nil {
-			return nil, err
-		}
-		statusCounts[status] = count
+func newRiskProfileStatusCounts(riskProfileStatusCounts map[string]int) (*RiskProfileStatusCounts, error) {
+	statusCounts := map[string]int{}
+	for riskProfileStatus, count := range riskProfileStatusCounts {
+		statusCounts[riskProfileStatus] = count
 	}
 	return &RiskProfileStatusCounts{StatusCounts: statusCounts}, nil
 }
 
-func parseHubRiskProfileCategory(hubName string) (RiskProfileCategory, error) {
-	switch hubName {
-	case "ACTIVITY":
-		return RiskProfileCategoryActivity, nil
-	case "LICENSE":
-		return RiskProfileCategoryLicense, nil
-	case "OPERATIONAL":
-		return RiskProfileCategoryOperational, nil
-	case "VERSION":
-		return RiskProfileCategoryVersion, nil
-	case "VULNERABILITY":
-		return RiskProfileCategoryVulnerability, nil
-	default:
-		return RiskProfileCategoryActivity, fmt.Errorf("invalid hub name for risk profile category: %s", hubName)
-	}
-}
-
 func newRiskProfile(bomLastUpdatedAt string, hubCategories map[string]map[string]int) (*RiskProfile, error) {
-	categories := map[RiskProfileCategory]RiskProfileStatusCounts{}
-	for hubCategory, hubCounts := range hubCategories {
-		category, err := parseHubRiskProfileCategory(hubCategory)
-		if err != nil {
-			return nil, err
-		}
-		counts, err := newRiskProfileStatusCounts(hubCounts)
+	categories := map[string]RiskProfileStatusCounts{}
+	for category, riskProfileStatuses := range hubCategories {
+		counts, err := newRiskProfileStatusCounts(riskProfileStatuses)
 		if err != nil {
 			return nil, err
 		}
@@ -89,31 +45,10 @@ func newRiskProfile(bomLastUpdatedAt string, hubCategories map[string]map[string
 	return &RiskProfile{BomLastUpdatedAt: bomLastUpdatedAt, Categories: categories}, nil
 }
 
-func parseHubPolicyStatusType(hubName string) (PolicyStatusType, error) {
-	switch hubName {
-	case "NOT_IN_VIOLATION":
-		return PolicyStatusTypeNotInViolation, nil
-	case "IN_VIOLATION":
-		return PolicyStatusTypeInViolation, nil
-	case "IN_VIOLATION_OVERRIDDEN":
-		return PolicyStatusTypeInViolationOverridden, nil
-	default:
-		return PolicyStatusTypeInViolation, fmt.Errorf("invalid hub name for policy status type: %s", hubName)
-	}
-}
-
 func newPolicyStatus(hubOverallStatus string, hubUpdatedAt string, hubComponentVersionStatusCounts []hubapi.ComponentVersionStatusCount) (*PolicyStatus, error) {
-	overallStatus, err := parseHubPolicyStatusType(hubOverallStatus)
-	if err != nil {
-		return nil, err
-	}
-	statusCounts := map[PolicyStatusType]int{}
+	statusCounts := map[string]int{}
 	for _, hubStatusCount := range hubComponentVersionStatusCounts {
-		status, err := parseHubPolicyStatusType(hubStatusCount.Name)
-		if err != nil {
-			return nil, err
-		}
-		statusCounts[status] = hubStatusCount.Value
+		statusCounts[hubStatusCount.Name] = hubStatusCount.Value
 	}
-	return &PolicyStatus{OverallStatus: overallStatus, UpdatedAt: hubUpdatedAt, ComponentVersionStatusCounts: statusCounts}, nil
+	return &PolicyStatus{OverallStatus: hubOverallStatus, UpdatedAt: hubUpdatedAt, ComponentVersionStatusCounts: statusCounts}, nil
 }

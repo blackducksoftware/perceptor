@@ -41,7 +41,7 @@ func TestRiskProfileStatusMarshalJSON(t *testing.T) {
 
 // TestRiskProfileStatusUnmarshalJSON .....
 func TestRiskProfileStatusUnmarshalJSON(t *testing.T) {
-	var actual RiskProfileStatus
+	var actual string
 	err := json.Unmarshal([]byte(`"OK"`), &actual)
 	if err != nil {
 		panic(err)

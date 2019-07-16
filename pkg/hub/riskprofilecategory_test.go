@@ -41,7 +41,7 @@ func TestRiskProfileCategoryJSON(t *testing.T) {
 
 // TestRiskProfileCategoryJSONWithinDictionary .....
 func TestRiskProfileCategoryJSONWithinDictionary(t *testing.T) {
-	dict := map[RiskProfileCategory]RiskProfileCategory{
+	dict := map[string]string{
 		RiskProfileCategoryActivity:    RiskProfileCategoryVersion,
 		RiskProfileCategoryOperational: RiskProfileCategoryLicense,
 	}

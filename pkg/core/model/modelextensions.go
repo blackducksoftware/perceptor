@@ -99,7 +99,7 @@ func scanResults(model *Model) (api.ScanResults, error) {
 			Name:             pod.Name,
 			PolicyViolations: podScan.PolicyViolations,
 			Vulnerabilities:  podScan.Vulnerabilities,
-			OverallStatus:    podScan.OverallStatus.String()})
+			OverallStatus:    podScan.OverallStatus})
 	}
 
 	// images
@@ -119,7 +119,7 @@ func scanResults(model *Model) (api.ScanResults, error) {
 			Sha:              string(image.Sha),
 			PolicyViolations: imageInfo.ScanResults.PolicyViolationCount(),
 			Vulnerabilities:  imageInfo.ScanResults.VulnerabilityCount(),
-			OverallStatus:    imageInfo.ScanResults.OverallStatus().String(),
+			OverallStatus:    imageInfo.ScanResults.OverallStatus(),
 			ComponentsURL:    imageInfo.ScanResults.ComponentsHref}
 		images = append(images, apiImage)
 	}
@@ -230,7 +230,7 @@ func metrics(model *Model) *Metrics {
 			continue
 		}
 		if podScan != nil {
-			podStatus[podScan.OverallStatus.String()]++
+			podStatus[podScan.OverallStatus]++
 			podPolicyViolations[podScan.PolicyViolations]++
 			podVulnerabilities[podScan.Vulnerabilities]++
 		} else {
@@ -250,7 +250,7 @@ func metrics(model *Model) *Metrics {
 				log.Errorf("found nil scan results for completed image %s", sha)
 				continue
 			}
-			imageStatus[imageScan.OverallStatus().String()]++
+			imageStatus[imageScan.OverallStatus()]++
 			imagePolicyViolations[imageScan.PolicyViolationCount()]++
 			imageVulnerabilities[imageScan.VulnerabilityCount()]++
 		} else {

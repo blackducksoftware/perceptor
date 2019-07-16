@@ -22,7 +22,6 @@ under the License.
 package hub
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/blackducksoftware/hub-client-go/hubapi"
@@ -109,9 +108,9 @@ func (status ClientStatus) MarshalText() (text []byte, err error) {
 
 // PolicyStatus .....
 type PolicyStatus struct {
-	OverallStatus                PolicyStatusType
+	OverallStatus                string
 	UpdatedAt                    string
-	ComponentVersionStatusCounts map[PolicyStatusType]int
+	ComponentVersionStatusCounts map[string]int
 }
 
 // ViolationCount .....
@@ -123,51 +122,6 @@ func (ps *PolicyStatus) ViolationCount() int {
 	return violationCount
 }
 
-// PolicyStatusType .....
-type PolicyStatusType int
-
-// .....
-const (
-	PolicyStatusTypeNotInViolation        PolicyStatusType = iota
-	PolicyStatusTypeInViolation           PolicyStatusType = iota
-	PolicyStatusTypeInViolationOverridden PolicyStatusType = iota
-)
-
-// String .....
-func (p PolicyStatusType) String() string {
-	switch p {
-	case PolicyStatusTypeNotInViolation:
-		return "NOT_IN_VIOLATION"
-	case PolicyStatusTypeInViolation:
-		return "IN_VIOLATION"
-	case PolicyStatusTypeInViolationOverridden:
-		return "IN_VIOLATION_OVERRIDDEN"
-	default:
-		panic(fmt.Errorf("invalid PolicyStatusType value: %d", p))
-	}
-}
-
-// MarshalJSON .....
-func (p PolicyStatusType) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, p.String())
-	return []byte(jsonString), nil
-}
-
-// MarshalText .....
-func (p PolicyStatusType) MarshalText() (text []byte, err error) {
-	return []byte(p.String()), nil
-}
-
-// UnmarshalText .....
-func (p *PolicyStatusType) UnmarshalText(text []byte) (err error) {
-	status, err := parseHubPolicyStatusType(string(text))
-	if err != nil {
-		return err
-	}
-	*p = status
-	return nil
-}
-
 // Project .....
 type Project struct {
 	Name     string
@@ -177,162 +131,32 @@ type Project struct {
 
 // RiskProfile .....
 type RiskProfile struct {
-	Categories       map[RiskProfileCategory]RiskProfileStatusCounts
+	Categories       map[string]RiskProfileStatusCounts
 	BomLastUpdatedAt string
 }
 
-// HighRiskVulnerabilityCount .....
-func (rp *RiskProfile) HighRiskVulnerabilityCount() int {
+// CriticalAndHighRiskVulnerabilityCount returns the combination of CRITICAL and HIGH risk profile count
+func (rp *RiskProfile) CriticalAndHighRiskVulnerabilityCount() int {
 	vulnerabilities, ok := rp.Categories[RiskProfileCategoryVulnerability]
 	if !ok {
 		return 0
 	}
-	return vulnerabilities.HighRiskVulnerabilityCount()
-}
-
-// RiskProfileCategory .....
-type RiskProfileCategory int
-
-// .....
-const (
-	RiskProfileCategoryActivity      RiskProfileCategory = iota
-	RiskProfileCategoryLicense       RiskProfileCategory = iota
-	RiskProfileCategoryOperational   RiskProfileCategory = iota
-	RiskProfileCategoryVersion       RiskProfileCategory = iota
-	RiskProfileCategoryVulnerability RiskProfileCategory = iota
-)
-
-// String .....
-func (r RiskProfileCategory) String() string {
-	switch r {
-	case RiskProfileCategoryActivity:
-		return "ACTIVITY"
-	case RiskProfileCategoryLicense:
-		return "LICENSE"
-	case RiskProfileCategoryOperational:
-		return "OPERATIONAL"
-	case RiskProfileCategoryVersion:
-		return "VERSION"
-	case RiskProfileCategoryVulnerability:
-		return "VULNERABILITY"
-	default:
-		panic(fmt.Errorf("invalid RiskProfileCategory value: %d", r))
-	}
-}
-
-// func (r RiskProfileCategory) MarshalJSON() ([]byte, error) {
-// 	jsonString := fmt.Sprintf(`"%s"`, r.String())
-// 	return []byte(jsonString), nil
-// }
-
-// UnmarshalJSON .....
-func (r *RiskProfileCategory) UnmarshalJSON(data []byte) error {
-	var str string
-	err := json.Unmarshal(data, &str)
-	if err != nil {
-		return err
-	}
-	status, err := parseHubRiskProfileCategory(str)
-	if err != nil {
-		return err
-	}
-	*r = status
-	return nil
-}
-
-// MarshalText .....
-func (r RiskProfileCategory) MarshalText() (text []byte, err error) {
-	return []byte(r.String()), nil
-}
-
-// UnmarshalText .....
-func (r *RiskProfileCategory) UnmarshalText(text []byte) (err error) {
-	status, err := parseHubRiskProfileCategory(string(text))
-	if err != nil {
-		return err
-	}
-	*r = status
-	return nil
-}
-
-// RiskProfileStatus .....
-type RiskProfileStatus int
-
-// .....
-const (
-	RiskProfileStatusHigh    RiskProfileStatus = iota
-	RiskProfileStatusMedium  RiskProfileStatus = iota
-	RiskProfileStatusLow     RiskProfileStatus = iota
-	RiskProfileStatusOK      RiskProfileStatus = iota
-	RiskProfileStatusUnknown RiskProfileStatus = iota
-)
-
-// String .....
-func (r RiskProfileStatus) String() string {
-	switch r {
-	case RiskProfileStatusHigh:
-		return "HIGH"
-	case RiskProfileStatusMedium:
-		return "MEDIUM"
-	case RiskProfileStatusLow:
-		return "LOW"
-	case RiskProfileStatusOK:
-		return "OK"
-	case RiskProfileStatusUnknown:
-		return "UNKNOWN"
-	default:
-		panic(fmt.Errorf("invalid RiskProfileStatus value: %d", r))
-	}
-}
-
-// MarshalJSON .....
-func (r RiskProfileStatus) MarshalJSON() ([]byte, error) {
-	jsonString := fmt.Sprintf(`"%s"`, r.String())
-	return []byte(jsonString), nil
-}
-
-// UnmarshalJSON .....
-func (r *RiskProfileStatus) UnmarshalJSON(data []byte) error {
-	var str string
-	err := json.Unmarshal(data, &str)
-	if err != nil {
-		return err
-	}
-	status, err := parseHubRiskProfileStatus(str)
-	if err != nil {
-		return err
-	}
-	*r = status
-	return nil
-}
-
-// MarshalText .....
-func (r RiskProfileStatus) MarshalText() (text []byte, err error) {
-	return []byte(r.String()), nil
-}
-
-// UnmarshalText .....
-func (r *RiskProfileStatus) UnmarshalText(text []byte) (err error) {
-	status, err := parseHubRiskProfileStatus(string(text))
-	if err != nil {
-		return err
-	}
-	*r = status
-	return nil
+	return vulnerabilities.HighRiskVulnerabilityCount() + vulnerabilities.CriticalRiskVulnerabilityCount()
 }
 
 // RiskProfileStatusCounts .....
 type RiskProfileStatusCounts struct {
-	StatusCounts map[RiskProfileStatus]int
+	StatusCounts map[string]int
 }
 
 // HighRiskVulnerabilityCount .....
 func (r *RiskProfileStatusCounts) HighRiskVulnerabilityCount() int {
-	highCount, ok := r.StatusCounts[RiskProfileStatusHigh]
-	if !ok {
-		return 0
-	}
-	return highCount
+	return r.StatusCounts[RiskProfileStatusHigh]
+}
+
+// CriticalRiskVulnerabilityCount return the CRITICAL vulnerability count
+func (r *RiskProfileStatusCounts) CriticalRiskVulnerabilityCount() int {
+	return r.StatusCounts[RiskProfileStatusCritical]
 }
 
 // ScanStage describes the current stage of the scan
@@ -425,7 +249,7 @@ func (scan *ScanResults) IsDone() bool {
 
 // VulnerabilityCount .....
 func (scan *ScanResults) VulnerabilityCount() int {
-	return scan.RiskProfile.HighRiskVulnerabilityCount()
+	return scan.RiskProfile.CriticalAndHighRiskVulnerabilityCount()
 }
 
 // PolicyViolationCount .....
@@ -434,7 +258,7 @@ func (scan *ScanResults) PolicyViolationCount() int {
 }
 
 // OverallStatus .....
-func (scan *ScanResults) OverallStatus() PolicyStatusType {
+func (scan *ScanResults) OverallStatus() string {
 	return scan.PolicyStatus.OverallStatus
 }
 
