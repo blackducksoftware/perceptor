@@ -91,6 +91,7 @@ func NewPerceptor(config *Config, timings *Timings, scanScheduler *ScanScheduler
 						log.Debugf("found hub %s which is not ready", hub.Host())
 						break
 					}
+					isHubNotReady = false
 					for scanName, results := range <-hub.ScanResults() {
 						scans[scanName] = results
 					}
